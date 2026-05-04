@@ -132,25 +132,9 @@ export default async function ArticlePage({
           className="prose-article"
           dangerouslySetInnerHTML={{ __html: article.contentHtml }}
         />
-      </div>
 
-      {/* === Author bio — sits close to the article body, no divider === */}
-      <div className="max-w-3xl mx-auto px-6 mt-8">
-        <AuthorBio />
-      </div>
-
-      <EyeDivider />
-
-      {/* === Share row === */}
-      <div className="max-w-2xl mx-auto px-6 flex justify-center">
-        <ShareButtons url={`/${article.slug}`} title={article.title} />
-      </div>
-
-      <EyeDivider />
-
-      {/* === P.S. — author postscript right before the email capture === */}
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="prose-article">
+        {/* === P.S. — directly under the article body, no drop cap === */}
+        <div className="max-w-[38rem] mx-auto mt-8">
           <p className="italic text-ink-muted leading-relaxed">
             <span className="text-ink not-italic" style={{ fontWeight: 600 }}>p.s.</span>{" "}
             reader-supported. no ads. no sponsors. no paywalls. if this piece
@@ -171,6 +155,20 @@ export default async function ArticlePage({
           </p>
         </div>
       </div>
+
+      {/* === Author bio === */}
+      <div className="max-w-3xl mx-auto px-6 mt-12">
+        <AuthorBio />
+      </div>
+
+      <EyeDivider />
+
+      {/* === Share row === */}
+      <div className="max-w-2xl mx-auto px-6 flex justify-center">
+        <ShareButtons url={`/${article.slug}`} title={article.title} />
+      </div>
+
+      <EyeDivider />
 
       {/* === Subscribe CTA — magazine sub box === */}
       <section className="max-w-3xl mx-auto px-6 py-16">
