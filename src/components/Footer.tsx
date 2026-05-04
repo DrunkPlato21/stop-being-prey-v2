@@ -54,11 +54,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/letters" className={navLinkClass}>
-                  Letters
-                </Link>
-              </li>
-              <li>
                 <Link href="/about" className={navLinkClass}>
                   About
                 </Link>
@@ -66,11 +61,6 @@ export function Footer() {
               <li>
                 <Link href="/#join" className={navLinkClass}>
                   Subscribe
-                </Link>
-              </li>
-              <li>
-                <Link href="/letters/submit" className={navLinkClass}>
-                  Submit a letter
                 </Link>
               </li>
               <li>

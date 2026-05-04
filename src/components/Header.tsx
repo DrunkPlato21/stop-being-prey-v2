@@ -25,13 +25,6 @@ export function Header() {
             Podcast
           </Link>
           <Link
-            href="/letters"
-            className="text-ink hover:text-eye-deep transition-colors no-underline px-3 py-2 font-display text-sm tracking-wider"
-            style={{ fontWeight: 500 }}
-          >
-            Letters
-          </Link>
-          <Link
             href="/about"
             className="text-ink hover:text-eye-deep transition-colors no-underline px-3 py-2 font-display text-sm tracking-wider"
             style={{ fontWeight: 500 }}
