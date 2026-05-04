@@ -3,11 +3,18 @@ import { EmailSignup } from "@/components/EmailSignup";
 import { EyeDivider } from "@/components/Eyes";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { getAllArticles } from "@/lib/articles";
+import { getCurrentIssue } from "@/lib/issue";
+
+const FOUNDATIONAL_SLUG = "the-losertarian-problem";
 
 export default function Home() {
   const articles = getAllArticles();
   const featured = articles[0];
   const olderArticles = articles.slice(1);
+  const issue = getCurrentIssue(articles);
+  const foundational = articles.find((a) => a.slug === FOUNDATIONAL_SLUG);
+  const showFoundational =
+    !!foundational && articles.length > 1 && featured?.slug !== FOUNDATIONAL_SLUG;
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-US", {
@@ -19,20 +26,14 @@ export default function Home() {
   return (
     <div>
       {/* === Masthead === */}
-      <section className="border-b border-rule">
-        <div className="max-w-6xl mx-auto px-6 pt-14 md:pt-20 pb-12 md:pb-16">
+      <section>
+        <div className="max-w-6xl mx-auto px-6 py-16 border-t border-b border-rule">
           <div className="flex flex-col items-center text-center">
-            <p className="eyebrow mb-7 fade-up">
-              The Daily Letter ·{" "}
-              {new Date(
-                featured?.date || new Date().toISOString()
-              ).toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </p>
+            {issue && (
+              <p className="eyebrow mb-7 fade-up">
+                Vol. {issue.volume} · No. {issue.number} · {issue.dateLabel}
+              </p>
+            )}
             <h1
               className="font-display text-ink leading-[0.95] tracking-tight fade-up stagger-2"
               style={{
@@ -49,32 +50,7 @@ export default function Home() {
             >
               On power, politics, and the apex class. Daily letters and audio
               by Clay.
-              <br />
-              <span className="text-ink" style={{ fontWeight: 500 }}>
-                Recovering libertarian, writing the playbook.
-              </span>
             </p>
-            <div className="mt-10 grid grid-cols-2 gap-y-2 sm:flex sm:flex-wrap sm:justify-center sm:items-center sm:gap-x-6 text-[0.7rem] uppercase tracking-[0.32em] text-ink-faint border-t border-b border-rule py-3 fade-up stagger-4 w-full max-w-2xl text-center">
-              <span>No ads</span>
-              <span className="hidden sm:inline text-rule">·</span>
-              <span>No sponsors</span>
-              <span className="hidden sm:inline text-rule">·</span>
-              <span>No paywalls</span>
-              <span className="hidden sm:inline text-rule">·</span>
-              <Link
-                href="/tip"
-                className="reader-supported-link"
-                style={{
-                  color: "var(--eye-deep)",
-                  textDecorationColor: "rgba(184, 168, 44, 0.4)",
-                  textUnderlineOffset: "4px",
-                  textDecorationThickness: "1px",
-                  transition: "color 0.2s ease, text-decoration-color 0.2s ease",
-                }}
-              >
-                Reader-supported
-              </Link>
-            </div>
           </div>
         </div>
       </section>
@@ -126,9 +102,6 @@ export default function Home() {
                 <Link href={`/${featured.slug}`} className="btn-primary">
                   <span>Read the essay</span>
                 </Link>
-                <Link href="/podcast" className="btn-secondary">
-                  Listen on the podcast
-                </Link>
               </div>
             </div>
 
@@ -141,6 +114,14 @@ export default function Home() {
                       type="episode"
                       size="standard"
                     />
+                    <div className="mt-3 text-right">
+                      <Link
+                        href="/podcast"
+                        className="eyebrow no-underline hover:text-ink transition-colors"
+                      >
+                        All episodes →
+                      </Link>
+                    </div>
                   </div>
                 )}
                 <div className="border-t border-rule pt-6">
@@ -158,6 +139,44 @@ export default function Home() {
                 </div>
               </div>
             </aside>
+          </div>
+        </section>
+      )}
+
+      {/* === Foundational Essay (permanent, hidden when only one essay exists) === */}
+      {showFoundational && foundational && (
+        <section className="max-w-6xl mx-auto px-6 pb-16 md:pb-24">
+          <div className="bg-surface border border-ink/10 p-8 md:p-12 relative max-w-4xl mx-auto">
+            {/* Cat-eye corner ornaments */}
+            <span className="absolute -top-px -left-px w-6 h-6 border-t-2 border-l-2 border-eye" />
+            <span className="absolute -top-px -right-px w-6 h-6 border-t-2 border-r-2 border-eye" />
+            <span className="absolute -bottom-px -left-px w-6 h-6 border-b-2 border-l-2 border-eye" />
+            <span className="absolute -bottom-px -right-px w-6 h-6 border-b-2 border-r-2 border-eye" />
+
+            <p className="eyebrow mb-4">Chapter 1</p>
+            <h2
+              className="font-display tracking-tight mb-4 leading-[1.05]"
+              style={{
+                fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)",
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              <Link
+                href={`/${foundational.slug}`}
+                className="text-ink hover:text-eye-deep transition-colors no-underline"
+              >
+                {foundational.title}
+              </Link>
+            </h2>
+            <p className="deck mb-6 max-w-xl">{foundational.description}</p>
+            <Link
+              href={`/${foundational.slug}`}
+              className="font-display text-sm uppercase tracking-[0.18em] text-ink hover:text-eye-deep transition-colors no-underline"
+              style={{ fontWeight: 500 }}
+            >
+              Read the essay →
+            </Link>
           </div>
         </section>
       )}

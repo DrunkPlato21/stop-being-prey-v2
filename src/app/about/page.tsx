@@ -26,6 +26,9 @@ export default function AboutPage() {
           >
             What this is.
           </h1>
+          <p className="font-serif italic text-ink-muted text-lg md:text-xl max-w-xl mx-auto leading-relaxed fade-up stagger-3">
+            Recovering libertarian, writing the playbook.
+          </p>
         </div>
       </section>
 

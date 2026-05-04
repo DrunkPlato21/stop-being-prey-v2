@@ -1,56 +1,80 @@
 import Link from "next/link";
 
+const columnHeaderClass = "font-display uppercase text-ink-muted mb-4";
+const columnHeaderStyle: React.CSSProperties = {
+  fontSize: "0.65rem",
+  letterSpacing: "0.22em",
+  fontWeight: 600,
+};
+
+const navLinkClass =
+  "text-ink hover:text-eye-deep no-underline font-serif text-sm transition-colors";
+
 export function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer className="border-t border-rule mt-32">
-      <div className="max-w-6xl mx-auto px-6 py-14">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6">
-          {/* Brand block */}
+    <footer className="mt-32">
+      <div className="max-w-6xl mx-auto px-6 py-12 md:py-16 border-t border-rule">
+        {/* Three-column row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 mb-12">
+          {/* Brand */}
           <div>
-            <Link
-              href="/"
-              className="flex items-center gap-3 no-underline mb-3"
-            >
+            <Link href="/" className="no-underline inline-block mb-3">
               <span
-                className="font-display text-lg text-ink"
-                style={{ fontWeight: 700 }}
+                className="font-display text-ink"
+                style={{
+                  fontSize: "clamp(1.5rem, 2.5vw, 1.875rem)",
+                  fontWeight: 700,
+                  letterSpacing: "-0.015em",
+                  lineHeight: 1.1,
+                }}
               >
                 Stop Being Prey
               </span>
             </Link>
             <p className="text-sm italic text-ink-muted leading-relaxed max-w-xs">
-              Politics, power, and predator/prey dynamics in 2026. Written and
-              read aloud by Clay.
+              An independent publication. Written and read aloud by Clay.
             </p>
           </div>
 
-          {/* Read */}
+          {/* Read & Listen */}
           <div>
-            <p className="eyebrow mb-4">Read & Listen</p>
+            <p className={columnHeaderClass} style={columnHeaderStyle}>
+              Read & Listen
+            </p>
             <ul className="space-y-2">
               <li>
-                <Link href="/" className="text-ink hover:text-eye-deep no-underline font-serif text-sm">
+                <Link href="/" className={navLinkClass}>
                   Essays
                 </Link>
               </li>
               <li>
-                <Link href="/podcast" className="text-ink hover:text-eye-deep no-underline font-serif text-sm">
+                <Link href="/podcast" className={navLinkClass}>
                   Podcast
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="text-ink hover:text-eye-deep no-underline font-serif text-sm">
+                <Link href="/letters" className={navLinkClass}>
+                  Letters
+                </Link>
+              </li>
+              <li>
+                <Link href="/about" className={navLinkClass}>
                   About
                 </Link>
               </li>
               <li>
-                <Link href="/#join" className="text-ink hover:text-eye-deep no-underline font-serif text-sm">
+                <Link href="/#join" className={navLinkClass}>
                   Subscribe
                 </Link>
               </li>
               <li>
-                <Link href="/tip" className="text-ink hover:text-eye-deep no-underline font-serif text-sm">
+                <Link href="/letters/submit" className={navLinkClass}>
+                  Submit a letter
+                </Link>
+              </li>
+              <li>
+                <Link href="/tip" className={navLinkClass}>
                   Tip
                 </Link>
               </li>
@@ -59,14 +83,16 @@ export function Footer() {
 
           {/* Elsewhere */}
           <div>
-            <p className="eyebrow mb-4">Elsewhere</p>
+            <p className={columnHeaderClass} style={columnHeaderStyle}>
+              Elsewhere
+            </p>
             <ul className="space-y-2">
               <li>
                 <a
                   href="https://twitter.com/stopbeingprey"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-ink hover:text-eye-deep no-underline font-serif text-sm"
+                  className={navLinkClass}
                 >
                   Twitter / X
                 </a>
@@ -76,7 +102,7 @@ export function Footer() {
                   href="https://open.spotify.com/show/6Pjbl5jXQlOoHpVn696V1t"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-ink hover:text-eye-deep no-underline font-serif text-sm"
+                  className={navLinkClass}
                 >
                   Spotify
                 </a>
@@ -86,7 +112,7 @@ export function Footer() {
                   href="https://facebook.com/ThomasSowellQuotes"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-ink hover:text-eye-deep no-underline font-serif text-sm"
+                  className={navLinkClass}
                 >
                   Facebook
                 </a>
@@ -94,13 +120,18 @@ export function Footer() {
             </ul>
           </div>
         </div>
-      </div>
 
-      <div className="border-t border-rule">
-        <div className="max-w-6xl mx-auto px-6 py-5 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-ink-faint italic">
-          <span>© {year} Clay. All writing original.</span>
-          <span>No ads. No sponsors. No paywalls.</span>
+        {/* Colophon band — framed by hairlines top and bottom */}
+        <div className="border-t border-b border-rule py-3 text-center">
+          <span className="eyebrow" style={{ letterSpacing: "0.18em" }}>
+            Independent · Uncompromised · Without paywalls · Reader-supported
+          </span>
         </div>
+
+        {/* Copyright */}
+        <p className="text-xs italic text-ink-muted mt-6 text-center">
+          © {year} Clay. All writing original.
+        </p>
       </div>
     </footer>
   );

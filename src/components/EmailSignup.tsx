@@ -14,12 +14,18 @@ export function EmailSignup() {
     setStatus("loading");
 
     try {
+      // Kit's public form endpoint expects URL-encoded form data, not
+      // JSON. The URL-encoded content-type is a "simple request" and skips
+      // the CORS preflight that JSON would trigger.
       const response = await fetch(
         "https://app.kit.com/forms/6d65bbd568/subscriptions",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email_address: email }),
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+          },
+          body: new URLSearchParams({ email_address: email }).toString(),
         }
       );
       if (!response.ok) {

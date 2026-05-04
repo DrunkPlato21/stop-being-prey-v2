@@ -43,4 +43,7 @@ next-env.d.ts
 # playwright MCP transient artifacts
 /.playwright-mcp/
 
+# Claude Code per-developer state
+/.claude/
+
 .vercel
