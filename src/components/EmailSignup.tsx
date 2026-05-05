@@ -1,7 +1,15 @@
+// Temporary: routing through the ReadSowell-branded Kit form (91813c2713)
+// while the SBP form (6d65bbd568) is investigated by Kit support — it's
+// silently operating in double-opt-in mode despite the UI showing single
+// opt-in. Both forms land subscribers in the same list and trigger the same
+// welcome automation, so this is a same-destination workaround. Swap back
+// once SBP form is fixed.
+const KIT_FORM_ACTION = "https://app.kit.com/forms/91813c2713/subscriptions";
+
 export function EmailSignup() {
   return (
     <form
-      action="https://app.kit.com/forms/6d65bbd568/subscriptions"
+      action={KIT_FORM_ACTION}
       method="post"
       className="flex flex-col sm:flex-row gap-0 w-full max-w-xl border border-ink"
     >
