@@ -44,6 +44,16 @@ export default function TipPage() {
           <LightningCard lightningAddress={LIGHTNING_ADDRESS} />
         </div>
 
+        <div className="mt-8 text-center">
+          <Link
+            href="/supporters"
+            className="font-display text-xs uppercase tracking-[0.22em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
+            style={{ fontWeight: 500 }}
+          >
+            see the supporters wall →
+          </Link>
+        </div>
+
         {/* On-chain coming soon */}
         <div className="mt-12 text-center max-w-2xl mx-auto">
           <p className="text-sm text-ink-muted italic leading-relaxed">

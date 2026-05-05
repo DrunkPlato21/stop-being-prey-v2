@@ -28,7 +28,12 @@ export async function POST(request: NextRequest) {
   }
 
   const amount = (body as { amount?: unknown })?.amount;
+  const rawName = (body as { name?: unknown })?.name;
   const rawMessage = (body as { message?: unknown })?.message;
+  const rawDisplay = (body as { display_publicly?: unknown })?.display_publicly;
+  const rawAttribution = (body as { attribution_preference?: unknown })
+    ?.attribution_preference;
+  const rawCity = (body as { city?: unknown })?.city;
 
   if (typeof amount !== "number" || !Number.isFinite(amount)) {
     return Response.json(
@@ -44,8 +49,40 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const donorName =
+    typeof rawName === "string" ? rawName.trim().slice(0, 80) : "";
   const donorMessage =
     typeof rawMessage === "string" ? rawMessage.trim().slice(0, 500) : "";
+  const displayPublicly = rawDisplay === true;
+  const allowedAttribution = new Set([
+    "full",
+    "first_last_initial",
+    "first",
+    "anonymous",
+  ]);
+  const attributionPreference =
+    typeof rawAttribution === "string" && allowedAttribution.has(rawAttribution)
+      ? rawAttribution
+      : "first";
+  const donorCity =
+    typeof rawCity === "string" ? rawCity.trim().slice(0, 80) : "";
+
+  const descriptionParts: string[] = [];
+  descriptionParts.push(donorName ? `Tip from ${donorName}` : "Tip");
+  if (donorMessage) descriptionParts.push(donorMessage.slice(0, 180));
+  const description = descriptionParts.join(" · ");
+
+  const donorMetadata: Record<string, string> = {};
+  if (donorName) donorMetadata.donor_name = donorName;
+  if (donorMessage) donorMetadata.donor_message = donorMessage;
+  if (displayPublicly) {
+    donorMetadata.display_publicly = "true";
+    donorMetadata.attribution_preference = attributionPreference;
+    if (attributionPreference === "full" && donorCity) {
+      donorMetadata.city = donorCity;
+    }
+  }
+  const hasDonorData = Object.keys(donorMetadata).length > 0;
 
   const unitAmount = Math.round(amount * 100);
 
@@ -68,12 +105,12 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      ...(donorMessage
+      ...(hasDonorData
         ? {
-            metadata: { donor_message: donorMessage },
+            metadata: donorMetadata,
             payment_intent_data: {
-              description: `Tip · ${donorMessage.slice(0, 180)}`,
-              metadata: { donor_message: donorMessage },
+              description,
+              metadata: donorMetadata,
             },
           }
         : {}),

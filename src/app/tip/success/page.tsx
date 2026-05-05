@@ -22,27 +22,35 @@ function formatUsd(cents: number): string {
 
 type SessionInfo = {
   amount: string | null;
+  donorName: string | null;
   donorMessage: string | null;
 };
 
 async function getSessionInfo(
   sessionId: string | undefined
 ): Promise<SessionInfo> {
-  if (!sessionId || !stripe) return { amount: null, donorMessage: null };
+  if (!sessionId || !stripe) {
+    return { amount: null, donorName: null, donorMessage: null };
+  }
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     const amount =
       typeof session.amount_total === "number"
         ? formatUsd(session.amount_total)
         : null;
+    const rawName = session.metadata?.donor_name;
+    const donorName =
+      typeof rawName === "string" && rawName.trim().length > 0
+        ? rawName
+        : null;
     const rawNote = session.metadata?.donor_message;
     const donorMessage =
       typeof rawNote === "string" && rawNote.trim().length > 0
         ? rawNote
         : null;
-    return { amount, donorMessage };
+    return { amount, donorName, donorMessage };
   } catch {
-    return { amount: null, donorMessage: null };
+    return { amount: null, donorName: null, donorMessage: null };
   }
 }
 
@@ -52,7 +60,7 @@ export default async function TipSuccessPage({
   searchParams: Promise<{ session_id?: string }>;
 }) {
   const { session_id } = await searchParams;
-  const { amount, donorMessage } = await getSessionInfo(session_id);
+  const { amount, donorName, donorMessage } = await getSessionInfo(session_id);
 
   return (
     <div>
@@ -64,7 +72,9 @@ export default async function TipSuccessPage({
           <span className="absolute -bottom-px -left-px w-5 h-5 border-b-2 border-l-2 border-eye" />
           <span className="absolute -bottom-px -right-px w-5 h-5 border-b-2 border-r-2 border-eye" />
 
-          <p className="eyebrow mb-6 fade-up stagger-1">Thank you</p>
+          <p className="eyebrow mb-6 fade-up stagger-1">
+            {donorName ? `Thank you, ${donorName}` : "Thank you"}
+          </p>
           <h1
             className="font-display text-ink leading-[1.05] tracking-tight mb-6 fade-up stagger-2"
             style={{

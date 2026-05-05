@@ -3,7 +3,34 @@
 import { useState } from "react";
 
 const PRESETS = [5, 10, 20, 50, 100];
+const NAME_MAX = 80;
 const MESSAGE_MAX = 500;
+const CITY_MAX = 80;
+
+type AttributionPreference =
+  | "full"
+  | "first_last_initial"
+  | "first"
+  | "anonymous";
+
+const ATTRIBUTION_OPTIONS: Array<{
+  value: AttributionPreference;
+  label: string;
+  example: string;
+}> = [
+  {
+    value: "full",
+    label: "Full name and city",
+    example: "Carla Streff, Lansing",
+  },
+  {
+    value: "first_last_initial",
+    label: "First name and last initial",
+    example: "Carla S.",
+  },
+  { value: "first", label: "First name only", example: "Carla" },
+  { value: "anonymous", label: "Anonymous", example: "a reader writes…" },
+];
 
 function parseAmount(raw: string): number | null {
   if (raw.trim() === "") return null;
@@ -20,7 +47,12 @@ function formatAmount(n: number): string {
 export function StripeDonateCard() {
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState<string>("");
+  const [name, setName] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+  const [city, setCity] = useState<string>("");
+  const [displayPublicly, setDisplayPublicly] = useState(false);
+  const [attribution, setAttribution] =
+    useState<AttributionPreference>("first");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,13 +78,22 @@ export function StripeDonateCard() {
     setLoading(true);
     setError(null);
     try {
+      const trimmedName = name.trim();
       const trimmedMessage = message.trim();
+      const trimmedCity = city.trim();
       const res = await fetch("/api/checkout/donate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parsed,
+          name: trimmedName || undefined,
           message: trimmedMessage || undefined,
+          display_publicly: displayPublicly,
+          attribution_preference: attribution,
+          city:
+            displayPublicly && attribution === "full" && trimmedCity
+              ? trimmedCity
+              : undefined,
         }),
       });
       const data: { url?: string; error?: string } = await res.json();
@@ -155,8 +196,23 @@ export function StripeDonateCard() {
           </div>
         </label>
 
+        {/* Optional name */}
+        <label className="w-full max-w-sm mb-3 text-left">
+          <span className="sr-only">Your name</span>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))}
+            placeholder="Your name (optional)"
+            maxLength={NAME_MAX}
+            autoComplete="name"
+            className="w-full border border-border bg-paper px-3 py-2 outline-none focus:border-eye font-serif text-ink text-sm transition-colors"
+            aria-label="Your name (optional)"
+          />
+        </label>
+
         {/* Optional message */}
-        <label className="w-full max-w-sm mb-6 text-left">
+        <label className="w-full max-w-sm mb-3 text-left">
           <span className="sr-only">Optional message to Clay</span>
           <textarea
             value={message}
@@ -171,6 +227,70 @@ export function StripeDonateCard() {
             {message.length}/{MESSAGE_MAX}
           </div>
         </label>
+
+        {/* Public-display opt-in */}
+        <div className="w-full max-w-sm mb-6 text-left pl-3">
+          <label className="flex items-start gap-2 cursor-pointer text-sm text-ink-muted">
+            <input
+              type="checkbox"
+              checked={displayPublicly}
+              onChange={(e) => setDisplayPublicly(e.target.checked)}
+              className="mt-1 accent-eye-deep"
+            />
+            <span className="leading-snug">
+              Display my message on the public supporters wall
+            </span>
+          </label>
+
+          {displayPublicly && (
+            <fieldset className="mt-4 ml-6 border-0 p-0">
+              <legend className="eyebrow mb-3" style={{ letterSpacing: "0.22em" }}>
+                How would you like to be attributed?
+              </legend>
+              <div className="flex flex-col gap-2">
+                {ATTRIBUTION_OPTIONS.map((opt) => (
+                  <label
+                    key={opt.value}
+                    className="flex items-start gap-2 cursor-pointer text-sm text-ink-muted"
+                  >
+                    <input
+                      type="radio"
+                      name="attribution"
+                      value={opt.value}
+                      checked={attribution === opt.value}
+                      onChange={() => setAttribution(opt.value)}
+                      className="mt-1 accent-eye-deep"
+                    />
+                    <span className="leading-snug">
+                      {opt.label}{" "}
+                      <span className="italic text-ink-faint">
+                        — {opt.example}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {attribution === "full" && (
+                <label className="block mt-4 text-sm text-ink-muted">
+                  <span className="block mb-1">City</span>
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={(e) =>
+                      setCity(e.target.value.slice(0, CITY_MAX))
+                    }
+                    placeholder="Lansing"
+                    maxLength={CITY_MAX}
+                    autoComplete="address-level2"
+                    className="w-full border border-border bg-paper px-3 py-2 outline-none focus:border-eye font-serif text-ink text-sm transition-colors"
+                    aria-label="City"
+                  />
+                </label>
+              )}
+            </fieldset>
+          )}
+        </div>
 
         {/* Donate button */}
         <button

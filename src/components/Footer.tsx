@@ -68,6 +68,11 @@ export function Footer() {
                   Tip
                 </Link>
               </li>
+              <li>
+                <Link href="/supporters" className={navLinkClass}>
+                  Supporters
+                </Link>
+              </li>
             </ul>
           </div>
 
