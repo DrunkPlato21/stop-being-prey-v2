@@ -3,7 +3,7 @@ import Link from "next/link";
 export function Header() {
   return (
     <header className="border-b border-rule">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between gap-3 sm:gap-6">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-5 flex items-center justify-between gap-2 sm:gap-6">
         <Link
           href="/"
           className="flex items-center gap-3 no-underline group"
@@ -20,20 +20,27 @@ export function Header() {
             Stop Being Prey
           </span>
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
+        <nav className="flex items-center gap-0 sm:gap-2">
           <Link
             href="/podcast"
-            className="text-ink hover:text-eye-deep transition-colors no-underline px-2 sm:px-3 py-2 font-display text-xs sm:text-sm tracking-wider"
+            className="text-ink hover:text-eye-deep transition-colors no-underline px-1.5 sm:px-3 py-2 font-display text-xs sm:text-sm tracking-wider"
             style={{ fontWeight: 500 }}
           >
             Podcast
           </Link>
           <Link
             href="/about"
-            className="text-ink hover:text-eye-deep transition-colors no-underline px-2 sm:px-3 py-2 font-display text-xs sm:text-sm tracking-wider"
+            className="text-ink hover:text-eye-deep transition-colors no-underline px-1.5 sm:px-3 py-2 font-display text-xs sm:text-sm tracking-wider"
             style={{ fontWeight: 500 }}
           >
             About
+          </Link>
+          <Link
+            href="/tip"
+            className="text-ink hover:text-eye-deep transition-colors no-underline px-1.5 sm:px-3 py-2 font-display text-xs sm:text-sm tracking-wider"
+            style={{ fontWeight: 500 }}
+          >
+            Tip
           </Link>
           <Link
             href="/#join"

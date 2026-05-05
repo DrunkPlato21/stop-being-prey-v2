@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 const PRESETS = [5, 10, 20, 50, 100];
+const MESSAGE_MAX = 500;
 
 function parseAmount(raw: string): number | null {
   if (raw.trim() === "") return null;
@@ -19,6 +20,7 @@ function formatAmount(n: number): string {
 export function StripeDonateCard() {
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,10 +46,14 @@ export function StripeDonateCard() {
     setLoading(true);
     setError(null);
     try {
+      const trimmedMessage = message.trim();
       const res = await fetch("/api/checkout/donate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: parsed }),
+        body: JSON.stringify({
+          amount: parsed,
+          message: trimmedMessage || undefined,
+        }),
       });
       const data: { url?: string; error?: string } = await res.json();
       if (!res.ok || !data.url) {
@@ -125,7 +131,7 @@ export function StripeDonateCard() {
         </div>
 
         {/* Custom amount input */}
-        <label className="w-full max-w-sm mb-6">
+        <label className="w-full max-w-sm mb-4">
           <span className="sr-only">Custom amount in US dollars</span>
           <div
             className="flex items-center border border-border bg-paper px-3 py-2 focus-within:border-eye transition-colors"
@@ -146,6 +152,23 @@ export function StripeDonateCard() {
               className="flex-1 bg-transparent outline-none font-serif text-ink text-base"
               aria-label="Custom donation amount in US dollars"
             />
+          </div>
+        </label>
+
+        {/* Optional message */}
+        <label className="w-full max-w-sm mb-6 text-left">
+          <span className="sr-only">Optional message to Clay</span>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value.slice(0, MESSAGE_MAX))}
+            placeholder="Leave a note (optional)"
+            rows={3}
+            maxLength={MESSAGE_MAX}
+            className="w-full border border-border bg-paper px-3 py-2 outline-none focus:border-eye font-serif text-ink text-sm leading-relaxed resize-none transition-colors"
+            aria-label="Optional message to Clay"
+          />
+          <div className="text-right text-[0.65rem] uppercase tracking-[0.14em] text-ink-faint mt-1">
+            {message.length}/{MESSAGE_MAX}
           </div>
         </label>
 

@@ -15,6 +15,7 @@ const formatDate = (date: string) =>
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   });
 
 const estimateMinutes = (wordCount?: number) =>

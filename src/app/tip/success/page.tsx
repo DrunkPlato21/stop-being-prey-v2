@@ -20,16 +20,29 @@ function formatUsd(cents: number): string {
     : `$${dollars.toFixed(2)}`;
 }
 
-async function getAmountFromSession(
+type SessionInfo = {
+  amount: string | null;
+  donorMessage: string | null;
+};
+
+async function getSessionInfo(
   sessionId: string | undefined
-): Promise<string | null> {
-  if (!sessionId || !stripe) return null;
+): Promise<SessionInfo> {
+  if (!sessionId || !stripe) return { amount: null, donorMessage: null };
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (typeof session.amount_total !== "number") return null;
-    return formatUsd(session.amount_total);
+    const amount =
+      typeof session.amount_total === "number"
+        ? formatUsd(session.amount_total)
+        : null;
+    const rawNote = session.metadata?.donor_message;
+    const donorMessage =
+      typeof rawNote === "string" && rawNote.trim().length > 0
+        ? rawNote
+        : null;
+    return { amount, donorMessage };
   } catch {
-    return null;
+    return { amount: null, donorMessage: null };
   }
 }
 
@@ -39,7 +52,7 @@ export default async function TipSuccessPage({
   searchParams: Promise<{ session_id?: string }>;
 }) {
   const { session_id } = await searchParams;
-  const amount = await getAmountFromSession(session_id);
+  const { amount, donorMessage } = await getSessionInfo(session_id);
 
   return (
     <div>
@@ -73,6 +86,18 @@ export default async function TipSuccessPage({
             >
               You contributed {amount}.
             </p>
+          )}
+
+          {donorMessage && (
+            <div className="mt-8 max-w-md mx-auto fade-up stagger-5">
+              <p className="eyebrow mb-3">Your note</p>
+              <blockquote
+                className="font-display italic text-ink leading-snug border-l-2 border-eye pl-5 py-1 text-left"
+                style={{ fontSize: "1.05rem", fontWeight: 400 }}
+              >
+                {donorMessage}
+              </blockquote>
+            </div>
           )}
         </div>
 

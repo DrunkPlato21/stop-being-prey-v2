@@ -71,6 +71,7 @@ export function getCurrentIssue(
     month: "long",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   });
 
   return { volume, number, dateLabel, rawDate: latest.date };

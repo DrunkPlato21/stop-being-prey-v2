@@ -58,6 +58,7 @@ export default async function ArticlePage({
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   });
 
   const minutes = article.wordCount

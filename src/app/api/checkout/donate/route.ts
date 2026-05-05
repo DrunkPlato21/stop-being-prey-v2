@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
   }
 
   const amount = (body as { amount?: unknown })?.amount;
+  const rawMessage = (body as { message?: unknown })?.message;
 
   if (typeof amount !== "number" || !Number.isFinite(amount)) {
     return Response.json(
@@ -42,6 +43,9 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  const donorMessage =
+    typeof rawMessage === "string" ? rawMessage.trim().slice(0, 500) : "";
 
   const unitAmount = Math.round(amount * 100);
 
@@ -64,6 +68,15 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
+      ...(donorMessage
+        ? {
+            metadata: { donor_message: donorMessage },
+            payment_intent_data: {
+              description: `Tip · ${donorMessage.slice(0, 180)}`,
+              metadata: { donor_message: donorMessage },
+            },
+          }
+        : {}),
       success_url: `${baseUrl}/tip/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/tip`,
     });
