@@ -4,8 +4,7 @@ import { useState } from "react";
 
 // Posts to a same-origin Next.js route handler that forwards to Kit
 // server-side (Kit's endpoint blocks browser fetch via CORS). The Kit form
-// ID lives in /api/subscribe — see that file for context on why we're
-// routing through the ReadSowell-branded form (91813c2713).
+// ID lives in /api/subscribe.
 const SUBSCRIBE_ENDPOINT = "/api/subscribe";
 
 type Status = "idle" | "loading" | "success" | "error";

@@ -3,13 +3,10 @@ import type { NextRequest } from "next/server";
 // Server-side proxy to Kit's subscription endpoint. The browser hits this
 // same-origin route to avoid CORS; we forward server-to-server to Kit.
 //
-// Temporary form ID: routing through the ReadSowell-branded Kit form
-// (91813c2713) while the SBP form (6d65bbd568) is investigated by Kit
-// support — it's silently operating in double-opt-in mode despite the UI
-// showing single opt-in. Both forms land subscribers in the same list and
-// trigger the same welcome automation, so this is a same-destination
-// workaround. Swap back once the SBP form is fixed.
-const KIT_FORM_ENDPOINT = "https://app.kit.com/forms/91813c2713/subscriptions";
+// 9402960 is the SBP form's numeric ID. The alphanumeric value Kit shows
+// in its embed UI (e.g. 6d65bbd568) is the form's UID/embed token, not
+// what the /subscriptions endpoint expects.
+const KIT_FORM_ENDPOINT = "https://app.kit.com/forms/9402960/subscriptions";
 
 export async function POST(request: NextRequest) {
   let body: unknown;
