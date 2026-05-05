@@ -31,6 +31,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const formData = new URLSearchParams();
+  formData.append("email_address", email);
+
   try {
     const kitResponse = await fetch(KIT_FORM_ENDPOINT, {
       method: "POST",
@@ -38,18 +41,43 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/x-www-form-urlencoded",
         Accept: "application/json",
       },
-      body: new URLSearchParams({ email_address: email }).toString(),
+      body: formData.toString(),
     });
 
-    if (!kitResponse.ok) {
+    const responseBody = await kitResponse.text();
+    console.log(
+      `[subscribe] Kit responded ${kitResponse.status} ${kitResponse.statusText}`,
+    );
+    console.log(`[subscribe] Kit response body: ${responseBody}`);
+
+    let kitJson: unknown = null;
+    try {
+      kitJson = JSON.parse(responseBody);
+    } catch {
+      // Kit didn't return JSON — fall back to status code only.
+    }
+
+    // Kit can return HTTP 200 with a JSON error payload, so check both.
+    const kitError =
+      kitJson &&
+      typeof kitJson === "object" &&
+      "error" in (kitJson as Record<string, unknown>)
+        ? String((kitJson as { error: unknown }).error)
+        : null;
+
+    if (!kitResponse.ok || kitError) {
       return Response.json(
-        { error: "Subscription failed. Please try again." },
-        { status: kitResponse.status },
+        {
+          error:
+            kitError ?? "Subscription failed. Please try again.",
+        },
+        { status: kitResponse.ok ? 502 : kitResponse.status },
       );
     }
 
     return Response.json({ ok: true });
-  } catch {
+  } catch (err) {
+    console.error("[subscribe] Kit request threw:", err);
     return Response.json(
       { error: "Could not reach the subscription service." },
       { status: 502 },
