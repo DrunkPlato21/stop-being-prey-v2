@@ -1,14 +1,29 @@
 import type { NextRequest } from "next/server";
 
-// Server-side proxy to Kit's subscription endpoint. The browser hits this
+// Server-side proxy to Kit's authenticated v4 API. The browser hits this
 // same-origin route to avoid CORS; we forward server-to-server to Kit.
+//
+// We use the authenticated v4 endpoint (api.kit.com) rather than the public
+// embed endpoint (app.kit.com/forms/<id>/subscriptions) because Kit's bot
+// protection quarantines unauthenticated server-side submissions to the
+// embed endpoint. Authenticated requests bypass that.
 //
 // 9402960 is the SBP form's numeric ID. The alphanumeric value Kit shows
 // in its embed UI (e.g. 6d65bbd568) is the form's UID/embed token, not
-// what the /subscriptions endpoint expects.
-const KIT_FORM_ENDPOINT = "https://app.kit.com/forms/9402960/subscriptions";
+// what the API endpoint expects.
+const KIT_FORM_ENDPOINT =
+  "https://api.kit.com/v4/forms/9402960/subscribers";
 
 export async function POST(request: NextRequest) {
+  const apiKey = process.env.KIT_API_KEY;
+  if (!apiKey) {
+    console.error("[subscribe] KIT_API_KEY is not set");
+    return Response.json(
+      { error: "Subscription service is not configured." },
+      { status: 500 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -28,17 +43,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const formData = new URLSearchParams();
-  formData.append("email_address", email);
-
   try {
     const kitResponse = await fetch(KIT_FORM_ENDPOINT, {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Kit-Api-Key": apiKey,
+        "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: formData.toString(),
+      body: JSON.stringify({ email_address: email }),
     });
 
     const responseBody = await kitResponse.text();
