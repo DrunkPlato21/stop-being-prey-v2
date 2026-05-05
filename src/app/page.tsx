@@ -9,16 +9,12 @@ const FOUNDATIONAL_SLUG = "the-losertarian-problem";
 
 export default function Home() {
   const articles = getAllArticles();
-  // Pin the foundational essay as the homepage lead. Newer essays appear in
-  // the "More essays" grid below — the homepage is meant to send first-time
-  // readers from the launch email straight into Losertarian.
+  // Pin the foundational essay as the homepage lead. Masthead Vol/No/date
+  // also tracks the lead (not the newest essay) so the launch email's
+  // anchor stays consistent.
   const featured =
     articles.find((a) => a.slug === FOUNDATIONAL_SLUG) ?? articles[0];
-  const olderArticles = articles.filter((a) => a.slug !== featured?.slug);
-  const issue = getCurrentIssue(articles);
-  const foundational = articles.find((a) => a.slug === FOUNDATIONAL_SLUG);
-  const showFoundational =
-    !!foundational && articles.length > 1 && featured?.slug !== FOUNDATIONAL_SLUG;
+  const issue = getCurrentIssue(featured ? [featured] : articles);
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-US", {
@@ -152,74 +148,7 @@ export default function Home() {
         </section>
       )}
 
-      {/* === Foundational Essay (permanent, hidden when only one essay exists) === */}
-      {showFoundational && foundational && (
-        <section className="max-w-6xl mx-auto px-6 pb-16">
-          <div className="bg-surface border border-ink/10 p-8 md:p-12 relative max-w-4xl mx-auto">
-            {/* Cat-eye corner ornaments */}
-            <span className="absolute -top-px -left-px w-6 h-6 border-t-2 border-l-2 border-eye" />
-            <span className="absolute -top-px -right-px w-6 h-6 border-t-2 border-r-2 border-eye" />
-            <span className="absolute -bottom-px -left-px w-6 h-6 border-b-2 border-l-2 border-eye" />
-            <span className="absolute -bottom-px -right-px w-6 h-6 border-b-2 border-r-2 border-eye" />
-
-            <p className="eyebrow mb-4">Chapter 1</p>
-            <h2
-              className="font-display tracking-tight mb-4 leading-[1.05]"
-              style={{
-                fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)",
-                fontWeight: 700,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              <Link
-                href={`/${foundational.slug}`}
-                className="text-ink hover:text-eye-deep transition-colors no-underline"
-              >
-                {foundational.title}
-              </Link>
-            </h2>
-            <p className="deck mb-6 max-w-xl">{foundational.description}</p>
-            <Link
-              href={`/${foundational.slug}`}
-              className="font-display text-sm uppercase tracking-[0.18em] text-ink hover:text-eye-deep transition-colors no-underline"
-              style={{ fontWeight: 500 }}
-            >
-              Read the essay →
-            </Link>
-          </div>
-        </section>
-      )}
-
       <EyeDivider />
-
-      {olderArticles.length > 0 && (
-        <section className="max-w-6xl mx-auto px-6 py-12 md:py-16">
-          <p className="eyebrow mb-10 text-center">More essays</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
-            {olderArticles.map((article) => (
-              <article key={article.slug}>
-                <p className="text-xs uppercase tracking-[0.18em] text-ink-faint mb-2">
-                  {formatDate(article.date)}
-                </p>
-                <h3
-                  className="font-display text-2xl mb-3 leading-tight tracking-tight"
-                  style={{ fontWeight: 700 }}
-                >
-                  <Link
-                    href={`/${article.slug}`}
-                    className="text-ink hover:text-eye-deep no-underline"
-                  >
-                    {article.title}
-                  </Link>
-                </h3>
-                <p className="text-ink-muted text-sm italic leading-relaxed">
-                  {article.description}
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* === Manifesto strip === */}
       <section className="bg-paper-deep border-y border-rule py-16">
