@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 
-// Temporary: routing through the ReadSowell-branded Kit form (91813c2713)
-// while the SBP form (6d65bbd568) is investigated by Kit support — it's
-// silently operating in double-opt-in mode despite the UI showing single
-// opt-in. Both forms land subscribers in the same list and trigger the same
-// welcome automation, so this is a same-destination workaround. Swap back
-// once SBP form is fixed.
-const KIT_FORM_ENDPOINT = "https://app.kit.com/forms/91813c2713/subscriptions";
+// Posts to a same-origin Next.js route handler that forwards to Kit
+// server-side (Kit's endpoint blocks browser fetch via CORS). The Kit form
+// ID lives in /api/subscribe — see that file for context on why we're
+// routing through the ReadSowell-branded form (91813c2713).
+const SUBSCRIBE_ENDPOINT = "/api/subscribe";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -23,13 +21,16 @@ export function EmailSignup() {
     setStatus("loading");
     setErrorMessage(null);
     try {
-      const response = await fetch(KIT_FORM_ENDPOINT, {
+      const response = await fetch(SUBSCRIBE_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email_address: email }),
       });
       if (!response.ok) {
-        throw new Error("Subscription failed. Please try again.");
+        const data = (await response.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        throw new Error(data?.error ?? "Subscription failed. Please try again.");
       }
       setStatus("success");
     } catch (err) {
