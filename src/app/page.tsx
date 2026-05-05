@@ -14,6 +14,7 @@ export default function Home() {
   // anchor stays consistent.
   const featured =
     articles.find((a) => a.slug === FOUNDATIONAL_SLUG) ?? articles[0];
+  const olderArticles = articles.filter((a) => a.slug !== featured?.slug);
   const issue = getCurrentIssue(featured ? [featured] : articles);
 
   const formatDate = (date: string) =>
@@ -187,6 +188,35 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {olderArticles.length > 0 && (
+        <section className="max-w-6xl mx-auto px-6 py-12 md:py-16">
+          <p className="eyebrow mb-10 text-center">More essays</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+            {olderArticles.map((article) => (
+              <article key={article.slug}>
+                <p className="text-xs uppercase tracking-[0.18em] text-ink-faint mb-2">
+                  {formatDate(article.date)}
+                </p>
+                <h3
+                  className="font-display text-2xl mb-3 leading-tight tracking-tight"
+                  style={{ fontWeight: 700 }}
+                >
+                  <Link
+                    href={`/${article.slug}`}
+                    className="text-ink hover:text-eye-deep no-underline"
+                  >
+                    {article.title}
+                  </Link>
+                </h3>
+                <p className="text-ink-muted text-sm italic leading-relaxed">
+                  {article.description}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* === Subscribe === */}
       <section
