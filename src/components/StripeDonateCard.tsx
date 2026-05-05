@@ -242,6 +242,11 @@ export function StripeDonateCard() {
             </span>
           </label>
 
+          <p className="mt-2 ml-6 text-xs italic text-ink-faint leading-snug">
+            Your donation amount won't be displayed publicly. The wall shows
+            messages and chosen attribution only.
+          </p>
+
           {displayPublicly && (
             <fieldset className="mt-4 ml-6 border-0 p-0">
               <legend className="eyebrow mb-3" style={{ letterSpacing: "0.22em" }}>
