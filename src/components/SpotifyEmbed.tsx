@@ -2,15 +2,15 @@ type SpotifyEmbedProps = {
   episodeId?: string;
   showId?: string;
   type?: "episode" | "show";
-  /** "compact" = 80px, "standard" = 152px, "large" = 232px */
+  /** "compact" = 152px, "standard" = 232px, "large" = 352px (matches Spotify's actual player heights) */
   size?: "compact" | "standard" | "large";
   framed?: boolean;
 };
 
 const SIZE_HEIGHTS: Record<NonNullable<SpotifyEmbedProps["size"]>, number> = {
-  compact: 80,
-  standard: 152,
-  large: 232,
+  compact: 152,
+  standard: 232,
+  large: 352,
 };
 
 export function SpotifyEmbed({

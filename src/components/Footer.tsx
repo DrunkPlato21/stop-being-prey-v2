@@ -13,7 +13,7 @@ const navLinkClass =
 export function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer className="mt-32">
+    <footer>
       <div className="max-w-6xl mx-auto px-6 py-12 md:py-16 border-t border-rule">
         {/* Three-column row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 mb-12">

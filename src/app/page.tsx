@@ -21,6 +21,7 @@ export default function Home() {
       year: "numeric",
       month: "long",
       day: "numeric",
+      timeZone: "UTC",
     });
 
   return (
@@ -31,7 +32,11 @@ export default function Home() {
           <div className="flex flex-col items-center text-center">
             {issue && (
               <p className="eyebrow mb-7 fade-up">
-                Vol. {issue.volume} · No. {issue.number} · {issue.dateLabel}
+                <span className="block sm:inline">
+                  Vol. {issue.volume} · No. {issue.number}
+                </span>
+                <span className="hidden sm:inline"> · </span>
+                <span className="block sm:inline">{issue.dateLabel}</span>
               </p>
             )}
             <h1
@@ -57,8 +62,8 @@ export default function Home() {
 
       {/* === Featured Lead Article === */}
       {featured && (
-        <section className="max-w-6xl mx-auto px-6 py-16 md:py-24">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-16">
+        <section className="max-w-6xl mx-auto px-6 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-16 md:items-center">
             <div className="md:col-span-7">
               <p className="eyebrow mb-5">
                 {featured.chapter
@@ -124,12 +129,12 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-                <div className="border-t border-rule pt-6">
-                  <p className="eyebrow mb-3">From the essay</p>
+                <div className="mt-10">
+                  <p className="eyebrow mb-4">From the essay</p>
                   <blockquote
-                    className="font-display italic text-ink leading-tight"
+                    className="font-display italic text-ink leading-snug border-l-2 border-eye pl-6 py-2 my-2"
                     style={{
-                      fontSize: "1.4rem",
+                      fontSize: "clamp(1.45rem, 2.2vw, 1.75rem)",
                       fontWeight: 400,
                     }}
                   >
@@ -145,7 +150,7 @@ export default function Home() {
 
       {/* === Foundational Essay (permanent, hidden when only one essay exists) === */}
       {showFoundational && foundational && (
-        <section className="max-w-6xl mx-auto px-6 pb-16 md:pb-24">
+        <section className="max-w-6xl mx-auto px-6 pb-16">
           <div className="bg-surface border border-ink/10 p-8 md:p-12 relative max-w-4xl mx-auto">
             {/* Cat-eye corner ornaments */}
             <span className="absolute -top-px -left-px w-6 h-6 border-t-2 border-l-2 border-eye" />
@@ -213,7 +218,7 @@ export default function Home() {
       )}
 
       {/* === Manifesto strip === */}
-      <section className="bg-paper-deep border-y border-rule py-20 md:py-28">
+      <section className="bg-paper-deep border-y border-rule py-16">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <p className="eyebrow mb-6">The work</p>
           <p
@@ -253,7 +258,7 @@ export default function Home() {
       {/* === Subscribe === */}
       <section
         id="join"
-        className="max-w-3xl mx-auto px-6 py-20 md:py-28 text-center"
+        className="max-w-3xl mx-auto px-6 py-16 text-center"
       >
         <p className="eyebrow mb-5">Subscribe</p>
         <h2
