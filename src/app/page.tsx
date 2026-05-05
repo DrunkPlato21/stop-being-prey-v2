@@ -9,8 +9,12 @@ const FOUNDATIONAL_SLUG = "the-losertarian-problem";
 
 export default function Home() {
   const articles = getAllArticles();
-  const featured = articles[0];
-  const olderArticles = articles.slice(1);
+  // Pin the foundational essay as the homepage lead. Newer essays appear in
+  // the "More essays" grid below — the homepage is meant to send first-time
+  // readers from the launch email straight into Losertarian.
+  const featured =
+    articles.find((a) => a.slug === FOUNDATIONAL_SLUG) ?? articles[0];
+  const olderArticles = articles.filter((a) => a.slug !== featured?.slug);
   const issue = getCurrentIssue(articles);
   const foundational = articles.find((a) => a.slug === FOUNDATIONAL_SLUG);
   const showFoundational =
