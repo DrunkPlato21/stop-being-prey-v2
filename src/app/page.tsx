@@ -5,16 +5,15 @@ import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { getAllArticles } from "@/lib/articles";
 import { getCurrentIssue } from "@/lib/issue";
 
-const FOUNDATIONAL_SLUG = "the-losertarian-problem";
-
 export default function Home() {
   const articles = getAllArticles();
-  // Pin the foundational essay as the homepage lead. Masthead Vol/No/date
-  // also tracks the lead (not the newest essay) so the launch email's
-  // anchor stays consistent.
-  const featured =
-    articles.find((a) => a.slug === FOUNDATIONAL_SLUG) ?? articles[0];
-  const olderArticles = articles.filter((a) => a.slug !== featured?.slug);
+  // The lead is the highest-numbered issue. Non-issue essays never take the
+  // hero slot; they live at their own URL but are not listed here.
+  const issues = articles
+    .filter((a) => typeof a.issue === "number")
+    .sort((a, b) => (b.issue ?? 0) - (a.issue ?? 0));
+  const featured = issues[0] ?? articles[0];
+  const previousIssues = issues.filter((a) => a.slug !== featured?.slug);
   const issue = getCurrentIssue(featured ? [featured] : articles);
 
   const formatDate = (date: string) =>
@@ -139,8 +138,7 @@ export default function Home() {
                       fontWeight: 400,
                     }}
                   >
-                    &ldquo;Power is what makes ideas matter. Without power, you
-                    don&apos;t have ideas. You have a hobby.&rdquo;
+                    &ldquo;We can model them. They can&apos;t model us.&rdquo;
                   </blockquote>
                 </div>
               </div>
@@ -189,31 +187,38 @@ export default function Home() {
         </div>
       </section>
 
-      {olderArticles.length > 0 && (
+      {previousIssues.length > 0 && (
         <section className="max-w-6xl mx-auto px-6 py-12 md:py-16">
-          <p className="eyebrow mb-10 text-center">More essays</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
-            {olderArticles.map((article) => (
-              <article key={article.slug}>
-                <p className="text-xs uppercase tracking-[0.18em] text-ink-faint mb-2">
-                  {formatDate(article.date)}
+          <p className="eyebrow mb-10 text-center">Previous issues</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {previousIssues.map((article) => (
+              <Link
+                key={article.slug}
+                href={`/${article.slug}`}
+                className="block border border-rule p-6 md:p-8 no-underline transition-colors hover:border-eye"
+              >
+                <p className="eyebrow mb-3">
+                  Issue No. {article.issue} · {formatDate(article.date)}
                 </p>
                 <h3
-                  className="font-display text-2xl mb-3 leading-tight tracking-tight"
-                  style={{ fontWeight: 700 }}
+                  className="font-display text-ink text-2xl md:text-3xl mb-3 leading-tight tracking-tight"
+                  style={{ fontWeight: 700, letterSpacing: "-0.02em" }}
                 >
-                  <Link
-                    href={`/${article.slug}`}
-                    className="text-ink hover:text-eye-deep no-underline"
-                  >
-                    {article.title}
-                  </Link>
+                  {article.title}
                 </h3>
                 <p className="text-ink-muted text-sm italic leading-relaxed">
-                  {article.description}
+                  {article.subtitle ?? article.description}
                 </p>
-              </article>
+              </Link>
             ))}
+          </div>
+          <div className="mt-10 text-center">
+            <Link
+              href="/essays"
+              className="eyebrow no-underline hover:text-ink transition-colors"
+            >
+              All essays →
+            </Link>
           </div>
         </section>
       )}

@@ -62,9 +62,13 @@ export function getCurrentIssue(
   const year = date.getFullYear();
 
   const volume = toRoman(year - FIRST_VOLUME_YEAR + 1);
-  const number = list.filter(
-    (a) => new Date(a.date).getFullYear() === year
-  ).length;
+  // Prefer an explicit issue number from frontmatter when present so the
+  // masthead tracks the publication's numbered issues, not raw essay count.
+  // Falls back to count-of-essays-in-year when no explicit number is set.
+  const number =
+    typeof latest.issue === "number"
+      ? latest.issue
+      : list.filter((a) => new Date(a.date).getFullYear() === year).length;
 
   const dateLabel = date.toLocaleDateString("en-US", {
     weekday: "long",

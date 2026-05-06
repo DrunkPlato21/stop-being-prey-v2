@@ -11,6 +11,8 @@ export type ArticleMeta = {
   slug: string;
   date: string;
   description: string;
+  subtitle?: string;
+  issue?: number;
   spotifyEpisodeId?: string;
   chapter?: number;
   wordCount?: number;
@@ -39,6 +41,8 @@ export function getAllArticles(): ArticleMeta[] {
       slug: data.slug || slug,
       date: data.date,
       description: data.description,
+      subtitle: data.subtitle,
+      issue: data.issue,
       spotifyEpisodeId: data.spotifyEpisodeId,
       chapter: data.chapter,
       wordCount: data.wordCount,
@@ -64,6 +68,8 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     slug: data.slug || slug,
     date: data.date,
     description: data.description,
+    subtitle: data.subtitle,
+    issue: data.issue,
     spotifyEpisodeId: data.spotifyEpisodeId,
     chapter: data.chapter,
     wordCount: data.wordCount,
