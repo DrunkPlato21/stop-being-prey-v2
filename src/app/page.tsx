@@ -149,6 +149,42 @@ export default function Home() {
 
       <EyeDivider />
 
+      {previousIssues.length > 0 && (
+        <section className="max-w-6xl mx-auto px-6 py-12 md:py-16">
+          <p className="eyebrow mb-10 text-center">Previous issues</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {previousIssues.map((article) => (
+              <Link
+                key={article.slug}
+                href={`/${article.slug}`}
+                className="block border border-rule p-6 md:p-8 no-underline transition-colors hover:border-eye"
+              >
+                <p className="eyebrow mb-3">
+                  Issue No. {article.issue} · {formatDate(article.date)}
+                </p>
+                <h3
+                  className="font-display text-ink text-2xl md:text-3xl mb-3 leading-tight tracking-tight"
+                  style={{ fontWeight: 700, letterSpacing: "-0.02em" }}
+                >
+                  {article.title}
+                </h3>
+                <p className="text-ink-muted text-sm italic leading-relaxed">
+                  {article.subtitle ?? article.description}
+                </p>
+              </Link>
+            ))}
+          </div>
+          <div className="mt-10 text-center">
+            <Link
+              href="/issues"
+              className="eyebrow no-underline hover:text-ink transition-colors"
+            >
+              All issues →
+            </Link>
+          </div>
+        </section>
+      )}
+
       {/* === Manifesto strip === */}
       <section className="bg-paper-deep border-y border-rule py-16">
         <div className="max-w-3xl mx-auto px-6 text-center">
@@ -186,42 +222,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {previousIssues.length > 0 && (
-        <section className="max-w-6xl mx-auto px-6 py-12 md:py-16">
-          <p className="eyebrow mb-10 text-center">Previous issues</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {previousIssues.map((article) => (
-              <Link
-                key={article.slug}
-                href={`/${article.slug}`}
-                className="block border border-rule p-6 md:p-8 no-underline transition-colors hover:border-eye"
-              >
-                <p className="eyebrow mb-3">
-                  Issue No. {article.issue} · {formatDate(article.date)}
-                </p>
-                <h3
-                  className="font-display text-ink text-2xl md:text-3xl mb-3 leading-tight tracking-tight"
-                  style={{ fontWeight: 700, letterSpacing: "-0.02em" }}
-                >
-                  {article.title}
-                </h3>
-                <p className="text-ink-muted text-sm italic leading-relaxed">
-                  {article.subtitle ?? article.description}
-                </p>
-              </Link>
-            ))}
-          </div>
-          <div className="mt-10 text-center">
-            <Link
-              href="/issues"
-              className="eyebrow no-underline hover:text-ink transition-colors"
-            >
-              All issues →
-            </Link>
-          </div>
-        </section>
-      )}
 
       {/* === Subscribe === */}
       <section
