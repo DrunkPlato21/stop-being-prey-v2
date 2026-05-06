@@ -1,26 +1,18 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getAllArticles } from "@/lib/articles";
+import { getIssueLabel } from "@/lib/issue";
 
 export const metadata: Metadata = {
-  title: "Essays",
+  title: "Issues",
   description:
     "Every issue of Stop Being Prey, in order. Long-form essays on politics, power, and the apex class by Clay.",
 };
 
-export default function EssaysPage() {
+export default function IssuesPage() {
   const issues = getAllArticles()
     .filter((a) => typeof a.issue === "number")
     .sort((a, b) => (b.issue ?? 0) - (a.issue ?? 0));
-
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      timeZone: "UTC",
-    });
 
   return (
     <div>
@@ -35,7 +27,7 @@ export default function EssaysPage() {
               letterSpacing: "-0.03em",
             }}
           >
-            Essays
+            Issues
           </h1>
           <p className="font-serif italic text-ink-muted text-lg md:text-xl max-w-xl mx-auto leading-relaxed fade-up stagger-3">
             Every issue, in order. Newest first.
@@ -56,9 +48,7 @@ export default function EssaysPage() {
                   href={`/${article.slug}`}
                   className="block border-b border-rule pb-10 no-underline group"
                 >
-                  <p className="eyebrow mb-3">
-                    Issue No. {article.issue} · {formatDate(article.date)}
-                  </p>
+                  <p className="eyebrow mb-3">{getIssueLabel(article)}</p>
                   <h2
                     className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep transition-colors"
                     style={{

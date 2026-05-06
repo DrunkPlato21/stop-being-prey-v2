@@ -44,8 +44,8 @@ export function Footer() {
             </p>
             <ul className="space-y-2">
               <li>
-                <Link href="/essays" className={navLinkClass}>
-                  Essays
+                <Link href="/issues" className={navLinkClass}>
+                  Issues
                 </Link>
               </li>
               <li>

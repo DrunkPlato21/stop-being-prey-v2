@@ -214,10 +214,10 @@ export default function Home() {
           </div>
           <div className="mt-10 text-center">
             <Link
-              href="/essays"
+              href="/issues"
               className="eyebrow no-underline hover:text-ink transition-colors"
             >
-              All essays →
+              All issues →
             </Link>
           </div>
         </section>

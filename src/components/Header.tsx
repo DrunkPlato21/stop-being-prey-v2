@@ -22,11 +22,11 @@ export function Header() {
         </Link>
         <nav className="flex items-center gap-0 sm:gap-2">
           <Link
-            href="/essays"
+            href="/issues"
             className="text-ink hover:text-eye-deep transition-colors no-underline px-1.5 sm:px-3 py-2 font-display text-xs sm:text-sm tracking-wider"
             style={{ fontWeight: 500 }}
           >
-            Essays
+            Issues
           </Link>
           <Link
             href="/podcast"

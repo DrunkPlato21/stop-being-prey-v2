@@ -81,28 +81,46 @@ export default function PodcastPage() {
         <div className="space-y-20">
           {episodes.map((episode, idx) => {
             const minutes = estimateMinutes(episode.wordCount);
+            const isIssue = typeof episode.issue === "number";
+            const numeral = isIssue
+              ? `No. ${String(episode.issue).padStart(2, "0")}`
+              : String(episodes.length - idx).padStart(2, "0");
             return (
               <article
                 key={episode.slug}
-                className="group relative pl-0 md:pl-20"
+                className={`group relative pl-0 md:pl-20 ${
+                  isIssue ? "md:border-l-2 md:border-eye md:-ml-6 md:pl-24" : ""
+                }`}
               >
                 {/* Big numeral on the left */}
                 <div className="hidden md:block absolute left-0 top-2">
                   <span
-                    className="font-display text-ink-faint leading-none"
+                    className="font-display leading-none whitespace-nowrap"
                     style={{
-                      fontSize: "3rem",
+                      fontSize: isIssue ? "1.5rem" : "3rem",
                       fontWeight: 700,
-                      }}
+                      letterSpacing: isIssue ? "0.02em" : "0",
+                      color: isIssue
+                        ? "var(--eye-deep, #8a7d20)"
+                        : "var(--ink-faint, #c8b994)",
+                    }}
                   >
-                    {String(episode.chapter ?? episodes.length - idx).padStart(
-                      2,
-                      "0"
-                    )}
+                    {numeral}
                   </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs italic text-ink-faint mb-3 uppercase not-italic tracking-[0.18em]">
+                  {isIssue && (
+                    <>
+                      <span
+                        className="px-2 py-0.5 border border-eye text-eye-deep"
+                        style={{ letterSpacing: "0.18em", fontWeight: 600 }}
+                      >
+                        Issue No. {episode.issue}
+                      </span>
+                      <span className="text-rule">·</span>
+                    </>
+                  )}
                   <time dateTime={episode.date}>
                     {formatDate(episode.date)}
                   </time>
@@ -123,12 +141,16 @@ export default function PodcastPage() {
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  <Link
-                    href={`/${episode.slug}`}
-                    className="text-ink group-hover:text-eye-deep transition-colors no-underline"
-                  >
-                    {episode.title}
-                  </Link>
+                  {isIssue ? (
+                    <Link
+                      href={`/${episode.slug}`}
+                      className="text-ink group-hover:text-eye-deep transition-colors no-underline"
+                    >
+                      {episode.title}
+                    </Link>
+                  ) : (
+                    <span className="text-ink">{episode.title}</span>
+                  )}
                 </h2>
 
                 <p className="deck mb-6">{episode.description}</p>
@@ -139,15 +161,17 @@ export default function PodcastPage() {
                   size="compact"
                 />
 
-                <div className="mt-4 flex items-center gap-4">
-                  <Link
-                    href={`/${episode.slug}`}
-                    className="font-display text-sm uppercase tracking-[0.18em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
-                    style={{ fontWeight: 500 }}
-                  >
-                    Read the essay →
-                  </Link>
-                </div>
+                {isIssue && (
+                  <div className="mt-4 flex items-center gap-4">
+                    <Link
+                      href={`/${episode.slug}`}
+                      className="font-display text-sm uppercase tracking-[0.18em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
+                      style={{ fontWeight: 500 }}
+                    >
+                      Read the issue →
+                    </Link>
+                  </div>
+                )}
               </article>
             );
           })}

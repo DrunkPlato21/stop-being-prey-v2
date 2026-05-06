@@ -8,9 +8,27 @@ export type IssueIdentity = {
 };
 
 // Volume I begins in the publication's first year (2026).
-const FIRST_VOLUME_YEAR = 2026;
+export const FIRST_VOLUME_YEAR = 2026;
 
-function toRoman(n: number): string {
+/**
+ * Per-article issue label, e.g. "Vol. I · No. 2 · Wednesday, May 6, 2026".
+ * Returns null if the article has no `issue` number set.
+ */
+export function getIssueLabel(article: ArticleMeta): string | null {
+  if (typeof article.issue !== "number") return null;
+  const date = new Date(article.date);
+  const volume = toRoman(date.getFullYear() - FIRST_VOLUME_YEAR + 1);
+  const dateLabel = date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  return `Vol. ${volume} · No. ${article.issue} · ${dateLabel}`;
+}
+
+export function toRoman(n: number): string {
   if (n <= 0) return "I";
   const map: [number, string][] = [
     [1000, "M"],
