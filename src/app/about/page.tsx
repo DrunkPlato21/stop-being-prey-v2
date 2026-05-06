@@ -121,7 +121,8 @@ export default function AboutPage() {
           </p>
 
           <p>
-            I&apos;m the answer to him. Sixty years late, but here.
+            That&apos;s the slot I&apos;m trying to fill. Sixty years late, but
+            starting.
           </p>
 
           <h2>Why I write</h2>
