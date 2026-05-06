@@ -43,7 +43,7 @@ export function LightningCard({ lightningAddress }: Props) {
             letterSpacing: "-0.015em",
           }}
         >
-          Pay over Lightning
+          Tip over Lightning
         </h3>
 
         <div className="bg-paper p-4 mb-6 border border-border">
