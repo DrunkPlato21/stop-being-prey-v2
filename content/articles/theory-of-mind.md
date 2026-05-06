@@ -167,7 +167,7 @@ What was George Floyd's actual record? What was in his system that day? What doe
 
 I didn't tell him what to think. I gave him the questions and let him do the work. He's an honest person. He looked. He found the answers. He saw the gap between what he'd been told and what was actually true.
 
-Today he's basically a Trump supporter. Not deep, just clear-eyed. He calmly recognizes that the side telling him the cartoon was lying to him about most things, and the side he'd been taught to hate was telling him the truth about most things.
+Today he's basically a Trump supporter. Not deep, just clear-eyed. He figured out the left had been lying to him about us. We'd been right the whole time.
 
 That's what predator-class engagement does to the cartoon. You don't argue. You don't preach. You ask the questions that make the cartoon answer for itself.
 
@@ -195,9 +195,9 @@ One more thing.
 
 A lot of what I'm telling you here, I learned from watching Charlie Kirk.
 
-Charlie understood the asymmetry better than almost anyone. He'd set up a table on a college campus with a sign that said something provocative. A line of college students would form. They were confident. He had read the books they hadn't. Every conversation went the same way. He had the data, the framework, the receipts. They had the cartoon.
+Charlie understood the asymmetry better than almost anyone. He'd set up a table on a college campus with a sign that said something provocative. A line of college students would form. They were confident... he had read the books they hadn't. Every conversation went the same way. He had the data, the framework, the receipts... they had the cartoon.
 
-Most of them couldn't engage him. They'd cycle through the four moves you just learned. He'd name the moves as they happened. Most walked away angrier than they came. A few walked away thinking.
+Most of them couldn't engage him... they'd cycle through the four moves you just learned... he'd name the moves as they happened. Most walked away angrier than they came. A few walked away thinking.
 
 That's the real game.
 
@@ -207,13 +207,13 @@ When you hold a mirror up to people who have lived their whole lives inside the 
 
 But understand this clearly:
 
-They killed Charlie for it.
+They killed Charlie for it...
 
-He was telling them the truth on a college campus. The regime can't survive the truth being told. That's why what I'm describing is dangerous. That's why it's a weapon. That's why they'd rather see us silenced than engaged.
+He was telling them the truth on a college campus. The regime can't survive the truth being told. That's why what I'm describing is dangerous. That's why it's a weapon... that's why they'd rather see us silenced than engaged.
 
 This is what they want to shoot us for. It's a weapon, and they know it.
 
-So when I say make them your prey, I mean it. I also mean stay sharp. Stay aware. Don't engage stupidly. The asymmetry gives us the upper hand intellectually. But the regime has its own asymmetries, and lethal force is one of them.
+So when I say make them your prey, I mean it. I also mean stay sharp. Stay aware. Don't engage stupidly. The asymmetry gives us the upper hand intellectually. But the regime has its own asymmetries, and lethal force is one of them. We don't have that luxury. We aren't murderers.
 
 This is the real-deal stuff. It's what they want us to stop doing. Which means it's what we have to keep doing.
 
