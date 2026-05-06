@@ -1,24 +1,8 @@
-import fs from "fs";
-import path from "path";
 import { ImageResponse } from "next/og";
 import { getArticleBySlug } from "@/lib/articles";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
-
-// Photographic cat eyes — cropped from the homepage hero asset so article
-// OGs share the visual register of /opengraph-image.jpg. Read once at module
-// init and embed as a data URI inside the ImageResponse JSX.
-const EYES_DATA_URI: string | null = (() => {
-  try {
-    const buf = fs.readFileSync(
-      path.join(process.cwd(), "src", "lib", "og-eyes.jpg")
-    );
-    return `data:image/jpeg;base64,${buf.toString("base64")}`;
-  } catch {
-    return null;
-  }
-})();
 
 async function loadGoogleFont(
   family: string,
@@ -60,12 +44,12 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
     article?.description ?? "On power, politics, and the apex class.";
   const chapter = article?.chapter;
 
-  // Cap the description so it fits on ~2 lines at 28px italic in the 620px
-  // editorial column. Satori's WebkitLineClamp isn't reliable here, so the
-  // truncation is the truth.
+  // Cap the description so it fits on ~2 lines at 36px italic across the
+  // full editorial column. Satori's WebkitLineClamp isn't reliable here, so
+  // the truncation is the truth.
   const trimmedDesc =
-    description.length > 88
-      ? description.slice(0, 85).replace(/[\s,;.]+$/, "") + "…"
+    description.length > 140
+      ? description.slice(0, 137).replace(/[\s,;.]+$/, "") + "…"
       : description;
 
   const eyebrow = chapter
@@ -109,46 +93,27 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
           position: "relative",
         }}
       >
-        {/* Photographic cat eyes — upper-right */}
-        {EYES_DATA_URI && (
-          <img
-            src={EYES_DATA_URI}
-            width={480}
-            height={302}
-            alt=""
-            style={{
-              position: "absolute",
-              top: "30px",
-              right: "30px",
-              width: "480px",
-              height: "302px",
-            }}
-          />
-        )}
-
-        {/* Editorial column */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             position: "absolute",
-            top: "80px",
-            left: "80px",
-            width: "620px",
-            bottom: "80px",
+            top: "96px",
+            left: "96px",
+            right: "96px",
+            bottom: "96px",
             justifyContent: "space-between",
           }}
         >
-          {/* Top: eyebrow + title + deck */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div
               style={{
                 color: "#b8a82c",
-                fontSize: 18,
+                fontSize: 22,
                 letterSpacing: "0.32em",
                 textTransform: "uppercase",
                 fontWeight: 700,
-                marginBottom: 40,
+                marginBottom: 48,
               }}
             >
               {eyebrow}
@@ -156,11 +121,11 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
             <div
               style={{
                 color: "#f5efe1",
-                fontSize: 72,
+                fontSize: 96,
                 fontWeight: 700,
-                lineHeight: 1.04,
-                letterSpacing: "-0.02em",
-                marginBottom: 28,
+                lineHeight: 1.02,
+                letterSpacing: "-0.025em",
+                marginBottom: 36,
                 display: "-webkit-box",
                 WebkitBoxOrient: "vertical",
                 WebkitLineClamp: 3,
@@ -172,7 +137,7 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
             <div
               style={{
                 color: "#d8cfb8",
-                fontSize: 28,
+                fontSize: 36,
                 fontStyle: "italic",
                 lineHeight: 1.35,
                 fontFamily: "Source Serif, Cormorant Garamond, serif",
@@ -187,11 +152,10 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
             </div>
           </div>
 
-          {/* Bottom: footer URL */}
           <div
             style={{
               color: "#8a7d20",
-              fontSize: 15,
+              fontSize: 18,
               letterSpacing: "0.28em",
               textTransform: "uppercase",
               fontWeight: 700,
