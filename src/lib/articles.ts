@@ -20,7 +20,33 @@ export type ArticleMeta = {
 
 export type Article = ArticleMeta & {
   contentHtml: string;
+  /** Optional citation block — populated when the markdown ends with a
+      `## References` heading followed by a list. The body is stripped of
+      both the heading and the list so it renders cleanly. */
+  referencesHtml?: string | null;
 };
+
+/**
+ * Split rendered article HTML on a trailing `## References` heading.
+ * Returns the body (everything before the heading) and the references list
+ * (everything after, expected to be a single <ul> or <ol>). When no such
+ * heading exists, body is the input unchanged and references is null.
+ */
+function splitReferences(fullHtml: string): {
+  contentHtml: string;
+  referencesHtml: string | null;
+} {
+  const match = fullHtml.match(
+    /<h2[^>]*>\s*References\s*<\/h2>([\s\S]+)$/i
+  );
+  if (!match || match.index === undefined) {
+    return { contentHtml: fullHtml, referencesHtml: null };
+  }
+  return {
+    contentHtml: fullHtml.slice(0, match.index).trimEnd(),
+    referencesHtml: match[1].trim(),
+  };
+}
 
 export function getAllArticleSlugs(): string[] {
   if (!fs.existsSync(articlesDirectory)) return [];
@@ -61,7 +87,8 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   const { data, content } = matter(fileContents);
 
   const processedContent = await remark().use(html).process(content);
-  const contentHtml = processedContent.toString();
+  const fullHtml = processedContent.toString();
+  const { contentHtml, referencesHtml } = splitReferences(fullHtml);
 
   return {
     title: data.title,
@@ -74,5 +101,6 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     chapter: data.chapter,
     wordCount: data.wordCount,
     contentHtml,
+    referencesHtml,
   };
 }

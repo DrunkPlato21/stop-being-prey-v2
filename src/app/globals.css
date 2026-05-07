@@ -365,6 +365,18 @@ a.no-underline {
   color: var(--eye-deep);
 }
 
+/* Italic kicker beneath the share eyebrow — names the friction
+   (algorithmic suppression) and positions the reader as the channel. */
+.share-kicker {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  max-width: 24rem;
+  margin: 0 auto 1.25rem;
+}
+
 /* Wrap-safe dot row — on mobile we force a balanced 2x2 grid so dots never
    orphan and the bottom row isn't a lonely tail. On sm+ we lay items out
    inline with separators glued to their preceding link (the pair stays
@@ -565,6 +577,156 @@ a.no-underline {
   user-select: none;
 }
 
+/* === Audio pill — collapsed-by-default disclosure for the Spotify embed.
+      Replaces the chunky top-of-article player so the words lead. === */
+
+.audio-pill-wrap {
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+}
+
+.audio-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 1.1rem;
+  background: transparent;
+  border: 1px solid var(--ink-faint);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease;
+  white-space: nowrap;
+}
+
+.audio-pill:hover,
+.audio-pill[aria-expanded="true"] {
+  background: var(--paper-deep);
+  border-color: var(--eye-deep);
+  color: var(--ink);
+}
+
+.audio-pill-glyph {
+  color: var(--eye-deep);
+  font-size: 0.95rem;
+  line-height: 1;
+  display: inline-block;
+  transform: translateY(-1px);
+}
+
+.audio-pill-caret {
+  color: var(--ink-faint);
+  font-size: 0.55rem;
+  letter-spacing: 0;
+  transform: translateY(-1px);
+}
+
+.audio-pill[aria-expanded="true"] .audio-pill-caret {
+  color: var(--eye-deep);
+}
+
+.audio-pill-embed {
+  margin-top: 1.5rem;
+  /* The embed is constrained to a sensible width when triggered from a
+     narrow column. .spotify-frame is full-width by default, so we cap. */
+  max-width: 36rem;
+}
+
+/* === References block — opt-in citation section at the end of an essay,
+      detected by a `## References` heading in the markdown source. */
+
+.references-block {
+  max-width: 38rem;
+  margin: 0 auto;
+  padding: 0 0;
+}
+
+.references-block-eyebrow {
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--eye-deep);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.references-block-eyebrow::before,
+.references-block-eyebrow::after {
+  content: "";
+  display: inline-block;
+  width: 2.25rem;
+  height: 1px;
+  background: var(--rule);
+  vertical-align: middle;
+  margin: 0 0.85rem;
+}
+
+.references-block ul,
+.references-block ol {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  counter-reset: ref;
+}
+
+.references-block li {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: 0.93rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  padding-left: 1.6rem;
+  text-indent: -1.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.references-block li::before {
+  display: none;
+}
+
+.references-block ol > li {
+  counter-increment: ref;
+}
+
+.references-block ol > li::marker {
+  content: "";
+}
+
+.references-block ol > li::before {
+  display: inline-block;
+  content: counter(ref) ".";
+  width: 1.4rem;
+  margin-right: 0.2rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.references-block a {
+  color: var(--eye-deep);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(184, 168, 44, 0.4);
+  text-underline-offset: 3px;
+}
+
+.references-block a:hover {
+  color: var(--ink);
+  text-decoration-color: var(--eye);
+}
+
+.references-block em {
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
 /* === Spotify embed framing === */
 
 .spotify-frame {
@@ -575,18 +737,12 @@ a.no-underline {
 }
 
 .spotify-frame::before {
-  content: "AUDIO EDITION";
-  position: absolute;
-  top: -0.55rem;
-  left: 1rem;
-  background: var(--paper);
-  padding: 0 0.5rem;
-  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
-  font-size: 0.62rem;
-  letter-spacing: 0.32em;
-  color: var(--eye-deep);
-  font-weight: 600;
+  content: none;
 }
+
+/* The Audio Edition eyebrow is now rendered above the frame at the
+   section level (see [slug]/page.tsx and the homepage lead), so the
+   frame itself is just a quiet container — no duplicate corner label. */
 
 /* === Reduced motion === */
 

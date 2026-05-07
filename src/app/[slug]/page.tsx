@@ -5,6 +5,7 @@ import {
   getArticleBySlug,
 } from "@/lib/articles";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
+import { AudioPill } from "@/components/AudioPill";
 import { EmailSignup } from "@/components/EmailSignup";
 import { EyeDivider } from "@/components/Eyes";
 import { ShareButtons } from "@/components/ShareButtons";
@@ -61,8 +62,13 @@ export default async function ArticlePage({
     timeZone: "UTC",
   });
 
-  const minutes = article.wordCount
+  // Audio runtime estimate (~150 wpm spoken) — used in the audio pill.
+  const audioMinutes = article.wordCount
     ? Math.round(article.wordCount / 150)
+    : null;
+  // Read time estimate (industry standard 250 wpm) — shown in metadata.
+  const readMinutes = article.wordCount
+    ? Math.max(1, Math.ceil(article.wordCount / 250))
     : null;
 
   return (
@@ -95,35 +101,24 @@ export default async function ArticlePage({
             <span>By Clay</span>
             <span className="text-rule">·</span>
             <time dateTime={article.date}>{dateStr}</time>
-            {article.wordCount && (
+            {readMinutes && (
               <>
                 <span className="text-rule">·</span>
-                <span>{article.wordCount.toLocaleString()} words</span>
+                <span>{readMinutes} min read</span>
               </>
             )}
-            {minutes && (
-              <span className="hidden sm:contents">
-                <span className="text-rule">·</span>
-                <span>~{minutes} min audio</span>
-              </span>
-            )}
           </div>
+
+          {article.spotifyEpisodeId && audioMinutes && (
+            <div className="mt-8 fade-up stagger-5 flex justify-center">
+              <AudioPill
+                episodeId={article.spotifyEpisodeId}
+                minutes={audioMinutes}
+              />
+            </div>
+          )}
         </div>
       </header>
-
-      {/* === Audio sidebar (top, full-width) === */}
-      {article.spotifyEpisodeId && (
-        <div className="max-w-2xl mx-auto px-6 pt-12 fade-up">
-          <div className="text-center mb-3">
-            <p className="eyebrow">Listen instead</p>
-          </div>
-          <SpotifyEmbed
-            episodeId={article.spotifyEpisodeId}
-            type="episode"
-            size="standard"
-          />
-        </div>
-      )}
 
       <EyeDivider />
 
@@ -157,15 +152,44 @@ export default async function ArticlePage({
         </div>
       </div>
 
+      {/* === References (opt-in, populated when markdown ends with
+          `## References` followed by a list) — sits with the article
+          body since citations are part of the work itself === */}
+      {article.referencesHtml && (
+        <div className="max-w-3xl mx-auto px-6 mt-16">
+          <div className="references-block">
+            <p className="references-block-eyebrow">References</p>
+            <div
+              dangerouslySetInnerHTML={{ __html: article.referencesHtml }}
+            />
+          </div>
+        </div>
+      )}
+
       <EyeDivider />
 
-      {/* === Share row — sits above the bio so readers hit it first === */}
+      {/* === Share row — catches the just-finished impulse === */}
       <div className="max-w-2xl mx-auto px-6">
         <ShareButtons url={`/${article.slug}`} title={article.title} />
       </div>
 
+      {/* === Audio Edition — full embed for readers who want to queue
+          or revisit the spoken version === */}
+      {article.spotifyEpisodeId && (
+        <div className="max-w-2xl mx-auto px-6 mt-16">
+          <div className="text-center mb-4">
+            <p className="eyebrow">Audio Edition</p>
+          </div>
+          <SpotifyEmbed
+            episodeId={article.spotifyEpisodeId}
+            type="episode"
+            size="standard"
+          />
+        </div>
+      )}
+
       {/* === Author bio === */}
-      <div className="max-w-3xl mx-auto px-6 mt-12">
+      <div className="max-w-3xl mx-auto px-6 mt-16">
         <AuthorBio />
       </div>
 

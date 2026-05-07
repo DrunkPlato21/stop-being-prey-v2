@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { EmailSignup } from "@/components/EmailSignup";
 import { EyeDivider } from "@/components/Eyes";
-import { SpotifyEmbed } from "@/components/SpotifyEmbed";
+import { AudioPill } from "@/components/AudioPill";
 import { getAllArticles } from "@/lib/articles";
 import { getCurrentIssue } from "@/lib/issue";
 
@@ -59,75 +59,67 @@ export default function Home() {
       </section>
 
       {/* === Featured Lead Article === */}
-      {featured && (
-        <section className="max-w-6xl mx-auto px-6 py-10 md:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-16 md:items-center">
-            <div className="md:col-span-7">
-              <p className="eyebrow mb-5">
-                {featured.chapter
-                  ? `Lead Essay · Chapter ${featured.chapter}`
-                  : "Lead Essay"}
-              </p>
-              <h2
-                className="font-display tracking-tight mb-6 leading-[1.04]"
-                style={{
-                  fontSize: "clamp(2.25rem, 4.5vw, 3.75rem)",
-                  fontWeight: 700,
-                  letterSpacing: "-0.022em",
-                }}
-              >
-                <Link
-                  href={`/${featured.slug}`}
-                  className="text-ink hover:text-eye-deep transition-colors no-underline"
+      {featured && (() => {
+        const featuredReadMin = featured.wordCount
+          ? Math.max(1, Math.ceil(featured.wordCount / 250))
+          : null;
+        const featuredAudioMin = featured.wordCount
+          ? Math.round(featured.wordCount / 150)
+          : null;
+        // The lead card always represents the publication's current issue,
+        // so reuse the masthead's volume/number when the featured essay
+        // carries an issue. Non-issue essays fall back to a neutral label.
+        const leadEyebrow =
+          typeof featured.issue === "number" && issue
+            ? `Vol. ${issue.volume} · No. ${issue.number}`
+            : "Latest";
+        return (
+          <section className="max-w-6xl mx-auto px-6 py-10 md:py-16">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-16 md:items-center">
+              <div className="md:col-span-7">
+                <p className="eyebrow mb-5">{leadEyebrow}</p>
+                <h2
+                  className="font-display tracking-tight mb-6 leading-[1.04]"
+                  style={{
+                    fontSize: "clamp(2.25rem, 4.5vw, 3.75rem)",
+                    fontWeight: 700,
+                    letterSpacing: "-0.022em",
+                  }}
                 >
-                  {featured.title}
-                </Link>
-              </h2>
-              <p className="deck mb-8 max-w-xl">{featured.description}</p>
-              <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-2 text-xs text-ink-faint mb-8 uppercase tracking-[0.18em]">
-                <span>By Clay</span>
-                <span className="text-rule">·</span>
-                <span>{formatDate(featured.date)}</span>
-                {featured.wordCount && (
-                  <>
-                    <span className="text-rule">·</span>
-                    <span>{featured.wordCount.toLocaleString()} words</span>
-                  </>
-                )}
-                {featured.spotifyEpisodeId && (
-                  <span className="hidden sm:contents">
-                    <span className="text-rule">·</span>
-                    <span>~{Math.round((featured.wordCount || 6000) / 150)} min audio</span>
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Link href={`/${featured.slug}`} className="btn-primary">
-                  <span>Read the essay</span>
-                </Link>
-              </div>
-            </div>
-
-            <aside className="md:col-span-5">
-              <div className="md:sticky md:top-24 space-y-6">
-                {featured.spotifyEpisodeId && (
-                  <div>
-                    <SpotifyEmbed
+                  <Link
+                    href={`/${featured.slug}`}
+                    className="text-ink hover:text-eye-deep transition-colors no-underline"
+                  >
+                    {featured.title}
+                  </Link>
+                </h2>
+                <p className="deck mb-8 max-w-xl">{featured.description}</p>
+                <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-2 text-xs text-ink-faint mb-8 uppercase tracking-[0.18em]">
+                  <span>By Clay</span>
+                  <span className="text-rule">·</span>
+                  <span>{formatDate(featured.date)}</span>
+                  {featuredReadMin && (
+                    <>
+                      <span className="text-rule">·</span>
+                      <span>{featuredReadMin} min read</span>
+                    </>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-3 mb-8">
+                  <Link href={`/${featured.slug}`} className="btn-primary">
+                    <span>Read the essay</span>
+                  </Link>
+                  {featured.spotifyEpisodeId && featuredAudioMin && (
+                    <AudioPill
                       episodeId={featured.spotifyEpisodeId}
-                      type="episode"
-                      size="standard"
+                      minutes={featuredAudioMin}
                     />
-                    <div className="mt-3 text-right">
-                      <Link
-                        href="/podcast"
-                        className="eyebrow no-underline hover:text-ink transition-colors"
-                      >
-                        All episodes →
-                      </Link>
-                    </div>
-                  </div>
-                )}
-                <div className="mt-10">
+                  )}
+                </div>
+              </div>
+
+              <aside className="md:col-span-5">
+                <div className="md:sticky md:top-24">
                   <p className="eyebrow mb-4">From the essay</p>
                   <blockquote
                     className="font-display italic text-ink leading-snug border-l-2 border-eye pl-6 py-2 my-2"
@@ -138,12 +130,22 @@ export default function Home() {
                   >
                     &ldquo;We can model them. They can&apos;t model us.&rdquo;
                   </blockquote>
+                  {featured.spotifyEpisodeId && (
+                    <div className="mt-6 text-right">
+                      <Link
+                        href="/podcast"
+                        className="eyebrow no-underline hover:text-ink transition-colors"
+                      >
+                        All episodes →
+                      </Link>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </aside>
-          </div>
-        </section>
-      )}
+              </aside>
+            </div>
+          </section>
+        );
+      })()}
 
       <EyeDivider />
 

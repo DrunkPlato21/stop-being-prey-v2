@@ -77,7 +77,10 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
 
   return (
     <div className="text-center w-full">
-      <p className="eyebrow mb-4">Share</p>
+      <p className="eyebrow mb-3">Pass it on</p>
+      <p className="share-kicker">
+        algorithms won&apos;t deliver this. you&apos;re how it travels.
+      </p>
       <div className="dot-row">
         {items.map((it, i) => (
           <span key={it.key} className="dot-row-pair">
