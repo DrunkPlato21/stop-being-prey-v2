@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { TabbedTipCard } from "@/components/TabbedTipCard";
 import { EyeDivider } from "@/components/Eyes";
 import { listVisible } from "@/lib/supporters";
@@ -69,17 +70,18 @@ export default async function TipPage() {
           </div>
           <aside className="md:col-span-5">
             <div className="flex flex-col items-center md:items-start gap-6">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/clay-portrait.jpg"
-                alt="Clay"
-                width={180}
-                height={180}
+              <Image
+                src="/images/clay-winter.jpg"
+                alt="Clay, founder of Stop Being Prey"
+                width={400}
+                height={500}
+                sizes="(min-width: 768px) 200px, 200px"
                 className="border border-border block"
                 style={{
-                  width: "180px",
-                  height: "180px",
+                  width: "200px",
+                  height: "250px",
                   objectFit: "cover",
+                  objectPosition: "center top",
                 }}
               />
               <div className="text-center md:text-left max-w-xs space-y-5">

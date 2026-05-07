@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 const linkClass =
   "font-display text-ink-muted hover:text-eye-deep no-underline uppercase transition-colors";
 
@@ -7,7 +9,7 @@ const linkStyle: React.CSSProperties = {
   fontSize: "0.78rem",
 };
 
-export function AuthorBio() {
+export function AuthorBio({ priority = false }: { priority?: boolean } = {}) {
   return (
     <div className="bg-surface border border-ink/10 p-10 md:p-12 relative">
       {/* Cat-eye corner ornaments */}
@@ -17,15 +19,23 @@ export function AuthorBio() {
       <span className="absolute -bottom-px -right-px w-6 h-6 border-b-2 border-r-2 border-eye" />
 
       <div className="flex flex-col md:flex-row gap-8 md:gap-10 items-center md:items-start">
-        {/* Portrait */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/clay-portrait.jpg"
-          alt="Clay"
-          width={180}
-          height={180}
+        {/* Portrait. 4:5 with object-position center top so the face
+            stays visible even when the source is much taller than the
+            display crop. */}
+        <Image
+          src="/images/clay-winter.jpg"
+          alt="Clay, founder of Stop Being Prey"
+          width={400}
+          height={500}
+          priority={priority}
+          sizes="(min-width: 768px) 200px, 200px"
           className="flex-shrink-0 border border-border block transition-transform duration-300 hover:scale-[1.02]"
-          style={{ width: "180px", height: "180px", objectFit: "cover" }}
+          style={{
+            width: "200px",
+            height: "250px",
+            objectFit: "cover",
+            objectPosition: "center top",
+          }}
         />
 
         {/* Text column */}

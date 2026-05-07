@@ -34,7 +34,7 @@ export default function AboutPage() {
       </section>
 
       <div className="max-w-3xl mx-auto px-6 pt-12">
-        <AuthorBio />
+        <AuthorBio priority />
       </div>
 
       <div className="max-w-3xl mx-auto px-6 py-12">
