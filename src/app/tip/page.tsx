@@ -20,7 +20,7 @@ const ANONYMOUS_LABEL = "a reader writes";
 const trustLines: string[] = [
   "tips go directly to me. they support the writing, the podcast, and the time the project takes.",
   "not tax-deductible. this isn't a charity. it's a tip jar.",
-  "tipping is gratitude. nothing is gated behind it. it doesn't unlock anything you couldn't otherwise have.",
+  "tipping is gratitude. if you want, you can leave a public message on the supporters wall. that's the perk. nothing else is gated.",
 ];
 
 export default async function TipPage() {
