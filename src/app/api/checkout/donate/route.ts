@@ -97,8 +97,7 @@ export async function POST(request: NextRequest) {
             currency: "usd",
             product_data: {
               name: "Support Stop Being Prey",
-              description:
-                "Reader-supported. No ads, no sponsors, no paywalls.",
+              description: "Reader-supported.",
             },
             unit_amount: unitAmount,
           },

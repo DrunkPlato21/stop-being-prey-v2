@@ -75,7 +75,7 @@ export default async function SupportersPage({
                   {entry.message}
                 </blockquote>
                 <p className="eyebrow" style={{ letterSpacing: "0.22em" }}>
-                  — {entry.attribution}
+                  {entry.attribution}
                 </p>
               </li>
             ))}

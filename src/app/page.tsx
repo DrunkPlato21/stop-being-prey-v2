@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EmailSignup } from "@/components/EmailSignup";
 import { EyeDivider } from "@/components/Eyes";
 import { AudioPill } from "@/components/AudioPill";
+import { SubscriberCount } from "@/components/SubscriberCount";
 import { getAllArticles } from "@/lib/articles";
 import { getCurrentIssue } from "@/lib/issue";
 
@@ -51,7 +52,7 @@ export default function Home() {
               className="font-serif italic text-ink-muted text-lg md:text-xl mt-6 max-w-2xl leading-relaxed fade-up stagger-3"
               style={{ fontWeight: 400 }}
             >
-              On power, politics, and the apex class. Daily letters and audio
+              On power, politics, and the apex class. Letters and audio
               by Clay.
             </p>
           </div>
@@ -100,9 +101,11 @@ export default function Home() {
                   {featuredReadMin && (
                     <>
                       <span className="text-rule">·</span>
-                      <span>{featuredReadMin} min read</span>
+                      <span>{featuredReadMin} min</span>
                     </>
                   )}
+                  <span className="text-rule">·</span>
+                  <span>Reader-supported</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 mb-8">
                   <Link href={`/${featured.slug}`} className="btn-primary">
@@ -220,13 +223,13 @@ export default function Home() {
             letterSpacing: "-0.02em",
           }}
         >
-          Get the daily letter.
+          Get the next one.
         </h2>
-        <p className="deck mb-10 max-w-xl mx-auto">
-          Original writing on politics and power, every day. The same
-          writing that builds Stop Being Prey. Free. No ads. No sponsors. No
-          paywalls.
+        <p className="deck mb-8 max-w-xl mx-auto">
+          Algorithms don&apos;t deliver this writing. It only arrives if
+          you ask.
         </p>
+        <SubscriberCount className="mb-5" />
         <div className="flex justify-center">
           <EmailSignup />
         </div>

@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 // same-origin route to avoid CORS; we forward server-to-server.
 //
 // Kit's v4 form-subscribe endpoint REQUIRES the subscriber to exist in the
-// account already — otherwise it 404s. So this route does it in two steps:
+// account already, otherwise it 404s. So this route does it in two steps:
 //   1. POST /v4/subscribers          (create or upsert by email)
 //   2. POST /v4/forms/{id}/subscribers  (attach to the SBP form)
 //

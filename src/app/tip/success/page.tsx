@@ -1,6 +1,10 @@
 import Link from "next/link";
 import Stripe from "stripe";
 import type { Metadata } from "next";
+import { EmailSignup } from "@/components/EmailSignup";
+import { ShareButtons } from "@/components/ShareButtons";
+import { SubscriberCount } from "@/components/SubscriberCount";
+import { EyeDivider } from "@/components/Eyes";
 
 export const metadata: Metadata = {
   title: "Thank you",
@@ -18,6 +22,14 @@ function formatUsd(cents: number): string {
   return Number.isInteger(dollars)
     ? `$${dollars}`
     : `$${dollars.toFixed(2)}`;
+}
+
+function firstNameOf(fullName: string | null): string | null {
+  if (!fullName) return null;
+  const trimmed = fullName.trim();
+  if (!trimmed) return null;
+  const first = trimmed.split(/\s+/)[0];
+  return first || null;
 }
 
 type SessionInfo = {
@@ -59,68 +71,101 @@ export default async function TipSuccessPage({
 }: {
   searchParams: Promise<{ session_id?: string }>;
 }) {
-  const { session_id } = await searchParams;
-  const { amount, donorName, donorMessage } = await getSessionInfo(session_id);
+  const params = await searchParams;
+  const { session_id } = params;
+  const previewName =
+    process.env.NODE_ENV !== "production"
+      ? (params as { preview_name?: string }).preview_name
+      : undefined;
+  const previewAmount =
+    process.env.NODE_ENV !== "production"
+      ? (params as { preview_amount?: string }).preview_amount
+      : undefined;
+  const sessionInfo = await getSessionInfo(session_id);
+  const donorName = previewName ?? sessionInfo.donorName;
+  const amount = previewAmount ?? sessionInfo.amount;
+  const donorMessage = sessionInfo.donorMessage;
+  const firstName = firstNameOf(donorName);
+  const greeting = firstName ? `thanks, ${firstName}.` : "thanks.";
 
   return (
     <div>
-      <section className="max-w-3xl mx-auto px-6 pt-20 md:pt-28 pb-16 text-center">
-        <div className="bg-surface border border-border p-10 md:p-14 relative">
-          {/* Cat-eye corner ornaments */}
-          <span className="absolute -top-px -left-px w-5 h-5 border-t-2 border-l-2 border-eye" />
-          <span className="absolute -top-px -right-px w-5 h-5 border-t-2 border-r-2 border-eye" />
-          <span className="absolute -bottom-px -left-px w-5 h-5 border-b-2 border-l-2 border-eye" />
-          <span className="absolute -bottom-px -right-px w-5 h-5 border-b-2 border-r-2 border-eye" />
+      <section className="max-w-2xl mx-auto px-6 pt-16 md:pt-24 pb-12 text-center">
+        <p className="eyebrow mb-6 fade-up stagger-1">
+          Reader-funded writing
+        </p>
 
-          <p className="eyebrow mb-6 fade-up stagger-1">
-            {donorName ? `Thank you, ${donorName}` : "Thank you"}
+        {/* The letter. Display italic in the publication voice. */}
+        <div
+          className="font-display italic text-ink leading-[1.25] mx-auto fade-up stagger-2"
+          style={{ fontSize: "clamp(1.45rem, 3vw, 1.95rem)", fontWeight: 400 }}
+        >
+          <p className="mb-6">
+            {greeting} this is what reader-funded writing looks like.
           </p>
-          <h1
-            className="font-display text-ink leading-[1.05] tracking-tight mb-6 fade-up stagger-2"
-            style={{
-              fontSize: "clamp(2.25rem, 5vw, 3.75rem)",
-              fontWeight: 700,
-              letterSpacing: "-0.022em",
-            }}
-          >
-            Your support means more than you know.
-          </h1>
-          <p className="deck max-w-xl mx-auto mb-8 fade-up stagger-3">
-            The work continues because of readers like you.
+          <p className="mb-6">
+            the most valuable thing you can do next is send the work to
+            one person who&apos;d get it. one share is worth more than
+            the contribution that just happened.
           </p>
-
-          {amount && (
-            <p
-              className="font-display italic text-ink leading-relaxed fade-up stagger-4"
-              style={{ fontSize: "1.15rem", fontWeight: 500 }}
-            >
-              You contributed {amount}.
-            </p>
-          )}
-
-          {donorMessage && (
-            <div className="mt-8 max-w-md mx-auto fade-up stagger-5">
-              <p className="eyebrow mb-3">Your note</p>
-              <blockquote
-                className="font-display italic text-ink leading-snug border-l-2 border-eye pl-5 py-1 text-left"
-                style={{ fontSize: "1.05rem", fontWeight: 400 }}
-              >
-                {donorMessage}
-              </blockquote>
-            </div>
-          )}
+          <p>
+            stay close,
+            <br />
+            ~ Clay
+          </p>
         </div>
 
-        <div className="mt-12">
-          <Link
-            href="/"
-            className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            ← Back to Stop Being Prey
-          </Link>
+        {/* Receipt details */}
+        {amount && (
+          <p className="text-xs uppercase tracking-[0.18em] text-ink-faint mt-10 fade-up stagger-3">
+            Your contribution: {amount}
+          </p>
+        )}
+
+        {donorMessage && (
+          <div className="mt-8 max-w-md mx-auto fade-up stagger-4">
+            <p className="eyebrow mb-3">Your note</p>
+            <blockquote
+              className="font-display italic text-ink leading-snug border-l-2 border-eye pl-5 py-1 text-left"
+              style={{ fontSize: "1.05rem", fontWeight: 400 }}
+            >
+              {donorMessage}
+            </blockquote>
+          </div>
+        )}
+      </section>
+
+      <EyeDivider />
+
+      {/* Share. The contribution just happened, the share matters more. */}
+      <section className="max-w-2xl mx-auto px-6 pb-4">
+        <ShareButtons url="/" title="Stop Being Prey" />
+      </section>
+
+      <EyeDivider />
+
+      {/* Email signup, in case the contributor isn't on the list yet. */}
+      <section className="max-w-2xl mx-auto px-6 pb-16 text-center">
+        <p className="eyebrow mb-3">If you&apos;re not on the list</p>
+        <p className="deck mb-6 max-w-md mx-auto">
+          Algorithms don&apos;t deliver this writing. It only arrives if
+          you ask.
+        </p>
+        <SubscriberCount className="mb-5" />
+        <div className="flex justify-center">
+          <EmailSignup />
         </div>
       </section>
+
+      <div className="text-center pb-16">
+        <Link
+          href="/"
+          className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
+          style={{ fontWeight: 500 }}
+        >
+          ← back to stop being prey
+        </Link>
+      </div>
     </div>
   );
 }

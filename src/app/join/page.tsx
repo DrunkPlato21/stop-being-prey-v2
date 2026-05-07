@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { EmailSignup } from "@/components/EmailSignup";
 import { EyeDivider } from "@/components/Eyes";
+import { SubscriberCount } from "@/components/SubscriberCount";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Join",
   description:
-    "Get Stop Being Prey in your inbox every day. Free. No ads, no sponsors, no paywalls.",
+    "Get Stop Being Prey in your inbox. Reader-supported. Algorithms don't deliver this writing.",
 };
 
 export default function JoinPage() {
@@ -15,7 +16,7 @@ export default function JoinPage() {
       {/* === Masthead === */}
       <section className="border-b border-rule">
         <div className="max-w-3xl mx-auto px-6 pt-20 md:pt-28 pb-14 text-center">
-          <p className="eyebrow mb-6 fade-up stagger-1">The daily letter</p>
+          <p className="eyebrow mb-6 fade-up stagger-1">Stay close</p>
           <h1
             className="font-display text-ink leading-[1.0] tracking-tight mb-6 fade-up stagger-2"
             style={{
@@ -27,14 +28,16 @@ export default function JoinPage() {
             Join the list.
           </h1>
           <p className="deck max-w-xl mx-auto fade-up stagger-3">
-            Original writing on politics, power, and the apex class. Every
-            day. Free. No ads, no sponsors, no paywalls.
+            Original writing on politics, power, and the apex class.
+            Algorithms don&apos;t deliver this writing. It only arrives
+            if you ask.
           </p>
         </div>
       </section>
 
       {/* === Email form === */}
       <section className="max-w-2xl mx-auto px-6 py-16 text-center">
+        <SubscriberCount className="mb-5" />
         <div className="flex justify-center mb-6">
           <EmailSignup />
         </div>

@@ -23,7 +23,7 @@ export function AudioPill({ episodeId, minutes }: AudioPillProps) {
           ♪
         </span>
         <span className="audio-pill-label">
-          {open ? "Hide audio" : "Listen"} — {minutes} min
+          {open ? "Hide audio" : "Listen"} · {minutes} min
         </span>
         <span className="audio-pill-caret" aria-hidden="true">
           {open ? "▴" : "▾"}

@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 
-const PRESETS = [5, 10, 20, 50, 100];
+const PRESETS: ReadonlyArray<{ amount: number; caption: string }> = [
+  { amount: 5, caption: "scout" },
+  { amount: 10, caption: "pack" },
+  { amount: 20, caption: "hunter" },
+  { amount: 50, caption: "operator" },
+  { amount: 100, caption: "apex" },
+];
+const PRESET_AMOUNTS = PRESETS.map((p) => p.amount);
 const NAME_MAX = 80;
 const MESSAGE_MAX = 500;
 const CITY_MAX = 80;
@@ -69,7 +76,7 @@ export function StripeDonateCard() {
     const raw = e.target.value;
     setInputValue(raw);
     const n = parseAmount(raw);
-    setSelectedPreset(n !== null && PRESETS.includes(n) ? n : null);
+    setSelectedPreset(n !== null && PRESET_AMOUNTS.includes(n) ? n : null);
     setError(null);
   }
 
@@ -115,57 +122,36 @@ export function StripeDonateCard() {
       : "Donate";
 
   return (
-    <div className="bg-surface border border-border p-8 md:p-10 relative">
-      {/* Cat-eye corner ornaments */}
-      <span className="absolute -top-px -left-px w-5 h-5 border-t-2 border-l-2 border-eye" />
-      <span className="absolute -top-px -right-px w-5 h-5 border-t-2 border-r-2 border-eye" />
-      <span className="absolute -bottom-px -left-px w-5 h-5 border-b-2 border-l-2 border-eye" />
-      <span className="absolute -bottom-px -right-px w-5 h-5 border-b-2 border-r-2 border-eye" />
+    <div className="flex flex-col items-center text-center">
+      <p className="eyebrow mb-4">Card · Apple Pay · Google Pay</p>
 
-      <div className="flex flex-col items-center text-center">
-        <p className="eyebrow mb-3">Card · Apple Pay · Google Pay</p>
-        <h3
-          className="font-display text-ink leading-tight tracking-tight mb-6"
-          style={{
-            fontSize: "1.85rem",
-            fontWeight: 700,
-            letterSpacing: "-0.015em",
-          }}
+      <p
+          className="font-display text-ink-muted italic leading-snug max-w-sm mx-auto mb-6"
+          style={{ fontSize: "1.05rem", fontWeight: 400 }}
         >
-          Tip in fiat
-        </h3>
-
-        <p
-          className="font-display text-ink leading-snug max-w-xs mx-auto mb-6"
-          style={{ fontSize: "1.1rem", fontWeight: 400, fontStyle: "italic" }}
-        >
-          Pick an amount, or enter your own.
+          The work runs on reader contributions.
         </p>
 
-        {/* Preset buttons */}
+        {/* Preset buttons. Each chip is a full-width row pairing an
+            amount with the italic caption that names what that
+            contribution funds. */}
         <div
-          className="grid grid-cols-5 gap-2 w-full max-w-sm mb-5"
+          className="flex flex-col gap-2 w-full max-w-md mb-5"
           role="group"
           aria-label="Preset donation amounts"
         >
-          {PRESETS.map((amount) => {
+          {PRESETS.map(({ amount, caption }) => {
             const isSelected = selectedPreset === amount;
-            const presetStyle: React.CSSProperties = {
-              padding: "0.55rem 0.25rem",
-              fontSize: "0.72rem",
-              letterSpacing: "0.14em",
-              justifyContent: "center",
-            };
             return (
               <button
                 key={amount}
                 type="button"
                 onClick={() => selectPreset(amount)}
                 aria-pressed={isSelected}
-                className={isSelected ? "btn-primary" : "btn-secondary"}
-                style={presetStyle}
+                className={`tip-chip${isSelected ? " tip-chip-selected" : ""}`}
               >
-                {isSelected ? <span>${amount}</span> : <>${amount}</>}
+                <span className="tip-chip-amount">${amount}</span>
+                <span className="tip-chip-caption">{caption}</span>
               </button>
             );
           })}
@@ -269,7 +255,7 @@ export function StripeDonateCard() {
                     <span className="leading-snug">
                       {opt.label}{" "}
                       <span className="italic text-ink-faint">
-                        — {opt.example}
+                        · {opt.example}
                       </span>
                     </span>
                   </label>
@@ -318,11 +304,10 @@ export function StripeDonateCard() {
           </p>
         )}
 
-        <p className="text-sm text-ink-muted italic mt-6 max-w-xs leading-relaxed">
-          Secure checkout powered by Stripe. One-time tip. Any amount from $1 to
-          $10,000.
-        </p>
-      </div>
+      <p className="text-sm text-ink-muted italic mt-6 max-w-xs leading-relaxed">
+        Secure checkout powered by Stripe. One-time tip. Any amount from $1 to
+        $10,000.
+      </p>
     </div>
   );
 }

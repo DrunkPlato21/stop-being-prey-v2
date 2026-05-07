@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Paper & ink — warm, slightly aged, lit-mag feel */
+  /* Paper & ink --warm, slightly aged, lit-mag feel */
   --paper: #f5efe1;
   --paper-deep: #ede4cf;
   --surface: #fbf6e9;
@@ -12,7 +12,7 @@
   --rule: #d8cfb8;
   --border: #c9bfa3;
 
-  /* The cat's eyes — the only saturated color in the system */
+  /* The cat's eyes --the only saturated color in the system */
   --eye: #b8a82c;
   --eye-bright: #d4c44a;
   --eye-deep: #8a7d20;
@@ -365,7 +365,7 @@ a.no-underline {
   color: var(--eye-deep);
 }
 
-/* Italic kicker beneath the share eyebrow — names the friction
+/* Italic kicker beneath the share eyebrow --names the friction
    (algorithmic suppression) and positions the reader as the channel. */
 .share-kicker {
   font-family: var(--font-source-serif), Georgia, serif;
@@ -377,7 +377,7 @@ a.no-underline {
   margin: 0 auto 1.25rem;
 }
 
-/* Wrap-safe dot row — on mobile we force a balanced 2x2 grid so dots never
+/* Wrap-safe dot row --on mobile we force a balanced 2x2 grid so dots never
    orphan and the bottom row isn't a lonely tail. On sm+ we lay items out
    inline with separators glued to their preceding link (the pair stays
    nowrap so a wrapped dot can't land at the start of a new line). Used by
@@ -408,7 +408,7 @@ a.no-underline {
   user-select: none;
 }
 
-/* In the 2x2 layout, the 2nd item ends row 1 — no trailing sep. */
+/* In the 2x2 layout, the 2nd item ends row 1 --no trailing sep. */
 .dot-row-pair:nth-child(2) .dot-row-sep {
   display: none;
 }
@@ -518,7 +518,7 @@ a.no-underline {
   color: var(--paper);
 }
 
-/* === Header subscribe pill — restrained gold === */
+/* === Header subscribe pill --restrained gold === */
 
 .header-subscribe {
   display: inline-flex;
@@ -577,7 +577,97 @@ a.no-underline {
   user-select: none;
 }
 
-/* === Audio pill — collapsed-by-default disclosure for the Spotify embed.
+/* === Tip card tabs ===
+   Two-tab disclosure (Fiat / Lightning) sitting at the top of the
+   unified donation card. Active tab gets a gold bottom border,
+   inactive tabs are muted. */
+
+.tip-tab {
+  flex: 1;
+  padding: 1rem 1.25rem;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink-faint);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.tip-tab:hover {
+  color: var(--ink-muted);
+  background-color: rgba(184, 168, 44, 0.04);
+}
+
+.tip-tab-active {
+  color: var(--eye-deep);
+  border-bottom-color: var(--eye-deep);
+}
+
+.tip-tab-active:hover {
+  color: var(--eye-deep);
+}
+
+/* === Tip jar preset chips. Full-width row layout at every viewport
+      because the donate card itself is narrow (it shares a 2-col grid
+      with the Lightning card on desktop), so a 5-column stacked grid
+      forces caption wrap to 3-4 lines. Each chip puts the dollar
+      amount on the left and the italic caption right-aligned. === */
+
+.tip-chip {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.tip-chip:hover {
+  border-color: var(--eye-deep);
+}
+
+.tip-chip-selected {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.tip-chip-amount {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.tip-chip-caption {
+  font-size: 0.82rem;
+  font-style: italic;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+.tip-chip-selected .tip-chip-caption {
+  color: var(--paper);
+  opacity: 0.78;
+}
+
+/* === Audio pill, collapsed-by-default disclosure for the Spotify embed.
       Replaces the chunky top-of-article player so the words lead. === */
 
 .audio-pill-wrap {
@@ -638,7 +728,7 @@ a.no-underline {
   max-width: 36rem;
 }
 
-/* === References block — opt-in citation section at the end of an essay,
+/* === References block --opt-in citation section at the end of an essay,
       detected by a `## References` heading in the markdown source. */
 
 .references-block {
@@ -742,7 +832,7 @@ a.no-underline {
 
 /* The Audio Edition eyebrow is now rendered above the frame at the
    section level (see [slug]/page.tsx and the homepage lead), so the
-   frame itself is just a quiet container — no duplicate corner label. */
+   frame itself is just a quiet container --no duplicate corner label. */
 
 /* === Reduced motion === */
 

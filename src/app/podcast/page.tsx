@@ -177,12 +177,12 @@ export default function PodcastPage() {
           })}
         </div>
 
-        {/* P.S. — author note at the bottom of the episode list */}
+        {/* P.S. author note at the bottom of the episode list */}
         <div className="mt-24 max-w-2xl mx-auto pt-8 border-t border-rule">
           <p className="italic text-ink-muted leading-relaxed" style={{ fontSize: "1.05rem" }}>
             <span className="text-ink not-italic" style={{ fontWeight: 600 }}>p.s.</span>{" "}
-            reader-supported. no ads. no sponsors. no paywalls. if any of this
-            earned a few bucks in your eyes, the tip jar is{" "}
+            reader-supported. if any of this earned a few bucks in your
+            eyes, the tip jar is{" "}
             <Link
               href="/tip"
               className="text-eye-deep hover:text-ink"

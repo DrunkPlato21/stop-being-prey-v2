@@ -1,5 +1,5 @@
 /**
- * Section divider — plain centered rule.
+ * Section divider. Plain centered rule.
  * Placeholder for a future mark (e.g. a cropped real-photo cat eye).
  */
 export function EyeDivider({ className = "" }: { className?: string }) {

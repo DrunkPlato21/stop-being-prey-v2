@@ -15,7 +15,7 @@ export function Footer() {
   return (
     <footer>
       <div className="max-w-6xl mx-auto px-6 py-12 md:py-16 border-t border-rule">
-        {/* Three-column row — on mobile, brand stacks above a 2-col nav grid */}
+        {/* Three-column row. On mobile, brand stacks above a 2-col nav grid. */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 mb-12">
           {/* Brand */}
           <div>
@@ -37,7 +37,7 @@ export function Footer() {
             </p>
           </div>
 
-          {/* Nav columns — 2-col grid on mobile, then merges back into the
+          {/* Nav columns. 2-col grid on mobile, then merges back into the
               outer 3-col grid on md via display:contents */}
           <div className="grid grid-cols-2 gap-8 md:contents">
           {/* Read & Listen */}
@@ -120,7 +120,7 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Colophon band — framed by hairlines top and bottom */}
+        {/* Colophon band, framed by hairlines top and bottom */}
         <div className="border-t border-b border-rule py-3 text-center">
           <span className="eyebrow" style={{ letterSpacing: "0.18em" }}>
             Independent · Uncompromised · Without paywalls · Reader-supported

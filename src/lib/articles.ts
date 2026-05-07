@@ -20,7 +20,7 @@ export type ArticleMeta = {
 
 export type Article = ArticleMeta & {
   contentHtml: string;
-  /** Optional citation block — populated when the markdown ends with a
+  /** Optional citation block, populated when the markdown ends with a
       `## References` heading followed by a list. The body is stripped of
       both the heading and the list so it renders cleanly. */
   referencesHtml?: string | null;

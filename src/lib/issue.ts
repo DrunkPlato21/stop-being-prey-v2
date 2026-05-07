@@ -4,7 +4,7 @@ export type IssueIdentity = {
   volume: string; // Roman numeral
   number: number;
   dateLabel: string; // e.g., "Saturday, May 2, 2026"
-  shortDateLabel: string; // e.g., "May 2, 2026" — for tight viewports
+  shortDateLabel: string; // e.g., "May 2, 2026", for tight viewports
   rawDate: string; // ISO date of the latest essay
 };
 

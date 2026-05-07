@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Welcome",
   description:
-    "You're on the list. Stop Being Prey goes out every day, free, to inboxes that want it.",
+    "You're on the list. Stop Being Prey goes out to inboxes that asked for it. Reader-supported.",
 };
 
 export default function WelcomePage() {
@@ -35,8 +35,8 @@ export default function WelcomePage() {
       <div className="max-w-3xl mx-auto px-6 py-16">
         <div className="prose-article">
           <p>
-            Thank you for joining the list. Stop Being Prey goes out every
-            day. Free. No ads, no sponsors, no paywalls.
+            Thank you for joining the list. Stop Being Prey lands in your
+            inbox a few times a week. Reader-supported.
           </p>
 
           <p>

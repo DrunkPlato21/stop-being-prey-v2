@@ -10,6 +10,8 @@ import { EmailSignup } from "@/components/EmailSignup";
 import { EyeDivider } from "@/components/Eyes";
 import { ShareButtons } from "@/components/ShareButtons";
 import { AuthorBio } from "@/components/AuthorBio";
+import { ArticlePostscript } from "@/components/ArticlePostscript";
+import { SubscriberCount } from "@/components/SubscriberCount";
 import type { Metadata } from "next";
 
 type PageParams = { slug: string };
@@ -62,11 +64,11 @@ export default async function ArticlePage({
     timeZone: "UTC",
   });
 
-  // Audio runtime estimate (~150 wpm spoken) — used in the audio pill.
+  // Audio runtime estimate (~150 wpm spoken), used in the audio pill.
   const audioMinutes = article.wordCount
     ? Math.round(article.wordCount / 150)
     : null;
-  // Read time estimate (industry standard 250 wpm) — shown in metadata.
+  // Read time estimate (industry standard 250 wpm), shown in metadata.
   const readMinutes = article.wordCount
     ? Math.max(1, Math.ceil(article.wordCount / 250))
     : null;
@@ -104,9 +106,11 @@ export default async function ArticlePage({
             {readMinutes && (
               <>
                 <span className="text-rule">·</span>
-                <span>{readMinutes} min read</span>
+                <span>{readMinutes} min</span>
               </>
             )}
+            <span className="text-rule">·</span>
+            <span>Reader-supported</span>
           </div>
 
           {article.spotifyEpisodeId && audioMinutes && (
@@ -129,31 +133,17 @@ export default async function ArticlePage({
           dangerouslySetInnerHTML={{ __html: article.contentHtml }}
         />
 
-        {/* === P.S. — directly under the article body, no drop cap === */}
+        {/* === P.S. directly under the article body, no drop cap.
+             One of three variants chosen by a stable hash of the slug,
+             so a given article always renders the same P.S. but
+             different articles get different ones. === */}
         <div className="max-w-[38rem] mx-auto mt-8">
-          <p className="italic text-ink-muted leading-relaxed">
-            <span className="text-ink not-italic" style={{ fontWeight: 600 }}>p.s.</span>{" "}
-            reader-supported. no ads. no sponsors. no paywalls. if this piece
-            earned a few bucks in your eyes, the tip jar is{" "}
-            <Link
-              href="/tip"
-              className="text-eye-deep hover:text-ink"
-              style={{
-                textDecoration: "underline",
-                textDecorationColor: "var(--eye)",
-                textDecorationThickness: "1px",
-                textUnderlineOffset: "3px",
-              }}
-            >
-              here
-            </Link>
-            .
-          </p>
+          <ArticlePostscript slug={article.slug} />
         </div>
       </div>
 
       {/* === References (opt-in, populated when markdown ends with
-          `## References` followed by a list) — sits with the article
+          `## References` followed by a list). Sits with the article
           body since citations are part of the work itself === */}
       {article.referencesHtml && (
         <div className="max-w-3xl mx-auto px-6 mt-16">
@@ -168,12 +158,12 @@ export default async function ArticlePage({
 
       <EyeDivider />
 
-      {/* === Share row — catches the just-finished impulse === */}
+      {/* === Share row, catches the just-finished impulse === */}
       <div className="max-w-2xl mx-auto px-6">
         <ShareButtons url={`/${article.slug}`} title={article.title} />
       </div>
 
-      {/* === Audio Edition — full embed for readers who want to queue
+      {/* === Audio Edition: full embed for readers who want to queue
           or revisit the spoken version === */}
       {article.spotifyEpisodeId && (
         <div className="max-w-2xl mx-auto px-6 mt-16">
@@ -195,46 +185,29 @@ export default async function ArticlePage({
 
       <EyeDivider />
 
-      {/* === Subscribe CTA — magazine sub box === */}
-      <section className="max-w-3xl mx-auto px-6 py-10 md:py-16">
-        <div className="border border-ink/10 bg-surface p-8 md:p-12 relative">
-          {/* corner ornaments */}
-          <span className="absolute -top-px -left-px w-6 h-6 border-t-2 border-l-2 border-eye" />
-          <span className="absolute -top-px -right-px w-6 h-6 border-t-2 border-r-2 border-eye" />
-          <span className="absolute -bottom-px -left-px w-6 h-6 border-b-2 border-l-2 border-eye" />
-          <span className="absolute -bottom-px -right-px w-6 h-6 border-b-2 border-r-2 border-eye" />
-
-          <div className="text-center mb-8">
-            <p className="eyebrow mb-4">If this hit</p>
-            <h2
-              className="font-display text-ink leading-tight tracking-tight mb-4"
-              style={{
-                fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
-                fontWeight: 700,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              There&apos;s more like it. <em>Every day.</em>
-            </h2>
-            <p className="deck">
-              The daily letter. Free. No ads, no sponsors, no paywalls.
-            </p>
-          </div>
-          <div className="flex justify-center">
-            <EmailSignup />
-          </div>
-        </div>
-
-        <div className="mt-16 text-center">
-          <Link
-            href="/"
-            className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            ← All essays
-          </Link>
+      {/* === More like this. Compact end-of-article subscribe block.
+          Restrained real estate, no framed card. === */}
+      <section className="max-w-2xl mx-auto px-6 py-10 md:py-14 text-center">
+        <p className="eyebrow mb-4">More like this</p>
+        <p className="deck mb-6 max-w-md mx-auto">
+          Algorithms don&apos;t deliver this writing. It only arrives if
+          you ask.
+        </p>
+        <SubscriberCount className="mb-5" />
+        <div className="flex justify-center">
+          <EmailSignup />
         </div>
       </section>
+
+      <div className="text-center pb-16">
+        <Link
+          href="/"
+          className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
+          style={{ fontWeight: 500 }}
+        >
+          ← All essays
+        </Link>
+      </div>
     </article>
   );
 }

@@ -56,7 +56,7 @@ export function AuthorBio() {
             playbook.
           </p>
 
-          {/* Contact row — wrap-safe pairs so separators never orphan */}
+          {/* Contact row, wrap-safe pairs so separators never orphan */}
           <div className="mt-6 pt-5 border-t border-rule">
             <div className="dot-row md:!justify-start">
               {[

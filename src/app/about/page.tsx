@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EmailSignup } from "@/components/EmailSignup";
 import { EyeDivider } from "@/components/Eyes";
 import { AuthorBio } from "@/components/AuthorBio";
+import { SubscriberCount } from "@/components/SubscriberCount";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -72,16 +73,15 @@ export default function AboutPage() {
           </p>
 
           <p>
-            The daily letter goes out every day. Free. No ads, no sponsors,
-            never gated.{" "}
+            The letter goes out a few times a week. Never gated.{" "}
             <Link href="/tip">Reader-supported</Link>.
           </p>
 
           <p>
             Future material will sit behind a paywall... book chapters,
             deep-dive essays, member-only material, a Discord server. The
-            daily letter is the exception. Free, every day, forever.
-            That&apos;s the promise.
+            letter is the exception. Free to read, forever. That&apos;s
+            the promise.
           </p>
 
           <p>
@@ -101,7 +101,7 @@ export default function AboutPage() {
           <h2>The voice</h2>
 
           <p>
-            Direct. Unapologetic. Right-wing realpolitik. Voice-driven daily
+            Direct. Unapologetic. Right-wing realpolitik. Voice-driven
             letters in the lineage of Sowell himself: clear, direct,
             indifferent to fashion. Politics and power, written for people who
             need to act on what they read.
@@ -110,7 +110,7 @@ export default function AboutPage() {
           <h2>What I&apos;m building</h2>
 
           <p>
-            The goal is bigger than a daily letter. Stop Being Prey is, for
+            The goal is bigger than a letter. Stop Being Prey is, for
             the right, what Saul Alinsky&apos;s <em>Rules for Radicals</em>{" "}
             was for the left: a tactical playbook that lasts a generation.
           </p>
@@ -148,18 +148,22 @@ export default function AboutPage() {
       <EyeDivider />
 
       <section className="max-w-2xl mx-auto px-6 py-16 text-center">
-        <p className="eyebrow mb-4">Get the daily letter</p>
+        <p className="eyebrow mb-4">Stay close</p>
         <h2
-          className="font-display text-ink leading-tight tracking-tight mb-4"
+          className="font-display text-ink leading-tight tracking-tight mb-5"
           style={{
             fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
             fontWeight: 700,
             letterSpacing: "-0.02em",
           }}
         >
-          Every day. Free.
+          Get the next one.
         </h2>
-        <p className="deck mb-8">No ads. No sponsors. No paywalls.</p>
+        <p className="deck mb-6 max-w-md mx-auto">
+          Algorithms don&apos;t deliver this writing. It only arrives if
+          you ask.
+        </p>
+        <SubscriberCount className="mb-5" />
         <div className="flex justify-center">
           <EmailSignup />
         </div>

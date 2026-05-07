@@ -6,7 +6,7 @@ const navLinkClass =
 export function Header() {
   return (
     <header>
-      {/* === Tier 1 — wordmark + Subscribe === */}
+      {/* === Tier 1: wordmark + Subscribe === */}
       <div className="border-b border-rule">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-4">
           <Link
@@ -31,7 +31,7 @@ export function Header() {
         </div>
       </div>
 
-      {/* === Tier 2 — slim nav strip === */}
+      {/* === Tier 2: slim nav strip === */}
       <nav className="border-b border-rule bg-paper-deep/40">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 flex items-center justify-center gap-5 sm:gap-9 py-2.5 sm:py-3">
           <Link href="/issues" className={navLinkClass}>
