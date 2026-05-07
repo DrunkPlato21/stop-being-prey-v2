@@ -110,7 +110,12 @@ export default async function ArticlePage({
               </>
             )}
             <span className="text-rule">·</span>
-            <span>Reader-supported</span>
+            <Link
+              href="/tip"
+              className="hover:text-eye-deep transition-colors no-underline"
+            >
+              Reader-supported
+            </Link>
           </div>
 
           {article.spotifyEpisodeId && audioMinutes && (
@@ -182,6 +187,27 @@ export default async function ArticlePage({
       <div className="max-w-3xl mx-auto px-6 mt-16">
         <AuthorBio />
       </div>
+
+      {/* === Tip nudge. Always present (independent of P.S. variant)
+          so the publication's funding model surfaces on every essay,
+          not just the third that gets variant C. === */}
+      <section className="max-w-2xl mx-auto px-6 mt-12 text-center">
+        <p className="font-serif italic text-ink-muted leading-relaxed">
+          Reader-supported.{" "}
+          <Link
+            href="/tip"
+            className="text-eye-deep hover:text-ink"
+            style={{
+              textDecoration: "underline",
+              textDecorationColor: "var(--eye)",
+              textDecorationThickness: "1px",
+              textUnderlineOffset: "3px",
+            }}
+          >
+            The tip jar is here.
+          </Link>
+        </p>
+      </section>
 
       <EyeDivider />
 

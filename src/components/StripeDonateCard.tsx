@@ -157,6 +157,21 @@ export function StripeDonateCard() {
           })}
         </div>
 
+        {/* Promoted out of fine print: the no-recurring assurance lands
+            mid-card, in eyebrow form, right after the user picks an
+            amount. Pre-empts the "is this going to charge me monthly?"
+            hesitation at the decision moment. */}
+        <p
+          className="eyebrow text-center mb-6"
+          style={{
+            fontSize: "0.62rem",
+            letterSpacing: "0.22em",
+            lineHeight: 1.55,
+          }}
+        >
+          One-time. No auto-renewal. No recurring charge.
+        </p>
+
         {/* Custom amount input */}
         <label className="w-full max-w-sm mb-4">
           <span className="sr-only">Custom amount in US dollars</span>
@@ -305,8 +320,7 @@ export function StripeDonateCard() {
         )}
 
       <p className="text-sm text-ink-muted italic mt-6 max-w-xs leading-relaxed">
-        Secure checkout powered by Stripe. One-time tip. Any amount from $1 to
-        $10,000.
+        Secure checkout powered by Stripe. Any amount from $1 to $10,000.
       </p>
     </div>
   );

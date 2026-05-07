@@ -46,6 +46,15 @@ export default async function SupportersPage({
           <p className="deck max-w-xl mx-auto fade-up stagger-3">
             Readers who chose to be named. The work runs on them.
           </p>
+          <p className="mt-8 fade-up stagger-4">
+            <Link
+              href="/tip"
+              className="font-display text-sm uppercase tracking-[0.22em] text-eye-deep hover:text-ink no-underline transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              Add your name →
+            </Link>
+          </p>
         </div>
       </section>
 

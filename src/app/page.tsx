@@ -105,7 +105,12 @@ export default function Home() {
                     </>
                   )}
                   <span className="text-rule">·</span>
-                  <span>Reader-supported</span>
+                  <Link
+                    href="/tip"
+                    className="hover:text-eye-deep transition-colors no-underline"
+                  >
+                    Reader-supported
+                  </Link>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 mb-8">
                   <Link href={`/${featured.slug}`} className="btn-primary">
@@ -204,7 +209,13 @@ export default function Home() {
             them stay predators, and what it takes to stop being their prey.
           </p>
           <p className="text-sm italic text-ink-faint">
-            Written and narrated by Clay.
+            Written and narrated by Clay.{" "}
+            <Link
+              href="/tip"
+              className="text-ink-faint hover:text-eye-deep transition-colors no-underline"
+            >
+              Reader-supported.
+            </Link>
           </p>
         </div>
       </section>

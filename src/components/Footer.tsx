@@ -15,8 +15,11 @@ export function Footer() {
   return (
     <footer>
       <div className="max-w-6xl mx-auto px-6 py-12 md:py-16 border-t border-rule">
-        {/* Three-column row. On mobile, brand stacks above a 2-col nav grid. */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 mb-12">
+        {/* Brand on top (full width on mobile, 1 of 4 columns on md+).
+            Below that, three nav columns (Read / Support / Elsewhere).
+            Support is its own column so the funding model stays
+            visible in the footer instead of being buried in Read. */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8 mb-12">
           {/* Brand */}
           <div>
             <Link href="/" className="no-underline inline-block mb-3">
@@ -37,93 +40,106 @@ export function Footer() {
             </p>
           </div>
 
-          {/* Nav columns. 2-col grid on mobile, then merges back into the
-              outer 3-col grid on md via display:contents */}
-          <div className="grid grid-cols-2 gap-8 md:contents">
-          {/* Read & Listen */}
-          <div>
-            <p className={columnHeaderClass} style={columnHeaderStyle}>
-              Read & Listen
-            </p>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/issues" className={navLinkClass}>
-                  Issues
-                </Link>
-              </li>
-              <li>
-                <Link href="/podcast" className={navLinkClass}>
-                  Podcast
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className={navLinkClass}>
-                  About
-                </Link>
-              </li>
-              <li>
-                <Link href="/#join" className={navLinkClass}>
-                  Subscribe
-                </Link>
-              </li>
-              <li>
-                <Link href="/tip" className={navLinkClass}>
-                  Tip
-                </Link>
-              </li>
-              <li>
-                <Link href="/supporters" className={navLinkClass}>
-                  Supporters
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {/* Nav columns. 3-col grid on mobile, merges into the outer
+              4-col grid on md via display:contents */}
+          <div className="grid grid-cols-3 gap-x-4 gap-y-0 md:contents">
+            {/* Read */}
+            <div>
+              <p className={columnHeaderClass} style={columnHeaderStyle}>
+                Read
+              </p>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/issues" className={navLinkClass}>
+                    Issues
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/podcast" className={navLinkClass}>
+                    Podcast
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/about" className={navLinkClass}>
+                    About
+                  </Link>
+                </li>
+              </ul>
+            </div>
 
-          {/* Elsewhere */}
-          <div>
-            <p className={columnHeaderClass} style={columnHeaderStyle}>
-              Elsewhere
-            </p>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href="https://twitter.com/stopbeingprey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={navLinkClass}
-                >
-                  Twitter / X
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://open.spotify.com/show/6Pjbl5jXQlOoHpVn696V1t"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={navLinkClass}
-                >
-                  Spotify
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://facebook.com/ThomasSowellQuotes"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={navLinkClass}
-                >
-                  Facebook
-                </a>
-              </li>
-            </ul>
-          </div>
+            {/* Support */}
+            <div>
+              <p className={columnHeaderClass} style={columnHeaderStyle}>
+                Support
+              </p>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/#join" className={navLinkClass}>
+                    Subscribe
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/tip"
+                    className="text-eye-deep hover:text-ink no-underline font-serif text-sm transition-colors"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Tip
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/supporters" className={navLinkClass}>
+                    Supporters
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Elsewhere */}
+            <div>
+              <p className={columnHeaderClass} style={columnHeaderStyle}>
+                Elsewhere
+              </p>
+              <ul className="space-y-2">
+                <li>
+                  <a
+                    href="https://twitter.com/stopbeingprey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={navLinkClass}
+                  >
+                    Twitter / X
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://open.spotify.com/show/6Pjbl5jXQlOoHpVn696V1t"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={navLinkClass}
+                  >
+                    Spotify
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://facebook.com/ThomasSowellQuotes"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={navLinkClass}
+                  >
+                    Facebook
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
         {/* Colophon band, framed by hairlines top and bottom */}
         <div className="border-t border-b border-rule py-3 text-center">
           <span className="eyebrow" style={{ letterSpacing: "0.18em" }}>
-            Independent · Uncompromised · Without paywalls · Reader-supported
+            Independent · Uncompromised · Reader-supported
           </span>
         </div>
 
