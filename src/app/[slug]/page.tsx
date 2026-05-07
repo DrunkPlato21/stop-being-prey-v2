@@ -214,7 +214,7 @@ export default async function ArticlePage({
                 letterSpacing: "-0.02em",
               }}
             >
-              There&apos;s more like it. <em>Every morning.</em>
+              There&apos;s more like it. <em>Every day.</em>
             </h2>
             <p className="deck">
               The daily letter. Free. No ads, no sponsors, no paywalls.

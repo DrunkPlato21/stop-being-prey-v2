@@ -547,7 +547,7 @@ The only way out is through the recognition that being right is not the same as 
 
 Stop being prey.
 
-I'm going to be writing to you every morning until I'm dead. I'm building a book called Stop Being Prey. I'm starting an audio version of these emails. I'm building a community of people who get this. It's all coming.
+I'm going to be writing to you every day until I'm dead. I'm building a book called Stop Being Prey. I'm starting an audio version of these emails. I'm building a community of people who get this. It's all coming.
 
 If you got this far, you're probably one of us.
 

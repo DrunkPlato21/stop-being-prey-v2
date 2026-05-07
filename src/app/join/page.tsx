@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Join",
   description:
-    "Get Stop Being Prey in your inbox every morning. Free. No ads, no sponsors, no paywalls.",
+    "Get Stop Being Prey in your inbox every day. Free. No ads, no sponsors, no paywalls.",
 };
 
 export default function JoinPage() {
@@ -28,7 +28,7 @@ export default function JoinPage() {
           </h1>
           <p className="deck max-w-xl mx-auto fade-up stagger-3">
             Original writing on politics, power, and the apex class. Every
-            morning. Free. No ads, no sponsors, no paywalls.
+            day. Free. No ads, no sponsors, no paywalls.
           </p>
         </div>
       </section>

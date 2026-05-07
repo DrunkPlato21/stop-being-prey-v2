@@ -72,7 +72,7 @@ export default function AboutPage() {
           </p>
 
           <p>
-            The daily letter goes out every morning. Free. No ads, no sponsors,
+            The daily letter goes out every day. Free. No ads, no sponsors,
             never gated.{" "}
             <Link href="/tip">Reader-supported</Link>.
           </p>
@@ -157,7 +157,7 @@ export default function AboutPage() {
             letterSpacing: "-0.02em",
           }}
         >
-          Every morning. Free.
+          Every day. Free.
         </h2>
         <p className="deck mb-8">No ads. No sponsors. No paywalls.</p>
         <div className="flex justify-center">

@@ -185,38 +185,24 @@ export default function Home() {
       {/* === Manifesto strip === */}
       <section className="bg-paper-deep border-y border-rule py-12 md:py-16">
         <div className="max-w-3xl mx-auto px-6 text-center">
-          <p className="eyebrow mb-6">The work</p>
+          <p className="eyebrow mb-8">The work</p>
           <p
-            className="font-display text-ink leading-tight mb-12"
+            className="font-display text-ink leading-tight mb-8"
             style={{
               fontSize: "clamp(1.6rem, 3vw, 2.25rem)",
               fontWeight: 400,
             }}
           >
-            <em className="italic">Stop Being Prey</em> is a daily letter, a
-            podcast, a community, and a forthcoming book on politics, power,
-            and the apex class. Written and read aloud by Clay.
+            <em className="italic">Stop Being Prey</em> is a publication
+            on politics, power, and the apex class.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-left max-w-2xl mx-auto">
-            <div>
-              <p className="eyebrow mb-2">Daily</p>
-              <p className="text-sm text-ink-muted leading-relaxed">
-                A letter every morning. Free. Direct to your inbox.
-              </p>
-            </div>
-            <div>
-              <p className="eyebrow mb-2">Audio</p>
-              <p className="text-sm text-ink-muted leading-relaxed">
-                The podcast reads each piece aloud. Most days. On Spotify.
-              </p>
-            </div>
-            <div>
-              <p className="eyebrow mb-2">Book</p>
-              <p className="text-sm text-ink-muted leading-relaxed">
-                Stop Being Prey, the book. In progress.
-              </p>
-            </div>
-          </div>
+          <p className="deck mb-8 max-w-2xl mx-auto">
+            A continuing inquiry into who the real predators are, who lets
+            them stay predators, and what it takes to stop being their prey.
+          </p>
+          <p className="text-sm italic text-ink-faint">
+            Written and narrated by Clay.
+          </p>
         </div>
       </section>
 
@@ -237,7 +223,7 @@ export default function Home() {
           Get the daily letter.
         </h2>
         <p className="deck mb-10 max-w-xl mx-auto">
-          Original writing on politics and power, every morning. The same
+          Original writing on politics and power, every day. The same
           writing that builds Stop Being Prey. Free. No ads. No sponsors. No
           paywalls.
         </p>
