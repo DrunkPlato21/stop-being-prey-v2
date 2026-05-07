@@ -56,45 +56,75 @@ export function AuthorBio() {
             playbook.
           </p>
 
-          {/* Contact row */}
-          <div className="mt-6 pt-5 border-t border-rule flex flex-wrap items-center justify-center md:justify-start gap-x-3 gap-y-1">
-            <a
-              href="https://twitter.com/stopbeingprey"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={linkClass}
-              style={linkStyle}
-            >
-              Twitter
-            </a>
-            <span className="text-rule">·</span>
-            <a
-              href="mailto:clay@readsowell.com"
-              className={linkClass}
-              style={linkStyle}
-            >
-              Email
-            </a>
-            <span className="text-rule">·</span>
-            <a
-              href="https://open.spotify.com/show/6Pjbl5jXQlOoHpVn696V1t"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={linkClass}
-              style={linkStyle}
-            >
-              Spotify
-            </a>
-            <span className="text-rule">·</span>
-            <a
-              href="https://anchor.fm/s/1121c68b8/podcast/rss"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={linkClass}
-              style={linkStyle}
-            >
-              RSS
-            </a>
+          {/* Contact row — wrap-safe pairs so separators never orphan */}
+          <div className="mt-6 pt-5 border-t border-rule">
+            <div className="dot-row md:!justify-start">
+              {[
+                {
+                  key: "twitter",
+                  node: (
+                    <a
+                      href="https://twitter.com/stopbeingprey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={linkClass}
+                      style={linkStyle}
+                    >
+                      Twitter
+                    </a>
+                  ),
+                },
+                {
+                  key: "email",
+                  node: (
+                    <a
+                      href="mailto:clay@readsowell.com"
+                      className={linkClass}
+                      style={linkStyle}
+                    >
+                      Email
+                    </a>
+                  ),
+                },
+                {
+                  key: "spotify",
+                  node: (
+                    <a
+                      href="https://open.spotify.com/show/6Pjbl5jXQlOoHpVn696V1t"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={linkClass}
+                      style={linkStyle}
+                    >
+                      Spotify
+                    </a>
+                  ),
+                },
+                {
+                  key: "rss",
+                  node: (
+                    <a
+                      href="https://anchor.fm/s/1121c68b8/podcast/rss"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={linkClass}
+                      style={linkStyle}
+                    >
+                      RSS
+                    </a>
+                  ),
+                },
+              ].map((it, i, arr) => (
+                <span key={it.key} className="dot-row-pair">
+                  {it.node}
+                  {i < arr.length - 1 && (
+                    <span className="dot-row-sep" aria-hidden="true">
+                      ·
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>

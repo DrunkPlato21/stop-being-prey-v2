@@ -157,6 +157,13 @@ export default async function ArticlePage({
         </div>
       </div>
 
+      <EyeDivider />
+
+      {/* === Share row — sits above the bio so readers hit it first === */}
+      <div className="max-w-2xl mx-auto px-6">
+        <ShareButtons url={`/${article.slug}`} title={article.title} />
+      </div>
+
       {/* === Author bio === */}
       <div className="max-w-3xl mx-auto px-6 mt-12">
         <AuthorBio />
@@ -164,15 +171,8 @@ export default async function ArticlePage({
 
       <EyeDivider />
 
-      {/* === Share row === */}
-      <div className="max-w-2xl mx-auto px-6 flex justify-center">
-        <ShareButtons url={`/${article.slug}`} title={article.title} />
-      </div>
-
-      <EyeDivider />
-
       {/* === Subscribe CTA — magazine sub box === */}
-      <section className="max-w-3xl mx-auto px-6 py-16">
+      <section className="max-w-3xl mx-auto px-6 py-10 md:py-16">
         <div className="border border-ink/10 bg-surface p-8 md:p-12 relative">
           {/* corner ornaments */}
           <span className="absolute -top-px -left-px w-6 h-6 border-t-2 border-l-2 border-eye" />

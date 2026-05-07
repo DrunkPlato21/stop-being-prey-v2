@@ -4,6 +4,7 @@ export type IssueIdentity = {
   volume: string; // Roman numeral
   number: number;
   dateLabel: string; // e.g., "Saturday, May 2, 2026"
+  shortDateLabel: string; // e.g., "May 2, 2026" — for tight viewports
   rawDate: string; // ISO date of the latest essay
 };
 
@@ -95,6 +96,12 @@ export function getCurrentIssue(
     year: "numeric",
     timeZone: "UTC",
   });
+  const shortDateLabel = date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 
-  return { volume, number, dateLabel, rawDate: latest.date };
+  return { volume, number, dateLabel, shortDateLabel, rawDate: latest.date };
 }

@@ -28,21 +28,19 @@ export default function Home() {
     <div>
       {/* === Masthead === */}
       <section>
-        <div className="max-w-6xl mx-auto px-6 py-16 border-t border-b border-rule">
+        <div className="max-w-6xl mx-auto px-6 py-12 md:py-16 border-t border-b border-rule">
           <div className="flex flex-col items-center text-center">
             {issue && (
               <p className="eyebrow mb-7 fade-up">
-                <span className="block sm:inline">
-                  Vol. {issue.volume} · No. {issue.number}
-                </span>
-                <span className="hidden sm:inline"> · </span>
-                <span className="block sm:inline">{issue.dateLabel}</span>
+                Vol. {issue.volume} · No. {issue.number} ·{" "}
+                <span className="sm:hidden">{issue.shortDateLabel}</span>
+                <span className="hidden sm:inline">{issue.dateLabel}</span>
               </p>
             )}
             <h1
               className="font-display text-ink leading-[0.95] tracking-tight fade-up stagger-2"
               style={{
-                fontSize: "clamp(3rem, 8vw, 6rem)",
+                fontSize: "clamp(3.5rem, 10vw, 6rem)",
                 fontWeight: 700,
                 letterSpacing: "-0.025em",
               }}
@@ -62,7 +60,7 @@ export default function Home() {
 
       {/* === Featured Lead Article === */}
       {featured && (
-        <section className="max-w-6xl mx-auto px-6 py-16">
+        <section className="max-w-6xl mx-auto px-6 py-10 md:py-16">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-16 md:items-center">
             <div className="md:col-span-7">
               <p className="eyebrow mb-5">
@@ -97,10 +95,10 @@ export default function Home() {
                   </>
                 )}
                 {featured.spotifyEpisodeId && (
-                  <>
+                  <span className="hidden sm:contents">
                     <span className="text-rule">·</span>
                     <span>~{Math.round((featured.wordCount || 6000) / 150)} min audio</span>
-                  </>
+                  </span>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-3">
@@ -134,7 +132,7 @@ export default function Home() {
                   <blockquote
                     className="font-display italic text-ink leading-snug border-l-2 border-eye pl-6 py-2 my-2"
                     style={{
-                      fontSize: "clamp(1.45rem, 2.2vw, 1.75rem)",
+                      fontSize: "clamp(1.75rem, 3vw, 1.95rem)",
                       fontWeight: 400,
                     }}
                   >
@@ -186,7 +184,7 @@ export default function Home() {
       )}
 
       {/* === Manifesto strip === */}
-      <section className="bg-paper-deep border-y border-rule py-16">
+      <section className="bg-paper-deep border-y border-rule py-12 md:py-16">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <p className="eyebrow mb-6">The work</p>
           <p
@@ -226,7 +224,7 @@ export default function Home() {
       {/* === Subscribe === */}
       <section
         id="join"
-        className="max-w-3xl mx-auto px-6 py-16 text-center"
+        className="max-w-3xl mx-auto px-6 py-12 md:py-16 text-center"
       >
         <p className="eyebrow mb-5">Subscribe</p>
         <h2

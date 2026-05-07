@@ -1,62 +1,62 @@
 import Link from "next/link";
 
+const navLinkClass =
+  "header-nav-link text-ink hover:text-eye-deep transition-colors no-underline";
+
 export function Header() {
   return (
-    <header className="border-b border-rule">
-      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-5 flex items-center justify-between gap-2 sm:gap-6">
-        <Link
-          href="/"
-          className="flex items-center gap-3 no-underline group"
-          aria-label="Stop Being Prey, home"
-        >
-          <span
-            className="font-display tracking-tight text-ink whitespace-nowrap"
-            style={{
-              fontWeight: 700,
-              letterSpacing: "-0.015em",
-              fontSize: "clamp(0.95rem, 3.5vw, 1.25rem)",
-            }}
-          >
-            Stop Being Prey
-          </span>
-        </Link>
-        <nav className="flex items-center gap-0 sm:gap-2">
+    <header>
+      {/* === Tier 1 — wordmark + Subscribe === */}
+      <div className="border-b border-rule">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-4">
           <Link
-            href="/issues"
-            className="text-ink hover:text-eye-deep transition-colors no-underline px-1.5 sm:px-3 py-2 font-display text-xs sm:text-sm tracking-wider"
-            style={{ fontWeight: 500 }}
+            href="/"
+            className="no-underline"
+            aria-label="Stop Being Prey, home"
           >
+            <span
+              className="font-display tracking-tight text-ink whitespace-nowrap"
+              style={{
+                fontWeight: 700,
+                letterSpacing: "-0.015em",
+                fontSize: "clamp(1.15rem, 4.5vw, 1.4rem)",
+              }}
+            >
+              Stop Being Prey
+            </span>
+          </Link>
+          <Link href="/#join" className="header-subscribe">
+            Subscribe
+          </Link>
+        </div>
+      </div>
+
+      {/* === Tier 2 — slim nav strip === */}
+      <nav className="border-b border-rule bg-paper-deep/40">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 flex items-center justify-center gap-5 sm:gap-9 py-2.5 sm:py-3">
+          <Link href="/issues" className={navLinkClass}>
             Issues
           </Link>
-          <Link
-            href="/podcast"
-            className="text-ink hover:text-eye-deep transition-colors no-underline px-1.5 sm:px-3 py-2 font-display text-xs sm:text-sm tracking-wider"
-            style={{ fontWeight: 500 }}
-          >
+          <span className="header-nav-sep" aria-hidden="true">
+            ·
+          </span>
+          <Link href="/podcast" className={navLinkClass}>
             Podcast
           </Link>
-          <Link
-            href="/about"
-            className="text-ink hover:text-eye-deep transition-colors no-underline px-1.5 sm:px-3 py-2 font-display text-xs sm:text-sm tracking-wider"
-            style={{ fontWeight: 500 }}
-          >
+          <span className="header-nav-sep" aria-hidden="true">
+            ·
+          </span>
+          <Link href="/about" className={navLinkClass}>
             About
           </Link>
-          <Link
-            href="/tip"
-            className="text-ink hover:text-eye-deep transition-colors no-underline px-1.5 sm:px-3 py-2 font-display text-xs sm:text-sm tracking-wider"
-            style={{ fontWeight: 500 }}
-          >
+          <span className="header-nav-sep" aria-hidden="true">
+            ·
+          </span>
+          <Link href="/tip" className={navLinkClass}>
             Tip
           </Link>
-          <Link
-            href="/#join"
-            className="btn-primary ml-1 sm:ml-2 !px-3 !py-2 sm:!px-6 sm:!py-[0.85rem] !text-[0.65rem] sm:!text-[0.78rem]"
-          >
-            <span>Subscribe</span>
-          </Link>
-        </nav>
-      </div>
+        </div>
+      </nav>
     </header>
   );
 }

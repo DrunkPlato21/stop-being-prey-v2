@@ -16,7 +16,7 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
   const encodedUrl = encodeURIComponent(fullUrl);
   const encodedTitle = encodeURIComponent(title);
 
-  const twitter = `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`;
+  const twitter = `https://x.com/intent/post?text=${encodedTitle}&url=${encodedUrl}`;
   const facebook = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
   const email = `mailto:?subject=${encodedTitle}&body=${encodedTitle}%0A%0A${encodedUrl}`;
 
@@ -30,35 +30,66 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
     }
   }
 
+  const items: { node: React.ReactNode; key: string }[] = [
+    {
+      key: "twitter",
+      node: (
+        <a
+          href={twitter}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="share-link"
+        >
+          Twitter
+        </a>
+      ),
+    },
+    {
+      key: "facebook",
+      node: (
+        <a
+          href={facebook}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="share-link"
+        >
+          Facebook
+        </a>
+      ),
+    },
+    {
+      key: "email",
+      node: (
+        <a href={email} className="share-link">
+          Email
+        </a>
+      ),
+    },
+    {
+      key: "copy",
+      node: (
+        <button onClick={handleCopy} className="share-link">
+          {copied ? "Copied" : "Copy link"}
+        </button>
+      ),
+    },
+  ];
+
   return (
-    <div className="flex items-center gap-3 flex-wrap">
-      <span className="eyebrow text-xs">Share</span>
-      <span className="text-rule">·</span>
-      <a
-        href={twitter}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="share-link"
-      >
-        Twitter
-      </a>
-      <span className="text-rule">·</span>
-      <a
-        href={facebook}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="share-link"
-      >
-        Facebook
-      </a>
-      <span className="text-rule">·</span>
-      <a href={email} className="share-link">
-        Email
-      </a>
-      <span className="text-rule">·</span>
-      <button onClick={handleCopy} className="share-link">
-        {copied ? "Copied" : "Copy link"}
-      </button>
+    <div className="text-center w-full">
+      <p className="eyebrow mb-4">Share</p>
+      <div className="dot-row">
+        {items.map((it, i) => (
+          <span key={it.key} className="dot-row-pair">
+            {it.node}
+            {i < items.length - 1 && (
+              <span className="dot-row-sep" aria-hidden="true">
+                ·
+              </span>
+            )}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

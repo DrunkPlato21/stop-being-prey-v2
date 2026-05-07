@@ -163,12 +163,19 @@ a.no-underline {
 
 .prose-article {
   font-family: var(--font-source-serif), Georgia, serif;
-  font-size: 1.13rem;
-  line-height: 1.8;
+  font-size: 1.07rem;
+  line-height: 1.65;
   color: var(--ink);
   max-width: 38rem;
   margin-left: auto;
   margin-right: auto;
+}
+
+@media (min-width: 640px) {
+  .prose-article {
+    font-size: 1.13rem;
+    line-height: 1.8;
+  }
 }
 
 .prose-article > * + * {
@@ -326,6 +333,17 @@ a.no-underline {
   }
 }
 
+/* Mobile: 2-line cap so the third line of the first paragraph isn't
+   crowded against the cap on a 375-390px viewport. */
+@media (max-width: 639px) {
+  .prose-article:first-of-type > p:first-of-type::first-letter {
+    -webkit-initial-letter: 2 2;
+    initial-letter: 2 2;
+    font-size: 3em;
+    line-height: 0.83;
+  }
+}
+
 /* Share row links */
 
 .share-link {
@@ -345,6 +363,56 @@ a.no-underline {
 
 .share-link:hover {
   color: var(--eye-deep);
+}
+
+/* Wrap-safe dot row — on mobile we force a balanced 2x2 grid so dots never
+   orphan and the bottom row isn't a lonely tail. On sm+ we lay items out
+   inline with separators glued to their preceding link (the pair stays
+   nowrap so a wrapped dot can't land at the start of a new line). Used by
+   ShareButtons and AuthorBio's contact row. */
+
+.dot-row {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  justify-content: center;
+  align-items: baseline;
+  column-gap: 0;
+  row-gap: 0.65rem;
+}
+
+.dot-row-pair {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.dot-row-sep {
+  display: inline-block;
+  margin: 0 0.7rem;
+  color: var(--ink-faint);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.78rem;
+  line-height: 1;
+  user-select: none;
+}
+
+/* In the 2x2 layout, the 2nd item ends row 1 — no trailing sep. */
+.dot-row-pair:nth-child(2) .dot-row-sep {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .dot-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    row-gap: 0.5rem;
+    column-gap: 0;
+  }
+  .dot-row-pair:nth-child(2) .dot-row-sep {
+    display: inline-block;
+  }
 }
 
 /* === Page-level entrance animation === */
@@ -436,6 +504,65 @@ a.no-underline {
 .btn-secondary:hover {
   background: var(--ink);
   color: var(--paper);
+}
+
+/* === Header subscribe pill — restrained gold === */
+
+.header-subscribe {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--eye-deep);
+  background: transparent;
+  border: 1px solid var(--eye-deep);
+  padding: 0.45rem 1rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+@media (min-width: 640px) {
+  .header-subscribe {
+    font-size: 0.74rem;
+    padding: 0.5rem 1.25rem;
+  }
+}
+
+.header-subscribe:hover {
+  background: var(--eye-deep);
+  color: var(--paper);
+  border-color: var(--eye-deep);
+}
+
+/* === Header nav strip === */
+
+.header-nav-link {
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  line-height: 1;
+  padding: 0.15rem 0;
+}
+
+@media (min-width: 640px) {
+  .header-nav-link {
+    font-size: 0.74rem;
+  }
+}
+
+.header-nav-sep {
+  color: var(--rule);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.7rem;
+  line-height: 1;
+  user-select: none;
 }
 
 /* === Spotify embed framing === */
