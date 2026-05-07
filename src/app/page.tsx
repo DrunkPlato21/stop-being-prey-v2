@@ -84,7 +84,7 @@ export default function Home() {
                 </Link>
               </h2>
               <p className="deck mb-8 max-w-xl">{featured.description}</p>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-faint mb-8 uppercase tracking-[0.18em]">
+              <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-2 text-xs text-ink-faint mb-8 uppercase tracking-[0.18em]">
                 <span>By Clay</span>
                 <span className="text-rule">·</span>
                 <span>{formatDate(featured.date)}</span>

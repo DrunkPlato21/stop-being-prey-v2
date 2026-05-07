@@ -91,7 +91,7 @@ export default async function ArticlePage({
             {article.description}
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs italic text-ink-faint fade-up stagger-4 uppercase tracking-[0.15em] not-italic">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 gap-y-2 text-xs italic text-ink-faint fade-up stagger-4 uppercase tracking-[0.15em] not-italic">
             <span>By Clay</span>
             <span className="text-rule">·</span>
             <time dateTime={article.date}>{dateStr}</time>
@@ -102,10 +102,10 @@ export default async function ArticlePage({
               </>
             )}
             {minutes && (
-              <>
+              <span className="hidden sm:contents">
                 <span className="text-rule">·</span>
                 <span>~{minutes} min audio</span>
-              </>
+              </span>
             )}
           </div>
         </div>
