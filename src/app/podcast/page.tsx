@@ -82,9 +82,12 @@ export default function PodcastPage() {
           {episodes.map((episode, idx) => {
             const minutes = estimateMinutes(episode.wordCount);
             const isIssue = typeof episode.issue === "number";
-            const numeral = isIssue
-              ? `No. ${String(episode.issue).padStart(2, "0")}`
-              : String(episodes.length - idx).padStart(2, "0");
+            // Margin numeral is always the sequential episode number,
+            // newest-first. Issue status lives in the eyebrow above the
+            // title (and the gold left rule on issue articles), never
+            // in the margin number, so two episodes can't appear to
+            // share the same number.
+            const numeral = String(episodes.length - idx).padStart(2, "0");
             return (
               <article
                 key={episode.slug}
@@ -97,12 +100,10 @@ export default function PodcastPage() {
                   <span
                     className="font-display leading-none whitespace-nowrap"
                     style={{
-                      fontSize: isIssue ? "1.5rem" : "3rem",
+                      fontSize: "3rem",
                       fontWeight: 700,
-                      letterSpacing: isIssue ? "0.02em" : "0",
-                      color: isIssue
-                        ? "var(--eye-deep, #8a7d20)"
-                        : "var(--ink-faint, #c8b994)",
+                      letterSpacing: "0",
+                      color: "var(--ink-faint, #c8b994)",
                     }}
                   >
                     {numeral}
