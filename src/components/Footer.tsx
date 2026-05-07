@@ -74,16 +74,21 @@ export function Footer() {
               </p>
               <ul className="space-y-2">
                 <li>
+                  <Link
+                    href="/membership"
+                    className="text-eye-deep hover:text-ink no-underline font-serif text-sm transition-colors"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Membership
+                  </Link>
+                </li>
+                <li>
                   <Link href="/#join" className={navLinkClass}>
                     Subscribe
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    href="/tip"
-                    className="text-eye-deep hover:text-ink no-underline font-serif text-sm transition-colors"
-                    style={{ fontWeight: 600 }}
-                  >
+                  <Link href="/tip" className={navLinkClass}>
                     Tip
                   </Link>
                 </li>

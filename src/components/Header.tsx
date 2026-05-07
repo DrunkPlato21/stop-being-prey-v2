@@ -33,7 +33,7 @@ export function Header() {
 
       {/* === Tier 2: slim nav strip === */}
       <nav className="border-b border-rule bg-paper-deep/40">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 flex items-center justify-center gap-5 sm:gap-9 py-2.5 sm:py-3">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-7 gap-y-1 py-2.5 sm:py-3">
           <Link href="/issues" className={navLinkClass}>
             Issues
           </Link>
@@ -42,6 +42,12 @@ export function Header() {
           </span>
           <Link href="/podcast" className={navLinkClass}>
             Podcast
+          </Link>
+          <span className="header-nav-sep" aria-hidden="true">
+            ·
+          </span>
+          <Link href="/membership" className={navLinkClass}>
+            Membership
           </Link>
           <span className="header-nav-sep" aria-hidden="true">
             ·

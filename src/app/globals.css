@@ -577,6 +577,39 @@ a.no-underline {
   user-select: none;
 }
 
+/* === Membership plan toggle ===
+   Two-state toggle (Monthly / Yearly) on the /membership page. Active
+   side fills with ink, inactive stays transparent. Single bordered
+   container. */
+
+.plan-toggle {
+  flex: 1;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.plan-toggle:hover {
+  background-color: rgba(184, 168, 44, 0.06);
+}
+
+.plan-toggle-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.plan-toggle-active:hover {
+  background: var(--ink);
+}
+
 /* === Tip card tabs ===
    Two-tab disclosure (Fiat / Lightning) sitting at the top of the
    unified donation card. Active tab gets a gold bottom border,
