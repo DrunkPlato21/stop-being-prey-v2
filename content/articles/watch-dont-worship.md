@@ -8,7 +8,7 @@ issue: 3
 postscript: "**p.s.** this is what reader-supported writing looks like. if it lands for you, you know what to do... tips buy writing time: [the tip jar](/tip)"
 ---
 
-I haven't been able to stop watching a five-second clip from last night...
+I haven't been able to stop watching a 24-second clip from last night...
 
 A reality TV star named Spencer Pratt walked onto a mayoral debate stage in Los Angeles, looked at the progressive councilwoman across from him, and said something I haven't been able to get out of my head since I saw it.
 
