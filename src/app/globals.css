@@ -728,7 +728,44 @@ a.no-underline {
   max-width: 36rem;
 }
 
-/* === References block --opt-in citation section at the end of an essay,
+/* === Custom postscript block (per-article P.S. override) === */
+/* Used when an article's frontmatter carries a `postscript` field that
+   overrides the default rotating P.S. variants. Matches the visual of
+   ArticlePostscript: italic ink-muted body, bold not-italic "p.s."
+   prefix, gold inline links. Markdown is rendered to HTML before
+   landing here, so **bold** maps to strong and [text](url) to a. */
+
+.postscript-block {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.postscript-block p {
+  margin: 0;
+}
+
+.postscript-block strong {
+  color: var(--ink);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.postscript-block a {
+  color: var(--eye-deep);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--eye);
+  text-underline-offset: 3px;
+  font-style: normal;
+}
+
+.postscript-block a:hover {
+  color: var(--ink);
+}
+
+/* === References block, opt-in citation section at the end of an essay,
       detected by a `## References` heading in the markdown source. */
 
 .references-block {

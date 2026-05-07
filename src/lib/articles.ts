@@ -24,6 +24,11 @@ export type Article = ArticleMeta & {
       `## References` heading followed by a list. The body is stripped of
       both the heading and the list so it renders cleanly. */
   referencesHtml?: string | null;
+  /** Optional per-article postscript override. When present, this HTML
+      replaces the default rotating P.S. variants. Sourced from the
+      `postscript` frontmatter field, run through the same markdown
+      pipeline as the body so links and emphasis work. */
+  postscriptHtml?: string | null;
 };
 
 /**
@@ -103,6 +108,12 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   const fullHtml = processedContent.toString();
   const { contentHtml, referencesHtml } = splitReferences(fullHtml);
 
+  let postscriptHtml: string | null = null;
+  if (typeof data.postscript === "string" && data.postscript.trim().length > 0) {
+    const ps = await remark().use(html).process(data.postscript);
+    postscriptHtml = ps.toString().trim();
+  }
+
   return {
     title: data.title,
     slug: data.slug || slug,
@@ -115,5 +126,6 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     wordCount: countBodyWords(content),
     contentHtml,
     referencesHtml,
+    postscriptHtml,
   };
 }

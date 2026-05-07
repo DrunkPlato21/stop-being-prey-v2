@@ -128,11 +128,18 @@ export default async function ArticlePage({
         />
 
         {/* === P.S. directly under the article body, no drop cap.
-             One of three variants chosen by a stable hash of the slug,
-             so a given article always renders the same P.S. but
-             different articles get different ones. === */}
+             If the article frontmatter carries a `postscript` field,
+             that custom markdown wins. Otherwise fall back to the
+             stable-hash rotation across the three default variants. === */}
         <div className="max-w-[38rem] mx-auto mt-8">
-          <ArticlePostscript slug={article.slug} />
+          {article.postscriptHtml ? (
+            <div
+              className="postscript-block"
+              dangerouslySetInnerHTML={{ __html: article.postscriptHtml }}
+            />
+          ) : (
+            <ArticlePostscript slug={article.slug} />
+          )}
         </div>
       </div>
 
