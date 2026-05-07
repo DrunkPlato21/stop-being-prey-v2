@@ -48,6 +48,19 @@ function splitReferences(fullHtml: string): {
   };
 }
 
+/**
+ * Count words in an article's markdown body. Excludes any trailing
+ * `## References` block (citations aren't body words). Counts whitespace
+ * separated tokens on the raw markdown source, which is close enough
+ * for an editorial word count.
+ */
+function countBodyWords(markdown: string): number {
+  const refIndex = markdown.search(/^##\s+References\s*$/im);
+  const body = refIndex === -1 ? markdown : markdown.slice(0, refIndex);
+  const tokens = body.trim().split(/\s+/).filter(Boolean);
+  return tokens.length;
+}
+
 export function getAllArticleSlugs(): string[] {
   if (!fs.existsSync(articlesDirectory)) return [];
   return fs
@@ -61,7 +74,7 @@ export function getAllArticles(): ArticleMeta[] {
   const articles = slugs.map((slug) => {
     const fullPath = path.join(articlesDirectory, `${slug}.md`);
     const fileContents = fs.readFileSync(fullPath, "utf8");
-    const { data } = matter(fileContents);
+    const { data, content } = matter(fileContents);
     return {
       title: data.title,
       slug: data.slug || slug,
@@ -71,7 +84,7 @@ export function getAllArticles(): ArticleMeta[] {
       issue: data.issue,
       spotifyEpisodeId: data.spotifyEpisodeId,
       chapter: data.chapter,
-      wordCount: data.wordCount,
+      wordCount: countBodyWords(content),
     } as ArticleMeta;
   });
   return articles.sort((a, b) =>
@@ -99,7 +112,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     issue: data.issue,
     spotifyEpisodeId: data.spotifyEpisodeId,
     chapter: data.chapter,
-    wordCount: data.wordCount,
+    wordCount: countBodyWords(content),
     contentHtml,
     referencesHtml,
   };

@@ -68,10 +68,6 @@ export default async function ArticlePage({
   const audioMinutes = article.wordCount
     ? Math.round(article.wordCount / 150)
     : null;
-  // Read time estimate (industry standard 250 wpm), shown in metadata.
-  const readMinutes = article.wordCount
-    ? Math.max(1, Math.ceil(article.wordCount / 250))
-    : null;
 
   return (
     <article className="relative">
@@ -103,19 +99,12 @@ export default async function ArticlePage({
             <span>By Clay</span>
             <span className="text-rule">·</span>
             <time dateTime={article.date}>{dateStr}</time>
-            {readMinutes && (
+            {article.wordCount && (
               <>
                 <span className="text-rule">·</span>
-                <span>{readMinutes} min</span>
+                <span>{article.wordCount.toLocaleString("en-US")} words</span>
               </>
             )}
-            <span className="text-rule">·</span>
-            <Link
-              href="/tip"
-              className="hover:text-eye-deep transition-colors no-underline"
-            >
-              Reader-supported
-            </Link>
           </div>
 
           {article.spotifyEpisodeId && audioMinutes && (

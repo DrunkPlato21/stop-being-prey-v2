@@ -61,9 +61,6 @@ export default function Home() {
 
       {/* === Featured Lead Article === */}
       {featured && (() => {
-        const featuredReadMin = featured.wordCount
-          ? Math.max(1, Math.ceil(featured.wordCount / 250))
-          : null;
         const featuredAudioMin = featured.wordCount
           ? Math.round(featured.wordCount / 150)
           : null;
@@ -98,19 +95,14 @@ export default function Home() {
                   <span>By Clay</span>
                   <span className="text-rule">·</span>
                   <span>{formatDate(featured.date)}</span>
-                  {featuredReadMin && (
+                  {featured.wordCount && (
                     <>
                       <span className="text-rule">·</span>
-                      <span>{featuredReadMin} min</span>
+                      <span>
+                        {featured.wordCount.toLocaleString("en-US")} words
+                      </span>
                     </>
                   )}
-                  <span className="text-rule">·</span>
-                  <Link
-                    href="/tip"
-                    className="hover:text-eye-deep transition-colors no-underline"
-                  >
-                    Reader-supported
-                  </Link>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 mb-8">
                   <Link href={`/${featured.slug}`} className="btn-primary">
