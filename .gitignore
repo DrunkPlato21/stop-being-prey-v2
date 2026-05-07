@@ -43,6 +43,9 @@ next-env.d.ts
 # playwright MCP transient artifacts
 /.playwright-mcp/
 
+# Root-level dev screenshots (e.g. m375-*.png, mobile-*.png, tip-*.png)
+/*.png
+
 # Claude Code per-developer state
 /.claude/
 
