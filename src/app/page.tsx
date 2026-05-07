@@ -66,13 +66,12 @@ export default function Home() {
         const featuredAudioMin = featured.wordCount
           ? Math.round(featured.wordCount / 150)
           : null;
-        // The lead card always represents the publication's current issue,
-        // so reuse the masthead's volume/number when the featured essay
-        // carries an issue. Non-issue essays fall back to a neutral label.
+        // The masthead above already carries the volume / issue / date
+        // line, so the lead card's eyebrow names the *role* of this slot
+        // (it's the featured essay of the current issue) rather than
+        // restating the issue number.
         const leadEyebrow =
-          typeof featured.issue === "number" && issue
-            ? `Vol. ${issue.volume} · No. ${issue.number}`
-            : "Latest";
+          typeof featured.issue === "number" ? "The Lead" : "Latest";
         return (
           <section className="max-w-6xl mx-auto px-6 py-10 md:py-16">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-16 md:items-center">
