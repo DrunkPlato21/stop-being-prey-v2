@@ -1,6 +1,6 @@
 ---
-title: "Watch, Don't Worship"
-slug: "watch-dont-worship"
+title: "Has a new Predator Emerged?"
+slug: "has-a-new-predator-emerged"
 date: "2026-05-07"
 description: "the cartoon is breaking. spencer pratt's debate moment, scott adams' kill-shots, and the new class of operators emerging in real time."
 subtitle: "the cartoon is breaking. spencer pratt's debate moment, scott adams' kill-shots, and the new class of operators emerging in real time."
