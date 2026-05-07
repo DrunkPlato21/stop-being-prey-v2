@@ -4,7 +4,6 @@ slug: "has-a-new-predator-emerged"
 date: "2026-05-07"
 description: "the cartoon is breaking. spencer pratt's debate moment, scott adams' kill-shots, and the new class of operators emerging in real time."
 subtitle: "the cartoon is breaking. spencer pratt's debate moment, scott adams' kill-shots, and the new class of operators emerging in real time."
-issue: 4
 spotifyEpisodeId: "5qIAEuffH4PWj6HLUcz9FV"
 postscript: "**p.s.** this is what reader-supported writing looks like. if it lands for you, you know what to do... tips buy writing time: [the tip jar](/tip)"
 ---
