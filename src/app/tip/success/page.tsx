@@ -148,8 +148,8 @@ export default async function TipSuccessPage({
       <section className="max-w-2xl mx-auto px-6 pb-16 text-center">
         <p className="eyebrow mb-3">If you&apos;re not on the list</p>
         <p className="deck mb-6 max-w-md mx-auto">
-          Algorithms don&apos;t deliver this writing. It only arrives if
-          you ask.
+          Tipping doesn&apos;t subscribe you. If you want the next one in
+          your inbox.
         </p>
         <SubscriberCount className="mb-5" />
         <div className="flex justify-center">
