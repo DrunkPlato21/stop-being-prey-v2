@@ -146,10 +146,8 @@ export default function Home() {
         );
       })()}
 
-      <EyeDivider />
-
       {previousIssues.length > 0 && (
-        <section className="max-w-6xl mx-auto px-6 py-12 md:py-16">
+        <section className="max-w-6xl mx-auto px-6 py-10 md:py-14">
           <p className="eyebrow mb-10 text-center">Previous issues</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {previousIssues.map((article) => (
