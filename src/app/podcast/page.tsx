@@ -51,7 +51,7 @@ export default function PodcastPage() {
               rel="noopener noreferrer"
               className="btn-primary"
             >
-              <span>Open in Spotify</span>
+              <span>Follow on Spotify</span>
             </a>
             <a
               href="https://anchor.fm/s/1121c68b8/podcast/rss"
