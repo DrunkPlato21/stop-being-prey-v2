@@ -12,6 +12,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
 import { SubscriberCount } from "@/components/SubscriberCount";
+import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
 
 type PageParams = { slug: string };
@@ -183,6 +184,10 @@ export default async function ArticlePage({
       <div className="max-w-3xl mx-auto px-6 mt-16">
         <AuthorBio />
       </div>
+
+      {/* === Comments. Members-only input; visible to all readers,
+          with a soft join CTA underneath for anonymous visitors. === */}
+      <Comments kind="article" slug={article.slug} />
 
       {/* === Tip nudge. Always present (independent of P.S. variant)
           so the publication's funding model surfaces on every essay,

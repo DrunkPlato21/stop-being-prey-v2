@@ -33,13 +33,22 @@ export async function POST(req: NextRequest) {
   // Look up the active membership status. Soft-fails to false when
   // Stripe isn't configured, so dev environments don't pretend everyone
   // is a member.
-  const status = await emailHasActiveMembership(email).catch(() => ({
-    active: false,
-    customerId: null,
-  }));
+  const status = await emailHasActiveMembership(email).catch((err) => {
+    console.error("[auth/request-link] membership lookup threw:", err);
+    return { active: false, customerId: null };
+  });
 
   if (!status.active || !status.customerId) {
-    // Silent success. Don't leak whether the email exists or has a sub.
+    // Silent success to the caller — don't leak whether the email is a
+    // member. But in dev, log loudly so a developer can tell why no
+    // email arrived. (DEV_AUTO_GRANT=1 short-circuits this whole path.)
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[auth/request-link] no active membership for ${email}; ` +
+          `skipping magic link send. Set DEV_AUTO_GRANT=1 in .env.local ` +
+          `to bypass the Stripe check while testing.`
+      );
+    }
     return Response.json({ ok: true });
   }
 
@@ -49,6 +58,7 @@ export async function POST(req: NextRequest) {
     next,
   });
   if (!id) {
+    console.error("[auth/request-link] createMagicLink returned null");
     return Response.json(
       { ok: false, error: "storage_unavailable" },
       { status: 503 }
@@ -57,11 +67,16 @@ export async function POST(req: NextRequest) {
 
   const url = `${baseUrl()}/api/auth/callback?token=${encodeURIComponent(id)}`;
   const send = await sendMagicLink({ to: email, url });
-  if (!send.ok && process.env.NODE_ENV === "production") {
-    return Response.json(
-      { ok: false, error: send.error },
-      { status: 502 }
+  if (!send.ok) {
+    console.error(
+      `[auth/request-link] sendMagicLink failed for ${email}: ${send.error}`
     );
+    if (process.env.NODE_ENV === "production") {
+      return Response.json(
+        { ok: false, error: send.error },
+        { status: 502 }
+      );
+    }
   }
 
   return Response.json({ ok: true });

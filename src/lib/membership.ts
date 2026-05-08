@@ -60,6 +60,18 @@ async function findCustomerByEmail(
 export async function emailHasActiveMembership(
   email: string
 ): Promise<{ active: boolean; customerId: string | null }> {
+  // Dev-only bypass: when DEV_AUTO_GRANT=1 in a non-production env,
+  // treat any email as an active member. Lets us exercise the magic
+  // link + session flow without a real Stripe subscription. Cannot
+  // fire in production (the env-mode check is short-circuited).
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.DEV_AUTO_GRANT === "1"
+  ) {
+    const normalised = email.toLowerCase().trim();
+    return { active: true, customerId: `dev_${normalised}` };
+  }
+
   const stripe = client();
   if (!stripe) return { active: false, customerId: null };
 

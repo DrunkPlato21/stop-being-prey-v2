@@ -6,6 +6,7 @@ import {
   getFieldNoteBySlug,
 } from "@/lib/field-notes";
 import { EyeDivider } from "@/components/Eyes";
+import { Comments } from "@/components/Comments";
 
 type PageParams = { slug: string };
 
@@ -135,6 +136,10 @@ export default async function FieldNotePage({
           </div>
         </div>
       )}
+
+      {/* === Comments. Members only — proxy.ts gates this whole route,
+          so the input always renders for the visitor. === */}
+      <Comments kind="note" slug={slug} />
 
       <EyeDivider />
 
