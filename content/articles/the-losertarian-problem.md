@@ -7,6 +7,10 @@ subtitle: "we won every argument... and lost every fight... that's the loser fra
 issue: 1
 spotifyEpisodeId: "5beascnbNXkJNGZPtw3EhC"
 wordCount: 6858
+postscript: |
+  **p.s.** this writing is reader-funded. The reason this piece exists is that other readers backed the last one. If you want more like it, [here's how](/tip).
+
+  **p.p.s.** or [get on the list](/join). Free. Almost daily. The writing that doesn't fit on Facebook. Unsubscribe in three clicks if you change your mind.
 ---
 
 ## Act 1

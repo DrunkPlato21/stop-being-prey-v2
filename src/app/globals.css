@@ -746,6 +746,10 @@ a.no-underline {
   margin: 0;
 }
 
+.postscript-block p + p {
+  margin-top: 1em;
+}
+
 .postscript-block strong {
   color: var(--ink);
   font-style: normal;
