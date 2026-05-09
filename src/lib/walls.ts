@@ -11,6 +11,27 @@ export type WallStatus = "active" | "closed";
 export type WallMeta = {
   slug: string;
   title: string;
+  /** Optional one-line context that sits directly under the title in
+      the compact hero, e.g. "Tied to the Charlie Kirk thread on
+      Facebook · May 9, 2026". */
+  context?: string;
+  /** Optional URL to the source artifact (Facebook comment thread,
+      tweet, etc.) — surfaced as a small external-link icon next to
+      the hero context. */
+  facebookUrl?: string;
+  /** Optional subtitle line, rendered as the deck inside the expandable
+      takedown section (NOT in the compact hero). */
+  subtitle?: string;
+  /** Per-wall donation form copy. Each takedown has a different
+      subject, so the heading and pitch live with the content. */
+  donateOverline?: string;
+  donateHeading?: string;
+  donateSubtitle?: string;
+  /** Italic hint block rendered directly above the note textarea —
+      sets tone for what kind of note belongs on this wall. */
+  noteGuidelines?: string;
+  /** Cold-reader summary paragraph rendered below the wall, above the
+      expandable takedown. */
   intro: string;
   status: WallStatus;
   /** ISO date when the founding-window prize period ends. After this,
@@ -36,6 +57,38 @@ function parseMeta(slug: string, data: Record<string, unknown>): WallMeta {
   return {
     slug: typeof data.slug === "string" ? data.slug : slug,
     title: typeof data.title === "string" ? data.title : slug,
+    context:
+      typeof data.context === "string" && data.context.trim().length > 0
+        ? data.context
+        : undefined,
+    facebookUrl:
+      typeof data.facebook_url === "string" && data.facebook_url.trim().length > 0
+        ? data.facebook_url
+        : undefined,
+    subtitle:
+      typeof data.subtitle === "string" && data.subtitle.trim().length > 0
+        ? data.subtitle
+        : undefined,
+    donateOverline:
+      typeof data.donate_overline === "string" &&
+      data.donate_overline.trim().length > 0
+        ? data.donate_overline
+        : undefined,
+    donateHeading:
+      typeof data.donate_heading === "string" &&
+      data.donate_heading.trim().length > 0
+        ? data.donate_heading
+        : undefined,
+    donateSubtitle:
+      typeof data.donate_subtitle === "string" &&
+      data.donate_subtitle.trim().length > 0
+        ? data.donate_subtitle
+        : undefined,
+    noteGuidelines:
+      typeof data.note_guidelines === "string" &&
+      data.note_guidelines.trim().length > 0
+        ? data.note_guidelines
+        : undefined,
     intro: typeof data.intro === "string" ? data.intro : "",
     status,
     foundingWindowEndsAt:

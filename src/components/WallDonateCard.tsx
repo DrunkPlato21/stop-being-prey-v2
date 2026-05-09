@@ -18,7 +18,13 @@ function formatAmount(n: number): string {
   return Number.isInteger(n) ? n.toString() : n.toFixed(2);
 }
 
-export function WallDonateCard({ wallSlug }: { wallSlug: string }) {
+export function WallDonateCard({
+  wallSlug,
+  noteGuidelines,
+}: {
+  wallSlug: string;
+  noteGuidelines?: string;
+}) {
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState<string>("");
   const [name, setName] = useState<string>("");
@@ -81,8 +87,8 @@ export function WallDonateCard({ wallSlug }: { wallSlug: string }) {
   const buttonLabel = loading
     ? "Redirecting…"
     : parsed !== null && parsed > 0
-      ? `Back this — $${formatAmount(parsed)}`
-      : "Back this";
+      ? `Fund this — $${formatAmount(parsed)}`
+      : "Fund this";
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -165,22 +171,29 @@ export function WallDonateCard({ wallSlug }: { wallSlug: string }) {
       </label>
 
       {/* Note (required) */}
-      <label className="w-full max-w-sm mb-3 text-left">
-        <span className="sr-only">Note for the wall (required)</span>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))}
-          placeholder="Leave a note for the wall (required)"
-          rows={3}
-          maxLength={NOTE_MAX}
-          required
-          className="w-full border border-border bg-paper px-3 py-2 outline-none focus:border-eye font-serif text-ink text-sm leading-relaxed resize-none transition-colors"
-          aria-label="Note for the wall"
-        />
+      <div className="w-full max-w-sm mb-3 text-left">
+        {noteGuidelines && (
+          <p className="text-xs italic text-ink-muted leading-relaxed mb-2 px-px">
+            {noteGuidelines}
+          </p>
+        )}
+        <label>
+          <span className="sr-only">Note for the wall (required)</span>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))}
+            placeholder="What you want said on the wall (required)"
+            rows={3}
+            maxLength={NOTE_MAX}
+            required
+            className="w-full border border-border bg-paper px-3 py-2 outline-none focus:border-eye font-serif text-ink text-sm leading-relaxed resize-none transition-colors"
+            aria-label="Note for the wall"
+          />
+        </label>
         <div className="text-right text-[0.65rem] uppercase tracking-[0.14em] text-ink-faint mt-1">
           {note.length}/{NOTE_MAX}
         </div>
-      </label>
+      </div>
 
       {/* Toggles */}
       <div className="w-full max-w-sm mb-6 text-left pl-3 flex flex-col gap-3">

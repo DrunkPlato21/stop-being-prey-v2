@@ -769,6 +769,47 @@ a.no-underline {
   color: var(--ink);
 }
 
+/* === Predator wall: expandable takedown section ===
+   Native <details>/<summary> styled as an intentional disclosure
+   widget. Default browser triangle is suppressed in favor of a
+   chevron that rotates when [open]. */
+
+.wall-takedown-details > .wall-takedown-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--eye-deep);
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.wall-takedown-details > .wall-takedown-summary::-webkit-details-marker {
+  display: none;
+}
+
+.wall-takedown-details > .wall-takedown-summary:hover {
+  color: var(--ink);
+}
+
+.wall-takedown-chevron {
+  display: inline-block;
+  transition: transform 0.2s ease;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.wall-takedown-details[open] > .wall-takedown-summary .wall-takedown-chevron {
+  transform: rotate(180deg);
+}
+
 /* === References block, opt-in citation section at the end of an essay,
       detected by a `## References` heading in the markdown source. */
 
