@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 const PRESET_AMOUNTS: ReadonlyArray<number> = [5, 10, 25, 50, 100];
+const DEFAULT_PRESET = 10;
 const NAME_MAX = 80;
 const NOTE_MAX = 280;
 
@@ -21,12 +22,18 @@ function formatAmount(n: number): string {
 export function WallDonateCard({
   wallSlug,
   noteGuidelines,
+  urgencyLine,
 }: {
   wallSlug: string;
   noteGuidelines?: string;
+  urgencyLine?: string;
 }) {
-  const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
-  const [inputValue, setInputValue] = useState<string>("");
+  const [selectedPreset, setSelectedPreset] = useState<number | null>(
+    DEFAULT_PRESET
+  );
+  const [inputValue, setInputValue] = useState<string>(
+    formatAmount(DEFAULT_PRESET)
+  );
   const [name, setName] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [anonymous, setAnonymous] = useState(false);
@@ -94,7 +101,20 @@ export function WallDonateCard({
     <div className="flex flex-col items-center text-center">
       <p className="eyebrow mb-4">Card · Apple Pay · Google Pay</p>
 
-      {/* Preset buttons */}
+      {urgencyLine && (
+        <p
+          className="font-display italic text-eye-deep mb-4"
+          style={{ fontSize: "0.95rem", letterSpacing: "0.01em" }}
+        >
+          {urgencyLine}
+        </p>
+      )}
+
+      {/* Preset buttons. $10 is the anchored default — pre-selected and
+          visually emphasized via stronger border, bolder weight, and a
+          subtle gold tint. We avoid a floating "Popular" pill because at
+          mobile cell widths (~52px) the label would overflow into
+          neighboring chips. */}
       <div
         className="grid grid-cols-5 gap-2 w-full max-w-md mb-4"
         role="group"
@@ -102,17 +122,26 @@ export function WallDonateCard({
       >
         {PRESET_AMOUNTS.map((amount) => {
           const isSelected = selectedPreset === amount;
+          const isAnchor = amount === DEFAULT_PRESET;
           return (
             <button
               key={amount}
               type="button"
               onClick={() => selectPreset(amount)}
               aria-pressed={isSelected}
-              className={`py-2 border font-display text-base transition-colors ${
+              aria-label={isAnchor ? `$${amount} (popular)` : `$${amount}`}
+              className={`py-2 w-full border font-display text-base transition-colors ${
                 isSelected
-                  ? "border-eye bg-eye/10 text-ink"
-                  : "border-border bg-paper text-ink-muted hover:border-eye"
+                  ? "border-eye-deep bg-eye/15 text-ink"
+                  : isAnchor
+                    ? "border-eye-deep bg-eye/5 text-ink hover:bg-eye/10"
+                    : "border-border bg-paper text-ink-muted hover:border-eye"
               }`}
+              style={
+                isAnchor
+                  ? { borderWidth: "1.5px", fontWeight: 600 }
+                  : undefined
+              }
             >
               ${amount}
             </button>
@@ -182,7 +211,7 @@ export function WallDonateCard({
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))}
-            placeholder="What you want said on the wall (required)"
+            placeholder="What do you want Marek to read?"
             rows={3}
             maxLength={NOTE_MAX}
             required
@@ -218,19 +247,16 @@ export function WallDonateCard({
         </label>
       </div>
 
-      <button
-        type="button"
-        onClick={handleDonate}
-        disabled={!isValid || loading}
-        className="btn-primary"
-        style={
-          !isValid || loading
-            ? { opacity: 0.5, cursor: "not-allowed" }
-            : undefined
-        }
-      >
-        <span>{buttonLabel}</span>
-      </button>
+      <div className="w-full">
+        <button
+          type="button"
+          onClick={handleDonate}
+          disabled={!isValid || loading}
+          className="btn-fund"
+        >
+          {buttonLabel}
+        </button>
+      </div>
 
       {!noteValid && amountValid && (
         <p className="text-xs italic text-ink-faint mt-3">
@@ -246,10 +272,6 @@ export function WallDonateCard({
           {error}
         </p>
       )}
-
-      <p className="text-sm text-ink-muted italic mt-6 max-w-xs leading-relaxed">
-        Notes are reviewed before they appear on the wall.
-      </p>
     </div>
   );
 }

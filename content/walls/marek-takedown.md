@@ -7,8 +7,11 @@ context: "Tied to the Marek takedown on the Charlie Kirk thread (May 9, 2026). T
 facebook_url: ""
 subtitle: "Narrative Laundering"
 donate_overline: "Monetize the hater"
-donate_heading: "Make Marek fund the next one."
-donate_subtitle: "His comment seeded this wall. Your donation funds the next takedown. Your note becomes part of the public record of what he showed up to do."
+donate_heading: "Make Marek hear you."
+donate_subtitle: "Every dollar puts your message on the public record. Marek reads them tomorrow morning. Add yours."
+donate_context: "Tied to the takedown of Marek Wiechula, who showed up under the Charlie Kirk memorial post to smear Charlie's character and insult the audience that loves him."
+urgency_line: "Marek reads these tomorrow morning."
+goal_dollars: 250
 note_guidelines: "Say whatever you want to Marek. The only rule is: don't be cruel."
 intro: "A Facebook commenter showed up under a Charlie Kirk memorial post on May 9, 2026, carrying a four-claim laundering script designed to smear Trump supporters as the dominant violent class. Each claim was cherry-picked, partially true, or factually wrong. Stacked together, they were designed to produce a tidy conclusion the speaker brought into the room before the conversation started. The takedown walks the four claims and names what each was doing."
 ---

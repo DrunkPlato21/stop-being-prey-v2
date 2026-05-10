@@ -518,6 +518,58 @@ a.no-underline {
   color: var(--paper);
 }
 
+/* === Fund-this CTA, used on Predator Wall donate forms.
+      Larger, gold-anchored, sticks to viewport bottom on mobile so it
+      stays reachable while the donor scrolls the form. === */
+
+.btn-fund {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--eye-deep);
+  color: var(--paper);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 1.1rem 2rem;
+  border: 1px solid var(--eye-deep);
+  text-decoration: none;
+  cursor: pointer;
+  width: 100%;
+  position: sticky;
+  bottom: 1rem;
+  z-index: 5;
+  box-shadow: 0 6px 18px rgba(26, 23, 20, 0.18);
+  transition: background-color 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease, transform 0.15s ease;
+}
+
+.btn-fund:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.btn-fund:disabled,
+.btn-fund[disabled] {
+  background: var(--ink-faint);
+  border-color: var(--ink-faint);
+  color: var(--paper);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (min-width: 768px) {
+  .btn-fund {
+    position: static;
+    bottom: auto;
+    box-shadow: none;
+  }
+}
+
 /* === Header subscribe pill --restrained gold === */
 
 .header-subscribe {

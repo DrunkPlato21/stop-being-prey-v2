@@ -87,7 +87,7 @@ export default async function WallPage({
     <div>
       {/* === Compact hero === */}
       <section className="border-b border-rule">
-        <div className="max-w-3xl mx-auto px-6 pt-16 md:pt-20 pb-8 text-center">
+        <div className="max-w-3xl mx-auto px-6 pt-8 md:pt-20 pb-6 md:pb-8 text-center">
           <p className="eyebrow mb-4 fade-up stagger-1">Predator Wall</p>
           <h1
             className="font-display text-ink leading-[1.0] tracking-tight mb-3 fade-up stagger-2"
@@ -119,7 +119,9 @@ export default async function WallPage({
         </div>
       </section>
 
-      {/* === Collapsed takedown drawer (between hero and wall) === */}
+      {/* === Takedown drawer (collapsed by default, sits right below
+           the hero so the takedown is the first thing offered to the
+           reader). === */}
       <section className="border-b border-rule">
         <div className="max-w-3xl mx-auto px-6">
           <details className="wall-takedown-details">
@@ -145,8 +147,9 @@ export default async function WallPage({
       </section>
 
       {/* === The Wall === */}
-      <section className="max-w-3xl mx-auto px-6 pt-12 pb-16">
-        {/* Total raised — large and prominent */}
+      <section className="max-w-3xl mx-auto px-6 pt-6 md:pt-10 pb-16">
+        {/* Total raised — large and prominent. Includes optional goal
+            text and a thin gold progress bar when wall.goalDollars is set. */}
         <div className="text-center mb-8">
           <p
             className="font-display text-ink mb-1"
@@ -158,31 +161,51 @@ export default async function WallPage({
             }}
           >
             {formatMoney(stats.totalRaisedCents)}
+            {wall.goalDollars && (
+              <span
+                className="text-ink-faint font-display"
+                style={{ fontSize: "0.55em", fontWeight: 500 }}
+              >
+                {" "}of ${wall.goalDollars}
+              </span>
+            )}
           </p>
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-faint">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-faint mt-2">
             raised · {stats.donorCount}{" "}
             {stats.donorCount === 1 ? "backer" : "backers"}
           </p>
+          {wall.goalDollars && (
+            <div
+              className="w-full max-w-sm mx-auto h-1 bg-rule mt-4"
+              role="progressbar"
+              aria-valuenow={Math.min(
+                100,
+                Math.round(
+                  (stats.totalRaisedCents / 100 / wall.goalDollars) * 100
+                )
+              )}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="h-full bg-eye-deep transition-[width] duration-500"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    (stats.totalRaisedCents / 100 / wall.goalDollars) * 100
+                  )}%`,
+                }}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Top donor */}
-        {stats.topDonor && (
-          <div className="border-2 border-eye bg-eye/5 p-6 mb-8 relative max-w-xl mx-auto">
-            <span className="absolute -top-3 left-6 bg-paper px-3 eyebrow text-eye-deep">
-              Top backer
-            </span>
-            <p className="font-display text-lg text-ink mb-2">
-              {displayName(stats.topDonor)}
-              {stats.topDonor.showAmount && (
-                <span className="text-eye-deep ml-2">
-                  · {formatMoney(stats.topDonor.amountCents)}
-                </span>
-              )}
-            </p>
-            <p className="font-serif italic text-ink-muted leading-relaxed">
-              &ldquo;{stats.topDonor.note}&rdquo;
-            </p>
-          </div>
+        {/* Pre-form context line — visible above the fold on mobile so
+            the donor sees "what this wall is about" before the form. */}
+        {wall.donateContext && wall.status === "active" && (
+          <p className="max-w-xl mx-auto text-sm md:text-base italic text-ink-muted leading-relaxed text-center mb-6 md:mb-8 px-2">
+            {wall.donateContext}
+          </p>
         )}
 
         {/* Donate form */}
@@ -216,6 +239,7 @@ export default async function WallPage({
               <WallDonateCard
                 wallSlug={wall.slug}
                 noteGuidelines={wall.noteGuidelines}
+                urgencyLine={wall.urgencyLine}
               />
             </div>
           </div>
@@ -223,6 +247,28 @@ export default async function WallPage({
           <p className="text-center italic text-ink-muted mb-12">
             This wall is closed to new donations.
           </p>
+        )}
+
+        {/* Top donor — moved below the form so the form sits above the
+            fold on mobile. Still surfaces as social proof before the
+            recent-notes wall. */}
+        {stats.topDonor && (
+          <div className="border-2 border-eye bg-eye/5 p-6 mb-8 relative max-w-xl mx-auto">
+            <span className="absolute -top-3 left-6 bg-paper px-3 eyebrow text-eye-deep">
+              Top backer
+            </span>
+            <p className="font-display text-lg text-ink mb-2">
+              {displayName(stats.topDonor)}
+              {stats.topDonor.showAmount && (
+                <span className="text-eye-deep ml-2">
+                  · {formatMoney(stats.topDonor.amountCents)}
+                </span>
+              )}
+            </p>
+            <p className="font-serif italic text-ink-muted leading-relaxed">
+              &ldquo;{stats.topDonor.note}&rdquo;
+            </p>
+          </div>
         )}
 
         {/* Recent notes */}

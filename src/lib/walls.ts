@@ -30,6 +30,16 @@ export type WallMeta = {
   /** Italic hint block rendered directly above the note textarea —
       sets tone for what kind of note belongs on this wall. */
   noteGuidelines?: string;
+  /** Short framing sentence rendered directly above the donation form,
+      after the wall stats. Use for "what this wall is about" copy that
+      shouldn't compete with the hero. */
+  donateContext?: string;
+  /** Time-sensitive line rendered directly above the preset amount
+      buttons, e.g. "Marek reads these tomorrow morning." */
+  urgencyLine?: string;
+  /** Dollar fundraising goal. When set, the stats line becomes
+      "$X of $Y raised" and a thin gold progress bar appears. */
+  goalDollars?: number;
   /** Cold-reader summary paragraph rendered below the wall, above the
       expandable takedown. */
   intro: string;
@@ -88,6 +98,20 @@ function parseMeta(slug: string, data: Record<string, unknown>): WallMeta {
       typeof data.note_guidelines === "string" &&
       data.note_guidelines.trim().length > 0
         ? data.note_guidelines
+        : undefined,
+    donateContext:
+      typeof data.donate_context === "string" &&
+      data.donate_context.trim().length > 0
+        ? data.donate_context
+        : undefined,
+    urgencyLine:
+      typeof data.urgency_line === "string" &&
+      data.urgency_line.trim().length > 0
+        ? data.urgency_line
+        : undefined,
+    goalDollars:
+      typeof data.goal_dollars === "number" && data.goal_dollars > 0
+        ? data.goal_dollars
         : undefined,
     intro: typeof data.intro === "string" ? data.intro : "",
     status,
