@@ -5,8 +5,14 @@ date: "2026-05-03"
 description: "Why libertarians lose, why conservatives are prey, why progressives became the apex predators, and why Trump and MAGA are the first counter-energy in two generations."
 subtitle: "we won every argument... and lost every fight... that's the loser frame"
 issue: 1
+featured: true
+featuredNote: "The entry point. If you're new here, start with this one."
 spotifyEpisodeId: "5beascnbNXkJNGZPtw3EhC"
 wordCount: 6858
+postscript: |
+  **p.s.** this writing is reader-funded. The reason this piece exists is that other readers backed the last one. If you want more like it, [here's how](/tip).
+
+  **p.p.s.** or [get on the list](/join). Free. Almost daily. The writing that doesn't fit on Facebook. Unsubscribe in three clicks if you change your mind.
 ---
 
 ## Act 1

@@ -6,6 +6,12 @@ import {
   isStorageConfigured,
   type AttributionPreference,
 } from "@/lib/supporters";
+import {
+  createDonation,
+  isStorageConfigured as isWallStorageConfigured,
+} from "@/lib/wallDonations";
+import { getWallBySlug } from "@/lib/walls";
+import { notifyNewWallDonation } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -57,6 +63,19 @@ export async function POST(request: NextRequest) {
   const session = event.data.object as Stripe.Checkout.Session;
   const metadata = session.metadata ?? {};
 
+  // Fork on session type. Wall donations carry a wall_slug; tip jar
+  // sessions don't. Each lane writes to its own storage and runs its
+  // own moderation rules.
+  if (typeof metadata.wall_slug === "string" && metadata.wall_slug.length > 0) {
+    return handleWallDonation(session, metadata);
+  }
+  return handleTipDonation(session, metadata);
+}
+
+async function handleTipDonation(
+  session: Stripe.Checkout.Session,
+  metadata: Record<string, string>
+): Promise<Response> {
   if (metadata.display_publicly !== "true") {
     return new Response("ok", { status: 200 });
   }
@@ -90,6 +109,58 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const reason = err instanceof Error ? err.message : "unknown error";
     console.error(`[supporters] failed to persist entry: ${reason}`);
+    return new Response(`storage error: ${reason}`, { status: 500 });
+  }
+
+  return new Response("ok", { status: 200 });
+}
+
+async function handleWallDonation(
+  session: Stripe.Checkout.Session,
+  metadata: Record<string, string>
+): Promise<Response> {
+  if (!isWallStorageConfigured()) {
+    console.warn(
+      "[walls] webhook fired but storage is not configured; skipping write"
+    );
+    return new Response("ok", { status: 200 });
+  }
+
+  const wallSlug = metadata.wall_slug;
+  const note = (metadata.note ?? "").trim();
+  if (!note) {
+    console.warn("[walls] webhook fired without note; skipping write");
+    return new Response("ok", { status: 200 });
+  }
+
+  const wall = await getWallBySlug(wallSlug);
+  if (!wall) {
+    console.warn(`[walls] webhook fired for unknown wall: ${wallSlug}`);
+    return new Response("ok", { status: 200 });
+  }
+
+  const amountCents = session.amount_total ?? 0;
+
+  try {
+    const donation = await createDonation({
+      id: session.id,
+      wallSlug,
+      timestamp: (session.created ?? Math.floor(Date.now() / 1000)) * 1000,
+      name: metadata.donor_name ?? "",
+      amountCents,
+      note,
+      showAmount: metadata.show_amount === "true",
+      anonymous: metadata.anonymous === "true",
+      stripeSessionId: session.id,
+    });
+    if (donation) {
+      // Fire-and-forget the notification — failure to email shouldn't
+      // break the webhook ack.
+      await notifyNewWallDonation(donation, wall.title);
+    }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : "unknown error";
+    console.error(`[walls] failed to persist donation: ${reason}`);
     return new Response(`storage error: ${reason}`, { status: 500 });
   }
 

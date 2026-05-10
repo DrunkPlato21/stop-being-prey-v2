@@ -3,7 +3,8 @@ import { jwtVerify } from "jose";
 
 // Next.js 16 renamed middleware to proxy. One file only. This module
 // dispatches by path:
-//   - /supporters/admin/* gets HTTP Basic Auth via ADMIN_PASSWORD.
+//   - /supporters/admin/*, /admin/*, /api/admin/* get HTTP Basic Auth
+//     via ADMIN_PASSWORD.
 //   - /notes (and nested) get the membership session JWT gate.
 
 const SESSION_COOKIE = "sbp_session";
@@ -102,7 +103,11 @@ async function notesGate(req: NextRequest): Promise<NextResponse> {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/supporters/admin")) {
+  if (
+    pathname.startsWith("/supporters/admin") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api/admin")
+  ) {
     return adminGate(request);
   }
 
@@ -114,7 +119,13 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Single matcher list covering both protected surfaces. Path-level
+  // Single matcher list covering all protected surfaces. Path-level
   // dispatch happens inside the proxy function above.
-  matcher: ["/supporters/admin/:path*", "/notes", "/notes/:path*"],
+  matcher: [
+    "/supporters/admin/:path*",
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/notes",
+    "/notes/:path*",
+  ],
 };

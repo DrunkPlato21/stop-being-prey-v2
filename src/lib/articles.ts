@@ -16,6 +16,12 @@ export type ArticleMeta = {
   spotifyEpisodeId?: string;
   chapter?: number;
   wordCount?: number;
+  /** When true, surfaces this episode as the "Start Here" pick at the top
+      of the podcast page. Only the most recent episode flagged featured
+      is shown; older flagged episodes fall back into the regular feed. */
+  featured?: boolean;
+  /** Curator's one-line note shown on the featured podcast card. */
+  featuredNote?: string;
 };
 
 export type Article = ArticleMeta & {
@@ -90,6 +96,9 @@ export function getAllArticles(): ArticleMeta[] {
       spotifyEpisodeId: data.spotifyEpisodeId,
       chapter: data.chapter,
       wordCount: countBodyWords(content),
+      featured: data.featured === true,
+      featuredNote:
+        typeof data.featuredNote === "string" ? data.featuredNote : undefined,
     } as ArticleMeta;
   });
   return articles.sort((a, b) =>
