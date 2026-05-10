@@ -9,7 +9,7 @@ subtitle: "Narrative Laundering"
 donate_overline: "Monetize the hater"
 donate_heading: "Make Marek fund the next one."
 donate_subtitle: "His comment seeded this wall. Your donation funds the next takedown. Your note becomes part of the public record of what he showed up to do."
-note_guidelines: "Tell Marek what you really think. Be sharp, not cruel. The wall is operator-class. Pure invective gets moderated out. Sharp, structural critiques go up."
+note_guidelines: "Say whatever you want to Marek. The only rule is: don't be cruel."
 intro: "A Facebook commenter showed up under a Charlie Kirk memorial post on May 9, 2026, carrying a four-claim laundering script designed to smear Trump supporters as the dominant violent class. Each claim was cherry-picked, partially true, or factually wrong. Stacked together, they were designed to produce a tidy conclusion the speaker brought into the room before the conversation started. The takedown walks the four claims and names what each was doing."
 ---
 
