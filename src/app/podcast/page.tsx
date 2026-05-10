@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { EyeDivider } from "@/components/Eyes";
-import { getAllArticles } from "@/lib/articles";
+import { getAllArticles, type ArticleMeta } from "@/lib/articles";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -23,6 +23,24 @@ const estimateMinutes = (wordCount?: number) =>
 
 export default function PodcastPage() {
   const episodes = getAllArticles().filter((a) => a.spotifyEpisodeId);
+
+  // Featured episode: the most-recent episode flagged `featured: true`.
+  // If multiple files carry the flag, the older ones silently fall back
+  // into the regular feed — the rendered "featured" slot shows just one.
+  // Episodes are already sorted newest-first by getAllArticles().
+  const featured = episodes.find((e) => e.featured === true) ?? null;
+  const feed = featured
+    ? episodes.filter((e) => e.slug !== featured.slug)
+    : episodes;
+
+  // Numerals are stable to the canonical order, so hoisting one to the
+  // top doesn't renumber the rest. Map slug → display numeral up front.
+  const numeralBySlug = new Map(
+    episodes.map((e, idx) => [
+      e.slug,
+      String(episodes.length - idx).padStart(2, "0"),
+    ])
+  );
 
   return (
     <div>
@@ -73,21 +91,27 @@ export default function PodcastPage() {
         </div>
       </section>
 
+      {featured && (
+        <section className="max-w-3xl mx-auto px-6 pt-16">
+          <FeaturedEpisodeCard episode={featured} />
+        </section>
+      )}
+
       <EyeDivider />
 
       {/* === Episode archive === */}
       <section className="max-w-3xl mx-auto px-6 pb-24">
-        <p className="eyebrow mb-12 text-center">All Episodes</p>
+        <p className="eyebrow mb-12 text-center">
+          {featured ? "More Episodes" : "All Episodes"}
+        </p>
         <div className="space-y-20">
-          {episodes.map((episode, idx) => {
+          {feed.map((episode) => {
             const minutes = estimateMinutes(episode.wordCount);
             const isIssue = typeof episode.issue === "number";
-            // Margin numeral is always the sequential episode number,
-            // newest-first. Issue status lives in the eyebrow above the
-            // title (and the gold left rule on issue articles), never
-            // in the margin number, so two episodes can't appear to
-            // share the same number.
-            const numeral = String(episodes.length - idx).padStart(2, "0");
+            // Margin numeral is the canonical sequential episode number
+            // (newest-first across the full archive), so hoisting the
+            // featured pick to the top doesn't reshuffle the rest.
+            const numeral = numeralBySlug.get(episode.slug) ?? "";
             return (
               <article
                 key={episode.slug}
@@ -201,5 +225,105 @@ export default function PodcastPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function FeaturedEpisodeCard({ episode }: { episode: ArticleMeta }) {
+  const minutes = estimateMinutes(episode.wordCount);
+  const isIssue = typeof episode.issue === "number";
+
+  return (
+    <article
+      className="relative bg-surface border-2 border-eye p-6 md:p-10"
+      style={{ boxShadow: "0 1px 0 rgba(184, 168, 44, 0.18)" }}
+    >
+      {/* Start Here ribbon */}
+      <div
+        className="absolute -top-3 left-6 md:left-10 px-3 py-1 bg-eye-deep text-paper font-display"
+        style={{
+          fontSize: "0.7rem",
+          letterSpacing: "0.28em",
+          textTransform: "uppercase",
+          fontWeight: 700,
+        }}
+      >
+        Start Here
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs italic text-ink-faint mb-4 mt-2 uppercase not-italic tracking-[0.18em]">
+        {isIssue && (
+          <>
+            <span
+              className="px-2 py-0.5 border border-eye text-eye-deep"
+              style={{ letterSpacing: "0.18em", fontWeight: 600 }}
+            >
+              Issue No. {episode.issue}
+            </span>
+            <span className="text-rule">·</span>
+          </>
+        )}
+        <time dateTime={episode.date}>{formatDate(episode.date)}</time>
+        {minutes && (
+          <>
+            <span className="text-rule">·</span>
+            <span>{minutes} min</span>
+          </>
+        )}
+      </div>
+
+      <h2
+        className="font-display tracking-tight mb-4 leading-[1.05]"
+        style={{
+          fontSize: "clamp(2.1rem, 3.6vw, 2.9rem)",
+          fontWeight: 700,
+          fontVariationSettings: '"SOFT" 30, "WONK" 0',
+          letterSpacing: "-0.02em",
+        }}
+      >
+        {isIssue ? (
+          <Link
+            href={`/${episode.slug}`}
+            className="text-ink hover:text-eye-deep transition-colors no-underline"
+          >
+            {episode.title}
+          </Link>
+        ) : (
+          <span className="text-ink">{episode.title}</span>
+        )}
+      </h2>
+
+      {episode.featuredNote && (
+        <p
+          className="font-display italic text-ink-soft mb-6 leading-snug"
+          style={{
+            fontSize: "1.25rem",
+            borderLeft: "2px solid var(--eye)",
+            paddingLeft: "1rem",
+          }}
+        >
+          {episode.featuredNote}
+        </p>
+      )}
+
+      <p className="deck mb-6">{episode.description}</p>
+
+      <SpotifyEmbed
+        episodeId={episode.spotifyEpisodeId}
+        type="episode"
+        size="standard"
+      />
+
+      {isIssue && (
+        <div className="mt-5 flex items-center gap-4">
+          <Link
+            href={`/${episode.slug}`}
+            className="font-display text-sm uppercase tracking-[0.18em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
+            style={{ fontWeight: 500 }}
+          >
+            Read the issue →
+          </Link>
+        </div>
+      )}
+    </article>
   );
 }
