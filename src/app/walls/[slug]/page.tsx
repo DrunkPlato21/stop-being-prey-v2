@@ -148,56 +148,86 @@ export default async function WallPage({
 
       {/* === The Wall === */}
       <section className="max-w-3xl mx-auto px-6 pt-6 md:pt-10 pb-16">
-        {/* Total raised — large and prominent. Includes optional goal
-            text and a thin gold progress bar when wall.goalDollars is set. */}
+        {/* Total raised — large and prominent. When wall.goalTiers is
+            set, the bar tracks progress within the active tier and snaps
+            to the next rung once a tier is cleared. */}
         <div className="text-center mb-8">
-          <p
-            className="font-display text-ink mb-1"
-            style={{
-              fontSize: "clamp(2.5rem, 6vw, 4rem)",
-              fontWeight: 700,
-              letterSpacing: "-0.025em",
-              lineHeight: 1,
-            }}
-          >
-            {formatMoney(stats.totalRaisedCents)}
-            {wall.goalDollars && (
-              <span
-                className="text-ink-faint font-display"
-                style={{ fontSize: "0.55em", fontWeight: 500 }}
-              >
-                {" "}of ${wall.goalDollars}
-              </span>
-            )}
-          </p>
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-faint mt-2">
-            raised · {stats.donorCount}{" "}
-            {stats.donorCount === 1 ? "backer" : "backers"}
-          </p>
-          {wall.goalDollars && (
-            <div
-              className="w-full max-w-sm mx-auto h-1 bg-rule mt-4"
-              role="progressbar"
-              aria-valuenow={Math.min(
-                100,
-                Math.round(
-                  (stats.totalRaisedCents / 100 / wall.goalDollars) * 100
-                )
-              )}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <div
-                className="h-full bg-eye-deep transition-[width] duration-500"
-                style={{
-                  width: `${Math.min(
-                    100,
-                    (stats.totalRaisedCents / 100 / wall.goalDollars) * 100
-                  )}%`,
-                }}
-              />
-            </div>
-          )}
+          {(() => {
+            const tiers = wall.goalTiers;
+            const raised = stats.totalRaisedCents / 100;
+            let goalLabel: number | null = null;
+            let progressPct = 0;
+            let clearedCount = 0;
+            if (tiers && tiers.length > 0) {
+              const nextIdx = tiers.findIndex((t) => raised < t);
+              const saturated = nextIdx === -1;
+              const currentGoal = saturated
+                ? tiers[tiers.length - 1]
+                : tiers[nextIdx];
+              const previousGoal = saturated
+                ? tiers[tiers.length - 1]
+                : nextIdx === 0
+                  ? 0
+                  : tiers[nextIdx - 1];
+              const span = currentGoal - previousGoal;
+              const inTier = saturated ? 1 : (raised - previousGoal) / span;
+              goalLabel = currentGoal;
+              progressPct = Math.min(100, Math.max(0, inTier * 100));
+              clearedCount = tiers.filter((t) => raised >= t).length;
+            }
+            return (
+              <>
+                <p
+                  className="font-display text-ink mb-1"
+                  style={{
+                    fontSize: "clamp(2.5rem, 6vw, 4rem)",
+                    fontWeight: 700,
+                    letterSpacing: "-0.025em",
+                    lineHeight: 1,
+                  }}
+                >
+                  {formatMoney(stats.totalRaisedCents)}
+                  {goalLabel !== null && (
+                    <span
+                      className="text-ink-faint font-display"
+                      style={{ fontSize: "0.55em", fontWeight: 500 }}
+                    >
+                      {" "}of ${goalLabel}
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs uppercase tracking-[0.2em] text-ink-faint mt-2">
+                  raised · {stats.donorCount}{" "}
+                  {stats.donorCount === 1 ? "backer" : "backers"}
+                </p>
+                {goalLabel !== null && (
+                  <>
+                    <div
+                      className="w-full max-w-sm mx-auto h-1 bg-rule mt-4"
+                      role="progressbar"
+                      aria-valuenow={Math.round(progressPct)}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
+                      <div
+                        className="h-full bg-eye-deep transition-[width] duration-500"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    {clearedCount > 0 && tiers && tiers.length > 1 && (
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-faint mt-3">
+                        {tiers
+                          .slice(0, clearedCount)
+                          .map((t) => `$${t}`)
+                          .join(" · ")}{" "}
+                        cleared
+                      </p>
+                    )}
+                  </>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* Pre-form context line — visible above the fold on mobile so

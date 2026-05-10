@@ -37,9 +37,11 @@ export type WallMeta = {
   /** Time-sensitive line rendered directly above the preset amount
       buttons, e.g. "Marek reads these tomorrow morning." */
   urgencyLine?: string;
-  /** Dollar fundraising goal. When set, the stats line becomes
-      "$X of $Y raised" and a thin gold progress bar appears. */
-  goalDollars?: number;
+  /** Stretch-goal ladder in dollars, sorted ascending. Once total raised
+      crosses a tier, the bar snaps to the next tier and starts filling
+      again (Tiltify-style). Single-tier ladders behave like a fixed goal.
+      Accepts `goal_tiers: [250, 500, 1000]` or legacy `goal_dollars: 250`. */
+  goalTiers?: number[];
   /** Cold-reader summary paragraph rendered below the wall, above the
       expandable takedown. */
   intro: string;
@@ -59,6 +61,19 @@ export function getAllWallSlugs(): string[] {
     .readdirSync(wallsDirectory)
     .filter((f) => f.endsWith(".md"))
     .map((f) => f.replace(/\.md$/, ""));
+}
+
+function parseGoalTiers(data: Record<string, unknown>): number[] | undefined {
+  if (Array.isArray(data.goal_tiers)) {
+    const tiers = data.goal_tiers
+      .filter((n): n is number => typeof n === "number" && n > 0)
+      .sort((a, b) => a - b);
+    return tiers.length > 0 ? tiers : undefined;
+  }
+  if (typeof data.goal_dollars === "number" && data.goal_dollars > 0) {
+    return [data.goal_dollars];
+  }
+  return undefined;
 }
 
 function parseMeta(slug: string, data: Record<string, unknown>): WallMeta {
@@ -109,10 +124,7 @@ function parseMeta(slug: string, data: Record<string, unknown>): WallMeta {
       data.urgency_line.trim().length > 0
         ? data.urgency_line
         : undefined,
-    goalDollars:
-      typeof data.goal_dollars === "number" && data.goal_dollars > 0
-        ? data.goal_dollars
-        : undefined,
+    goalTiers: parseGoalTiers(data),
     intro: typeof data.intro === "string" ? data.intro : "",
     status,
     foundingWindowEndsAt:
