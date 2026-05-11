@@ -60,10 +60,48 @@ export default async function TipPage() {
         </div>
       </section>
 
-      {/* Tip card + trust wing. Tabbed donation card sits on the left
-          on md+ with a Clay portrait + intimate trust copy on the right.
-          On mobile the trust wing stacks below the card. */}
-      <section className="max-w-5xl mx-auto px-6 py-16 md:py-20">
+      {/* Tip card section. Recent supporters sit above the card as
+          ambient social proof leading into the ask; the donation card
+          + trust wing sit below; the wall link tails the section.
+          On mobile everything stacks; on md+ the card and trust wing
+          form a 12-col grid. */}
+      <section className="max-w-5xl mx-auto px-6 pt-12 md:pt-16 pb-16 md:pb-20">
+        {/* Recent supporters — moved above the card to act as the
+            social proof that precedes the ask. Conditional: only
+            renders when there are at least 3 named entries. On
+            mobile we show one quote to keep the card close to the
+            fold; the rest unfold at md+. */}
+        {showInlineSupporters && (
+          <div className="mb-12 md:mb-16 max-w-3xl mx-auto">
+            <p className="eyebrow text-center mb-5 md:mb-6">
+              Recent supporters
+            </p>
+            <ul className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
+              {namedRecent.map((entry, i) => (
+                <li
+                  key={entry.id}
+                  className={`border-l-2 border-eye pl-5 py-1${
+                    i > 0 ? " hidden md:block" : ""
+                  }`}
+                >
+                  <blockquote
+                    className="font-display italic text-ink leading-snug mb-3"
+                    style={{ fontSize: "1rem", fontWeight: 400 }}
+                  >
+                    {entry.message}
+                  </blockquote>
+                  <p
+                    className="eyebrow"
+                    style={{ letterSpacing: "0.22em", fontSize: "0.62rem" }}
+                  >
+                    {entry.attribution}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12 items-start">
           <div className="md:col-span-7">
             <TabbedTipCard lightningAddress={LIGHTNING_ADDRESS} />
@@ -99,55 +137,19 @@ export default async function TipPage() {
           </aside>
         </div>
 
-        {/* Recent supporters inline block. Conditional, only renders
-            when there are at least 3 named entries on the wall. */}
-        {showInlineSupporters && (
-          <div className="mt-16 max-w-3xl mx-auto">
-            <p className="eyebrow text-center mb-6">Recent supporters</p>
-            <ul className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-              {namedRecent.map((entry) => (
-                <li
-                  key={entry.id}
-                  className="border-l-2 border-eye pl-5 py-1"
-                >
-                  <blockquote
-                    className="font-display italic text-ink leading-snug mb-3"
-                    style={{ fontSize: "1rem", fontWeight: 400 }}
-                  >
-                    {entry.message}
-                  </blockquote>
-                  <p
-                    className="eyebrow"
-                    style={{ letterSpacing: "0.22em", fontSize: "0.62rem" }}
-                  >
-                    {entry.attribution}
-                  </p>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-8 text-center">
-              <Link
-                href="/supporters"
-                className="font-display text-xs uppercase tracking-[0.22em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
-                style={{ fontWeight: 500 }}
-              >
-                see the full wall →
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {!showInlineSupporters && (
-          <div className="mt-10 text-center">
-            <Link
-              href="/supporters"
-              className="font-display text-xs uppercase tracking-[0.22em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
-              style={{ fontWeight: 500 }}
-            >
-              see the supporters wall →
-            </Link>
-          </div>
-        )}
+        {/* Wall link tails the section. Copy shifts based on whether
+            inline supporters showed above the card. */}
+        <div className="mt-12 text-center">
+          <Link
+            href="/supporters"
+            className="font-display text-xs uppercase tracking-[0.22em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
+            style={{ fontWeight: 500 }}
+          >
+            {showInlineSupporters
+              ? "see the full wall →"
+              : "see the supporters wall →"}
+          </Link>
+        </div>
 
         {/* On-chain coming soon */}
         <div className="mt-12 text-center max-w-2xl mx-auto">
