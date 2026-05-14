@@ -241,7 +241,7 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
 
             <div className="mt-7 pt-5 border-t border-rule">
               <p
-                className="font-serif italic text-ink-muted mb-3"
+                className="font-serif italic text-ink-muted mb-2"
                 style={{ fontSize: "0.9rem", lineHeight: 1.55 }}
               >
                 Before you post or comment, set your display name in{" "}
@@ -258,6 +258,27 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
                   }}
                 >
                   your account
+                </Link>
+                .
+              </p>
+              <p
+                className="font-serif italic text-ink-muted mb-3"
+                style={{ fontSize: "0.9rem", lineHeight: 1.55 }}
+              >
+                Follow the book&apos;s progress at{" "}
+                <Link
+                  href="/book"
+                  onClick={dismiss}
+                  className="text-eye-deep hover:text-ink not-italic"
+                  style={{
+                    textDecoration: "underline",
+                    textDecorationColor: "var(--eye)",
+                    textDecorationThickness: "1px",
+                    textUnderlineOffset: "3px",
+                    fontWeight: 500,
+                  }}
+                >
+                  /book
                 </Link>
                 .
               </p>
