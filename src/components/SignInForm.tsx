@@ -1,10 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
-// Magic-link request form. Posts to /api/auth/request-link. Always
-// shows the same success state regardless of whether the email is on
-// file, so we don't leak which addresses are members.
+// Magic-link request form. Posts to /api/auth/request-link. The
+// success state is intentionally conditional ("if your email has an
+// active membership...") so we never disclose whether a given email
+// is on file — but it includes a friendly nudge for the case where
+// no email arrives (lapsed member, never joined, brand-new signup
+// whose webhook hasn't fired yet).
 
 type Status = "idle" | "loading" | "sent" | "error";
 
@@ -48,10 +52,26 @@ export function SignInForm({ next }: { next?: string }) {
           <span className="not-italic font-display text-eye-deep">
             {email}
           </span>{" "}
-          is on the list, a sign-in link is on its way.
+          has an active membership, a sign-in link is on its way.
         </p>
         <p className="text-sm italic text-ink-muted leading-relaxed">
-          check your inbox. the link is good for 15 minutes.
+          check your inbox &mdash; the link is good for 15 minutes.
+        </p>
+        <p className="mt-6 text-sm italic text-ink-muted leading-relaxed">
+          Nothing in your inbox? You may not be signed up yet, or your
+          membership lapsed.{" "}
+          <Link
+            href="/membership"
+            className="text-eye-deep hover:text-ink"
+            style={{
+              textDecoration: "underline",
+              textDecorationColor: "var(--eye)",
+              textDecorationThickness: "1px",
+              textUnderlineOffset: "3px",
+            }}
+          >
+            See membership options.
+          </Link>
         </p>
       </div>
     );

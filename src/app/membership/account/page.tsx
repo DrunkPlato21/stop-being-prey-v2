@@ -96,11 +96,11 @@ function ConfigError({ reason }: { reason: string }) {
           </p>
         )}
         <Link
-          href="/notes"
+          href="/desk"
           className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
           style={{ fontWeight: 500 }}
         >
-          ← back to the field notes
+          ← back to the writer&apos;s desk
         </Link>
       </section>
     </div>

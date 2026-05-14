@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { SignInForm } from "@/components/SignInForm";
+import { SESSION_COOKIE, safeNextPath, verifySession } from "@/lib/auth";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -25,6 +28,17 @@ export default async function SignInPage({
   const errorReason =
     typeof params.error === "string" ? params.error : undefined;
   const errorMessage = errorReason ? ERROR_MESSAGES[errorReason] : undefined;
+
+  // Already signed in? Skip the form entirely and land in the
+  // dashboard (or the requested `next` path, validated). Saves a
+  // wasted magic-link round-trip for someone who's already there.
+  const cookieStore = await cookies();
+  const session = await verifySession(
+    cookieStore.get(SESSION_COOKIE)?.value
+  );
+  if (session) {
+    redirect(safeNextPath(next));
+  }
 
   return (
     <div>

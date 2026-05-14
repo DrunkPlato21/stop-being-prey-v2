@@ -124,7 +124,7 @@ export async function consumeMagicLink(
  * (and not "//") are allowed.
  */
 export function safeNextPath(input: string | null | undefined): string {
-  const fallback = "/notes";
+  const fallback = "/desk";
   if (!input) return fallback;
   if (!input.startsWith("/")) return fallback;
   if (input.startsWith("//")) return fallback;

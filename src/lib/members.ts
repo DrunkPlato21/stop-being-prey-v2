@@ -1,0 +1,387 @@
+import { Redis } from "@upstash/redis";
+
+// Member records + founder counter. The membership lib (./membership.ts)
+// owns Stripe-side helpers; this module owns the Upstash side: who's a
+// member, what tier they got, and the atomic founder-slot counter.
+//
+// Redis schema:
+//   founder:claimed                  STRING/integer, INCR'd atomically via EVAL
+//   member:<email>                   JSON MemberRecord (primary)
+//   member:by-customer:<customerId>  STRING email (Stripe lifecycle webhook lookup)
+//   member:by-session:<sessionId>    STRING email (idempotency dedupe for checkout.session.completed retries)
+//   members:all                      ZSET, score=createdAt, member=email (fan-out broadcast index)
+
+const FOUNDER_KEY = "founder:claimed";
+export const FOUNDER_CAP = 100;
+
+const MEMBER_PREFIX = "member:";
+const MEMBER_BY_CUSTOMER_PREFIX = "member:by-customer:";
+const MEMBER_BY_SESSION_PREFIX = "member:by-session:";
+const MEMBERS_ALL_INDEX = "members:all";
+
+export type Tier = "founder" | "regular";
+
+export type MemberSubscriptionStatus =
+  | "active"
+  | "trialing"
+  | "past_due"
+  | "canceled"
+  | "incomplete"
+  | "incomplete_expired"
+  | "paused"
+  | "unpaid";
+
+export type MemberRecord = {
+  email: string;
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  tier: Tier;
+  founderSlot: number | null;
+  status: MemberSubscriptionStatus;
+  interval: "month" | "year";
+  amountCents: number;
+  createdAt: number;
+  updatedAt: number;
+  customAvatarUrl: string | null;
+};
+
+/* === Tier badges ============================================
+   Three public badges earned by paying above the $13 standard rate.
+   Derived from amount + interval at read time so a Stripe-side tier
+   change shows up everywhere on the next page load — no badge field
+   to keep in sync.
+     HUNTER     ≥ $25/mo, < $50/mo     (olive)
+     OPERATOR   ≥ $50/mo, < $100/mo    (olive — label distinguishes)
+     APEX       ≥ $100/mo              (claret — the only saturated chip)
+   Below $25/mo: no tier badge (founder badge still applies). */
+
+export type TierBadge = "hunter" | "operator" | "apex";
+
+const HUNTER_MONTHLY_CENTS = 2500;
+const OPERATOR_MONTHLY_CENTS = 5000;
+const APEX_MONTHLY_CENTS = 10000;
+
+/**
+ * Monthly-equivalent cents for a member. The pricing page uses ×10
+ * for yearly (two months free), so we divide yearly cents by 10 to
+ * compare against the monthly tier thresholds. Any other interval
+ * unrecognized: treat as monthly to avoid downgrading badges by
+ * accident.
+ */
+export function monthlyEquivalentCents(record: {
+  amountCents: number;
+  interval: "month" | "year";
+}): number {
+  if (record.interval === "year") {
+    return Math.round(record.amountCents / 10);
+  }
+  return record.amountCents;
+}
+
+/**
+ * The tier badge a member currently qualifies for, or null. Active /
+ * trialing only — a churned subscription doesn't display a badge,
+ * even if their last paid amount would have qualified.
+ */
+export function getTierBadge(
+  record: Pick<MemberRecord, "amountCents" | "interval" | "status"> | null
+): TierBadge | null {
+  if (!record) return null;
+  if (record.status !== "active" && record.status !== "trialing") return null;
+  const monthly = monthlyEquivalentCents(record);
+  if (monthly >= APEX_MONTHLY_CENTS) return "apex";
+  if (monthly >= OPERATOR_MONTHLY_CENTS) return "operator";
+  if (monthly >= HUNTER_MONTHLY_CENTS) return "hunter";
+  return null;
+}
+
+/**
+ * The founder slot a member is entitled to display, or null. Same
+ * active/trialing gate as getTierBadge — a canceled founder doesn't
+ * keep the chip on their next post.
+ */
+export function getFounderSlot(
+  record: Pick<MemberRecord, "tier" | "founderSlot" | "status"> | null
+): number | null {
+  if (!record) return null;
+  if (record.status !== "active" && record.status !== "trialing") return null;
+  if (record.tier !== "founder") return null;
+  return typeof record.founderSlot === "number" ? record.founderSlot : null;
+}
+
+let cachedClient: Redis | null = null;
+
+function getClient(): Redis | null {
+  if (cachedClient) return cachedClient;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  cachedClient = new Redis({ url, token });
+  return cachedClient;
+}
+
+export function isMembersStorageConfigured(): boolean {
+  return !!(
+    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  );
+}
+
+function normEmail(email: string): string {
+  return email.toLowerCase().trim();
+}
+
+/* === Founder counter ====================================== */
+
+/**
+ * Read the current Founder-slots-claimed count for display. Clamped to
+ * the cap so the UI never shows "101 of 100" if the counter overshoots
+ * under contention. Returns 0 when Redis is unconfigured.
+ */
+export async function getFounderClaimed(): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const raw = await client.get<string | number | null>(FOUNDER_KEY);
+  if (raw === null || raw === undefined) return 0;
+  const n = typeof raw === "string" ? parseInt(raw, 10) : Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(Math.max(n, 0), FOUNDER_CAP);
+}
+
+/**
+ * Atomically claim the next Founder slot. Returns slot number 1..CAP
+ * on success, null when all slots are taken. The Lua script enforces
+ * the cap inside a single Redis round-trip so concurrent webhook
+ * firings can't both walk away with the last slot.
+ */
+export async function claimFounderSlot(): Promise<number | null> {
+  const client = getClient();
+  if (!client) return null;
+  const script = `
+    local current = tonumber(redis.call('GET', KEYS[1]) or '0')
+    local cap = tonumber(ARGV[1])
+    if current >= cap then
+      return -1
+    end
+    return redis.call('INCR', KEYS[1])
+  `;
+  const result = await client.eval(
+    script,
+    [FOUNDER_KEY],
+    [String(FOUNDER_CAP)]
+  );
+  if (typeof result === "number" && result > 0) return result;
+  return null;
+}
+
+/**
+ * Whether a fresh purchase would be eligible for the Founder rate.
+ * Used by the sales page + checkout-create to surface the floor; the
+ * webhook re-checks atomically before stamping the tier so a race
+ * never gives out a 101st slot.
+ */
+export async function isFounderEligible(): Promise<boolean> {
+  return (await getFounderClaimed()) < FOUNDER_CAP;
+}
+
+/* === Member records ======================================= */
+
+function parseMember(raw: unknown): MemberRecord | null {
+  if (raw === null || raw === undefined) return null;
+  try {
+    return typeof raw === "string"
+      ? (JSON.parse(raw) as MemberRecord)
+      : (raw as MemberRecord);
+  } catch {
+    return null;
+  }
+}
+
+export async function getMember(email: string): Promise<MemberRecord | null> {
+  const client = getClient();
+  if (!client) return null;
+  const raw = await client.get<string>(`${MEMBER_PREFIX}${normEmail(email)}`);
+  return parseMember(raw);
+}
+
+export async function getMemberByCustomerId(
+  customerId: string
+): Promise<MemberRecord | null> {
+  const client = getClient();
+  if (!client) return null;
+  const email = await client.get<string>(
+    `${MEMBER_BY_CUSTOMER_PREFIX}${customerId}`
+  );
+  if (!email) return null;
+  return getMember(typeof email === "string" ? email : String(email));
+}
+
+export async function getMemberBySessionId(
+  sessionId: string
+): Promise<MemberRecord | null> {
+  const client = getClient();
+  if (!client) return null;
+  const email = await client.get<string>(
+    `${MEMBER_BY_SESSION_PREFIX}${sessionId}`
+  );
+  if (!email) return null;
+  return getMember(typeof email === "string" ? email : String(email));
+}
+
+/**
+ * Write a member record. Updates the primary record and the
+ * customer-id reverse index. The session-id index is written
+ * separately (see writeSessionIndex) since the webhook needs to set
+ * it as part of the slot-claim transaction.
+ */
+export async function saveMember(record: MemberRecord): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  const email = normEmail(record.email);
+  const normalised: MemberRecord = { ...record, email };
+  await client.set(
+    `${MEMBER_PREFIX}${email}`,
+    JSON.stringify(normalised)
+  );
+  await client.set(
+    `${MEMBER_BY_CUSTOMER_PREFIX}${record.stripeCustomerId}`,
+    email
+  );
+  // Maintain the fan-out broadcast index so notification triggers
+  // (new essay, new voice memo, new wall) can iterate every active
+  // member without a SCAN.
+  await client.zadd(MEMBERS_ALL_INDEX, {
+    score: record.createdAt,
+    member: email,
+  });
+}
+
+/**
+ * Newest-first list of every member email ever saved. Used by the
+ * notifications fan-out broadcasts (essays, voice memos, walls).
+ * For V1 with hundreds of members this is fine; if the list grows
+ * past a few thousand, paginate and write notifications in batches
+ * off the request path.
+ */
+export async function listAllMemberEmails(): Promise<string[]> {
+  const client = getClient();
+  if (!client) return [];
+  const raw = await client
+    .zrange(MEMBERS_ALL_INDEX, 0, -1, { rev: true })
+    .catch(() => [] as unknown[]);
+  return Array.isArray(raw)
+    ? (raw.filter((v): v is string => typeof v === "string"))
+    : [];
+}
+
+/**
+ * Same as above but limited to members who currently have an
+ * active/trialing subscription. Used for fan-outs that shouldn't
+ * notify churned members.
+ */
+export async function listActiveMemberEmails(): Promise<string[]> {
+  const all = await listAllMemberEmails();
+  if (all.length === 0) return [];
+  const active: string[] = [];
+  for (const email of all) {
+    const record = await getMember(email).catch(() => null);
+    if (
+      record &&
+      (record.status === "active" || record.status === "trialing")
+    ) {
+      active.push(email);
+    }
+  }
+  return active;
+}
+
+/**
+ * Record the session id -> email binding so retries of the same
+ * checkout.session.completed event skip the slot-claim path.
+ */
+export async function writeSessionIndex(
+  sessionId: string,
+  email: string
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  await client.set(
+    `${MEMBER_BY_SESSION_PREFIX}${sessionId}`,
+    normEmail(email)
+  );
+}
+
+/**
+ * Update only the subscription status (e.g. on cancel, payment fail,
+ * renewal). No-op when the member record doesn't exist yet — webhook
+ * ordering can in rare cases deliver a lifecycle event before the
+ * checkout.session.completed event that creates the record.
+ */
+export async function updateMemberStatus(
+  customerId: string,
+  status: MemberSubscriptionStatus
+): Promise<void> {
+  const member = await getMemberByCustomerId(customerId);
+  if (!member) return;
+  const next: MemberRecord = { ...member, status, updatedAt: Date.now() };
+  const client = getClient();
+  if (!client) return;
+  await client.set(
+    `${MEMBER_PREFIX}${normEmail(member.email)}`,
+    JSON.stringify(next)
+  );
+}
+
+/**
+ * Update a member's subscription details from a Stripe webhook —
+ * status plus the live price (so tier-badge changes via the Customer
+ * Portal propagate to the site without a second event). Only writes
+ * provided fields; nullish values pass through unchanged.
+ */
+export async function updateMemberSubscription(
+  customerId: string,
+  fields: {
+    status?: MemberSubscriptionStatus;
+    interval?: "month" | "year";
+    amountCents?: number;
+  }
+): Promise<void> {
+  const member = await getMemberByCustomerId(customerId);
+  if (!member) return;
+  const next: MemberRecord = {
+    ...member,
+    status: fields.status ?? member.status,
+    interval: fields.interval ?? member.interval,
+    amountCents:
+      typeof fields.amountCents === "number"
+        ? fields.amountCents
+        : member.amountCents,
+    updatedAt: Date.now(),
+  };
+  const client = getClient();
+  if (!client) return;
+  await client.set(
+    `${MEMBER_PREFIX}${normEmail(member.email)}`,
+    JSON.stringify(next)
+  );
+}
+
+/**
+ * Wait briefly for the webhook to land a member record matching this
+ * session id. Used by /membership/success after the Stripe redirect:
+ * the webhook fires async (~hundreds of ms) but we want the success
+ * page to surface tier + slot without a client-side spinner.
+ */
+export async function pollMemberBySession(
+  sessionId: string,
+  attempts = 6,
+  delayMs = 200
+): Promise<MemberRecord | null> {
+  for (let i = 0; i < attempts; i++) {
+    const member = await getMemberBySessionId(sessionId);
+    if (member) return member;
+    if (i < attempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  return null;
+}

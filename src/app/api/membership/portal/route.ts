@@ -38,6 +38,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "no_customer_on_session" }, { status: 400 });
   }
 
+  // Synthetic customer ids (admin_*, dev_*) are not real Stripe customers
+  // and would surface a confusing Stripe error to the user. Refuse them
+  // here so the UI can show a clean "not a paid member" message.
+  if (!customerId.startsWith("cus_")) {
+    return Response.json({ error: "no_stripe_customer" }, { status: 400 });
+  }
+
   const result = await createCustomerPortalSession(customerId);
   if ("error" in result) {
     return Response.json({ error: result.error }, { status: 500 });
