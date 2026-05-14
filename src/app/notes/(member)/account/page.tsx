@@ -6,11 +6,21 @@ import { SESSION_COOKIE } from "@/lib/auth";
 import { ManageSubscriptionButton } from "@/components/ManageSubscriptionButton";
 import { EditDisplayNameForm } from "@/components/EditDisplayNameForm";
 import { NotifyOnReplyToggle } from "@/components/NotifyOnReplyToggle";
+import { FounderMedallion } from "@/components/FounderMedallion";
+import { AuthorPlate } from "@/components/AuthorPlate";
 import {
   getProfile,
+  isAdmin,
   isCommentsConfigured,
   notifyOnReply,
+  selfEditCooldownInfo,
 } from "@/lib/comments";
+import {
+  getFounderSlot,
+  getMember,
+  getTierBadge,
+} from "@/lib/members";
+import { MemberBadge } from "@/components/MemberBadge";
 
 export const metadata: Metadata = {
   title: "Account",
@@ -59,6 +69,14 @@ export default async function AccountPage() {
 
   const profile =
     isCommentsConfigured() ? await getProfile(email) : null;
+  const member = await getMember(email);
+  const viewerIsAdmin = isAdmin(email);
+  const isFounder =
+    !viewerIsAdmin &&
+    member?.tier === "founder" &&
+    typeof member.founderSlot === "number";
+  const founderSlot = viewerIsAdmin ? null : getFounderSlot(member);
+  const tierBadge = viewerIsAdmin ? null : getTierBadge(member);
 
   return (
     <div>
@@ -80,6 +98,49 @@ export default async function AccountPage() {
       </section>
 
       <section className="max-w-xl mx-auto px-6 py-14 md:py-20">
+        {/* Tier plate — three states, mutually exclusive:
+            - Admin (the author): AuthorPlate, no slot, no amount.
+            - Founder: FounderMedallion with slot # + locked rate.
+            - Regular member or pre-webhook: no plate. */}
+        {viewerIsAdmin ? (
+          <div className="mb-14 md:mb-16">
+            <AuthorPlate />
+          </div>
+        ) : isFounder && member?.founderSlot ? (
+          <div className="mb-14 md:mb-16">
+            <FounderMedallion
+              slot={member.founderSlot}
+              amountCents={member.amountCents}
+              interval={member.interval}
+            />
+          </div>
+        ) : null}
+
+        {/* Your badge — shows the exact chip rendered everywhere
+            else (comments, lounge, identity dropdown). Compound for
+            founders who also qualify for a tier badge. */}
+        {(founderSlot !== null || tierBadge !== null) && (
+          <div className="mb-12 text-center">
+            <p className="eyebrow mb-3">Your badge</p>
+            {/* Inline-flex wrapper so Fragment-returned chips share
+                the same gap as they would inside any other flex
+                parent (the parent of this div is text-align: center,
+                not flex). */}
+            <div className="inline-flex items-baseline gap-2 flex-wrap">
+              <MemberBadge
+                founderSlot={founderSlot}
+                tierBadge={tierBadge}
+              />
+            </div>
+            <p
+              className="font-serif italic text-ink-muted mt-3"
+              style={{ fontSize: "0.86rem" }}
+            >
+              displayed beside your name in comments and the lounge.
+            </p>
+          </div>
+        )}
+
         {/* Email */}
         <div className="mb-12">
           <p className="eyebrow mb-3">Signed in as</p>
@@ -97,13 +158,18 @@ export default async function AccountPage() {
         </div>
 
         {/* Display name */}
-        {isCommentsConfigured() && (
-          <div className="mb-12 pt-10 border-t border-rule">
-            <EditDisplayNameForm
-              initialDisplayName={profile?.displayName || null}
-            />
-          </div>
-        )}
+        {isCommentsConfigured() && (() => {
+          const cooldown = selfEditCooldownInfo(profile);
+          return (
+            <div className="mb-12 pt-10 border-t border-rule">
+              <EditDisplayNameForm
+                initialDisplayName={profile?.displayName || null}
+                onCooldown={cooldown.onCooldown}
+                nextAllowedAt={cooldown.nextAllowedAt}
+              />
+            </div>
+          );
+        })()}
 
         {/* Email notifications */}
         {isCommentsConfigured() && (

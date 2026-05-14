@@ -4,6 +4,11 @@ import matter from "gray-matter";
 import { remark } from "remark";
 import html from "remark-html";
 
+// Field Notes are back-room essays (Clay's commentary on the work as
+// he makes it). No small-caps run-in opening — the founding-page
+// register is the closer match. The lead-incipit treatment stays on
+// public essays where the opening line should pop.
+
 // Field Notes content pipeline. Mirrors the article pipeline pattern
 // but with its own frontmatter: number, doctrine_tags, screenshot,
 // live_post_url. Files live in content/field-notes/.

@@ -19,7 +19,7 @@ function formatDate(date: string): string {
   });
 }
 
-export default async function NotesFeedPage() {
+export default async function FieldNotesIndexPage() {
   const notes = getAllFieldNotes();
 
   return (
@@ -61,11 +61,11 @@ export default async function NotesFeedPage() {
                 }
               >
                 <Link
-                  href={`/notes/${note.slug}`}
+                  href={`/notes/field-notes/${note.slug}`}
                   className="block no-underline group"
                 >
                   <p className="eyebrow mb-3">
-                    Field Note No. {note.number}
+                    Field Note №{note.number}
                     {note.date && (
                       <>
                         {" · "}
@@ -94,28 +94,6 @@ export default async function NotesFeedPage() {
             ))}
           </ul>
         )}
-      </section>
-
-      {/* Account / sign out row */}
-      <section className="max-w-3xl mx-auto px-6 pb-16 text-center border-t border-rule pt-10">
-        <div className="flex flex-wrap items-center justify-center gap-6">
-          <Link
-            href="/membership/account"
-            className="font-display text-xs uppercase tracking-[0.22em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            manage membership →
-          </Link>
-          <form action="/api/auth/logout" method="post">
-            <button
-              type="submit"
-              className="font-display text-xs uppercase tracking-[0.22em] text-ink-muted hover:text-eye-deep no-underline transition-colors bg-transparent border-0 cursor-pointer"
-              style={{ fontWeight: 500 }}
-            >
-              sign out
-            </button>
-          </form>
-        </div>
       </section>
     </div>
   );

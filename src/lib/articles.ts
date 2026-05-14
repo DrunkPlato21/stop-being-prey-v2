@@ -3,6 +3,7 @@ import path from "path";
 import matter from "gray-matter";
 import { remark } from "remark";
 import html from "remark-html";
+import { applyLeadIncipit } from "./lead-incipit";
 
 const articlesDirectory = path.join(process.cwd(), "content", "articles");
 
@@ -115,7 +116,12 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
 
   const processedContent = await remark().use(html).process(content);
   const fullHtml = processedContent.toString();
-  const { contentHtml, referencesHtml } = splitReferences(fullHtml);
+  const { contentHtml: rawContentHtml, referencesHtml } =
+    splitReferences(fullHtml);
+  // Wrap the first sentence of the article body in a small-caps
+  // run-in lead — the publication's opening-text register. Not
+  // applied to references (the references list isn't prose).
+  const contentHtml = applyLeadIncipit(rawContentHtml);
 
   let postscriptHtml: string | null = null;
   if (typeof data.postscript === "string" && data.postscript.trim().length > 0) {
