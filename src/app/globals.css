@@ -3527,6 +3527,52 @@ body[data-theme="admin-desk-dark"] .lounge-compose-dock {
   z-index: 45;
 }
 
+/* Mirror anchor on the top-left, used by /admin/lounge to surface a
+   back-to-desk link. Same z-index + translucent treatment so the two
+   corners read as paired admin chrome. */
+.admin-back-anchor {
+  position: fixed;
+  top: 1.1rem;
+  left: 1.1rem;
+  z-index: 45;
+}
+
+.admin-back-link {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink-muted);
+  background: rgba(245, 239, 225, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--rule);
+  border-radius: 9999px;
+  padding: 0.5rem 0.95rem;
+  text-decoration: none;
+  transition: color 180ms ease, border-color 180ms ease,
+    background-color 180ms ease, transform 180ms ease;
+}
+
+.admin-back-link:hover {
+  color: var(--eye-deep);
+  border-color: var(--eye-deep);
+  background: rgba(184, 168, 44, 0.06);
+}
+
+.admin-back-link:active {
+  transform: scale(0.97);
+}
+
+body[data-theme="admin-desk-dark"] .admin-back-link {
+  background: rgba(20, 17, 13, 0.72);
+  border-color: var(--border);
+  color: var(--ink-muted);
+}
+
 .admin-desk-theme-toggle {
   display: inline-flex;
   align-items: center;

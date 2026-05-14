@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
@@ -138,20 +139,34 @@ export default async function AdminLoungePage() {
   await setLastViewed(session.email).catch(() => null);
 
   return (
-    <LoungeView
-      initialPinned={pinned}
-      initialPosts={posts}
-      initialReplies={replies}
-      initialReactions={reactions}
-      initialMemberBadges={initialMemberBadges}
-      initialHasMore={page.hasMore}
-      initialReadByClayPostIds={readByClayPostIds}
-      initialReadByClayReplyIds={readByClayReplyIds}
-      lastVisitedAt={lastVisitedAt}
-      isAdmin={true}
-      activeNow={activeNow}
-      authorCount={authorCount}
-      launchIso={MEMBER_AREA_LAUNCH_ISO}
-    />
+    <>
+      {/* Back to the admin desk. Fixed top-left, mirrors the dark mode
+          toggle's top-right anchor so the two pieces of admin chrome
+          live symmetrically in the PWA window. Quiet, translucent
+          paper-tinted backdrop so it doesn't fight the lounge view. */}
+      <div className="admin-back-anchor">
+        <Link href="/admin/desk" className="admin-back-link">
+          <span aria-hidden="true" style={{ marginRight: "0.45rem" }}>
+            &larr;
+          </span>
+          Desk
+        </Link>
+      </div>
+      <LoungeView
+        initialPinned={pinned}
+        initialPosts={posts}
+        initialReplies={replies}
+        initialReactions={reactions}
+        initialMemberBadges={initialMemberBadges}
+        initialHasMore={page.hasMore}
+        initialReadByClayPostIds={readByClayPostIds}
+        initialReadByClayReplyIds={readByClayReplyIds}
+        lastVisitedAt={lastVisitedAt}
+        isAdmin={true}
+        activeNow={activeNow}
+        authorCount={authorCount}
+        launchIso={MEMBER_AREA_LAUNCH_ISO}
+      />
+    </>
   );
 }
