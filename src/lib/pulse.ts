@@ -118,7 +118,7 @@ const PINNED_EVENTS: PulseEvent[] = [
     source: "case-file",
     at: Date.parse("2026-05-14T16:00:00Z"),
     label: "Case files",
-    body: "New section. Submit a situation for a public or private review.",
+    body: "Three case files now in the archive.",
     link: "/case-files",
   },
   {
