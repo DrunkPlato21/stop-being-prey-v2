@@ -136,8 +136,17 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
               You&apos;re in the room. Here&apos;s how it&apos;s organized:
             </p>
 
-            {/* Single-line pillar descriptions. No em dashes. */}
+            {/* Single-line pillar descriptions. No em dashes. The
+                Writer's Desk leads — it's where the primary CTA points
+                and where Clay's live presence + recent work surfaces. */}
             <ul className="flex flex-col gap-2 mb-7 list-none p-0">
+              <li
+                className="font-serif text-ink leading-relaxed"
+                style={{ fontSize: "1rem" }}
+              >
+                <strong>The Writer&apos;s Desk.</strong> Your home base. Clay&apos;s
+                live status and the pulse of the room.
+              </li>
               <li
                 className="font-serif text-ink leading-relaxed"
                 style={{ fontSize: "1rem" }}
