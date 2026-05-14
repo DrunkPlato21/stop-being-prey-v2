@@ -360,12 +360,22 @@ async function handleMembershipCheckout(
   // member with a missing list tag is a recoverable problem, a paid
   // member with no Stripe record on file is not.
   const kit = await applyMembersTag(email);
-  if (!kit.ok && kit.reason !== "not_configured") {
-    console.warn(
-      `[membership] kit tag failed for ${email}: ${kit.reason}${
-        kit.status ? ` (${kit.status})` : ""
-      }`
-    );
+  if (!kit.ok) {
+    if (kit.reason === "not_configured") {
+      // Don't bury config errors in silence. If we're in production
+      // and the env vars aren't set, the member was charged but never
+      // tagged in Kit — Clay needs to know so he can fix env vars +
+      // manually tag.
+      console.warn(
+        `[membership] KIT_API_KEY or KIT_MEMBERS_TAG_ID not set in this environment — ${email} was NOT tagged in Kit. Set both in Vercel + redeploy; tag this member manually for now.`
+      );
+    } else {
+      console.warn(
+        `[membership] kit tag failed for ${email}: ${kit.reason}${
+          kit.status ? ` (${kit.status})` : ""
+        }`
+      );
+    }
   }
 
   // In-site welcome notification. Founders get the slot number;
