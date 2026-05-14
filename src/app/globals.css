@@ -3490,6 +3490,26 @@ body[data-theme="admin-desk-dark"] section.bg-surface {
   background-color: var(--surface);
 }
 
+/* Lounge cards in dark mode. The light-mode rule hardcodes a cream
+   background (#f6efdc) so the dark theme can't reach it via CSS
+   variable overrides — handled here instead. Slightly lifted from
+   the body via a warm near-black, with shadow tuned for dark
+   (subtle inner highlight + a deeper drop). */
+body[data-theme="admin-desk-dark"] .lounge-card {
+  background: #1f1a14;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 200, 0.03),
+    0 1px 1.5px rgba(0, 0, 0, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+/* Compose dock shadow on dark: the light-mode brown shadow vanishes
+   into the body. A near-black upward shadow separates the dock from
+   the feed scrolling beneath it. */
+body[data-theme="admin-desk-dark"] .lounge-compose-dock {
+  box-shadow: 0 -8px 22px rgba(0, 0, 0, 0.45);
+}
+
 /* =============================================================
    Admin Writer's Desk — dark mode toggle button
    ============================================================= */
