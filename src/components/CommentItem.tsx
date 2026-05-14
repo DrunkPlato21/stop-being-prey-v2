@@ -256,24 +256,12 @@ export function CommentItem({
             </div>
           )}
 
-          {/* Thread replies (member-to-member). Render flat, chrono. */}
-          {threadReplies.length > 0 && (
-            <ul className="mt-5 flex flex-col gap-5">
-              {threadReplies.map((reply) => (
-                <ThreadReplyView
-                  key={reply.id}
-                  parent={comment}
-                  reply={reply}
-                  viewerEmail={viewerEmail}
-                  viewerIsAdmin={viewerIsAdmin}
-                  memberBadgeByEmail={memberBadgeByEmail}
-                />
-              ))}
-            </ul>
-          )}
-
-          {/* Clay's reply (if posted). Rendered below thread replies
-              so it visually closes the discussion. */}
+          {/* Clay's reply (if posted). Pinned to the top of the
+              response stack — above the member-to-member thread —
+              regardless of when it was actually written. The olive
+              border + Author badge mark it as the editor's response
+              so readers see it before scrolling through the back-and-
+              forth. */}
           {comment.replyBody && comment.replyAt && (
             <div
               className="mt-5 pl-4"
@@ -319,6 +307,23 @@ export function CommentItem({
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Thread replies (member-to-member). Render flat, chrono,
+              below Clay's pinned response. */}
+          {threadReplies.length > 0 && (
+            <ul className="mt-5 flex flex-col gap-5">
+              {threadReplies.map((reply) => (
+                <ThreadReplyView
+                  key={reply.id}
+                  parent={comment}
+                  reply={reply}
+                  viewerEmail={viewerEmail}
+                  viewerIsAdmin={viewerIsAdmin}
+                  memberBadgeByEmail={memberBadgeByEmail}
+                />
+              ))}
+            </ul>
           )}
 
           {/* Admin: post / replace / delete reply. Lives below
