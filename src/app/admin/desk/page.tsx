@@ -18,7 +18,7 @@ import {
 } from "@/components/DeskAdminForm";
 import { BroadcastForm } from "@/components/BroadcastForm";
 import { OnTheDeskBadge } from "@/components/OnTheDeskBadge";
-import { AdminNoteRow } from "@/components/AdminNoteRow";
+import { LiveAdminNotesPanel } from "@/components/LiveAdminNotesPanel";
 import { Linkified } from "@/components/Linkified";
 
 // Dark-mode toggle + no-flash script live in src/app/admin/layout.tsx
@@ -84,7 +84,6 @@ export default async function DeskAdminPage() {
   const current = updates[0];
   const state = derivePresenceState(presence);
   const awayNote = getActiveAwayNote(presence) ?? "";
-  const newNotesCount = activeNotes.filter((n) => n.status === "new").length;
 
   const wallChoices = getAllWalls().map((w) => ({
     slug: w.slug,
@@ -220,58 +219,11 @@ export default async function DeskAdminPage() {
       </section>
 
       {/* === Section 2: Notes inbox =========================
-          Renders only when there are active notes. Wrapped in a
-          card with paper-deep fill + olive rule so it reads as a
-          self-contained inbox surface, not as page-flow content.
-          Promoted above "Signals" so unread member notes are the
-          next thing Clay sees after the control block. */}
-      {activeNotes.length > 0 && (
-        <section className="mb-14">
-          <div
-            className="border border-rule p-6 md:p-8"
-            style={{ background: "var(--paper-deep)" }}
-          >
-            <div className="flex items-baseline justify-between gap-4 mb-2 flex-wrap">
-              <p
-                className="eyebrow"
-                style={{ letterSpacing: "0.32em", fontSize: "0.65rem" }}
-              >
-                Notes inbox
-              </p>
-              <Link
-                href="/admin/notes"
-                className="font-display uppercase tracking-[0.22em] text-eye-deep hover:text-ink no-underline transition-colors"
-                style={{ fontSize: "0.65rem", fontWeight: 600 }}
-              >
-                manage all &rarr;
-              </Link>
-            </div>
-            <p
-              className="font-serif italic text-ink-muted mb-6"
-              style={{ fontSize: "0.9rem" }}
-            >
-              {newNotesCount > 0
-                ? `${newNotesCount} new · ${activeNotes.length} active`
-                : `${activeNotes.length} active · no new ones`}
-            </p>
-
-            <ul className="flex flex-col">
-              {activeNotes.map((note, idx) => (
-                <li
-                  key={note.id}
-                  className={
-                    idx === 0
-                      ? "py-5"
-                      : "py-5 border-t border-rule"
-                  }
-                >
-                  <AdminNoteRow note={note} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
+          Live-polling client island. Renders only when there are
+          active notes (initially or after a poll brings one in).
+          Polls /api/admin/notes every 10s; notes that arrived during
+          the session get a brief olive highlight as they appear. */}
+      <LiveAdminNotesPanel initialNotes={activeNotes} />
 
       {/* === Section 3: Signals ==============================
           Broadcast notifications + the active-wall override. These

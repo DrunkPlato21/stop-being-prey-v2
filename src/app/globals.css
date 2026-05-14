@@ -3573,6 +3573,26 @@ body[data-theme="admin-desk-dark"] .admin-back-link {
   color: var(--ink-muted);
 }
 
+/* Highlight applied to a notes-inbox row that arrived via live poll
+   during the current admin session. Fades from olive-tinted back to
+   transparent over a few seconds so the eye is drawn once, then the
+   row settles into the rest of the list. */
+@keyframes admin-note-fresh-fade {
+  0% {
+    background-color: rgba(184, 168, 44, 0.18);
+  }
+  40% {
+    background-color: rgba(184, 168, 44, 0.12);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.admin-note-fresh {
+  animation: admin-note-fresh-fade 3.5s ease-out forwards;
+}
+
 .admin-desk-theme-toggle {
   display: inline-flex;
   align-items: center;
