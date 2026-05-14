@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CommentKind } from "@/lib/comments";
 
 // Comment input form. Renders the display-name field only for first-
@@ -14,6 +14,9 @@ const ERRORS: Record<string, string> = {
   invalid_body_field: "Add a comment first.",
   display_name_required: "Pick a display name.",
   invalid_display_name: "That display name isn't allowed.",
+  reserved: "That name is reserved. Try another.",
+  profanity: "That name isn't allowed. Try another.",
+  name_taken: "Someone's already using that name. Try another.",
   already_commented: "You've already commented on this piece.",
   empty_body: "Add a comment first.",
   storage_unavailable: "Comments are temporarily unavailable.",
@@ -26,6 +29,55 @@ type Props = {
   existingDisplayName: string | null;
 };
 
+// localStorage key prefix for in-progress drafts. Scoped per
+// kind+slug so two open tabs on different pieces don't trample each
+// other. We deliberately don't key on email — the form is gated by
+// the member session anyway, and keying on email would mean a
+// shared computer wouldn't recover a draft after a re-auth.
+const DRAFT_PREFIX = "sbp:comment-draft:";
+
+function draftKey(kind: CommentKind, slug: string): string {
+  return `${DRAFT_PREFIX}${kind}:${slug}`;
+}
+
+type Draft = { body: string; displayName?: string };
+
+function loadDraft(key: string): Draft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Draft;
+    if (parsed && typeof parsed.body === "string") return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(key: string, draft: Draft): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!draft.body && !draft.displayName) {
+      window.localStorage.removeItem(key);
+      return;
+    }
+    window.localStorage.setItem(key, JSON.stringify(draft));
+  } catch {
+    // localStorage might be full or denied (private mode) — silently
+    // skip, we never block the typing experience over persistence.
+  }
+}
+
+function clearDraft(key: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
 export function CommentForm({
   kind,
   slug,
@@ -37,6 +89,40 @@ export function CommentForm({
   const [body, setBody] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [restoredNote, setRestoredNote] = useState<string | null>(null);
+  const key = draftKey(kind, slug);
+  // Debounce timer for the save effect so we don't write to
+  // localStorage on every keystroke.
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Restore any in-progress draft on mount.
+  useEffect(() => {
+    const existing = loadDraft(key);
+    if (!existing) return;
+    if (existing.body) setBody(existing.body);
+    if (existing.displayName && !hasProfile) {
+      setDisplayName(existing.displayName);
+    }
+    if (existing.body) {
+      setRestoredNote("Restored draft.");
+    }
+  }, [key, hasProfile]);
+
+  // Debounced save on every change. 300ms is short enough that closing
+  // a tab mid-thought rarely loses anything, long enough that fast
+  // typing doesn't hammer localStorage.
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveDraft(key, {
+        body,
+        displayName: hasProfile ? undefined : displayName,
+      });
+    }, 300);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [body, displayName, hasProfile, key]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -80,6 +166,8 @@ export function CommentForm({
 
       setBody("");
       setDisplayName("");
+      setRestoredNote(null);
+      clearDraft(key);
       router.refresh();
     } catch {
       setError("Couldn't post your comment. Try again.");
@@ -113,8 +201,8 @@ export function CommentForm({
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            maxLength={40}
-            placeholder="How you'll appear (40 char max)"
+            maxLength={30}
+            placeholder="How you'll appear (30 char max)"
             disabled={pending}
             className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink"
             style={{ fontSize: "1rem" }}
@@ -141,7 +229,7 @@ export function CommentForm({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={5}
-          maxLength={2000}
+          maxLength={1500}
           placeholder="One per piece. Make it count."
           disabled={pending}
           className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y"
@@ -154,10 +242,19 @@ export function CommentForm({
           className="font-serif italic text-ink-faint"
           style={{ fontSize: "0.8rem" }}
         >
-          {body.length} / 2000
+          {body.length} / 1500
         </span>
-        <button type="submit" disabled={pending} className="btn-primary">
+        <button
+          type="submit"
+          disabled={pending}
+          className="cta-prestige"
+          style={{
+            opacity: pending ? 0.6 : 1,
+            cursor: pending ? "wait" : "pointer",
+          }}
+        >
           <span>{pending ? "Posting…" : "Post comment"}</span>
+          <span aria-hidden="true">&rarr;</span>
         </button>
       </div>
 
@@ -167,6 +264,14 @@ export function CommentForm({
           style={{ color: "#7a3a2e" }}
         >
           {error}
+        </p>
+      )}
+      {restoredNote && !error && (
+        <p
+          className="font-serif italic"
+          style={{ fontSize: "0.82rem", color: "var(--ink-faint)" }}
+        >
+          {restoredNote}
         </p>
       )}
     </form>

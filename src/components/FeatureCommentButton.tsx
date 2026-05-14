@@ -1,21 +1,24 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-// Single-tap approve. No arming step — approval is non-destructive
-// (delete still exists if approval was a mistake).
+// Admin-only feature toggle. Renders as a small olive text link
+// ("Feature" / "Unfeature") that POSTs the new state to
+// /api/admin/comments/:id/feature. Always uses the admin (Basic-auth)
+// endpoint — the component is only rendered for admins.
 
-export function ApproveCommentButton({
-  id,
-  admin = false,
-}: {
-  id: string;
-  /** When true, call the Basic-auth-gated admin endpoint instead
-      of the session-gated one. Used on /admin/comments. */
-  admin?: boolean;
-}) {
+type Props = {
+  commentId: string;
+  initialFeatured: boolean;
+};
+
+export function FeatureCommentButton({
+  commentId,
+  initialFeatured,
+}: Props) {
   const router = useRouter();
+  const [featured, setFeatured] = useState(initialFeatured);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,21 +26,23 @@ export function ApproveCommentButton({
     if (pending) return;
     setPending(true);
     setError(null);
+    const next = !featured;
     try {
-      const endpoint = admin
-        ? `/api/admin/comments/${id}/approve`
-        : `/api/comments/${id}/approve`;
-      const res = await fetch(endpoint, {
+      const res = await fetch(`/api/admin/comments/${commentId}/feature`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featured: next }),
       });
       if (!res.ok) {
-        setError("Couldn't approve. Try again.");
+        setError("Couldn't update. Try again.");
         setPending(false);
         return;
       }
+      setFeatured(next);
+      setPending(false);
       router.refresh();
     } catch {
-      setError("Couldn't approve. Try again.");
+      setError("Couldn't update. Try again.");
       setPending(false);
     }
   }
@@ -52,10 +57,11 @@ export function ApproveCommentButton({
         style={{
           fontSize: "0.7rem",
           fontWeight: 600,
-          color: "var(--eye-deep)",
+          color: featured ? "var(--eye-deep)" : "var(--ink-faint)",
+          opacity: pending ? 0.6 : 1,
         }}
       >
-        {pending ? "Approving…" : "Approve"}
+        {pending ? "saving…" : featured ? "unfeature" : "feature"}
       </button>
       {error && (
         <span

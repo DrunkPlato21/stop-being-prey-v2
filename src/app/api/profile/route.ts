@@ -59,15 +59,22 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const r = await updateDisplayName(session.email, displayName as string);
+    const r = await updateDisplayName(session.email, displayName as string, {
+      kind: "self",
+    });
     if (!r.ok) {
       const status =
-        r.error === "invalid_display_name"
-          ? 400
-          : r.error === "storage_unavailable"
-            ? 503
-            : 400;
-      return NextResponse.json({ error: r.error }, { status });
+        r.error === "name_taken"
+          ? 409
+          : r.error === "rate_limited"
+            ? 429
+            : r.error === "storage_unavailable"
+              ? 503
+              : 400;
+      return NextResponse.json(
+        { error: r.error, nextAllowedAt: r.nextAllowedAt },
+        { status }
+      );
     }
     updatedComments = r.updatedComments;
   }

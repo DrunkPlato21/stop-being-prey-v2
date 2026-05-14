@@ -10,8 +10,15 @@ import {
   type CommentKind,
   type CommentRecord,
 } from "@/lib/comments";
+import {
+  getFounderSlot,
+  getMember,
+  getTierBadge,
+  type TierBadge,
+} from "@/lib/members";
 import { CommentForm } from "@/components/CommentForm";
 import { CommentItem } from "@/components/CommentItem";
+import { PaidCommentForm } from "@/components/PaidCommentForm";
 
 // Comments section. Server component — fetches data on every request.
 // Renders the list, then either the comment form (signed-in members),
@@ -58,6 +65,39 @@ export async function Comments({ kind, slug }: Props) {
     ? allComments.find((c) => c.email === viewerEmail) ?? null
     : null;
 
+  // Build a per-email badge map for everyone visible on the page:
+  // top-level commenters AND thread-reply authors. One Redis lookup
+  // per unique email; at typical comment volumes this is cheap. The
+  // map drives the inline founder/tier badge in CommentItem. Both
+  // values are looked up at render time so a tier change picks up on
+  // the next page load (no badge field stored on the comment).
+  const uniqueEmails = Array.from(
+    new Set(
+      comments
+        .flatMap((c) => [
+          c.email,
+          ...(c.threadReplies?.map((r) => r.email) ?? []),
+        ])
+        .filter(Boolean)
+    )
+  );
+  const badgeEntries = await Promise.all(
+    uniqueEmails.map(async (email) => {
+      const m = await getMember(email).catch(() => null);
+      return [
+        email,
+        {
+          founderSlot: getFounderSlot(m),
+          tierBadge: getTierBadge(m),
+        },
+      ] as const;
+    })
+  );
+  const memberBadgeByEmail = new Map<
+    string,
+    { founderSlot: number | null; tierBadge: TierBadge | null }
+  >(badgeEntries);
+
   return (
     <section className="max-w-2xl mx-auto px-6 mt-16">
       <div className="text-center mb-10">
@@ -84,6 +124,8 @@ export async function Comments({ kind, slug }: Props) {
                 comment={c}
                 viewerEmail={session?.email ?? null}
                 viewerIsAdmin={viewerIsAdmin}
+                memberBadgeByEmail={memberBadgeByEmail}
+                viewerCanReply={!!profile?.displayName}
               />
             </li>
           ))}
@@ -110,29 +152,46 @@ export async function Comments({ kind, slug }: Props) {
             />
           )
         ) : (
-          <div className="text-center">
-            <p
-              className="font-serif italic text-ink-muted leading-relaxed mb-4"
-              style={{ fontSize: "0.98rem" }}
-            >
-              Members can join the conversation.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-              <Link
-                href="/membership"
-                className="font-display text-xs uppercase tracking-[0.22em] text-eye-deep hover:text-ink no-underline transition-colors"
-                style={{ fontWeight: 600 }}
+          // Public visitors: read all approved comments above, choose
+          // one of two paths to add their own. The paid CTA is staged
+          // (step 3 wires Stripe); rendering it now keeps the layout
+          // stable when the live flow lands.
+          <div>
+            {/* Value prop. Members on top (free path), non-members
+                below (paid path with the live form). Membership CTA
+                sits beside the paid form so the upsell is always
+                visible to non-members who reconsider mid-typing. */}
+            <div className="text-center mb-8">
+              <p
+                className="font-serif text-ink leading-relaxed mb-2"
+                style={{ fontSize: "1rem" }}
               >
-                Join &rarr;
-              </Link>
-              <Link
-                href="/notes/sign-in"
-                className="font-display text-xs uppercase tracking-[0.22em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
-                style={{ fontWeight: 500 }}
+                Members comment free.
+              </p>
+              <p
+                className="font-serif text-ink-muted leading-relaxed mb-5"
+                style={{ fontSize: "1rem" }}
               >
-                Sign in
-              </Link>
+                Non-members: $1 contribution to leave a comment.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-x-6 gap-y-3">
+                <Link href="/membership" className="cta-prestige">
+                  <span>Become a member</span>
+                  <span aria-hidden="true">&rarr;</span>
+                </Link>
+                <Link
+                  href="/notes/sign-in"
+                  className="font-serif italic text-ink-faint hover:text-eye-deep no-underline transition-colors"
+                  style={{ fontSize: "0.85rem" }}
+                >
+                  already a member? sign in
+                </Link>
+              </div>
             </div>
+
+            {/* Inline paid form. Stays open by default — visitors who
+                want to comment now don't have to click twice. */}
+            <PaidCommentForm kind={kind} slug={slug} />
           </div>
         )}
       </div>

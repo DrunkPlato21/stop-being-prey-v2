@@ -10,14 +10,25 @@ import { useState } from "react";
 type Props = {
   commentId: string;
   existingReply: string | null;
+  /** When true, target the Basic-auth-gated admin endpoint instead
+      of the session-gated one. Used on /admin/comments. */
+  admin?: boolean;
 };
 
-export function AdminReplyControls({ commentId, existingReply }: Props) {
+export function AdminReplyControls({
+  commentId,
+  existingReply,
+  admin = false,
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState(existingReply ?? "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const endpoint = admin
+    ? `/api/admin/comments/${commentId}/reply`
+    : `/api/comments/${commentId}/reply`;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -25,7 +36,7 @@ export function AdminReplyControls({ commentId, existingReply }: Props) {
     setPending(true);
     setError(null);
     try {
-      const res = await fetch(`/api/comments/${commentId}/reply`, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body }),
@@ -48,7 +59,7 @@ export function AdminReplyControls({ commentId, existingReply }: Props) {
     setPending(true);
     setError(null);
     try {
-      const res = await fetch(`/api/comments/${commentId}/reply`, {
+      const res = await fetch(endpoint, {
         method: "DELETE",
       });
       if (!res.ok) {

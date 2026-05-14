@@ -73,23 +73,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_slug" }, { status: 400 });
   }
 
-  // Resolve display name. If the member has a profile, use it.
-  // Otherwise the submitted name is required and becomes their profile.
+  // Resolve display name. If the member has a profile with a name,
+  // use it. Otherwise the submitted name is required and becomes
+  // their profile (after the reserved/profanity/uniqueness checks).
   let profile = await getProfile(session.email);
-  if (!profile) {
+  if (!profile?.displayName) {
     if (typeof submittedName !== "string" || submittedName.trim().length === 0) {
       return NextResponse.json(
         { error: "display_name_required" },
         { status: 400 }
       );
     }
-    profile = await setProfile(session.email, submittedName);
-    if (!profile) {
-      return NextResponse.json(
-        { error: "invalid_display_name" },
-        { status: 400 }
-      );
+    const result = await setProfile(session.email, submittedName);
+    if (!result.ok) {
+      const status =
+        result.error === "name_taken"
+          ? 409
+          : result.error === "storage_unavailable"
+            ? 503
+            : 400;
+      return NextResponse.json({ error: result.error }, { status });
     }
+    profile = result.profile;
   }
 
   const result = await createComment({
@@ -134,7 +139,7 @@ export async function POST(req: NextRequest) {
             );
             return {
               title: n?.title ?? result.comment.slug,
-              url: `${baseUrl()}/notes/${result.comment.slug}#c-${result.comment.id}`,
+              url: `${baseUrl()}/notes/field-notes/${result.comment.slug}#c-${result.comment.id}`,
             };
           })();
     const sendResult = await sendPendingCommentNotification({
@@ -143,7 +148,7 @@ export async function POST(req: NextRequest) {
       authorEmail: result.comment.email,
       pieceTitle: piece.title,
       pieceUrl: piece.url,
-      queueUrl: `${baseUrl()}/comments/admin`,
+      queueUrl: `${baseUrl()}/admin/comments`,
       body: result.comment.body,
     });
     if (!sendResult.ok) {

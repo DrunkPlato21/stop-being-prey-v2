@@ -34,7 +34,7 @@ function lookupPiece(
   const meta = getAllFieldNotes().find((n) => n.slug === slug);
   return {
     title: meta?.title ?? slug,
-    url: `${baseUrl()}/notes/${slug}`,
+    url: `${baseUrl()}/notes/field-notes/${slug}`,
   };
 }
 

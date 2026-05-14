@@ -3,18 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-// Two-tap delete: first click arms ("Delete?"), second click confirms.
-// Avoids a confirm() dialog (jarring) and an undo flow (overkill for a
-// reaction surface).
+// Two-tap delete for a member-to-member thread reply. Mirrors the
+// DeleteCommentButton pattern (arm-then-confirm). Authorized for the
+// reply author or the admin.
 
-export function DeleteCommentButton({
-  id,
-  admin = false,
+export function DeleteThreadReplyButton({
+  commentId,
+  replyId,
 }: {
-  id: string;
-  /** When true, call the Basic-auth-gated admin endpoint instead
-      of the session-gated member endpoint. Used on /admin/comments. */
-  admin?: boolean;
+  commentId: string;
+  replyId: string;
 }) {
   const router = useRouter();
   const [armed, setArmed] = useState(false);
@@ -25,17 +23,16 @@ export function DeleteCommentButton({
     if (pending) return;
     if (!armed) {
       setArmed(true);
-      // Auto-disarm after a few seconds so an accidental tap doesn't
-      // sit primed.
       setTimeout(() => setArmed(false), 4000);
       return;
     }
     setPending(true);
     setError(null);
     try {
-      const res = admin
-        ? await fetch(`/api/admin/comments/${id}/delete`, { method: "POST" })
-        : await fetch(`/api/comments/${id}`, { method: "DELETE" });
+      const res = await fetch(
+        `/api/comments/${commentId}/thread-reply/${replyId}`,
+        { method: "DELETE" }
+      );
       if (!res.ok) {
         setError("Couldn't delete. Try again.");
         setPending(false);
