@@ -45,7 +45,19 @@ export type WallMeta = {
   /** Cold-reader summary paragraph rendered below the wall, above the
       expandable takedown. */
   intro: string;
+  /** Optional one-sentence framing line rendered on the Writer's Desk
+      widget's Active Wall panel. Shorter and punchier than `intro` —
+      e.g., "Built after Marek attacked Charlie Kirk's grave." If
+      absent, the widget falls back to the first sentence of `intro`. */
+  description?: string;
   status: WallStatus;
+  /** ISO date the wall opened. Used to compute "Active · N days" on
+      the widget panel. Falls back to the earliest approved donation. */
+  startedAt?: string;
+  /** ISO date the wall closed. Used to compute "Closed · N days ago"
+      on the widget panel for past walls. Falls back to the latest
+      approved donation. */
+  closedAt?: string;
   /** ISO date when the founding-window prize period ends. After this,
       the top donor is identified manually for the v1 prize fulfillment. */
   foundingWindowEndsAt?: string;
@@ -126,7 +138,19 @@ function parseMeta(slug: string, data: Record<string, unknown>): WallMeta {
         : undefined,
     goalTiers: parseGoalTiers(data),
     intro: typeof data.intro === "string" ? data.intro : "",
+    description:
+      typeof data.description === "string" && data.description.trim().length > 0
+        ? data.description.trim()
+        : undefined,
     status,
+    startedAt:
+      typeof data.started_at === "string" && data.started_at.trim().length > 0
+        ? data.started_at
+        : undefined,
+    closedAt:
+      typeof data.closed_at === "string" && data.closed_at.trim().length > 0
+        ? data.closed_at
+        : undefined,
     foundingWindowEndsAt:
       typeof data.founding_window_ends_at === "string"
         ? data.founding_window_ends_at
