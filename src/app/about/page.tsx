@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { EmailSignup } from "@/components/EmailSignup";
+import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
 import { EyeDivider } from "@/components/Eyes";
 import { AuthorBio } from "@/components/AuthorBio";
-import { SubscriberCount } from "@/components/SubscriberCount";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -147,10 +146,10 @@ export default function AboutPage() {
 
       <EyeDivider />
 
-      <section className="max-w-2xl mx-auto px-6 py-16 text-center">
+      <section className="max-w-3xl mx-auto px-6 py-16 text-center">
         <p className="eyebrow mb-4">Stay close</p>
         <h2
-          className="font-display text-ink leading-tight tracking-tight mb-5"
+          className="font-display text-ink leading-tight tracking-tight mb-10"
           style={{
             fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
             fontWeight: 700,
@@ -159,14 +158,7 @@ export default function AboutPage() {
         >
           Get the next one.
         </h2>
-        <p className="deck mb-6 max-w-md mx-auto">
-          Algorithms don&apos;t deliver this writing. It only arrives if
-          you ask.
-        </p>
-        <SubscriberCount className="mb-5" />
-        <div className="flex justify-center">
-          <EmailSignup />
-        </div>
+        <DualSubscribeBlock />
       </section>
 
       <div className="text-center pb-16">

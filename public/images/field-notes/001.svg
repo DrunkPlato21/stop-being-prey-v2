@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <rect width="800" height="480" fill="#ffffff" />
+  <rect x="0" y="0" width="800" height="56" fill="#f0f2f5" />
+  <text x="24" y="36" font-size="14" fill="#65676b">Comments · 24</text>
+
+  <!-- comment 1 (the original poster) -->
+  <circle cx="44" cy="100" r="20" fill="#cccfd4" />
+  <rect x="76" y="80" width="690" height="110" rx="18" fill="#f0f2f5" />
+  <text x="92" y="108" font-size="14" font-weight="700" fill="#050505">A Commenter</text>
+  <text x="92" y="132" font-size="14" fill="#050505">Conservatives are just as captured by their tribe as</text>
+  <text x="92" y="152" font-size="14" fill="#050505">progressives. Both sides do this. It's the same dynamic</text>
+  <text x="92" y="172" font-size="14" fill="#050505">on both teams.</text>
+
+  <!-- reply (the post author) -->
+  <circle cx="84" cy="240" r="18" fill="#1a1714" />
+  <rect x="112" y="222" width="654" height="180" rx="18" fill="#f0f2f5" />
+  <text x="128" y="248" font-size="14" font-weight="700" fill="#050505">Stop Being Prey</text>
+  <text x="128" y="272" font-size="14" fill="#050505">You're right, both sides have tribes. The question isn't who</text>
+  <text x="128" y="292" font-size="14" fill="#050505">has tribes. It's whose tribe is built to predate and whose</text>
+  <text x="128" y="312" font-size="14" fill="#050505">is built to be preyed on. Pick one. Then ask which one</text>
+  <text x="128" y="332" font-size="14" fill="#050505">you're in.</text>
+  <text x="128" y="372" font-size="12" fill="#65676b">Like · Reply · 3 likes · 2h</text>
+
+  <!-- bottom strip -->
+  <rect x="0" y="440" width="800" height="40" fill="#f7f8fa" />
+  <text x="24" y="464" font-size="12" fill="#65676b" font-style="italic">Sample screenshot. Replace with the real Facebook comment when ready.</text>
+</svg>

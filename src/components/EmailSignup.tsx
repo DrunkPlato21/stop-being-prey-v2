@@ -52,7 +52,7 @@ export function EmailSignup() {
     <div className="w-full max-w-xl">
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col sm:flex-row gap-0 w-full border border-ink"
+        className="flex flex-col sm:flex-row gap-0 w-full border border-ink overflow-hidden"
       >
         <input
           type="email"
@@ -62,12 +62,12 @@ export function EmailSignup() {
           onChange={(e) => setEmail(e.target.value)}
           disabled={status === "loading"}
           placeholder="your email address"
-          className="flex-1 bg-paper px-4 py-4 text-ink placeholder:text-ink-faint focus:outline-none focus:bg-surface transition-colors font-serif text-base disabled:opacity-60"
+          className="flex-1 min-w-0 bg-paper px-4 py-4 text-ink placeholder:text-ink-faint focus:outline-none focus:bg-surface transition-colors font-serif text-base disabled:opacity-60 border-0"
         />
         <button
           type="submit"
           disabled={status === "loading"}
-          className="bg-ink text-paper hover:bg-eye-deep px-6 py-4 font-display transition-colors whitespace-nowrap text-sm uppercase tracking-widest disabled:opacity-60 disabled:cursor-not-allowed"
+          className="bg-ink text-paper hover:bg-eye-deep px-6 py-4 font-display transition-colors whitespace-nowrap text-sm uppercase tracking-widest disabled:opacity-60 disabled:cursor-not-allowed border-0 shrink-0"
           style={{ fontWeight: 600 }}
         >
           {status === "loading" ? "Subscribing…" : "Subscribe"}

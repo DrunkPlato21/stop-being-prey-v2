@@ -4,6 +4,7 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { StickyNavServer } from "@/components/StickyNavServer";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -62,6 +63,10 @@ export default function RootLayout({
       className={`${cormorant.variable} ${sourceSerif.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* StickyNavServer renders at root (not inside Header) so its
+            position:fixed scroll bar isn't trapped in Header's stacking
+            context. Self-suppresses on member routes via pathname. */}
+        <StickyNavServer />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />

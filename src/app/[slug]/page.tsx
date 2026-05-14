@@ -6,12 +6,12 @@ import {
 } from "@/lib/articles";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { AudioPill } from "@/components/AudioPill";
-import { EmailSignup } from "@/components/EmailSignup";
+import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
 import { EyeDivider } from "@/components/Eyes";
 import { ShareButtons } from "@/components/ShareButtons";
 import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
-import { SubscriberCount } from "@/components/SubscriberCount";
+import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
 
 type PageParams = { slug: string };
@@ -69,6 +69,16 @@ export default async function ArticlePage({
     ? Math.round(article.wordCount / 150)
     : null;
 
+  // "Podcast-only" pieces — articles that exist primarily as
+  // episodes, not numbered issues. Detected by: has a spotify
+  // episode id AND no issue number. These get the full Spotify
+  // player at the top (player IS the primary content), with the
+  // text as transcript-style support below. Issue-style articles
+  // keep the click-to-expand AudioPill in the masthead + the
+  // standalone Audio Edition embed at the bottom.
+  const isPodcastOnly =
+    !!article.spotifyEpisodeId && typeof article.issue !== "number";
+
   return (
     <article className="relative">
       {/* === Article masthead === */}
@@ -107,7 +117,7 @@ export default async function ArticlePage({
             )}
           </div>
 
-          {article.spotifyEpisodeId && audioMinutes && (
+          {article.spotifyEpisodeId && audioMinutes && !isPodcastOnly && (
             <div className="mt-8 fade-up stagger-5 flex justify-center">
               <AudioPill
                 episodeId={article.spotifyEpisodeId}
@@ -118,10 +128,33 @@ export default async function ArticlePage({
         </div>
       </header>
 
-      <EyeDivider />
+      {/* === Top-of-page audio embed for podcast-only pieces ===
+           For pieces where the podcast IS the primary content (no
+           issue number, spotifyEpisodeId set), the full player sits
+           directly under the masthead so it's reachable on first
+           paint — no click-to-expand. Bottom "Audio Edition" block
+           is suppressed below to avoid duplicate players on the page. */}
+      {isPodcastOnly && article.spotifyEpisodeId && (
+        <div className="max-w-2xl mx-auto px-6 pt-12 md:pt-16">
+          <SpotifyEmbed
+            episodeId={article.spotifyEpisodeId}
+            type="episode"
+            size="standard"
+          />
+        </div>
+      )}
 
-      {/* === Article body === */}
-      <div className="max-w-4xl mx-auto px-6">
+      {/* === Article body ===
+           Masthead's border-b carries the only separator. No
+           decorative swash between subtitle and body — same
+           treatment now used on the founding pages. Top padding
+           drops when the podcast-only embed is already breathing
+           above us. */}
+      <div
+        className={`max-w-4xl mx-auto px-6 ${
+          isPodcastOnly ? "pt-8 md:pt-10" : "pt-12 md:pt-16"
+        }`}
+      >
         <div
           className="prose-article"
           dangerouslySetInnerHTML={{ __html: article.contentHtml }}
@@ -159,14 +192,27 @@ export default async function ArticlePage({
 
       <EyeDivider />
 
+      {/* === Comments. Members-only input; visible to all readers,
+          with a soft join CTA underneath for anonymous visitors.
+          Moved up so the conversation sits right after the work,
+          before the chrome (bio, share, audio, tip jar). === */}
+      <Comments kind="article" slug={article.slug} />
+
+      {/* === Author bio === */}
+      <div className="max-w-3xl mx-auto px-6 mt-16">
+        <AuthorBio />
+      </div>
+
       {/* === Share row, catches the just-finished impulse === */}
-      <div className="max-w-2xl mx-auto px-6">
+      <div className="max-w-2xl mx-auto px-6 mt-16">
         <ShareButtons url={`/${article.slug}`} title={article.title} />
       </div>
 
       {/* === Audio Edition: full embed for readers who want to queue
-          or revisit the spoken version === */}
-      {article.spotifyEpisodeId && (
+          or revisit the spoken version. Suppressed on podcast-only
+          pieces — the player already lives at the top, no need for
+          a duplicate at the bottom. === */}
+      {article.spotifyEpisodeId && !isPodcastOnly && (
         <div className="max-w-2xl mx-auto px-6 mt-16">
           <div className="text-center mb-4">
             <p className="eyebrow">Audio Edition</p>
@@ -178,11 +224,6 @@ export default async function ArticlePage({
           />
         </div>
       )}
-
-      {/* === Author bio === */}
-      <div className="max-w-3xl mx-auto px-6 mt-16">
-        <AuthorBio />
-      </div>
 
       {/* === Tip nudge. Always present (independent of P.S. variant)
           so the publication's funding model surfaces on every essay,
@@ -207,18 +248,12 @@ export default async function ArticlePage({
 
       <EyeDivider />
 
-      {/* === More like this. Compact end-of-article subscribe block.
-          Restrained real estate, no framed card. === */}
-      <section className="max-w-2xl mx-auto px-6 py-10 md:py-14 text-center">
-        <p className="eyebrow mb-4">More like this</p>
-        <p className="deck mb-6 max-w-md mx-auto">
-          Algorithms don&apos;t deliver this writing. It only arrives if
-          you ask.
-        </p>
-        <SubscriberCount className="mb-5" />
-        <div className="flex justify-center">
-          <EmailSignup />
-        </div>
+      {/* === More like this. End-of-article conversion surface —
+          dual paths so the reader picks the level of commitment
+          that fits where they are right now. === */}
+      <section className="max-w-3xl mx-auto px-6 py-10 md:py-14">
+        <p className="eyebrow mb-8 text-center">More like this</p>
+        <DualSubscribeBlock />
       </section>
 
       <div className="text-center pb-16">

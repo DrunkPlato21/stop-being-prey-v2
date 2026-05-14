@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Member-only surfaces — gated by session, no public content to index.
+Disallow: /desk
+Disallow: /desk/
+Disallow: /lounge
+Disallow: /lounge/
+Disallow: /book
+Disallow: /book/
+Disallow: /notes/
+Disallow: /case-files
+Disallow: /case-files/
+Disallow: /notifications
+Disallow: /notifications/
+
+# Admin (404 in production, dev-only).
+Disallow: /admin/
+Disallow: /api/admin/
+Disallow: /supporters/admin
+
+# Auth + payment endpoints have no value to index.
+Disallow: /api/

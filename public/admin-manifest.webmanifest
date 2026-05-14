@@ -1,0 +1,25 @@
+{
+  "name": "Stop Being Prey · Admin",
+  "short_name": "SBP Admin",
+  "description": "Writer's Desk + admin panel for Stop Being Prey.",
+  "start_url": "/admin/desk",
+  "scope": "/admin/",
+  "display": "standalone",
+  "background_color": "#f0e9d8",
+  "theme_color": "#8a7d20",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
