@@ -62,36 +62,24 @@ type Props = {
   launchIso: string;
 };
 
-/* === Read-by-Clay eye glyph =============================== */
-// Small olive eye next to the timestamp on posts and replies Clay has
-// marked as read. Ties to the site's "the eye" metaphor. Rendered for
-// all viewers — admin gets a toggle button elsewhere to set/clear.
-function ReadByClayEye() {
+/* === Read-by-Clay mark =============================== */
+// Small italic olive "Clay read this" next to the timestamp on posts
+// and replies he's marked as read. Reads as an editor's margin note
+// rather than an app-style icon. Rendered for all viewers; admin gets
+// the toggle button elsewhere to set/clear it.
+function ReadByClayMark() {
   return (
     <span
-      title="Read by Clay"
-      aria-label="Read by Clay"
+      className="font-serif italic"
       style={{
-        display: "inline-flex",
-        alignItems: "center",
         color: "var(--eye-deep)",
-        lineHeight: 1,
+        fontSize: "0.72rem",
+        letterSpacing: "0.01em",
+        lineHeight: 1.2,
+        whiteSpace: "nowrap",
       }}
     >
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
-        <circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none" />
-      </svg>
+      Clay read this
     </span>
   );
 }
@@ -1507,7 +1495,7 @@ function PostCard(props: CardProps) {
               className="lounge-live-dot"
             />
           )}
-          {postIsRead && <ReadByClayEye />}
+          {postIsRead && <ReadByClayMark />}
           <span
             className="font-serif italic text-ink-faint"
             style={{ fontSize: "0.78rem" }}
@@ -1802,7 +1790,7 @@ function ReplyRow({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {isReadByClay && <ReadByClayEye />}
+          {isReadByClay && <ReadByClayMark />}
           <span
             className="font-serif italic text-ink-faint"
             style={{ fontSize: "0.74rem" }}

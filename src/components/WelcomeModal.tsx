@@ -171,6 +171,12 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
               >
                 <strong>The Lounge.</strong> Where operators talk.
               </li>
+              <li
+                className="font-serif text-ink leading-relaxed"
+                style={{ fontSize: "1rem" }}
+              >
+                <strong>The Book.</strong> Manuscript progress, in public.
+              </li>
             </ul>
 
             <div className="flex flex-col items-start gap-4">
@@ -236,12 +242,27 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
                 >
                   lounge →
                 </Link>
+                <span
+                  className="text-ink-faint"
+                  style={{ fontSize: "0.7rem" }}
+                  aria-hidden="true"
+                >
+                  ·
+                </span>
+                <Link
+                  href="/book"
+                  onClick={dismiss}
+                  className={pillarLink}
+                  style={{ fontWeight: 500 }}
+                >
+                  book →
+                </Link>
               </div>
             </div>
 
             <div className="mt-7 pt-5 border-t border-rule">
               <p
-                className="font-serif italic text-ink-muted mb-2"
+                className="font-serif italic text-ink-muted mb-3"
                 style={{ fontSize: "0.9rem", lineHeight: 1.55 }}
               >
                 Before you post or comment, set your display name in{" "}
@@ -258,27 +279,6 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
                   }}
                 >
                   your account
-                </Link>
-                .
-              </p>
-              <p
-                className="font-serif italic text-ink-muted mb-3"
-                style={{ fontSize: "0.9rem", lineHeight: 1.55 }}
-              >
-                Follow the book&apos;s progress at{" "}
-                <Link
-                  href="/book"
-                  onClick={dismiss}
-                  className="text-eye-deep hover:text-ink not-italic"
-                  style={{
-                    textDecoration: "underline",
-                    textDecorationColor: "var(--eye)",
-                    textDecorationThickness: "1px",
-                    textUnderlineOffset: "3px",
-                    fontWeight: 500,
-                  }}
-                >
-                  /book
                 </Link>
                 .
               </p>
