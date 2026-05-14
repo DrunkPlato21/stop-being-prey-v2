@@ -71,7 +71,7 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
   if (!mounted || !open) return null;
 
   const pillarLink =
-    "font-display text-xs uppercase tracking-[0.22em] text-ink-muted hover:text-eye-deep no-underline transition-colors";
+    "font-display italic text-ink-muted hover:text-eye-deep no-underline transition-colors";
 
   return (
     <div
@@ -188,75 +188,53 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
                 <span>start at the desk →</span>
               </button>
 
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5 items-center">
-                <Link
-                  href="/notes/rules"
-                  onClick={dismiss}
-                  className={pillarLink}
-                  style={{ fontWeight: 500 }}
-                >
-                  rules →
-                </Link>
-                <span
-                  className="text-ink-faint"
-                  style={{ fontSize: "0.7rem" }}
-                  aria-hidden="true"
-                >
-                  ·
-                </span>
-                <Link
-                  href="/case-files"
-                  onClick={dismiss}
-                  className={pillarLink}
-                  style={{ fontWeight: 500 }}
-                >
-                  case files →
-                </Link>
-                <span
-                  className="text-ink-faint"
-                  style={{ fontSize: "0.7rem" }}
-                  aria-hidden="true"
-                >
-                  ·
-                </span>
-                <Link
-                  href="/notes/field-notes"
-                  onClick={dismiss}
-                  className={pillarLink}
-                  style={{ fontWeight: 500 }}
-                >
-                  field notes →
-                </Link>
-                <span
-                  className="text-ink-faint"
-                  style={{ fontSize: "0.7rem" }}
-                  aria-hidden="true"
-                >
-                  ·
-                </span>
-                <Link
-                  href="/lounge"
-                  onClick={dismiss}
-                  className={pillarLink}
-                  style={{ fontWeight: 500 }}
-                >
-                  lounge →
-                </Link>
-                <span
-                  className="text-ink-faint"
-                  style={{ fontSize: "0.7rem" }}
-                  aria-hidden="true"
-                >
-                  ·
-                </span>
-                <Link
-                  href="/book"
-                  onClick={dismiss}
-                  className={pillarLink}
-                  style={{ fontWeight: 500 }}
-                >
-                  book →
-                </Link>
+              {/* Secondary nav. Italic serif in publication register —
+                  quieter than uppercase tracked nav, but each name is
+                  still tappable. Hairline separators between, generous
+                  line-height so a single-line wrap reads as graceful
+                  rather than broken. */}
+              <div
+                className="flex flex-wrap items-baseline"
+                style={{ rowGap: "0.35rem", columnGap: "0" }}
+              >
+                {[
+                  { href: "/notes/rules", label: "Rules" },
+                  { href: "/case-files", label: "Case Files" },
+                  { href: "/notes/field-notes", label: "Field Notes" },
+                  { href: "/lounge", label: "The Lounge" },
+                  { href: "/book", label: "The Book" },
+                ].map((item, idx, arr) => (
+                  <span
+                    key={item.href}
+                    className="inline-flex items-baseline"
+                  >
+                    <Link
+                      href={item.href}
+                      onClick={dismiss}
+                      className={pillarLink}
+                      style={{
+                        fontSize: "0.98rem",
+                        fontWeight: 400,
+                        letterSpacing: "0.005em",
+                      }}
+                    >
+                      {item.label}
+                    </Link>
+                    {idx < arr.length - 1 && (
+                      <span
+                        aria-hidden="true"
+                        className="text-ink-faint not-italic"
+                        style={{
+                          fontSize: "0.78rem",
+                          margin: "0 0.7rem",
+                          opacity: 0.7,
+                        }}
+                      >
+                        /
+                      </span>
+                    )}
+                  </span>
+                ))}
               </div>
             </div>
 
