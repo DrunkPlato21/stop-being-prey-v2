@@ -63,24 +63,26 @@ type Props = {
 };
 
 /* === Read-by-Clay mark =============================== */
-// Small italic olive "Clay read this" next to the timestamp on posts
-// and replies he's marked as read. Reads as an editor's margin note
-// rather than an app-style icon. Rendered for all viewers; admin gets
-// the toggle button elsewhere to set/clear it.
+// Small italic olive "Clay read this" rendered as a standalone line
+// below the post or reply body — an editor's stamp on the post
+// itself. Positioned away from the header timestamp so the read mark
+// can't be misread as a read-event time. Rendered for all viewers;
+// admin gets the toggle button elsewhere to set/clear it.
 function ReadByClayMark() {
   return (
-    <span
+    <p
       className="font-serif italic"
       style={{
         color: "var(--eye-deep)",
-        fontSize: "0.72rem",
-        letterSpacing: "0.01em",
-        lineHeight: 1.2,
-        whiteSpace: "nowrap",
+        fontSize: "0.8rem",
+        letterSpacing: "0.005em",
+        marginTop: "0.65rem",
+        marginBottom: 0,
+        lineHeight: 1.3,
       }}
     >
-      Clay read this
-    </span>
+      Clay read this.
+    </p>
   );
 }
 
@@ -1495,7 +1497,6 @@ function PostCard(props: CardProps) {
               className="lounge-live-dot"
             />
           )}
-          {postIsRead && <ReadByClayMark />}
           <span
             className="font-serif italic text-ink-faint"
             style={{ fontSize: "0.78rem" }}
@@ -1511,6 +1512,11 @@ function PostCard(props: CardProps) {
       >
         <Linkified text={post.body} />
       </p>
+
+      {/* Read-by-Clay mark lives below the body, as a quiet editor's
+          stamp on the post itself. Out of the header so it can't be
+          misread as a timestamp for when Clay read it. */}
+      {postIsRead && <ReadByClayMark />}
 
       <footer className="mt-4 flex items-center gap-5 flex-wrap">
         <ReactionControl
@@ -1789,15 +1795,12 @@ function ReplyRow({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          {isReadByClay && <ReadByClayMark />}
-          <span
-            className="font-serif italic text-ink-faint"
-            style={{ fontSize: "0.74rem" }}
-          >
-            {formatRelative(reply.createdAt, now)}
-          </span>
-        </div>
+        <span
+          className="font-serif italic text-ink-faint"
+          style={{ fontSize: "0.74rem" }}
+        >
+          {formatRelative(reply.createdAt, now)}
+        </span>
       </header>
       <p
         className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
@@ -1805,6 +1808,9 @@ function ReplyRow({
       >
         <Linkified text={reply.body} />
       </p>
+      {/* Editor's stamp below the reply body. Out of the header so it
+          isn't misread as a timestamp for the read event. */}
+      {isReadByClay && <ReadByClayMark />}
       <div className="mt-2 flex items-center gap-4 flex-wrap">
         <ReactionControl
           targetId={reply.id}
