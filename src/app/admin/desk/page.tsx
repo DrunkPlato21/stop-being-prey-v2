@@ -147,6 +147,10 @@ export default async function DeskAdminPage() {
         <span className="text-ink-faint" aria-hidden="true">
           &middot;
         </span>
+        <AdminJumpLink href="/admin/lounge" label="Lounge" />
+        <span className="text-ink-faint" aria-hidden="true">
+          &middot;
+        </span>
         <AdminJumpLink href="/admin/lounge/moderation" label="Lounge log" />
         <span className="text-ink-faint" aria-hidden="true">
           &middot;
