@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type TextareaHTMLAttributes,
+} from "react";
 import type {
   ActiveNowSnapshot,
   LoungePost,
@@ -102,6 +109,54 @@ function formatLaunchDate(iso: string): string {
     day: "numeric",
     timeZone: "UTC",
   });
+}
+
+// Textarea that grows with its content. Initial size = `minRows`,
+// expands as needed up to whatever the browser can fit. Used by both
+// compose and reply composers so members don't have to hand-resize.
+//
+// The layout effect (vs. plain useEffect) runs before paint, so the
+// height is correct on the very first render when value is non-empty
+// — important for the reply composer which auto-focuses on open.
+type AutoResizingTextareaProps =
+  Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "rows" | "ref"> & {
+    value: string;
+    minRows?: number;
+  };
+
+function AutoResizingTextarea({
+  value,
+  minRows = 2,
+  style,
+  ...rest
+}: AutoResizingTextareaProps) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Reset to "auto" first so the textarea can shrink when content
+    // is deleted. Without this, scrollHeight stays at the previous
+    // taller value and the box never gets smaller.
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      rows={minRows}
+      style={{
+        // Hide the native resize handle and the scrollbar — the
+        // textarea size follows the content, no manual resize needed.
+        resize: "none",
+        overflow: "hidden",
+        ...style,
+      }}
+      {...rest}
+    />
+  );
 }
 
 function activeNowLine(snap: ActiveNowSnapshot): string | null {
@@ -1061,7 +1116,7 @@ export function LoungeView(props: Props) {
           className="lounge-compose-dock"
         >
           <label className="block">
-            <textarea
+            <AutoResizingTextarea
               value={composeBody}
               onChange={(e) =>
                 setComposeBody(e.target.value.slice(0, MAX_BODY))
@@ -1072,11 +1127,11 @@ export function LoungeView(props: Props) {
               onBlur={() => {
                 composeFocusedRef.current = false;
               }}
-              rows={2}
+              minRows={2}
               maxLength={MAX_BODY}
               placeholder="Pull up a chair..."
               disabled={composing}
-              className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+              className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
               style={{ fontSize: "1rem", lineHeight: 1.5 }}
             />
           </label>
@@ -1469,13 +1524,12 @@ function PostCard(props: CardProps) {
         </span>
       )}
 
-      <header className="flex items-baseline justify-between gap-3 mb-2 flex-wrap min-w-0">
-        <div className="flex items-baseline gap-2.5 flex-wrap min-w-0">
-          {byAuthor && (
-            <span style={{ alignSelf: "center" }}>
-              <InitialAvatar displayName="Clay" size={28} />
-            </span>
-          )}
+      <header className="flex items-center justify-between gap-3 mb-2 flex-wrap min-w-0">
+        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+          <InitialAvatar
+            displayName={byAuthor ? "Clay" : post.firstName}
+            size={28}
+          />
           <span
             className="font-display break-words"
             style={{
@@ -1531,7 +1585,7 @@ function PostCard(props: CardProps) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start" style={{ marginTop: "0.45rem" }}>
           {isPostLive(post, now) && (
             <span
               aria-label="Recent replies"
@@ -1652,16 +1706,16 @@ function PostCard(props: CardProps) {
       {/* Inline reply composer */}
       {openReplyFor === post.id && (
         <div className="mt-4 pt-4 border-t border-rule">
-          <textarea
+          <AutoResizingTextarea
             value={replyDraft}
             onChange={(e) => setReplyDraft(e.target.value.slice(0, MAX_BODY))}
             onFocus={props.onReplyFocus}
             onBlur={props.onReplyBlur}
-            rows={2}
+            minRows={2}
             maxLength={MAX_BODY}
             placeholder={`Reply to ${post.firstName}…`}
             disabled={replying}
-            className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+            className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
             style={{ fontSize: "0.95rem", lineHeight: 1.5 }}
             autoFocus
           />
@@ -1812,13 +1866,12 @@ function ReplyRow({
       id={`reply-${reply.id}`}
       className={"lounge-reply" + (byAuthor ? " lounge-reply-author" : "")}
     >
-      <header className="flex items-baseline justify-between gap-3 mb-1 flex-wrap min-w-0">
-        <div className="flex items-baseline gap-2 flex-wrap min-w-0">
-          {byAuthor && (
-            <span style={{ alignSelf: "center" }}>
-              <InitialAvatar displayName="Clay" size={22} />
-            </span>
-          )}
+      <header className="flex items-center justify-between gap-3 mb-1 flex-wrap min-w-0">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <InitialAvatar
+            displayName={byAuthor ? "Clay" : reply.firstName}
+            size={22}
+          />
           <span
             className="font-display break-words"
             style={{
