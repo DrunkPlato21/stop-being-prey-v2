@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
@@ -143,18 +142,9 @@ export default async function AdminLoungePage() {
 
   return (
     <>
-      {/* Back to the admin desk. Fixed top-left, mirrors the dark mode
-          toggle's top-right anchor so the two pieces of admin chrome
-          live symmetrically in the PWA window. Quiet, translucent
-          paper-tinted backdrop so it doesn't fight the lounge view. */}
-      <div className="admin-back-anchor">
-        <Link href="/admin/desk" className="admin-back-link">
-          <span aria-hidden="true" style={{ marginRight: "0.45rem" }}>
-            &larr;
-          </span>
-          Desk
-        </Link>
-      </div>
+      {/* Back-to-desk pill is rendered by the admin layout (see
+          AdminBackToDesk) so every admin subsection gets one for
+          free; no per-page wiring needed. */}
       <LoungeView
         initialPinned={pinned}
         initialPosts={posts}
@@ -174,3 +164,4 @@ export default async function AdminLoungePage() {
     </>
   );
 }
+
