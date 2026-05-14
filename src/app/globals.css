@@ -2176,6 +2176,36 @@ a.no-underline {
   border-left-color: var(--eye-deep);
 }
 
+/* Author treatment on lounge cards. Subtle olive left rule + paper-
+   deep tinted bg so Clay's own posts read as "this is from the
+   author" without screaming for attention. The InitialAvatar + olive
+   name + AUTHOR badge in the header carry most of the weight. */
+.lounge-card-author {
+  border-left: 3px solid var(--eye-deep);
+  background: linear-gradient(
+    90deg,
+    rgba(184, 168, 44, 0.05) 0%,
+    transparent 12%
+  );
+}
+
+body[data-theme="admin-desk-dark"] .lounge-card-author {
+  background: linear-gradient(
+    90deg,
+    rgba(201, 185, 55, 0.07) 0%,
+    transparent 12%
+  ),
+  #1f1a14;
+}
+
+/* Reply variant — quieter than the card treatment since replies are
+   indented and smaller. Just a faint olive left tint on the strut. */
+.lounge-reply-author::before {
+  border-left-color: var(--eye-deep) !important;
+  border-bottom-color: var(--eye-deep) !important;
+  opacity: 0.85;
+}
+
 .lounge-reply-block {
   position: relative;
   padding-left: 2rem;

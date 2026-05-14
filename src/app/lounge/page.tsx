@@ -125,6 +125,8 @@ export default async function LoungePage() {
   > = Object.fromEntries(memberBadgesEntries);
 
   const adminUser = isAdmin(session.email);
+  const adminEmailNormalized =
+    process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null;
 
   // Bump last-viewed after the snapshot is built so the current
   // request's NEW indicators still reflect the prior visit.
@@ -140,6 +142,7 @@ export default async function LoungePage() {
       initialHasMore={page.hasMore}
       initialReadByClayPostIds={readByClayPostIds}
       initialReadByClayReplyIds={readByClayReplyIds}
+      adminEmail={adminEmailNormalized}
       lastVisitedAt={lastVisitedAt}
       isAdmin={adminUser}
       activeNow={activeNow}

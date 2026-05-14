@@ -138,6 +138,9 @@ export default async function AdminLoungePage() {
 
   await setLastViewed(session.email).catch(() => null);
 
+  const adminEmailNormalized =
+    process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null;
+
   return (
     <>
       {/* Back to the admin desk. Fixed top-left, mirrors the dark mode
@@ -161,6 +164,7 @@ export default async function AdminLoungePage() {
         initialHasMore={page.hasMore}
         initialReadByClayPostIds={readByClayPostIds}
         initialReadByClayReplyIds={readByClayReplyIds}
+        adminEmail={adminEmailNormalized}
         lastVisitedAt={lastVisitedAt}
         isAdmin={true}
         activeNow={activeNow}

@@ -17,6 +17,7 @@ import {
 import type { TierBadge } from "@/lib/members";
 import { LoungeSceneIllustration } from "@/components/LoungeSceneIllustration";
 import { MemberBadge } from "@/components/MemberBadge";
+import { InitialAvatar } from "@/components/InitialAvatar";
 import { Linkified } from "@/components/Linkified";
 
 type MemberBadgeInfo = {
@@ -55,6 +56,12 @@ type Props = {
   initialReadByClayPostIds: string[];
   /** Same as above but for replies. */
   initialReadByClayReplyIds: string[];
+  /** Normalized admin email so PostCard/ReplyRow can render the
+      AUTHOR treatment on Clay's own posts (olive name + AUTHOR badge
+      + InitialAvatar + olive left rule on the card). Null when the
+      server doesn't expose ADMIN_EMAIL — admin styling will simply
+      not fire. */
+  adminEmail: string | null;
   lastVisitedAt: number | null;
   isAdmin: boolean;
   activeNow: ActiveNowSnapshot;
@@ -927,6 +934,7 @@ export function LoungeView(props: Props) {
               memberBadges={memberBadges}
               readByClayPostIds={readByClayPostIds}
               readByClayReplyIds={readByClayReplyIds}
+              adminEmail={props.adminEmail}
               now={now}
               isNew={isNew}
               openReplyFor={openReplyFor}
@@ -980,6 +988,7 @@ export function LoungeView(props: Props) {
                 memberBadges={memberBadges}
                 readByClayPostIds={readByClayPostIds}
                 readByClayReplyIds={readByClayReplyIds}
+              adminEmail={props.adminEmail}
                 now={now}
                 isNew={isNew}
                 openReplyFor={openReplyFor}
@@ -1356,6 +1365,7 @@ type CardProps = {
   memberBadges: Record<string, MemberBadgeInfo>;
   readByClayPostIds: Set<string>;
   readByClayReplyIds: Set<string>;
+  adminEmail: string | null;
   now: number;
   isNew: (at: number) => boolean;
   openReplyFor: string | null;
@@ -1390,6 +1400,7 @@ function PostCard(props: CardProps) {
     memberBadges,
     readByClayPostIds,
     readByClayReplyIds,
+    adminEmail,
     now,
     isNew,
     openReplyFor,
@@ -1410,6 +1421,13 @@ function PostCard(props: CardProps) {
   } = props;
 
   const postIsRead = readByClayPostIds.has(post.id);
+  // Authority treatment: Clay's own posts get the AUTHOR badge,
+  // olive name + avatar, and a left rule on the card. Match against
+  // the normalized admin email handed in from the server (process.env
+  // isn't available client-side).
+  const byAuthor =
+    !!adminEmail &&
+    post.memberEmail.toLowerCase().trim() === adminEmail;
 
   const isFresh = isNew(post.createdAt);
 
@@ -1428,7 +1446,8 @@ function PostCard(props: CardProps) {
       className={
         "relative lounge-card" +
         (isPinned ? " lounge-card-pinned" : "") +
-        (isFresh ? " lounge-card-fresh" : "")
+        (isFresh ? " lounge-card-fresh" : "") +
+        (byAuthor ? " lounge-card-author" : "")
       }
       style={{ padding: "1.5rem 1.5rem" }}
     >
@@ -1451,28 +1470,51 @@ function PostCard(props: CardProps) {
       )}
 
       <header className="flex items-baseline justify-between gap-3 mb-2 flex-wrap min-w-0">
-        <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+        <div className="flex items-baseline gap-2.5 flex-wrap min-w-0">
+          {byAuthor && (
+            <span style={{ alignSelf: "center" }}>
+              <InitialAvatar displayName="Clay" size={28} />
+            </span>
+          )}
           <span
-            className="font-display text-ink break-words"
+            className="font-display break-words"
             style={{
-              fontSize: "0.96rem",
+              fontSize: byAuthor ? "1.05rem" : "0.96rem",
               fontWeight: 700,
               letterSpacing: "-0.005em",
+              color: byAuthor ? "var(--eye-deep)" : "var(--ink)",
               maxWidth: "100%",
             }}
           >
-            {post.firstName}
+            {byAuthor ? "Clay" : post.firstName}
           </span>
-          {(() => {
-            const b = memberBadges[post.memberEmail];
-            return (
-              <MemberBadge
-                founderSlot={b?.founderSlot ?? null}
-                tierBadge={b?.tierBadge ?? null}
-                size="small"
-              />
-            );
-          })()}
+          {byAuthor ? (
+            <span
+              className="font-display uppercase"
+              style={{
+                fontSize: "0.58rem",
+                fontWeight: 700,
+                color: "var(--eye-deep)",
+                background: "var(--paper-deep)",
+                border: "1px solid var(--eye-deep)",
+                padding: "0.12rem 0.5rem",
+                letterSpacing: "0.24em",
+              }}
+            >
+              Author
+            </span>
+          ) : (
+            (() => {
+              const b = memberBadges[post.memberEmail];
+              return (
+                <MemberBadge
+                  founderSlot={b?.founderSlot ?? null}
+                  tierBadge={b?.tierBadge ?? null}
+                  size="small"
+                />
+              );
+            })()
+          )}
           {isFresh && (
             <span
               className="font-display uppercase"
@@ -1711,6 +1753,10 @@ function PostCard(props: CardProps) {
                 snapshot={reactions[r.id] ?? emptySnapshot()}
                 badge={memberBadges[r.memberEmail]}
                 isReadByClay={readByClayReplyIds.has(r.id)}
+                byAuthor={
+                  !!adminEmail &&
+                  r.memberEmail.toLowerCase().trim() === adminEmail
+                }
                 now={now}
                 isFresh={isNew(r.createdAt)}
                 pickerOpenFor={pickerOpenFor}
@@ -1735,6 +1781,7 @@ function ReplyRow({
   snapshot,
   badge,
   isReadByClay,
+  byAuthor,
   now,
   isFresh,
   pickerOpenFor,
@@ -1748,6 +1795,7 @@ function ReplyRow({
   snapshot: ReactionSnapshot;
   badge: MemberBadgeInfo | undefined;
   isReadByClay: boolean;
+  byAuthor: boolean;
   now: number;
   isFresh: boolean;
   pickerOpenFor: string | null;
@@ -1760,25 +1808,51 @@ function ReplyRow({
   onToggleReadByClay: () => void;
 }) {
   return (
-    <li id={`reply-${reply.id}`} className="lounge-reply">
+    <li
+      id={`reply-${reply.id}`}
+      className={"lounge-reply" + (byAuthor ? " lounge-reply-author" : "")}
+    >
       <header className="flex items-baseline justify-between gap-3 mb-1 flex-wrap min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+          {byAuthor && (
+            <span style={{ alignSelf: "center" }}>
+              <InitialAvatar displayName="Clay" size={22} />
+            </span>
+          )}
           <span
-            className="font-display text-ink break-words"
+            className="font-display break-words"
             style={{
-              fontSize: "0.9rem",
+              fontSize: byAuthor ? "0.98rem" : "0.9rem",
               fontWeight: 700,
               letterSpacing: "-0.005em",
+              color: byAuthor ? "var(--eye-deep)" : "var(--ink)",
               maxWidth: "100%",
             }}
           >
-            {reply.firstName}
+            {byAuthor ? "Clay" : reply.firstName}
           </span>
-          <MemberBadge
-            founderSlot={badge?.founderSlot ?? null}
-            tierBadge={badge?.tierBadge ?? null}
-            size="small"
-          />
+          {byAuthor ? (
+            <span
+              className="font-display uppercase"
+              style={{
+                fontSize: "0.55rem",
+                fontWeight: 700,
+                color: "var(--eye-deep)",
+                background: "var(--paper-deep)",
+                border: "1px solid var(--eye-deep)",
+                padding: "0.1rem 0.45rem",
+                letterSpacing: "0.24em",
+              }}
+            >
+              Author
+            </span>
+          ) : (
+            <MemberBadge
+              founderSlot={badge?.founderSlot ?? null}
+              tierBadge={badge?.tierBadge ?? null}
+              size="small"
+            />
+          )}
           {isFresh && (
             <span
               className="font-display uppercase"
