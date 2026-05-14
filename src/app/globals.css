@@ -41,6 +41,8 @@
 html {
   background: var(--paper);
   color: var(--ink);
+  /* Smooth-scroll for anchor links + the lounge deep-link drive. */
+  scroll-behavior: smooth;
 }
 
 body {
@@ -53,9 +55,50 @@ body {
   font-size: 19px;
   line-height: 1.7;
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   position: relative;
+}
+
+/* Olive-tinted selection so highlights read as part of the palette
+   rather than the browser's default blue. */
+::selection {
+  background: rgba(184, 168, 44, 0.32);
+  color: var(--ink);
+}
+::-moz-selection {
+  background: rgba(184, 168, 44, 0.32);
+  color: var(--ink);
+}
+
+/* Anchor-link offset: the header sits at the top of the viewport
+   with a thin olive rule under it. When members land on a deep-
+   linked element (e.g. /lounge#post-<id>), we want it to sit a
+   comfortable distance below the header rather than flush against
+   it. Applies to lounge posts/replies and any other anchored
+   content with an id. */
+[id^="post-"],
+[id^="reply-"] {
+  scroll-margin-top: 5rem;
+}
+
+/* Honor the user's motion preference. Disables our animations and
+   site-wide smooth-scroll for anyone with vestibular sensitivity
+   or who's opted out via OS settings. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 body::before {
@@ -299,49 +342,19 @@ a.no-underline {
   text-decoration-color: var(--eye);
 }
 
-/* Drop cap on the very first paragraph of the article body only.
-   The :first-of-type qualifier on .prose-article ensures the drop cap
-   only fires on the article-body container, not on later sibling
-   .prose-article blocks (e.g. the P.S. postscript). */
-.prose-article:first-of-type > p:first-of-type::first-letter {
-  /* Modern: auto-aligns cap-height to body text cap-height */
-  -webkit-initial-letter: 3 2;
-  initial-letter: 3 2;
-
-  /* Typography */
-  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+/* Small-caps run-in lead. Replaces the drop-cap as the publication's
+   opening-text register. Wraps the first sentence of every essay
+   body — auto-applied by applyLeadIncipit() in lib/articles.ts and
+   lib/field-notes.ts, manually wrapped on inline content like the
+   founding pages. Uppercase + letter-spacing + bold weight gives the
+   opening typographic emphasis without literary chrome; font-size
+   slightly under 1em so the uppercase letters read at small-caps
+   proportions instead of towering over the body. */
+.lead-incipit {
   font-weight: 700;
-  color: var(--ink);
-  margin-right: 0.08em;
-  margin-left: -0.05em;
-
-  /* Fallback for browsers without initial-letter support */
-  font-size: 4em;
-  line-height: 0.83;
-  float: left;
-  padding-top: 0.05em;
-}
-
-/* When initial-letter IS supported, neutralize the float fallback so it
-   doesn't conflict */
-@supports (initial-letter: 3 2) or (-webkit-initial-letter: 3 2) {
-  .prose-article:first-of-type > p:first-of-type::first-letter {
-    float: none;
-    font-size: inherit;
-    line-height: normal;
-    padding-top: 0;
-  }
-}
-
-/* Mobile: 2-line cap so the third line of the first paragraph isn't
-   crowded against the cap on a 375-390px viewport. */
-@media (max-width: 639px) {
-  .prose-article:first-of-type > p:first-of-type::first-letter {
-    -webkit-initial-letter: 2 2;
-    initial-letter: 2 2;
-    font-size: 3em;
-    line-height: 0.83;
-  }
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.94em;
 }
 
 /* Share row links */
@@ -601,6 +614,2123 @@ a.no-underline {
   background: var(--eye-deep);
   color: var(--paper);
   border-color: var(--eye-deep);
+}
+
+/* Secondary "sign in" affordance beside the JOIN button. Same
+   small-caps family as the rest of the chrome so it sits in the
+   typographic system, just lighter weight + muted color so JOIN
+   stays the loud primary CTA. No border — borders would compete. */
+.header-signin {
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 0.45rem 0.25rem;
+  transition: color 0.18s ease;
+}
+.header-signin:hover,
+.header-signin:focus-visible {
+  color: var(--eye-deep);
+  outline: none;
+}
+
+/* === Writer's Desk "paper in a slot" — leave-a-note affordance ===
+   Collapsed state: a sheet of notepaper sticks up out of a recessed
+   strip ("slot") at the bottom of the widget. Click to expand into
+   the full form. Texture is a faint horizontal-rule pattern over a
+   subtle vertical gradient — reads as notebook paper without using
+   a raster asset. */
+
+.note-paper-region {
+  margin-top: 1.75rem;
+  position: relative;
+}
+
+.note-paper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 72%;
+  max-width: 360px;
+  height: 42px;
+  margin: 0 auto -1px auto;
+  padding: 0 1rem 0 1.1rem;
+  background-color: #fdf9ec;
+  background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 9px,
+      rgba(168, 144, 88, 0.09) 9px,
+      rgba(168, 144, 88, 0.09) 10px
+    ),
+    linear-gradient(to bottom, #fdf9ec 0%, #f6ecd6 100%);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  /* Light from above; paper casts a soft shadow upward as it lifts. */
+  box-shadow: 0 -2px 5px rgba(26, 23, 20, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-weight: 500;
+  color: var(--ink);
+  font-size: 0.94rem;
+  letter-spacing: 0.005em;
+  position: relative;
+  z-index: 2;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.note-paper:hover,
+.note-paper:focus-visible {
+  outline: none;
+  transform: translateY(-4px);
+  box-shadow: 0 -5px 10px rgba(26, 23, 20, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.note-paper-label {
+  flex: 1 1 auto;
+  text-align: left;
+}
+
+.note-paper-pencil {
+  font-size: 0.95rem;
+  color: var(--eye-deep);
+  opacity: 0.75;
+  transform: rotate(-12deg);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.note-paper:hover .note-paper-pencil {
+  opacity: 1;
+  transform: rotate(-18deg) translateX(-1px);
+}
+
+.note-paper-rising {
+  animation: note-paper-rise 350ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes note-paper-rise {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  60% {
+    transform: translateY(-22px);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(-72px);
+    opacity: 0;
+  }
+}
+
+/* The slot. A darker strip with an inset shadow so it reads as a
+   recess in the desk surface rather than just a dark line. */
+.note-slot {
+  height: 7px;
+  width: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(26, 23, 20, 0.32) 0%,
+    rgba(26, 23, 20, 0.18) 100%
+  );
+  border-top: 1px solid rgba(26, 23, 20, 0.4);
+  border-bottom: 1px solid rgba(255, 240, 200, 0.18);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 1;
+}
+
+/* Expanded form panel. Mount animation: rises from below the slot
+   to feel like the paper opened up into a writing surface. */
+.note-form-panel {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  padding: 1.5rem 1.25rem 1.25rem 1.25rem;
+  animation: note-form-in 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes note-form-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.note-form-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+
+.note-form-close:hover,
+.note-form-close:focus-visible {
+  color: var(--ink);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-paper-rising {
+    animation: none;
+    opacity: 0;
+  }
+  .note-form-panel {
+    animation: none;
+  }
+  .note-paper:hover,
+  .note-paper:focus-visible {
+    transform: none;
+  }
+}
+
+/* === Admin note reaction buttons (Facebook-style) ===
+   Big round tap targets. Default state: icon at 80% saturation
+   (slightly desaturated so unset reactions don't fight for
+   attention). Hover: icon scales up + gently wiggles. Active state:
+   filled with a soft tint matching the reaction's color, icon at
+   full saturation, with a "pop" animation on transition. */
+
+.reaction-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.reaction-button > svg {
+  transition: filter 0.2s ease, transform 0.22s
+    cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: saturate(0.7) brightness(0.95);
+}
+
+.reaction-button:hover,
+.reaction-button:focus-visible {
+  outline: none;
+  background: rgba(26, 23, 20, 0.04);
+  transform: translateY(-2px);
+}
+
+.reaction-button:hover > svg,
+.reaction-button:focus-visible > svg {
+  filter: saturate(1.1) brightness(1);
+  animation: reaction-wiggle 0.55s ease-in-out;
+}
+
+.reaction-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.reaction-button[data-active="true"] {
+  transform: translateY(-2px) scale(1.04);
+  animation: reaction-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.reaction-button[data-active="true"] > svg {
+  filter: saturate(1.15) brightness(1) drop-shadow(0 2px 4px rgba(26, 23, 20, 0.18));
+}
+
+/* Per-reaction active tints — match the icon's gradient family
+   so the active button feels like its color. Subtle backgrounds
+   (~10% alpha) and matching rings. */
+
+.reaction-button[data-active="true"][data-type="heart"] {
+  background: rgba(220, 38, 84, 0.1);
+  border-color: rgba(220, 38, 84, 0.55);
+}
+
+.reaction-button[data-active="true"][data-type="thumb"] {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.55);
+}
+
+.reaction-button[data-active="true"][data-type="laugh"] {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.6);
+}
+
+.reaction-button[data-active="true"][data-type="fire"] {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.6);
+}
+
+.reaction-button[data-active="true"][data-type="shock"] {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.6);
+}
+
+@keyframes reaction-pop {
+  0% {
+    transform: translateY(-2px) scale(1);
+  }
+  40% {
+    transform: translateY(-4px) scale(1.22);
+  }
+  100% {
+    transform: translateY(-2px) scale(1.04);
+  }
+}
+
+@keyframes reaction-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-7deg) scale(1.08); }
+  50% { transform: rotate(6deg) scale(1.12); }
+  80% { transform: rotate(-3deg) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction-button,
+  .reaction-button > svg,
+  .reaction-button[data-active="true"] {
+    animation: none !important;
+    transition: background-color 0.2s ease, border-color 0.2s ease !important;
+    transform: none !important;
+  }
+}
+
+/* === Writer's Desk notebook icon + public-board panel ===
+   The notebook button sits at the right edge of the widget header
+   next to the lamp + eyebrow. Clicking opens the public-board
+   overlay (PublicNotesPanel). Badge fires when there's unread
+   activity since the per-device "last viewed" stamp. */
+
+/* Notebook button with inline label + count.
+   Layout: [icon-wrap] NOTES · 3
+   - Whole combo is a single clickable affordance.
+   - icon-wrap holds the activity badge so the dot sits on the icon,
+     not on the label or count.
+   - white-space: nowrap on the button itself stops "(3)" from
+     wrapping below the label at narrow widget widths.
+   - Label + sep + count share the same eyebrow type stack so the
+     line reads like a small-caps caption, matching the rest of the
+     widget's eyebrows. */
+
+.desk-notebook-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  border-radius: 2px;
+  white-space: nowrap;
+  line-height: 1;
+  transition: background-color 0.18s ease;
+}
+
+.desk-notebook-button:hover,
+.desk-notebook-button:focus-visible {
+  outline: none;
+  background-color: rgba(138, 125, 32, 0.07);
+}
+
+.desk-notebook-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--eye-deep);
+  flex-shrink: 0;
+  transition: color 0.18s ease;
+}
+
+.desk-notebook-button:hover .desk-notebook-icon-wrap,
+.desk-notebook-button:focus-visible .desk-notebook-icon-wrap {
+  color: var(--ink);
+}
+
+.desk-notebook-label,
+.desk-notebook-sep,
+.desk-notebook-count {
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--eye-deep);
+  transition: color 0.18s ease;
+}
+
+.desk-notebook-label {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color 0.18s ease, text-decoration-color 0.18s ease;
+}
+
+.desk-notebook-sep {
+  /* Hairline middle-dot separator. Slightly tracked back so it
+     hugs the count rather than floating. */
+  letter-spacing: 0;
+  opacity: 0.55;
+}
+
+.desk-notebook-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.desk-notebook-button:hover .desk-notebook-label,
+.desk-notebook-button:focus-visible .desk-notebook-label {
+  color: var(--ink);
+  text-decoration-color: var(--eye-deep);
+}
+
+.desk-notebook-button:hover .desk-notebook-sep,
+.desk-notebook-button:focus-visible .desk-notebook-sep,
+.desk-notebook-button:hover .desk-notebook-count,
+.desk-notebook-button:focus-visible .desk-notebook-count {
+  color: var(--ink-muted);
+}
+
+.desk-notebook-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* Panel enter: subtle fade + lift-from-below + tiny scale.
+   The combined motion reads as paper settling onto the desk surface,
+   not a generic dropdown. cubic-bezier(0.22, 0.61, 0.36, 1) is the
+   classic "ease-out-expo-ish" curve — fast start, soft landing. */
+
+.public-notes-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--surface);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  transform-origin: top center;
+  animation: public-notes-in 360ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.public-notes-panel-closing {
+  animation: public-notes-out 300ms cubic-bezier(0.4, 0, 0.7, 0.05)
+    forwards;
+  pointer-events: none;
+}
+
+@keyframes public-notes-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes public-notes-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+}
+
+/* Fresh-note "landing" animation. Plays once, on the just-submitted
+   note as the panel auto-opens after a submission. Three coordinated
+   beats over ~2.8s:
+     0–18%  — note drops in from above with a gold tint, slightly
+               scaled down. Reads as paper hitting the board.
+     18–60% — settles to full size, gold tint still warm.
+     60–100% — gold tint dries off to transparent. Note now matches
+               the rest of the feed.
+   The earlier-stage tint sits on a separate ::before so the note's
+   own background/border stays untouched. */
+
+/* Fresh-note land + tint run on the same element via the
+   "multi-animation" comma syntax. Land = drop-in + scale-up curve;
+   tint = gold background that dries to transparent. Both ride the
+   same 2.8s timeline but the tint stays a few extra beats so the
+   glow lingers slightly after the motion has settled. */
+
+.public-note-fresh {
+  animation:
+    public-note-land 2800ms cubic-bezier(0.22, 0.61, 0.36, 1) both,
+    public-note-fresh-tint 2800ms ease-out both;
+  border-radius: 2px;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+@keyframes public-note-land {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.975);
+  }
+  22% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes public-note-fresh-tint {
+  0% {
+    background-color: rgba(184, 168, 44, 0.24);
+    box-shadow: 0 0 0 1px rgba(184, 168, 44, 0.35);
+  }
+  22% {
+    background-color: rgba(184, 168, 44, 0.2);
+    box-shadow: 0 0 0 1px rgba(184, 168, 44, 0.25);
+  }
+  60% {
+    background-color: rgba(184, 168, 44, 0.1);
+    box-shadow: 0 0 0 1px rgba(184, 168, 44, 0.08);
+  }
+  100% {
+    background-color: rgba(184, 168, 44, 0);
+    box-shadow: 0 0 0 1px rgba(184, 168, 44, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-notes-panel,
+  .public-notes-panel-closing,
+  .public-note-fresh {
+    animation: none !important;
+  }
+}
+
+.public-notes-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem 1.5rem 1rem 1.75rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.public-notes-panel-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+
+.public-notes-panel-close:hover,
+.public-notes-panel-close:focus-visible {
+  color: var(--ink);
+  outline: none;
+}
+
+.public-notes-panel-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.5rem 1.75rem 1.5rem 1.75rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+
+.public-notes-panel-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.public-notes-panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.public-notes-panel-body::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border-radius: 3px;
+}
+
+/* (reduced-motion overrides for the panel + fresh note live with
+   the @keyframes definitions above) */
+
+/* === Writer's Desk lamp icon ===
+   Lives left of the WRITER'S DESK eyebrow. Outline always renders in
+   the gold accent; when Clay is at the desk the .desk-lamp-lit
+   variant emits a warm halo that pulses in lockstep with the
+   presence dot (same 2.5s cycle, same easing). */
+
+.desk-lamp {
+  color: var(--eye-deep);
+  flex-shrink: 0;
+}
+
+.desk-lamp-lit {
+  /* Slight always-on warmth so the lamp reads "on" even at the
+     trough of the animation cycle. The pulse layers a brighter halo
+     on top. */
+  filter: drop-shadow(0 0 1.5px rgba(255, 215, 110, 0.55));
+  animation: desk-lamp-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes desk-lamp-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 1.5px rgba(255, 215, 110, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 3px rgba(255, 215, 110, 0.85))
+      drop-shadow(0 0 6px rgba(255, 195, 80, 0.45));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desk-lamp-lit {
+    animation: none;
+    filter: drop-shadow(0 0 2px rgba(255, 215, 110, 0.7))
+      drop-shadow(0 0 4px rgba(255, 195, 80, 0.35));
+  }
+}
+
+/* === Writer's Desk presence indicator ===
+   Three states, three visual treatments:
+     - active: gold dot, soft 2.5s pulse glow (Clay is here right now)
+     - recently-active: solid muted dot (here within last 24h)
+     - quiet: hollow ring (away over 24h)
+   Sized small so the dot reads as a status light, not a button. */
+
+.desk-status-dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.desk-status-dot-active {
+  /* Vivid warm green — the universal "live now" signal. Heartbeat
+     pulse (scale + opacity), not the lamp's slow breathe. */
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  animation: desk-dot-heartbeat 2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.desk-status-dot-recent {
+  background: var(--ink-faint);
+}
+
+.desk-status-dot-quiet {
+  background: transparent;
+  border: 1.2px solid var(--ink-faint);
+  width: 12px;
+  height: 12px;
+}
+
+@keyframes desk-dot-heartbeat {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+    box-shadow: 0 0 4px 2px rgba(34, 197, 94, 0.22);
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+    box-shadow: 0 0 10px 4px rgba(34, 197, 94, 0.4);
+  }
+}
+
+/* (HMR nudge) */
+
+/* === Writer's Desk status panel ===
+   Wraps the presence line + away note + current thought. The
+   widget's focal element — first thing a reader sees. When Clay is
+   at the desk the panel literally glows (lamp light pooling onto
+   the surface). When he's away, the same shape but unlit, signaling
+   "the desk is empty." */
+
+.status-panel {
+  position: relative;
+  background: #fcf6e2;
+  border: 1px solid rgba(184, 168, 44, 0.18);
+  border-radius: 3px;
+  padding: 1.3rem 1.5rem;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 2px 6px rgba(26, 23, 20, 0.045);
+  transition: background-color 0.4s ease, border-color 0.4s ease,
+    box-shadow 0.4s ease;
+}
+
+.status-panel[data-state="manually-away"],
+.status-panel[data-state="auto-expired"] {
+  /* Lamp is off — desk surface reads neutral, cooler, with the
+     contained-object cues toned down. */
+  background: var(--paper-deep);
+  border-color: rgba(26, 23, 20, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 1px 3px rgba(26, 23, 20, 0.03);
+}
+
+.status-panel-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Concentrated lamp glow inside the panel. Anchored near the top-
+   left so the light reads as falling from the lamp icon just above
+   the widget header. Soft-light blend keeps the cream readable. */
+.status-panel-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 115% 95% at 10% -10%,
+    rgba(251, 191, 36, 0.5) 0%,
+    rgba(245, 158, 11, 0.3) 28%,
+    rgba(245, 158, 11, 0.13) 55%,
+    rgba(245, 158, 11, 0) 88%
+  );
+  mix-blend-mode: soft-light;
+  animation: desk-glow-breathe 4.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-panel-glow {
+    animation: none;
+  }
+}
+
+/* === Voice memo card ===
+   Sits below the status panel. Big play button on the left, title +
+   metadata on the right, slim progress bar underneath. Built so the
+   primary affordance (a labeled play button) is impossible to miss
+   even for a reader who doesn't recognize the triangle glyph. */
+
+.voice-memo-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1rem 1.1rem 1.05rem;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.voice-memo-card[data-playing="true"] {
+  border-color: rgba(184, 168, 44, 0.55);
+  box-shadow: 0 0 0 1px rgba(184, 168, 44, 0.18),
+    0 3px 10px rgba(184, 168, 44, 0.08);
+}
+
+.voice-memo-card-top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Play affordance — circular outlined button with a small-caps label
+   tucked underneath. Lighter visual weight than a filled pill, but
+   the labeled caption keeps it boomer-readable. */
+.voice-memo-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  width: 64px;
+}
+
+.voice-memo-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--eye-deep, #b8a82c);
+  border: 1.5px solid var(--eye-deep, #b8a82c);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease,
+    transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.voice-memo-circle:hover {
+  background: var(--eye-deep, #b8a82c);
+  color: var(--paper);
+  box-shadow: 0 2px 8px rgba(184, 168, 44, 0.18);
+}
+
+.voice-memo-circle:active {
+  transform: translateY(1px);
+}
+
+.voice-memo-circle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.voice-memo-circle-label {
+  font-family: var(--font-display, ui-sans-serif);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.voice-memo-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.voice-memo-title {
+  font-family: var(--font-display, ui-serif);
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.voice-memo-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+  font-family: var(--font-display, ui-sans-serif);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.voice-memo-sub-sep {
+  opacity: 0.5;
+}
+
+.voice-memo-progress {
+  position: relative;
+  height: 6px;
+  margin-top: 0.95rem;
+  background: rgba(26, 23, 20, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.voice-memo-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--eye-deep, #b8a82c);
+  border-radius: 999px;
+  transition: width 0.1s linear;
+}
+
+.voice-memo-transcript-wrap {
+  margin-top: 0.9rem;
+}
+
+.voice-memo-transcript-toggle {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-display, ui-sans-serif);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--eye-deep, #b8a82c);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+.voice-memo-transcript-toggle:hover {
+  color: var(--ink);
+}
+
+.voice-memo-transcript-toggle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.voice-memo-transcript {
+  margin-top: 0.7rem;
+  padding: 0.85rem 1rem;
+  background: var(--paper-deep, rgba(0, 0, 0, 0.025));
+  border-left: 2px solid var(--eye-deep, #b8a82c);
+  border-radius: 0 3px 3px 0;
+}
+
+.voice-memo-transcript p {
+  font-family: var(--font-serif, ui-serif);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+@media (max-width: 480px) {
+  .voice-memo-card-top {
+    gap: 0.85rem;
+  }
+  .voice-memo-control {
+    width: 56px;
+    gap: 0.35rem;
+  }
+  .voice-memo-circle {
+    width: 46px;
+    height: 46px;
+  }
+  .voice-memo-circle-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+  }
+  .voice-memo-title {
+    font-size: 0.98rem;
+  }
+}
+
+/* === NEW since-last-visit badge ===
+   Pinned next to source labels in Recent Work / Elsewhere and the
+   section eyebrows above the Voice Memo + Active Wall cards. Olive on a
+   light olive tint so it sits with the eyebrow color without
+   competing with the body text. */
+
+.desk-new-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--eye-deep);
+  background: rgba(184, 168, 44, 0.16);
+  padding: 0.18rem 0.42rem 0.14rem;
+  border-radius: 999px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* === Active Wall panel ===
+   Live scoreboard for the wall Clay's currently running. Same card
+   vocabulary as the voice-memo card directly above it — matched
+   border, padding, and cream so the two read as siblings. Stats sit
+   on a single inline row with literal bullet separators. */
+
+.active-wall-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1rem 1.1rem 1.05rem;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease,
+    background-color 0.25s ease, opacity 0.25s ease;
+}
+
+.active-wall-card[data-status="active"] {
+  border-color: rgba(184, 168, 44, 0.38);
+  box-shadow: 0 0 0 1px rgba(184, 168, 44, 0.06),
+    0 2px 8px rgba(184, 168, 44, 0.05);
+}
+
+.active-wall-card[data-status="closed"] {
+  background: var(--paper-deep, rgba(0, 0, 0, 0.02));
+  opacity: 0.92;
+}
+
+.active-wall-header {
+  /* Title + description form a single typographic unit — no paragraph
+     break between them. */
+  margin-bottom: 0.85rem;
+}
+
+.active-wall-title {
+  font-family: var(--font-display, ui-serif);
+  font-size: 1.18rem;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  line-height: 1.22;
+  margin: 0;
+}
+
+.active-wall-desc {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-serif, ui-serif);
+  font-style: italic;
+  font-size: 0.93rem;
+  color: var(--ink-muted);
+  line-height: 1.4;
+}
+
+/* Single-line stats row. Wraps onto a second line on narrow screens
+   but always stays inline within whatever lines it produces — never
+   stacks one stat per line. */
+.active-wall-stats {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  line-height: 1.6;
+  font-family: var(--font-display, ui-sans-serif);
+}
+
+.active-wall-amount {
+  font-family: var(--font-display, ui-serif);
+  font-size: 1.32rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--eye-deep, #b8a82c);
+  padding: 0 2px;
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+}
+
+/* "raised" rides right next to the dollar amount, inline, as part of
+   the same phrase — not on a new line. */
+.active-wall-amount-trail {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  letter-spacing: 0;
+  font-style: italic;
+}
+
+.active-wall-stat-text {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  padding: 0 2px;
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+}
+
+.active-wall-sep {
+  color: var(--ink-faint);
+  opacity: 0.55;
+  font-size: 0.95rem;
+  font-weight: 400;
+  padding: 0 0.15rem;
+}
+
+.active-wall-status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.active-wall-status-text[data-state="active"] {
+  color: #2f7d3a;
+}
+
+.active-wall-status-text[data-state="closed"] {
+  color: var(--ink-muted);
+  font-style: italic;
+  font-weight: 500;
+}
+
+.active-wall-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #34a356;
+  box-shadow: 0 0 0 0 rgba(52, 163, 86, 0.45);
+  animation: active-wall-dot-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes active-wall-dot-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(52, 163, 86, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(52, 163, 86, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active-wall-status-dot {
+    animation: none;
+  }
+}
+
+/* Brief gold-tint flash when a stat moves between polls. */
+.active-wall-flash {
+  animation: active-wall-flash 1.4s ease-out;
+}
+
+@keyframes active-wall-flash {
+  0% {
+    background-color: rgba(184, 168, 44, 0.32);
+  }
+  60% {
+    background-color: rgba(184, 168, 44, 0.12);
+  }
+  100% {
+    background-color: rgba(184, 168, 44, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active-wall-flash {
+    animation: none;
+    background-color: rgba(184, 168, 44, 0.1);
+  }
+}
+
+.active-wall-cta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.95rem;
+}
+
+.active-wall-more {
+  font-family: var(--font-display, ui-sans-serif);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.active-wall-more:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 480px) {
+  .active-wall-title {
+    font-size: 1.08rem;
+  }
+  .active-wall-amount {
+    font-size: 1.22rem;
+  }
+}
+
+/* === In-browser recorder ===
+   Admin-only UI on /admin/desk/voice. Big, unmistakable Record button
+   that turns red while recording, a live VU meter, and a labeled
+   elapsed counter so Clay sees exactly where he is in the 90s budget. */
+
+.voice-record-shell {
+  border: 1px solid var(--border);
+  background: var(--paper);
+  border-radius: 3px;
+  padding: 1.5rem 1.5rem 1.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.voice-record-btn {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 56px;
+  padding: 0.75rem 1.4rem 0.75rem 1.1rem;
+  background: #c1392f;
+  color: #fff7ea;
+  border: 0;
+  border-radius: 999px;
+  font-family: var(--font-display, ui-sans-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.15s ease,
+    box-shadow 0.2s ease;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 4px 14px rgba(193, 57, 47, 0.18);
+}
+
+.voice-record-btn:hover:not(:disabled) {
+  background: #a72f26;
+}
+
+.voice-record-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.voice-record-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.voice-record-btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* Recording state — pulse + slightly darker red so it's unmistakably
+   "live mic." Glyph swaps to a square stop. */
+.voice-record-btn-recording {
+  background: #9a261c;
+  animation: voice-record-pulse 1.4s ease-in-out infinite;
+}
+
+.voice-record-btn-recording:hover {
+  background: #8a221a;
+}
+
+@keyframes voice-record-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(193, 57, 47, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 14px rgba(193, 57, 47, 0),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-record-btn-recording {
+    animation: none;
+  }
+}
+
+.voice-record-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.voice-record-label {
+  white-space: nowrap;
+}
+
+.voice-record-live {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  margin-top: 1.4rem;
+}
+
+.voice-record-elapsed {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.55rem;
+  font-family: var(--font-display, ui-sans-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-record-elapsed-sep {
+  color: var(--ink-faint);
+  font-size: 1.2rem;
+  margin: 0 0.2rem;
+}
+
+.voice-record-elapsed-max {
+  color: var(--ink-muted);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.voice-record-rec-dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #c1392f;
+  margin-right: 0.2rem;
+  box-shadow: 0 0 0 0 rgba(193, 57, 47, 0.65);
+  animation: voice-record-dot-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes voice-record-dot-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(193, 57, 47, 0.65);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(193, 57, 47, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-record-rec-dot {
+    animation: none;
+  }
+}
+
+/* The canvas the VU meter draws to. Fluid width on small screens. */
+.voice-record-vu {
+  width: 100%;
+  max-width: 420px;
+  height: 56px;
+  align-self: center;
+  background: rgba(26, 23, 20, 0.04);
+  border-radius: 4px;
+  border: 1px solid var(--rule);
+  display: block;
+}
+
+.voice-record-preview {
+  margin-top: 1.4rem;
+  padding-top: 1.3rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* === Writer's Desk lamp-light glow ===
+   Warm radial gradient anchored near the lamp icon (top-left of
+   the widget content). Renders only when Clay is at the desk.
+   Soft-light blend warms the cream surface where the gradient is
+   brightest. Slow 4.5s breathe so it feels like incandescent light,
+   not a heartbeat. Decoupled from the dot's 2s cycle on purpose. */
+
+.desk-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 75% 65% at 42px 42px,
+    rgba(251, 191, 36, 0.45) 0%,
+    rgba(245, 158, 11, 0.28) 28%,
+    rgba(245, 158, 11, 0.12) 55%,
+    rgba(245, 158, 11, 0) 78%
+  );
+  mix-blend-mode: soft-light;
+  animation: desk-glow-breathe 4.5s ease-in-out infinite;
+  z-index: 0;
+}
+
+@keyframes desk-glow-breathe {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desk-status-dot-active {
+    animation: none;
+    transform: none;
+    opacity: 0.95;
+    box-shadow: 0 0 4px 1px rgba(34, 197, 94, 0.35);
+  }
+  .desk-glow {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+/* === Writer's Desk presence toggle ===
+   Full-width, prominent. Outlined-gold when off (inviting "tap to
+   start"); filled-gold when on (unmistakable "end session" cue). */
+
+.desk-presence-toggle {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 1rem 1.5rem;
+  border: 1px solid var(--eye-deep);
+  background: transparent;
+  color: var(--eye-deep);
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.desk-presence-toggle:hover {
+  background: var(--eye-deep);
+  color: var(--paper);
+}
+
+.desk-presence-toggle:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.desk-presence-toggle-on {
+  background: var(--eye-deep);
+  color: var(--paper);
+}
+
+.desk-presence-toggle-on:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+/* === Writer's Desk fresh-update highlight ===
+   Plays once on mount whenever an update was posted within the
+   active-session window. The 0.15 alpha is gentle enough not to
+   yell at returning visitors. */
+
+@keyframes desk-update-pop {
+  0% {
+    background: rgba(184, 168, 44, 0.18);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.desk-update-fresh {
+  animation: desk-update-pop 2.5s ease-out;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desk-status-dot-active {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(184, 168, 44, 0.25);
+  }
+  .desk-update-fresh {
+    animation: none;
+  }
+}
+
+/* === Welcome modal scroll styling ===
+   When the modal content does need to scroll (very short viewports),
+   use a thin, palette-matched scrollbar instead of the platform-
+   default chunky one. */
+
+.welcome-modal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+
+.welcome-modal-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.welcome-modal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.welcome-modal-scroll::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border-radius: 3px;
+}
+
+.welcome-modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
+
+/* === Header identity slot (signed-in users) ===
+   Sits in the same dimensions as .header-subscribe but reads as
+   account info, not a CTA. Gold name + faint tier separator. */
+
+.header-identity {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.header-identity-trigger:hover,
+.header-identity-trigger:focus-visible {
+  background: var(--paper-deep) !important;
+  outline: none;
+}
+
+.header-identity-trigger:focus-visible {
+  box-shadow: 0 0 0 2px var(--eye-deep);
+}
+
+/* === Prestige CTA (case-files tier cards) =========================
+   Olive line + cream interior, olive small-caps text with an arrow.
+   Replaces btn-primary's solid-black fill where we want a quieter,
+   more editorial affordance. */
+
+.cta-prestige {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border: 1px solid var(--eye-deep);
+  background: var(--paper);
+  color: var(--eye-deep);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease;
+  cursor: pointer;
+}
+
+.cta-prestige:hover,
+.cta-prestige:focus-visible {
+  background: var(--paper-deep);
+  border-color: var(--ink);
+  color: var(--ink);
+  outline: none;
+}
+
+/* === Lounge atmosphere ============================================
+   Cards "lift" off the cream background via a low-opacity warm
+   drop shadow and a slightly darker interior tint than the page
+   bg. Replies are nested with a curved olive connector rather
+   than a flat indent. */
+
+.lounge-card {
+  background: #f6efdc; /* ~2% darker than --paper */
+  border: 1px solid var(--rule);
+  box-shadow:
+    0 1px 1.5px rgba(60, 46, 22, 0.06),
+    0 4px 14px rgba(60, 46, 22, 0.05);
+}
+
+.lounge-card-pinned {
+  border-color: var(--eye-deep);
+}
+
+.lounge-card-fresh {
+  border-left-width: 3px;
+  border-left-color: var(--eye-deep);
+}
+
+.lounge-reply-block {
+  position: relative;
+  padding-left: 2rem;
+}
+
+/* The vertical olive trunk that the curve branches off of. */
+.lounge-reply-block::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 1.5rem;
+  left: 0.55rem;
+  width: 1px;
+  background: rgba(138, 125, 32, 0.45);
+}
+
+/* Each reply gets its own curved connector pointing in from the
+   trunk on the left to the reply's vertical center. The hook is
+   sized so it doesn't collide with the avatar slot when added later. */
+.lounge-reply {
+  position: relative;
+}
+.lounge-reply::before {
+  content: "";
+  position: absolute;
+  left: -1.45rem;
+  top: 0.45rem;
+  width: 1.05rem;
+  height: 0.95rem;
+  border-left: 1px solid rgba(138, 125, 32, 0.45);
+  border-bottom: 1px solid rgba(138, 125, 32, 0.45);
+  border-bottom-left-radius: 0.65rem;
+  pointer-events: none;
+}
+
+/* The Lounge "active now" + footer copy share a quieter olive */
+.lounge-meta {
+  color: var(--eye-deep);
+  opacity: 0.78;
+}
+
+/* Small green pulse beside a post's timestamp when a reply has
+   landed in the last 10 minutes. Matches the writer's desk "live
+   now" green so the signal reads consistently across the site. */
+.lounge-live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45);
+  animation: lounge-live-pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes lounge-live-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45);
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.85;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lounge-live-dot {
+    animation: none;
+    box-shadow: 0 0 4px 1px rgba(34, 197, 94, 0.35);
+  }
+}
+
+/* "N new posts" pill, surfaced when a poll finds top-level posts the
+   user hasn't seen yet. Sits inline above the feed (not floating);
+   matches the room's quiet olive palette so it reads as part of the
+   page, not a banner. */
+.lounge-new-pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--eye-deep);
+  background: var(--paper-deep);
+  border: 1px solid var(--eye-deep);
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+.lounge-new-pill:hover,
+.lounge-new-pill:focus-visible {
+  background: var(--eye-deep);
+  color: var(--paper);
+  outline: none;
+}
+
+/* === Header presence indicator =====================================
+   Site-wide chrome showing whether Clay is at the desk. Olive dot
+   when active (soft pulse), empty olive circle when away. Sits
+   beside the bell and identity widget. */
+
+.header-presence-link {
+  /* Reads as a small status card, not loose chrome text. Paper-deep
+     pill on a thin olive rule sets it apart from "SIGN IN" + "JOIN"
+     which share the same small-caps typography. The pill carries
+     the dot + label as one object — clickable everywhere inside. */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: var(--paper-deep);
+  border: 1px solid rgba(138, 125, 32, 0.22);
+  text-decoration: none;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+.header-presence-link:hover,
+.header-presence-link:focus-visible {
+  background: var(--paper);
+  border-color: rgba(138, 125, 32, 0.5);
+  outline: none;
+}
+
+.header-presence-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.header-presence-dot-active {
+  /* Vivid warm green — matches the Writer's Desk widget's "live now"
+     signal so the two indicators read as the same status. */
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  animation: header-presence-pulse 2s ease-in-out infinite;
+  transform-origin: center;
+}
+.header-presence-dot-away {
+  background: transparent;
+  border: 1.4px solid var(--eye-deep);
+  opacity: 0.6;
+  width: 9px;
+  height: 9px;
+}
+
+@keyframes header-presence-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.85;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0);
+  }
+}
+
+.header-presence-text {
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--eye-deep);
+  white-space: nowrap;
+  transition: color 0.18s ease;
+}
+.header-presence-link:hover .header-presence-text,
+.header-presence-link:focus-visible .header-presence-text {
+  color: var(--ink);
+}
+
+/* Mobile: hide the text, leave just the dot (still tappable). */
+@media (max-width: 640px) {
+  .header-presence-text {
+    display: none;
+  }
+  /* …unless rendered inside the sales-page demo, where the label
+     IS the point of the section. */
+  .desk-presence-demo .header-presence-text {
+    display: inline;
+  }
+}
+
+/* === UI chrome typography =========================================
+   Sans-serif + tabular lining figures for app-style widgets
+   (counts, badges, indicators) where serif numerals feel off.
+   The body of the site stays serif; this class is for the chrome
+   strips that read as part of the application surface, not the
+   content. */
+
+.ui-sans {
+  font-family: ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1, "ss01" 1;
+}
+
+/* Sticky compose dock at the bottom of the lounge. Anchors to
+   the viewport bottom while the feed scrolls above it, but sits
+   in normal flow at the end of the section when the page is fully
+   scrolled — so the atmospheric footer line above it doesn't get
+   permanently covered. */
+.lounge-compose-dock {
+  position: sticky;
+  bottom: 0;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  box-shadow: 0 -8px 22px rgba(60, 46, 22, 0.07);
+  padding: 0.85rem 0 0.85rem;
+  /* Stretch the dock's background slightly past the content's left
+     and right padding so the seam reads as the room's wall, not
+     a card inside the room. */
+  margin: 0 -1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  z-index: 5;
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .lounge-compose-dock {
+    padding-bottom: calc(0.85rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* === Notifications bell + rows ====================================
+   Visual distinction between unread (olive left border, bolder
+   title, paper-deep tinted bg) and read (faded, no border, paper
+   bg). Hover lifts both onto paper-deep with eye-deep text. */
+
+.notifications-bell-trigger {
+  transition: opacity 0.18s ease;
+}
+.notifications-bell-trigger:hover {
+  opacity: 0.82;
+}
+.notifications-bell-trigger:focus-visible {
+  outline: 2px solid var(--eye-deep);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.notifications-row {
+  border-bottom: 1px solid var(--rule);
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
+  text-decoration: none;
+  color: inherit;
+}
+.notifications-row:last-child {
+  border-bottom: 0;
+}
+.notifications-row.is-unread {
+  background: rgba(184, 168, 44, 0.06);
+  border-left-color: var(--eye-deep);
+}
+.notifications-row.is-read {
+  opacity: 0.72;
+}
+.notifications-row:hover,
+.notifications-row:focus-visible {
+  background: var(--paper-deep);
+  outline: none;
+}
+
+.cta-prestige-disabled {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border: 1px solid var(--rule);
+  background: var(--paper-deep);
+  color: var(--ink-faint);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  cursor: not-allowed;
+  user-select: none;
+}
+
+/* Identity dropdown menu items: subtle olive-tinted hover surface. */
+.identity-menu-item {
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.identity-menu-item:hover,
+.identity-menu-item:focus-visible {
+  background: var(--paper-deep);
+  color: var(--eye-deep);
+  outline: none;
+}
+
+/* === Preset pills (membership PWYW tiers) === */
+
+.preset-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  padding: 0.65rem 0.35rem;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s ease, background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.preset-pill:hover {
+  border-color: var(--eye-deep);
+  color: var(--eye-deep);
+}
+
+.preset-pill-active {
+  border-color: var(--eye-deep);
+  background: rgba(184, 168, 44, 0.08);
+  color: var(--eye-deep);
+}
+
+.preset-pill-active:hover {
+  background: rgba(184, 168, 44, 0.14);
+}
+
+.preset-pill-amount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1;
+}
+
+.preset-pill-label {
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  /* OPERATOR is 8 chars and was overflowing the pill at 0.6rem /
+     0.22em. Tighten both so all five labels fit cleanly inside the
+     6-column grid on desktop and the 3-column grid on mobile.
+     Trailing letter-spacing creates a half-letter of phantom space
+     on the right; the -0.13em margin-right swallows it so labels
+     appear optically centered. */
+  font-size: 0.52rem;
+  letter-spacing: 0.13em;
+  margin-right: -0.13em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.preset-pill-active .preset-pill-label {
+  color: var(--eye-deep);
+}
+
+/* === Founding-text card (home page "Start here" hero) ============
+   Equal-weight cards pointing to the two doctrinal pieces. Paper-deep
+   fill with a thin olive rule, slight lift on hover. No primary /
+   secondary distinction between the two — both are foundational. */
+.founding-card {
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  padding: 1.5rem 1.5rem;
+  transition: border-color 0.2s ease, transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+@media (min-width: 768px) {
+  .founding-card {
+    padding: 2rem 2rem;
+  }
+}
+.founding-card:hover,
+.founding-card:focus-visible {
+  border-color: var(--eye-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(26, 23, 20, 0.06);
+  outline: none;
+}
+
+/* === Member badge chips =========================================
+   Unified visual system shared by FOUNDER + TIER chips. Identical
+   dimensions, padding, border-radius, border weight, typography,
+   baseline alignment. Two semantic axes of variation are allowed:
+
+     FOUNDER  — filled chip (permanent / earned by timing)
+     TIER     — outlined chip (current / chosen; recurring)
+
+   Tier color rules: HUNTER and OPERATOR are visually identical
+   (olive border + text) — the label name does the differentiating
+   work. APEX is the single saturated accent in the entire system,
+   marking the top of the order:
+
+     HUNTER     olive    (base prestige register)
+     OPERATOR   olive    (same as HUNTER — label does the work)
+     APEX       claret   (the only saturated chip in the system)
+
+   No gradients, no foil. Silhouette test: cover the words and all
+   chips read as the same shape; only fill (founder) or border color
+   (apex) varies.
+
+   Letter-spacing 0.18em (~+180 typographic units) and font-weight
+   400 (regular, NOT bold) keep the chips in the prestige register
+   rather than the loud-call-out register. */
+.member-chip {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-weight: 500;
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.24rem 0.62rem;
+  border: 1.5px solid var(--eye-deep);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--eye-deep);
+  white-space: nowrap;
+  line-height: 1.15;
+  /* Micro drop shadow — same on every chip so they read as seated
+     on the page, not printed flat. Unifies the system regardless of
+     fill / stroke variant. */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Smaller variant for in-thread replies. Proportions scale together
+   so the silhouette still matches its default-size sibling. */
+.member-chip-small {
+  font-size: 0.55rem;
+  padding: 0.2rem 0.52rem;
+  letter-spacing: 0.16em;
+}
+
+/* FOUNDER modifier — only the fill flips. Border stays olive-on-olive
+   (invisible against the fill but contributes the same 1.5px so the
+   outer box matches a tier chip's dimensions exactly).
+   Internal weight: the "Founder" label + middle dot stay light (400)
+   so they read engraved against the dark fill; the slot digit gets a
+   heavier 500 so the number doesn't disappear. */
+.member-chip-founder {
+  background: var(--eye-deep);
+  color: var(--paper);
+  border-color: var(--eye-deep);
+  font-weight: 400;
+}
+
+/* Generic middle-dot separator + value-slot styling shared by any
+   chip that prints "LABEL · VALUE" — founder slot number, guest
+   contribution amount, etc. Originally lived as
+   `.member-chip-founder-{sep,slot}`; renamed to remove the founder
+   coupling so the same vocabulary works across chip types. */
+.member-chip-sep {
+  margin: 0 0.42em;
+  font-weight: 400;
+  opacity: 0.85;
+}
+.member-chip-slot {
+  /* Force the value out of the chip's small-caps / letter-spacing
+     treatment so the number reads at its intended size. Cormorant
+     ships old-style figures by default — those have descenders and
+     read visually shorter than lining figures; lnum forces height-
+     aligned digits so the slot number doesn't look squashed. */
+  font-weight: 500;
+  font-size: 1em;
+  text-transform: none;
+  letter-spacing: 0;
+  font-variant-numeric: lining-nums;
+  font-feature-settings: "lnum" 1;
+  vertical-align: baseline;
+}
+
+/* TIER modifiers — APEX is the only saturated accent.
+   HUNTER inherits the olive base. OPERATOR also inherits it (the
+   label name is the only thing distinguishing it from HUNTER, by
+   design — no color change). APEX swaps border + text to claret. */
+.member-chip-apex {
+  border-color: #8b2635;
+  color: #8b2635;
+}
+
+/* === Live badge preview (pricing page) ===========================
+   Miniature comment card surfaced on the pricing page so the member
+   can see how their name + badge will appear in the site's comment
+   chrome before they pay. Updates live as the selected tier changes. */
+.badge-preview {
+  /* Slightly narrower than the rest of the form so it reads as a
+     contained snapshot, not a primary control. */
+  max-width: 22rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.badge-preview-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+}
+.badge-preview-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--eye-deep);
+  color: var(--eye-deep);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.badge-preview-body {
+  flex: 1;
+  min-width: 0;
+}
+.badge-preview-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.55rem;
+  margin-bottom: 0.3rem;
+}
+.badge-preview-name {
+  font-family: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.badge-preview-no-badge {
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-style: italic;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+}
+.badge-preview-text {
+  font-family: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin: 0;
 }
 
 /* === Header nav strip === */
@@ -1001,10 +3131,459 @@ a.no-underline {
    section level (see [slug]/page.tsx and the homepage lead), so the
    frame itself is just a quiet container --no duplicate corner label. */
 
+/* === Pay-what-you-want amount button + input ===
+   The displayed price IS the input. The button form (read mode) gets
+   a subtle dotted underline as an affordance; the input form (edit
+   mode) hides browser chrome so it visually matches the surrounding
+   display type. */
+
+.pwyw-amount-button,
+.pwyw-amount-input {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  outline: none;
+  display: inline-block;
+}
+
+.pwyw-amount-button {
+  cursor: text;
+  text-decoration: underline dotted var(--ink-faint);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 0.2s ease, color 0.2s ease;
+}
+
+.pwyw-amount-button:hover,
+.pwyw-amount-button:focus-visible {
+  text-decoration-color: var(--eye-deep);
+  color: var(--eye-deep);
+}
+
+.pwyw-amount-input {
+  /* Render identically to the button it replaces — no inset border,
+     no light-mode chrome, no number-spinner arrows. */
+  -moz-appearance: textfield;
+  appearance: textfield;
+  caret-color: var(--eye-deep);
+  text-decoration: underline solid var(--eye-deep);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+
+.pwyw-amount-input::-webkit-outer-spin-button,
+.pwyw-amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* === Pay-what-you-want slider ===
+   Styled to match the cream/ink/gold palette: a thin rule for the
+   track and a small gold disc for the thumb. WebKit + Firefox + Edge
+   each need their own thumb selectors; the track is shared. */
+
+.pwyw-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--rule);
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pwyw-slider:focus-visible {
+  outline: 2px solid var(--eye);
+  outline-offset: 8px;
+}
+
+.pwyw-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--eye-deep);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--eye-deep);
+  cursor: grab;
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.pwyw-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+  box-shadow: 0 0 0 1px var(--eye-deep), 0 0 0 6px var(--eye-glow);
+}
+
+.pwyw-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--eye-deep);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--eye-deep);
+  cursor: grab;
+}
+
+.pwyw-slider::-moz-range-thumb:active {
+  cursor: grabbing;
+  box-shadow: 0 0 0 1px var(--eye-deep), 0 0 0 6px var(--eye-glow);
+}
+
+.pwyw-slider::-moz-range-track {
+  background: var(--rule);
+  height: 2px;
+}
+
+/* === Rules of Engagement (/notes/rules) elevated treatment ===
+   Roman numerals, ornamental dividers, small-caps lead-ins, the
+   "Demonstrated in" reference line, a subtle additional paper-fiber
+   texture layered over the page bg, and a soft per-rule hover lift. */
+
+.rules-paper {
+  position: relative;
+  isolation: isolate;
+}
+
+.rules-paper::before {
+  /* Extra-fine fiber/noise layer on top of the body's existing
+     turbulence pattern. Multiply-blended so it darkens fibers
+     slightly rather than washing the page. Low opacity keeps it
+     "barely perceptible — adds depth, not distraction". */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='r'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' seed='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.39  0 0 0 0 0.26  0 0 0 0.07 0'/></filter><rect width='100%25' height='100%25' filter='url(%23r)'/></svg>");
+  background-size: 200px 200px;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+  z-index: 0;
+}
+
+.rules-paper > * {
+  position: relative;
+  z-index: 1;
+}
+
+.rule-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rule-card {
+  list-style: none;
+  padding: 1.65rem 1.5rem;
+  margin: 0 -1.5rem;
+  border-radius: 2px;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.rule-card:hover {
+  background-color: rgba(184, 168, 44, 0.05);
+  box-shadow: 0 1px 14px rgba(26, 23, 20, 0.05);
+}
+
+.rule-numeral {
+  /* Display-size anchor in the left margin. Lighter weight than the
+     title (500 vs 700) so the title's bold reads first even though
+     the numeral is physically taller. Olive-deep keeps it
+     architectural — a page marker, not a competing element. */
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: clamp(2.2rem, 4.5vw, 2.9rem);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--eye-deep);
+  line-height: 1;
+  min-width: 4rem;
+  text-align: left;
+  flex-shrink: 0;
+  opacity: 0.85;
+  font-feature-settings: "kern" 1, "liga" 1, "smcp" 0;
+}
+
+.rule-title {
+  /* The dominant element on each rule. Bold serif, full ink color,
+     same weight + size as the pre-elevation design. */
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  line-height: 1.25;
+  color: var(--ink);
+  margin-bottom: 1rem;
+}
+
+.rule-body {
+  font-family: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.rule-body p {
+  margin: 0;
+}
+
+.rule-demo {
+  margin-top: 0.95rem;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 0.86rem;
+  color: var(--ink-muted);
+  line-height: 1.55;
+}
+
+.rule-demo a {
+  color: var(--eye-deep);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease, color 0.2s ease;
+}
+
+.rule-demo a:hover {
+  color: var(--ink);
+  text-decoration-color: var(--eye-deep);
+}
+
+.rule-divider-li {
+  list-style: none;
+}
+
+.rule-divider {
+  /* Single centered middle-dot. Reads as deliberate, not glitchy.
+     Generous vertical breath above + below frames the next rule. */
+  text-align: center;
+  margin: 3rem 0;
+  color: var(--eye-deep);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 1.65rem;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+/* === Case file archive cards =================================
+   Member-area shelf entries on /case-files. Cream paper interior,
+   olive border, subtle settle-and-warm on hover so the affordance
+   is clear without resorting to a button silhouette. The whole
+   tile is wrapped in <a>, so the hover state lives here rather
+   than on a child element. */
+.case-card {
+  display: block;
+  padding: 1.65rem 1.5rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.case-card:hover {
+  border-color: var(--eye-deep);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
 /* === Reduced motion === */
 
 @media (prefers-reduced-motion: reduce) {
   .fade-up {
     animation: none;
   }
+  .rule-card {
+    transition: none;
+  }
+  .case-card {
+    transition: none;
+  }
+  .case-card:hover {
+    transform: none;
+  }
 }
+
+/* Admin desk dark mode + toggle — added 2026-05-14. */
+
+/* =============================================================
+   Admin Writer's Desk — dark theme
+   Scoped to body[data-theme="admin-desk-dark"]. The toggle lives
+   on /admin/desk and persists via localStorage. Variables here
+   override the :root palette only while the attribute is set;
+   removing it (e.g. on route change away from the admin desk)
+   restores the paper-and-ink defaults.
+
+   Palette is a warm dark — the same publication at night, not a
+   generic gray dark mode. Ink-cream on near-black with the same
+   olive accents. The body's paper noise texture is dropped (it
+   reads like static on a dark base) in favor of a deeper vignette.
+   ============================================================= */
+
+body[data-theme="admin-desk-dark"] {
+  --paper: #14110d;
+  --paper-deep: #1a1612;
+  --surface: #1f1a14;
+  --ink: #ede4cf;
+  --ink-soft: #d8cfb8;
+  --ink-muted: #b4a98a;
+  --ink-faint: #7a7060;
+  --rule: #2c2620;
+  --border: #3a342b;
+  --eye: #c9b937;
+  --eye-bright: #e3d255;
+  --eye-deep: #b8a82c;
+  --eye-glow: rgba(201, 185, 55, 0.42);
+  --vignette: inset 0 0 260px rgba(0, 0, 0, 0.55);
+
+  /* Drop the paper-fiber turbulence — it reads as static on dark.
+     A single non-tiling radial wash takes its place: a barely-there
+     warm glow up top, slightly dimmer at the bottom. The explicit
+     background-size: 100% 100% and background-repeat: no-repeat
+     OVERRIDE the light-mode body rule (which sets 240px 240px for
+     the paper turbulence pattern); without these the gradient
+     tiles into a grid of glow blobs. */
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(
+      ellipse 90% 60% at 50% -10%,
+      rgba(184, 168, 44, 0.045) 0%,
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 50% 110%,
+      rgba(184, 168, 44, 0.02) 0%,
+      transparent 70%
+    );
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Smooth crossfade between themes. Scoped to body so it covers the
+   page bg + inherited text color without bleeding into hover
+   transitions on individual elements. */
+body {
+  transition: background-color 280ms ease, color 280ms ease,
+    background-image 280ms ease;
+}
+
+/* The admin desk's status-panel uses a soft yellow tint in light
+   mode. On dark we replace the tint with a near-black recess so
+   the lamp's glow still reads as "the spot the light hits." */
+body[data-theme="admin-desk-dark"] .status-panel {
+  background: linear-gradient(180deg, #1c1812 0%, #181410 100%);
+  border-color: var(--rule);
+}
+
+/* Lift the writer's-desk card up from the body bg so it reads as a
+   surface lit from above rather than melting into the page. */
+body[data-theme="admin-desk-dark"] section.bg-surface {
+  background-color: var(--surface);
+}
+
+/* =============================================================
+   Admin Writer's Desk — dark mode toggle button
+   ============================================================= */
+
+/* Fixed-position anchor for the admin-wide toggle. Sits in the top-
+   right corner of every /admin/* page so the dark-mode control is
+   always one click away regardless of which surface Clay is on.
+   Below the modal layer, above content. The translucent paper-tinted
+   backdrop on the button below keeps it from sitting raw on top of
+   whatever's underneath while staying quiet. */
+.admin-theme-toggle-anchor {
+  position: fixed;
+  top: 1.1rem;
+  right: 1.1rem;
+  z-index: 45;
+}
+
+.admin-desk-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  background: rgba(245, 239, 225, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease,
+    border-color 180ms ease, transform 180ms ease;
+  padding: 0;
+}
+
+body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle {
+  background: rgba(20, 17, 13, 0.72);
+  border-color: var(--border);
+  color: var(--ink-muted);
+}
+
+.admin-desk-theme-toggle:hover {
+  color: var(--eye-deep);
+  border-color: var(--eye-deep);
+  background: rgba(184, 168, 44, 0.06);
+}
+
+.admin-desk-theme-toggle:active {
+  transform: scale(0.96);
+}
+
+.admin-desk-theme-toggle:focus-visible {
+  outline: 2px solid var(--eye);
+  outline-offset: 3px;
+}
+
+.admin-desk-theme-toggle svg {
+  width: 17px;
+  height: 17px;
+  transition: opacity 220ms ease, transform 360ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Crossfade + slight rotation between sun and moon when the theme
+   flips. We render both icons stacked and toggle their opacity so
+   neither "pops" in or out. */
+.admin-desk-theme-toggle-icons {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  display: inline-block;
+}
+
+.admin-desk-theme-toggle-icons svg {
+  position: absolute;
+  inset: 0;
+}
+
+.admin-desk-theme-toggle-icons .sun-icon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.admin-desk-theme-toggle-icons .moon-icon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.85);
+}
+
+body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .sun-icon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.85);
+}
+
+body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .moon-icon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+

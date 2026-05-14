@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { EmailSignup } from "@/components/EmailSignup";
+import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
 import { EyeDivider } from "@/components/Eyes";
 import { AudioPill } from "@/components/AudioPill";
-import { SubscriberCount } from "@/components/SubscriberCount";
 import { getAllArticles } from "@/lib/articles";
 import { getCurrentIssue } from "@/lib/issue";
 
@@ -27,6 +26,39 @@ export default function Home() {
 
   return (
     <div>
+      {/* === Start Here hero ============================================
+           On-ramp for first-time visitors. Two equal-weight cards point
+           to the founding texts of the publication — the on-ramp into
+           the doctrine before the reader hits the issue feed. Sits
+           above everything else so a brand-new visitor lands on it
+           first; returning readers scroll past it to the latest
+           issue. */}
+      <section>
+        <div className="max-w-6xl mx-auto px-6 pt-12 md:pt-16 pb-10 md:pb-14">
+          <div className="text-center mb-10 md:mb-12">
+            <p className="eyebrow mb-3 fade-up stagger-1">Start here</p>
+            <p
+              className="font-serif italic text-ink-muted fade-up stagger-2"
+              style={{ fontSize: "1.05rem" }}
+            >
+              The two founding pieces of Stop Being Prey.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
+            <FoundingCard
+              href="/founding/charlie-kirk"
+              title="Predator and Prey"
+              description="The founding text. What Charlie Kirk's life taught the operator class about who hunts and who gets hunted."
+            />
+            <FoundingCard
+              href="/founding/we-pray-for-our-prey"
+              title="We Pray For Our Prey"
+              description="The grace dimension of the doctrine. The operator class doesn't celebrate the kill, it carries the weight."
+            />
+          </div>
+        </div>
+      </section>
+
       {/* === Masthead === */}
       <section>
         <div className="max-w-6xl mx-auto px-6 py-12 md:py-16 border-t border-b border-rule">
@@ -219,7 +251,7 @@ export default function Home() {
       >
         <p className="eyebrow mb-5">Subscribe</p>
         <h2
-          className="font-display tracking-tight mb-6 leading-[1.05]"
+          className="font-display tracking-tight mb-10 leading-[1.05]"
           style={{
             fontSize: "clamp(2rem, 4vw, 3.25rem)",
             fontWeight: 700,
@@ -228,18 +260,57 @@ export default function Home() {
         >
           Get the next one.
         </h2>
-        <p className="deck mb-8 max-w-xl mx-auto">
-          Algorithms don&apos;t deliver this writing. It only arrives if
-          you ask.
-        </p>
-        <SubscriberCount className="mb-5" />
-        <div className="flex justify-center">
-          <EmailSignup />
-        </div>
-        <p className="text-xs italic text-ink-faint mt-6">
+        <DualSubscribeBlock />
+        <p className="text-xs italic text-ink-faint mt-8 text-center">
           Unsubscribe anytime. We never share your email.
         </p>
       </section>
     </div>
+  );
+}
+
+// === Founding-text card =========================================
+// Used in the "Start here" hero. Equal visual weight — both cards
+// are foundational; neither is "primary." Card surface is a thin
+// olive rule on paper-deep, hover lifts the rule + brightens the
+// title. Title in display serif, description in body serif, olive
+// "Read →" affordance at the bottom.
+function FoundingCard({
+  href,
+  title,
+  description,
+}: {
+  href: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="founding-card group no-underline flex flex-col"
+    >
+      <h2
+        className="font-display text-ink leading-[1.1] mb-3"
+        style={{
+          fontSize: "clamp(1.5rem, 2.6vw, 1.85rem)",
+          fontWeight: 700,
+          letterSpacing: "-0.018em",
+        }}
+      >
+        {title}
+      </h2>
+      <p
+        className="font-serif text-ink-muted leading-relaxed mb-5 flex-1"
+        style={{ fontSize: "1rem" }}
+      >
+        {description}
+      </p>
+      <span
+        className="font-display uppercase tracking-[0.22em] text-eye-deep"
+        style={{ fontSize: "0.7rem", fontWeight: 600 }}
+      >
+        Read &rarr;
+      </span>
+    </Link>
   );
 }

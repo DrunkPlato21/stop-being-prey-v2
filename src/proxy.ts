@@ -101,17 +101,58 @@ async function notesGate(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
+
+  // Permanent redirect of the old landing path (and the spec's /den
+  // shorthand) to /desk. Done before the auth gate so unauthenticated
+  // visitors get a single hop to /desk → sign-in rather than bouncing
+  // through /notes first.
+  if (pathname === "/notes" || pathname === "/notes/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/desk";
+    return NextResponse.redirect(url, 301);
+  }
+  if (pathname === "/den" || pathname === "/den/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/desk";
+    return NextResponse.redirect(url, 301);
+  }
+  if (pathname.startsWith("/den/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/desk" + pathname.slice("/den".length);
+    url.search = search;
+    return NextResponse.redirect(url, 301);
+  }
 
   if (
     pathname.startsWith("/supporters/admin") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/api/admin")
   ) {
+    // Admin lives on localhost only. In production, return 404 so the
+    // surface doesn't exist publicly — no auth bypass risk, no
+    // ADMIN_PASSWORD leak, no leak of internal routes. The admin code
+    // stays in the repo and runs in dev (`npm run dev`) where it's
+    // reachable at localhost:3000/admin/*.
+    if (process.env.NODE_ENV === "production") {
+      return new NextResponse("Not Found", { status: 404 });
+    }
     return adminGate(request);
   }
 
-  if (pathname === "/notes" || pathname.startsWith("/notes/")) {
+  if (
+    pathname === "/desk" ||
+    pathname.startsWith("/desk/") ||
+    pathname === "/case-files" ||
+    pathname.startsWith("/case-files/") ||
+    pathname === "/notifications" ||
+    pathname.startsWith("/notifications/") ||
+    pathname === "/lounge" ||
+    pathname.startsWith("/lounge/") ||
+    pathname === "/book" ||
+    pathname.startsWith("/book/") ||
+    pathname.startsWith("/notes/")
+  ) {
     return notesGate(request);
   }
 
@@ -119,13 +160,26 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Single matcher list covering all protected surfaces. Path-level
-  // dispatch happens inside the proxy function above.
+  // Single matcher list covering all protected surfaces + legacy paths
+  // that just redirect. Path-level dispatch happens inside the proxy
+  // function above.
   matcher: [
     "/supporters/admin/:path*",
     "/admin/:path*",
     "/api/admin/:path*",
     "/notes",
     "/notes/:path*",
+    "/desk",
+    "/desk/:path*",
+    "/case-files",
+    "/case-files/:path*",
+    "/notifications",
+    "/notifications/:path*",
+    "/lounge",
+    "/lounge/:path*",
+    "/book",
+    "/book/:path*",
+    "/den",
+    "/den/:path*",
   ],
 };

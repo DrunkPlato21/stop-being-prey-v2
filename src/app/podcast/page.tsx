@@ -166,16 +166,12 @@ export default function PodcastPage() {
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  {isIssue ? (
-                    <Link
-                      href={`/${episode.slug}`}
-                      className="text-ink group-hover:text-eye-deep transition-colors no-underline"
-                    >
-                      {episode.title}
-                    </Link>
-                  ) : (
-                    <span className="text-ink">{episode.title}</span>
-                  )}
+                  <Link
+                    href={`/${episode.slug}`}
+                    className="text-ink group-hover:text-eye-deep transition-colors no-underline"
+                  >
+                    {episode.title}
+                  </Link>
                 </h2>
 
                 <p className="deck mb-6">{episode.description}</p>
@@ -186,17 +182,15 @@ export default function PodcastPage() {
                   size="compact"
                 />
 
-                {isIssue && (
-                  <div className="mt-4 flex items-center gap-4">
-                    <Link
-                      href={`/${episode.slug}`}
-                      className="font-display text-sm uppercase tracking-[0.18em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
-                      style={{ fontWeight: 500 }}
-                    >
-                      Read the issue →
-                    </Link>
-                  </div>
-                )}
+                <div className="mt-4 flex items-center gap-4">
+                  <Link
+                    href={`/${episode.slug}`}
+                    className="font-display text-sm uppercase tracking-[0.18em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
+                    style={{ fontWeight: 500 }}
+                  >
+                    {isIssue ? "Read the issue →" : "Read it →"}
+                  </Link>
+                </div>
               </article>
             );
           })}
@@ -280,16 +274,12 @@ function FeaturedEpisodeCard({ episode }: { episode: ArticleMeta }) {
           letterSpacing: "-0.02em",
         }}
       >
-        {isIssue ? (
-          <Link
-            href={`/${episode.slug}`}
-            className="text-ink hover:text-eye-deep transition-colors no-underline"
-          >
-            {episode.title}
-          </Link>
-        ) : (
-          <span className="text-ink">{episode.title}</span>
-        )}
+        <Link
+          href={`/${episode.slug}`}
+          className="text-ink hover:text-eye-deep transition-colors no-underline"
+        >
+          {episode.title}
+        </Link>
       </h2>
 
       {episode.featuredNote && (
@@ -313,17 +303,15 @@ function FeaturedEpisodeCard({ episode }: { episode: ArticleMeta }) {
         size="standard"
       />
 
-      {isIssue && (
-        <div className="mt-5 flex items-center gap-4">
-          <Link
-            href={`/${episode.slug}`}
-            className="font-display text-sm uppercase tracking-[0.18em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            Read the issue →
-          </Link>
-        </div>
-      )}
+      <div className="mt-5 flex items-center gap-4">
+        <Link
+          href={`/${episode.slug}`}
+          className="font-display text-sm uppercase tracking-[0.18em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
+          style={{ fontWeight: 500 }}
+        >
+          {isIssue ? "Read the issue →" : "Read it →"}
+        </Link>
+      </div>
     </article>
   );
 }
