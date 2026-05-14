@@ -127,41 +127,48 @@ export default async function DeskAdminPage() {
           with the section eyebrows below. */}
       <nav
         aria-label="Other admin surfaces"
-        className="mb-12 pb-6 border-b border-rule flex flex-wrap items-baseline gap-x-2 gap-y-2"
+        className="mb-12 pb-6 border-b border-rule"
       >
-        <span
-          className="eyebrow mr-3"
-          style={{ letterSpacing: "0.32em", fontSize: "0.6rem" }}
-        >
-          Jump to
-        </span>
-        <AdminJumpLink href="/admin/desk/voice" label="Voice memos" />
-        <span className="text-ink-faint" aria-hidden="true">
-          &middot;
-        </span>
-        <AdminJumpLink href="/admin/channels" label="Elsewhere" />
-        <span className="text-ink-faint" aria-hidden="true">
-          &middot;
-        </span>
-        <AdminJumpLink href="/admin/case-submissions" label="Case submissions" />
-        <span className="text-ink-faint" aria-hidden="true">
-          &middot;
-        </span>
-        <AdminJumpLink href="/admin/lounge" label="Lounge" />
-        <span className="text-ink-faint" aria-hidden="true">
-          &middot;
-        </span>
-        <AdminJumpLink href="/admin/lounge/moderation" label="Lounge log" />
-        <span className="text-ink-faint" aria-hidden="true">
-          &middot;
-        </span>
-        <AdminJumpLink href="/admin/book" label="Book" />
-        <span className="hidden sm:inline-block w-px h-4 self-center bg-rule mx-2" aria-hidden="true" />
-        <AdminJumpLink href="/admin/comments" label="Comments" />
-        <span className="text-ink-faint" aria-hidden="true">
-          &middot;
-        </span>
-        <AdminJumpLink href="/admin/members" label="Members" />
+        {/* Top row: high-frequency surfaces. The ones Clay opens most
+            often during a writing session. */}
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-2">
+          <span
+            className="eyebrow mr-3"
+            style={{ letterSpacing: "0.32em", fontSize: "0.6rem" }}
+          >
+            Jump to
+          </span>
+          <AdminJumpLink href="/admin/channels" label="Elsewhere" />
+          <span className="text-ink-faint" aria-hidden="true">
+            &middot;
+          </span>
+          <AdminJumpLink href="/admin/desk/voice" label="Voice memos" />
+          <span className="text-ink-faint" aria-hidden="true">
+            &middot;
+          </span>
+          <AdminJumpLink href="/admin/lounge" label="Lounge" />
+          <span className="text-ink-faint" aria-hidden="true">
+            &middot;
+          </span>
+          <AdminJumpLink href="/admin/comments" label="Comments" />
+        </div>
+        {/* Bottom row: everything else. Same visual register so the
+            split reads as priority rather than category. */}
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-2">
+          <AdminJumpLink href="/admin/case-submissions" label="Case submissions" />
+          <span className="text-ink-faint" aria-hidden="true">
+            &middot;
+          </span>
+          <AdminJumpLink href="/admin/lounge/moderation" label="Lounge log" />
+          <span className="text-ink-faint" aria-hidden="true">
+            &middot;
+          </span>
+          <AdminJumpLink href="/admin/book" label="Book" />
+          <span className="text-ink-faint" aria-hidden="true">
+            &middot;
+          </span>
+          <AdminJumpLink href="/admin/members" label="Members" />
+        </div>
       </nav>
 
       {/* === Section 1: Right now ==========================
