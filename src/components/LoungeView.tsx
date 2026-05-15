@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -245,8 +246,16 @@ export function LoungeView(props: Props) {
   const [composing, setComposing] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
 
-  // Reply boxes by parent post id
+  // Reply boxes by parent post id. `openUnderReplyId` controls where
+  // the composer renders: null anchors it under the post body (when
+  // the user clicked "Reply" on the post itself), a reply id anchors
+  // it under that specific reply (when the user clicked "reply" on
+  // an individual reply). Submission still creates a flat sibling
+  // reply on the parent post regardless of anchor.
   const [openReplyFor, setOpenReplyFor] = useState<string | null>(null);
+  const [openUnderReplyId, setOpenUnderReplyId] = useState<string | null>(
+    null
+  );
   const [replyDraft, setReplyDraft] = useState<string>("");
   const [replying, setReplying] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
@@ -599,6 +608,7 @@ export function LoungeView(props: Props) {
       }
       setReplyDraft("");
       setOpenReplyFor(null);
+      setOpenUnderReplyId(null);
     } catch (err) {
       setReplyError(err instanceof Error ? err.message : "send_failed");
     } finally {
@@ -995,6 +1005,8 @@ export function LoungeView(props: Props) {
               isNew={isNew}
               openReplyFor={openReplyFor}
               setOpenReplyFor={setOpenReplyFor}
+              openUnderReplyId={openUnderReplyId}
+              setOpenUnderReplyId={setOpenUnderReplyId}
               replyDraft={replyDraft}
               setReplyDraft={setReplyDraft}
               replying={replying}
@@ -1049,6 +1061,8 @@ export function LoungeView(props: Props) {
                 isNew={isNew}
                 openReplyFor={openReplyFor}
                 setOpenReplyFor={setOpenReplyFor}
+                openUnderReplyId={openUnderReplyId}
+                setOpenUnderReplyId={setOpenUnderReplyId}
                 replyDraft={replyDraft}
                 setReplyDraft={setReplyDraft}
                 replying={replying}
@@ -1426,6 +1440,8 @@ type CardProps = {
   isNew: (at: number) => boolean;
   openReplyFor: string | null;
   setOpenReplyFor: (id: string | null) => void;
+  openUnderReplyId: string | null;
+  setOpenUnderReplyId: (id: string | null) => void;
   replyDraft: string;
   setReplyDraft: (s: string) => void;
   replying: boolean;
@@ -1461,6 +1477,8 @@ function PostCard(props: CardProps) {
     isNew,
     openReplyFor,
     setOpenReplyFor,
+    openUnderReplyId,
+    setOpenUnderReplyId,
     replyDraft,
     setReplyDraft,
     replying,
@@ -1495,6 +1513,79 @@ function PostCard(props: CardProps) {
   const hiddenCount = replies.length - visibleReplies.length;
 
   const snapshot = reactions[post.id] ?? emptySnapshot();
+
+  // Inline composer renderer. Called from two places: directly below
+  // the post body (when the user clicked the post's "Reply" button)
+  // and below a specific reply (when the user clicked "reply" on a
+  // reply). Same component either way — only the placeholder name
+  // and anchor location differ. Submission always lands a flat
+  // sibling reply on the parent post regardless of anchor.
+  const renderComposer = (replyingToName: string) => (
+    <div className="mt-4 pt-4 border-t border-rule">
+      <AutoResizingTextarea
+        value={replyDraft}
+        onChange={(e) => setReplyDraft(e.target.value.slice(0, MAX_BODY))}
+        onFocus={props.onReplyFocus}
+        onBlur={props.onReplyBlur}
+        minRows={2}
+        maxLength={MAX_BODY}
+        placeholder={`Reply to ${replyingToName}…`}
+        disabled={replying}
+        className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
+        style={{ fontSize: "0.95rem", lineHeight: 1.5 }}
+        autoFocus
+      />
+      <div className="flex items-center justify-between gap-3 mt-2">
+        <span
+          className="font-serif italic text-ink-faint"
+          style={{ fontSize: "0.76rem" }}
+        >
+          {replyDraft.length} / {MAX_BODY}
+        </span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setReplyDraft("");
+              setOpenReplyFor(null);
+              setOpenUnderReplyId(null);
+            }}
+            className="font-display uppercase tracking-[0.22em] text-ink-faint hover:text-ink transition-colors"
+            style={{
+              fontSize: "0.62rem",
+              fontWeight: 500,
+              background: "transparent",
+              border: 0,
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => onSubmitReply(post.id)}
+            disabled={replying || !replyDraft.trim()}
+            className="btn-secondary"
+            style={{
+              opacity: replying || !replyDraft.trim() ? 0.6 : 1,
+              cursor: replying ? "wait" : "pointer",
+            }}
+          >
+            <span>{replying ? "sending…" : "Reply"}</span>
+          </button>
+        </div>
+      </div>
+      {replyError && (
+        <p
+          className="font-serif italic mt-2"
+          style={{ color: "#7a3a2e", fontSize: "0.84rem" }}
+        >
+          {replyError}
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <article
@@ -1626,9 +1717,19 @@ function PostCard(props: CardProps) {
         />
         <button
           type="button"
-          onClick={() =>
-            setOpenReplyFor(openReplyFor === post.id ? null : post.id)
-          }
+          onClick={() => {
+            // Toggle when composer is already anchored under THIS
+            // post's body. Otherwise (closed, anchored under one of
+            // this post's replies, or anchored under another post)
+            // move it here under the post body.
+            if (openReplyFor === post.id && openUnderReplyId === null) {
+              setOpenReplyFor(null);
+              setOpenUnderReplyId(null);
+            } else {
+              setOpenReplyFor(post.id);
+              setOpenUnderReplyId(null);
+            }
+          }}
           className="font-display uppercase tracking-[0.22em] transition-colors"
           style={{
             fontSize: "0.62rem",
@@ -1704,73 +1805,14 @@ function PostCard(props: CardProps) {
         )}
       </footer>
 
-      {/* Inline reply composer */}
-      {openReplyFor === post.id && (
-        <div className="mt-4 pt-4 border-t border-rule">
-          <AutoResizingTextarea
-            value={replyDraft}
-            onChange={(e) => setReplyDraft(e.target.value.slice(0, MAX_BODY))}
-            onFocus={props.onReplyFocus}
-            onBlur={props.onReplyBlur}
-            minRows={2}
-            maxLength={MAX_BODY}
-            placeholder={`Reply to ${post.firstName}…`}
-            disabled={replying}
-            className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
-            style={{ fontSize: "0.95rem", lineHeight: 1.5 }}
-            autoFocus
-          />
-          <div className="flex items-center justify-between gap-3 mt-2">
-            <span
-              className="font-serif italic text-ink-faint"
-              style={{ fontSize: "0.76rem" }}
-            >
-              {replyDraft.length} / {MAX_BODY}
-            </span>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setReplyDraft("");
-                  setOpenReplyFor(null);
-                }}
-                className="font-display uppercase tracking-[0.22em] text-ink-faint hover:text-ink transition-colors"
-                style={{
-                  fontSize: "0.62rem",
-                  fontWeight: 500,
-                  background: "transparent",
-                  border: 0,
-                  cursor: "pointer",
-                  padding: 0,
-                }}
-              >
-                cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => onSubmitReply(post.id)}
-                disabled={replying || !replyDraft.trim()}
-                className="btn-secondary"
-                style={{
-                  opacity:
-                    replying || !replyDraft.trim() ? 0.6 : 1,
-                  cursor: replying ? "wait" : "pointer",
-                }}
-              >
-                <span>{replying ? "sending…" : "Reply"}</span>
-              </button>
-            </div>
-          </div>
-          {replyError && (
-            <p
-              className="font-serif italic mt-2"
-              style={{ color: "#7a3a2e", fontSize: "0.84rem" }}
-            >
-              {replyError}
-            </p>
-          )}
-        </div>
-      )}
+      {/* Inline reply composer — renders here ONLY when the composer
+          is anchored under the post body (`openUnderReplyId === null`).
+          When anchored under a specific reply it renders inside the
+          replies list below; see `renderComposer` and the ReplyRow
+          loop further down. */}
+      {openReplyFor === post.id &&
+        openUnderReplyId === null &&
+        renderComposer(post.firstName)}
 
       {/* Replies — curved olive connector instead of a flat border.
           The .lounge-reply-block ::before draws the vertical trunk
@@ -1801,52 +1843,60 @@ function PostCard(props: CardProps) {
           )}
           <ul className="flex flex-col gap-4">
             {visibleReplies.map((r) => (
-              <ReplyRow
-                key={r.id}
-                reply={r}
-                isAdmin={isAdmin}
-                snapshot={reactions[r.id] ?? emptySnapshot()}
-                badge={memberBadges[r.memberEmail]}
-                isReadByClay={readByClayReplyIds.has(r.id)}
-                byAuthor={
-                  !!adminEmail &&
-                  r.memberEmail.toLowerCase().trim() === adminEmail
-                }
-                now={now}
-                isFresh={isNew(r.createdAt)}
-                pickerOpenFor={pickerOpenFor}
-                setPickerOpenFor={setPickerOpenFor}
-                onReact={onReact}
-                onDelete={() => onDelete("reply", r.id)}
-                onToggleReadByClay={() => onToggleReadByClay("reply", r.id)}
-                onMentionReply={() => {
-                  // Build the @-token from the reply author's first
-                  // name. mentionTokenFor strips punctuation/whitespace
-                  // so the parser can resolve it back to the same
-                  // email on send.
-                  const token = mentionTokenFor(r.firstName);
-                  if (!token) return;
-                  const mention = `@${token} `;
-                  if (openReplyFor === post.id) {
-                    // Composer's already open on this post — append
-                    // without nuking what's been typed. Keep a single
-                    // space between the existing tail and the new tag.
-                    const current = replyDraft;
-                    const sep =
-                      current.length === 0 || current.endsWith(" ")
-                        ? ""
-                        : " ";
-                    setReplyDraft(
-                      (current + sep + mention).slice(0, MAX_BODY)
-                    );
-                  } else {
-                    // Composer was closed (or open on another post).
-                    // Replace draft + open ours.
-                    setReplyDraft(mention.slice(0, MAX_BODY));
-                    setOpenReplyFor(post.id);
+              <Fragment key={r.id}>
+                <ReplyRow
+                  reply={r}
+                  isAdmin={isAdmin}
+                  snapshot={reactions[r.id] ?? emptySnapshot()}
+                  badge={memberBadges[r.memberEmail]}
+                  isReadByClay={readByClayReplyIds.has(r.id)}
+                  byAuthor={
+                    !!adminEmail &&
+                    r.memberEmail.toLowerCase().trim() === adminEmail
                   }
-                }}
-              />
+                  now={now}
+                  isFresh={isNew(r.createdAt)}
+                  pickerOpenFor={pickerOpenFor}
+                  setPickerOpenFor={setPickerOpenFor}
+                  onReact={onReact}
+                  onDelete={() => onDelete("reply", r.id)}
+                  onToggleReadByClay={() => onToggleReadByClay("reply", r.id)}
+                  onMentionReply={() => {
+                    // Build the @-token from the reply author's first
+                    // name. mentionTokenFor strips punctuation/whitespace
+                    // so the parser can resolve it back to the same
+                    // email on send.
+                    const token = mentionTokenFor(r.firstName);
+                    if (!token) return;
+                    const mention = `@${token} `;
+                    if (openReplyFor === post.id) {
+                      // Composer is already on this post — slide the
+                      // anchor to this reply and append the mention to
+                      // whatever's been typed (single space separator
+                      // when the existing tail doesn't already end in
+                      // whitespace).
+                      setOpenUnderReplyId(r.id);
+                      const current = replyDraft;
+                      const sep =
+                        current.length === 0 || current.endsWith(" ")
+                          ? ""
+                          : " ";
+                      setReplyDraft(
+                        (current + sep + mention).slice(0, MAX_BODY)
+                      );
+                    } else {
+                      // Composer was closed or anchored on another post —
+                      // open here, anchor under this reply, replace draft.
+                      setOpenReplyFor(post.id);
+                      setOpenUnderReplyId(r.id);
+                      setReplyDraft(mention.slice(0, MAX_BODY));
+                    }
+                  }}
+                />
+                {openReplyFor === post.id &&
+                  openUnderReplyId === r.id &&
+                  renderComposer(r.firstName)}
+              </Fragment>
             ))}
           </ul>
         </div>
