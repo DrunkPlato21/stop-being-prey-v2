@@ -247,6 +247,23 @@ export async function isDisplayNameTakenBy(
 }
 
 /**
+ * Look up the email that owns a normalized display name, or null if
+ * no one has claimed it. Mirrors the read half of isDisplayNameTakenBy
+ * but returns the email itself so @-mention resolution can target a
+ * specific member.
+ */
+export async function getEmailByDisplayName(
+  normalized: string
+): Promise<string | null> {
+  const client = getClient();
+  if (!client) return null;
+  if (!normalized) return null;
+  const owner = await client.get<string>(claimKey(normalized));
+  if (!owner) return null;
+  return typeof owner === "string" ? owner : String(owner);
+}
+
+/**
  * Atomically claim a normalized display name for an email. Returns
  * true on successful claim, false if another email already owns it.
  * Re-claiming by the same email is a no-op success.

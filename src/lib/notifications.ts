@@ -36,7 +36,8 @@ export type NotificationType =
   | "payment_failed"
   | "founder_confirmed"
   | "lounge_reply"
-  | "lounge_reaction";
+  | "lounge_reaction"
+  | "lounge_mention";
 
 export type Notification = {
   id: string;

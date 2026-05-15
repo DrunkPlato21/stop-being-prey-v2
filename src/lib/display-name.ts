@@ -128,6 +128,21 @@ export function normalizeForCheck(input: string): string {
   return leetFolded.replace(/[^a-z]/g, "");
 }
 
+/**
+ * Convert a display-name-style string into the literal token shape
+ * we drop into a reply composer for an @-mention. Strips whitespace
+ * and non-word characters so the lounge mention parser can round-trip
+ * it: `@Mary S.` would split at the space, but `@MaryS` resolves
+ * cleanly back to her email. Pure string op, safe to use from client
+ * components.
+ */
+export function mentionTokenFor(displayName: string): string {
+  const trimmed = (displayName ?? "").trim();
+  if (!trimmed) return "";
+  const compact = trimmed.split(/\s+/).join("");
+  return compact.replace(/[^\w]/g, "");
+}
+
 /* === Checks ================================================ */
 
 export function isReservedName(displayName: string): boolean {

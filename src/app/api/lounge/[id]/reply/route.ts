@@ -8,6 +8,7 @@ import {
   isLoungeConfigured,
 } from "@/lib/lounge";
 import { createNotification } from "@/lib/notifications";
+import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
 
 export const runtime = "nodejs";
 
@@ -74,29 +75,61 @@ export async function POST(
   }
 
   // Notify the parent-post author (unless they're replying to
-  // themselves). Body is the reply text excerpt.
+  // themselves). Body is the reply text excerpt. Also fan out
+  // `lounge_mention` notifications to anyone @-tagged in the body —
+  // see resolveMentionToEmail for the resolution rules. Both kinds
+  // ride the same fire-and-forget block so write latency doesn't
+  // delay the API response.
   void (async () => {
+    const reply = result.reply;
+    const excerpt =
+      reply.body.length > 60 ? `${reply.body.slice(0, 60).trim()}…` : reply.body;
+
+    // Parent-author notification.
     try {
-      const reply = result.reply;
-      // Fetch parent to get owner email.
       const { getPost } = await import("@/lib/lounge");
       const parent = await getPost(reply.parentPostId);
-      if (!parent) return;
-      if (parent.memberEmail === reply.memberEmail) return;
-      const excerpt =
-        reply.body.length > 60 ? `${reply.body.slice(0, 60).trim()}…` : reply.body;
-      await createNotification({
-        memberEmail: parent.memberEmail,
-        type: "lounge_reply",
-        title: `${reply.firstName} replied to your post`,
-        body: excerpt,
-        linkUrl: `/lounge#post-${parent.id}`,
-      });
+      if (parent && parent.memberEmail !== reply.memberEmail) {
+        await createNotification({
+          memberEmail: parent.memberEmail,
+          type: "lounge_reply",
+          title: `${reply.firstName} replied to your post`,
+          body: excerpt,
+          linkUrl: `/lounge#post-${parent.id}`,
+        });
+      }
     } catch (err) {
-      console.error(
-        `[notifications] lounge_reply write failed:`,
-        err
-      );
+      console.error(`[notifications] lounge_reply write failed:`, err);
+    }
+
+    // Mentioned-member notifications. Self-mentions and a duplicate
+    // mention of the parent-post author are both skipped — the latter
+    // because the lounge_reply notification above already covers
+    // that case and we don't want to double-tap.
+    try {
+      const tokens = parseMentions(reply.body);
+      if (tokens.length === 0) return;
+      const { getPost } = await import("@/lib/lounge");
+      const parent = await getPost(reply.parentPostId);
+      const parentAuthor = parent?.memberEmail ?? null;
+      const notified = new Set<string>();
+      for (const token of tokens) {
+        const targetEmail = await resolveMentionToEmail(token);
+        if (!targetEmail) continue;
+        if (targetEmail === reply.memberEmail) continue;
+        if (parentAuthor && targetEmail === parentAuthor) continue;
+        if (notified.has(targetEmail)) continue;
+        notified.add(targetEmail);
+        await createNotification({
+          memberEmail: targetEmail,
+          type: "lounge_mention",
+          title: `${reply.firstName} mentioned you in the lounge`,
+          body: excerpt,
+          linkUrl: `/lounge#post-${reply.parentPostId}`,
+        });
+      }
+    } catch (err) {
+      console.error(`[notifications] lounge_mention write failed:`, err);
     }
   })();
 

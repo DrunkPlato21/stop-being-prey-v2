@@ -26,6 +26,7 @@ import { LoungeSceneIllustration } from "@/components/LoungeSceneIllustration";
 import { MemberBadge } from "@/components/MemberBadge";
 import { InitialAvatar } from "@/components/InitialAvatar";
 import { Linkified } from "@/components/Linkified";
+import { mentionTokenFor } from "@/lib/display-name";
 
 type MemberBadgeInfo = {
   founderSlot: number | null;
@@ -1606,7 +1607,7 @@ function PostCard(props: CardProps) {
         className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
         style={{ fontSize: "1rem" }}
       >
-        <Linkified text={post.body} />
+        <Linkified text={post.body} highlightMentions />
       </p>
 
       {/* Read-by-Clay mark lives below the body, as a quiet editor's
@@ -1818,6 +1819,33 @@ function PostCard(props: CardProps) {
                 onReact={onReact}
                 onDelete={() => onDelete("reply", r.id)}
                 onToggleReadByClay={() => onToggleReadByClay("reply", r.id)}
+                onMentionReply={() => {
+                  // Build the @-token from the reply author's first
+                  // name. mentionTokenFor strips punctuation/whitespace
+                  // so the parser can resolve it back to the same
+                  // email on send.
+                  const token = mentionTokenFor(r.firstName);
+                  if (!token) return;
+                  const mention = `@${token} `;
+                  if (openReplyFor === post.id) {
+                    // Composer's already open on this post — append
+                    // without nuking what's been typed. Keep a single
+                    // space between the existing tail and the new tag.
+                    const current = replyDraft;
+                    const sep =
+                      current.length === 0 || current.endsWith(" ")
+                        ? ""
+                        : " ";
+                    setReplyDraft(
+                      (current + sep + mention).slice(0, MAX_BODY)
+                    );
+                  } else {
+                    // Composer was closed (or open on another post).
+                    // Replace draft + open ours.
+                    setReplyDraft(mention.slice(0, MAX_BODY));
+                    setOpenReplyFor(post.id);
+                  }
+                }}
               />
             ))}
           </ul>
@@ -1843,6 +1871,7 @@ function ReplyRow({
   onReact,
   onDelete,
   onToggleReadByClay,
+  onMentionReply,
 }: {
   reply: LoungeReply;
   isAdmin: boolean;
@@ -1860,6 +1889,12 @@ function ReplyRow({
   ) => void;
   onDelete: () => void;
   onToggleReadByClay: () => void;
+  /** Open the post's composer pre-filled with @<this reply's
+      author>. Flat thread is preserved — the new reply lands as a
+      sibling at the bottom, the @-tag just makes the addressing
+      legible (and triggers a lounge_mention notification to the
+      tagged member when sent). */
+  onMentionReply: () => void;
 }) {
   return (
     <li
@@ -1933,7 +1968,7 @@ function ReplyRow({
         className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
         style={{ fontSize: "0.95rem" }}
       >
-        <Linkified text={reply.body} />
+        <Linkified text={reply.body} highlightMentions />
       </p>
       {/* Editor's stamp below the reply body. Out of the header so it
           isn't misread as a timestamp for the read event. */}
@@ -1948,6 +1983,23 @@ function ReplyRow({
           onReact={onReact}
           small
         />
+        <button
+          type="button"
+          onClick={onMentionReply}
+          className="font-display uppercase tracking-[0.22em] hover:text-eye-deep transition-colors"
+          style={{
+            fontSize: "0.58rem",
+            fontWeight: 600,
+            background: "transparent",
+            border: 0,
+            color: "var(--ink-faint)",
+            cursor: "pointer",
+            padding: 0,
+          }}
+          title={`Reply to ${reply.firstName}`}
+        >
+          reply
+        </button>
         {isAdmin && (
           <>
             <button
