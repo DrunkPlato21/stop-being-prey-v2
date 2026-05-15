@@ -1505,11 +1505,15 @@ function PostCard(props: CardProps) {
 
   const isFresh = isNew(post.createdAt);
 
+  // Show the last few replies inline; collapse anything older behind a
+  // "Show N more replies" button. Threshold tuned so short threads
+  // render in full and only legitimately long ones get folded.
+  const REPLIES_VISIBLE_BY_DEFAULT = 5;
   const expanded = expandedReplies.has(post.id);
   const visibleReplies =
-    expanded || replies.length <= 1
+    expanded || replies.length <= REPLIES_VISIBLE_BY_DEFAULT
       ? replies
-      : replies.slice(replies.length - 1);
+      : replies.slice(replies.length - REPLIES_VISIBLE_BY_DEFAULT);
   const hiddenCount = replies.length - visibleReplies.length;
 
   const snapshot = reactions[post.id] ?? emptySnapshot();
