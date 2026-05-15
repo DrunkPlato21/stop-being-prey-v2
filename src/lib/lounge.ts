@@ -1,6 +1,5 @@
 import { Redis } from "@upstash/redis";
 import { randomUUID } from "crypto";
-import { getProfile } from "./comments";
 
 // The Lounge: member-to-member async discussion. Short posts (≤280),
 // one-level-deep replies, single-reaction-per-target (the olive ✓).
@@ -554,13 +553,6 @@ export type ReactionSnapshot = {
   counts: ReactionCounts;
   total: number;
   myReaction: ReactionKey | null;
-  /** First names of every reactor, grouped by reaction key and
-      sorted alphabetically within each group. Powers the lounge's
-      "who reacted" popover that opens when a member hovers / taps
-      a reaction pill. A key is omitted when its count is zero, so
-      a UI that iterates `reactors` only sees keys that actually
-      have reactors. */
-  reactors: Partial<Record<ReactionKey, string[]>>;
 };
 
 export type SetReactionResult =
@@ -569,7 +561,6 @@ export type SetReactionResult =
       counts: ReactionCounts;
       total: number;
       myReaction: ReactionKey | null;
-      reactors: Partial<Record<ReactionKey, string[]>>;
       added: boolean;
       targetMemberEmail: string;
       bodySnapshot: string;
@@ -582,50 +573,6 @@ function reactionHashKeyFor(target: ReactionTarget): string {
     return `${POST_PREFIX}${target.id}${POST_REACTIONS_SUFFIX}`;
   }
   return `${REPLY_PREFIX}${target.id}${REPLY_REACTIONS_SUFFIX}`;
-}
-
-/**
- * Resolve a batch of reactor emails to first names. Falls back to
- * the email's local-part when no profile / display name exists so
- * the popover never renders a blank line. Uses parallel profile
- * loads since the input is already deduped (typical hot lounge
- * post has dozens of reactors at most).
- */
-async function resolveFirstNames(
-  emails: string[]
-): Promise<Record<string, string>> {
-  if (emails.length === 0) return {};
-  const pairs = await Promise.all(
-    emails.map(async (email) => {
-      const profile = await getProfile(email).catch(() => null);
-      const display = profile?.displayName?.trim() ?? "";
-      const fw = display.split(/\s+/)[0] ?? "";
-      return [email, fw || email.split("@")[0] || "Member"] as const;
-    })
-  );
-  return Object.fromEntries(pairs);
-}
-
-/**
- * Group a reactions hash (email → reactionKey) by key, swapping the
- * email for the reactor's first name (alphabetically sorted within
- * each key). Empty groups are omitted.
- */
-function buildReactorsMap(
-  hash: Record<string, unknown> | null | undefined,
-  emailToFirstName: Record<string, string>
-): Partial<Record<ReactionKey, string[]>> {
-  if (!hash) return {};
-  const out: Partial<Record<ReactionKey, string[]>> = {};
-  for (const [email, value] of Object.entries(hash)) {
-    if (!isReactionKey(value)) continue;
-    const name = emailToFirstName[email] ?? "Member";
-    (out[value] ??= []).push(name);
-  }
-  for (const key of Object.keys(out) as ReactionKey[]) {
-    out[key]?.sort((a, b) => a.localeCompare(b));
-  }
-  return out;
 }
 
 function aggregateCounts(
@@ -704,13 +651,6 @@ export async function setReaction(
     .catch(() => null)) as Record<string, unknown> | null;
   const { counts, total } = aggregateCounts(fresh);
 
-  // Resolve every remaining reactor's first name so the client can
-  // update its "who reacted" popover without a follow-up round-trip.
-  // This is a small fan-out per target (dozens at most).
-  const reactorEmails = fresh ? Object.keys(fresh) : [];
-  const emailToFirstName = await resolveFirstNames(reactorEmails);
-  const reactors = buildReactorsMap(fresh, emailToFirstName);
-
   // Keep the denormalized total on the post/reply in sync so the
   // feed renders accurately without re-aggregating on every read.
   const added = next !== null && priorKey === null;
@@ -722,7 +662,6 @@ export async function setReaction(
       counts,
       total,
       myReaction: next,
-      reactors,
       added,
       targetMemberEmail: post.memberEmail,
       bodySnapshot: post.body,
@@ -736,7 +675,6 @@ export async function setReaction(
     counts,
     total,
     myReaction: next,
-    reactors,
     added,
     targetMemberEmail: reply!.memberEmail,
     bodySnapshot: reply!.body,
@@ -747,14 +685,7 @@ export async function setReaction(
 /**
  * Per-viewer reaction snapshot for a batch of targets. Returns a
  * record keyed by target id: per-key counts + total + the caller's
- * current reaction + the per-key reactor first-name lists used by
- * the "who reacted" popover.
- *
- * Done in three phases to avoid N+1 profile fetches: (1) load every
- * target's reactions hash in parallel, (2) collect the unique set of
- * reactor emails across all targets, (3) resolve all unique emails
- * to first names in one parallel batch. A member who reacted to 10
- * posts is fetched once, not ten times.
+ * current reaction (null if none).
  */
 export async function reactionSnapshots(
   reactorEmail: string,
@@ -765,42 +696,19 @@ export async function reactionSnapshots(
   const norm = normEmail(reactorEmail);
   if (!norm || targets.length === 0) return {};
 
-  // Phase 1: parallel hash loads.
-  const hashes = await Promise.all(
-    targets.map(
-      (t) =>
-        client
-          .hgetall<Record<string, unknown>>(reactionHashKeyFor(t))
-          .catch(() => null) as Promise<Record<string, unknown> | null>
-    )
-  );
-
-  // Phase 2: dedupe reactor emails across the batch.
-  const uniqueEmails = new Set<string>();
-  for (const hash of hashes) {
-    if (!hash) continue;
-    for (const email of Object.keys(hash)) {
-      uniqueEmails.add(email);
-    }
-  }
-
-  // Phase 3: resolve those emails to first names. Single parallel
-  // batch — order-of-magnitude cheaper than per-target fetches.
-  const emailToFirstName = await resolveFirstNames(Array.from(uniqueEmails));
-
   const out: Record<string, ReactionSnapshot> = {};
-  targets.forEach((t, i) => {
-    const hash = hashes[i];
+  for (const t of targets) {
+    const hash = (await client
+      .hgetall<Record<string, unknown>>(reactionHashKeyFor(t))
+      .catch(() => null)) as Record<string, unknown> | null;
     const { counts, total } = aggregateCounts(hash);
     const mine = hash?.[norm];
     out[t.id] = {
       counts,
       total,
       myReaction: isReactionKey(mine) ? mine : null,
-      reactors: buildReactorsMap(hash, emailToFirstName),
     };
-  });
-
+  }
   return out;
 }
 

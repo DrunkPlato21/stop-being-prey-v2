@@ -101,6 +101,5 @@ export async function POST(req: NextRequest) {
     counts: result.counts,
     total: result.total,
     myReaction: result.myReaction,
-    reactors: result.reactors,
   });
 }
