@@ -144,6 +144,22 @@ function AutoResizingTextarea({
     el.style.height = `${el.scrollHeight}px`;
   }, [value]);
 
+  // On first mount, when autoFocus + an initial value combine (the
+  // reply composer prefills `@<name> ` when the user clicks reply on
+  // a reply), drop the cursor at the end of that prefill so they can
+  // start typing right after the @mention instead of in front of it.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (rest.autoFocus && typeof value === "string" && value.length > 0) {
+      const end = value.length;
+      el.setSelectionRange(end, end);
+    }
+    // Run on mount only — subsequent value changes shouldn't yank the
+    // user's cursor around.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <textarea
       ref={ref}
