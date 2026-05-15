@@ -142,9 +142,9 @@ export default async function AdminLoungePage() {
 
   return (
     <>
-      {/* Back-to-desk pill is rendered by the admin layout (see
-          AdminBackToDesk) so every admin subsection gets one for
-          free; no per-page wiring needed. */}
+      {/* Cross-admin nav (including a Desk homing link) is rendered
+          by the admin layout via AdminPersistentNav; no per-page
+          wiring needed. */}
       <LoungeView
         initialPinned={pinned}
         initialPosts={posts}

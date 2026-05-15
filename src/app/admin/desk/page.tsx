@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import {
   derivePresenceState,
@@ -48,7 +47,7 @@ function formatTimestamp(ms: number): string {
 //
 // Page is organized as three clearly-labeled sections so the primary
 // flow (flip presence, drop a note, triage the inbox) reads top-to-
-// bottom without competing for attention with the cross-admin nav:
+// bottom:
 //
 //   1. Right now      presence toggle + status composer + latest
 //                     status. This is Clay's day-to-day control.
@@ -58,9 +57,8 @@ function formatTimestamp(ms: number): string {
 //   3. Signals        broadcast form + active wall override. Less
 //                     frequent actions; kept below the inbox.
 //
-// A quiet "Jump to" cluster at the bottom links to other admin
-// surfaces (voice memos, channels, comments, members, etc.) so the
-// nav is reachable without dominating the page.
+// Cross-admin nav lives in the layout (AdminPersistentNav) so every
+// /admin/* surface shares the same utility rail.
 
 const VISITOR_WINDOW_MINUTES = 30;
 const VISITOR_LIMIT = 20;
@@ -97,10 +95,9 @@ export default async function DeskAdminPage() {
   return (
     <div className="max-w-2xl mx-auto px-6 py-12 md:py-16">
       {/* === Masthead =====================================
-          Title + live visitor badge. Cross-admin "Jump to" nav
-          sits directly below as quiet small-caps so it's reachable
-          without dominating the page. The dark-mode toggle lives
-          in the layout-level fixed corner, not in this masthead. */}
+          Title + live visitor badge. The cross-admin nav lives in
+          the layout above this page; the dark-mode toggle floats
+          at the fixed top-right corner. */}
       <header className="flex items-baseline justify-between gap-4 mb-6 flex-wrap">
         <h1
           className="font-display text-ink leading-tight tracking-tight"
@@ -119,56 +116,6 @@ export default async function DeskAdminPage() {
           generatedAt={now}
         />
       </header>
-
-      {/* === Jump to (top) ===================================
-          Quiet small-caps row pinned beneath the masthead. Reads
-          as utility nav, not a primary action; doesn't compete
-          with the section eyebrows below. */}
-      <nav
-        aria-label="Other admin surfaces"
-        className="mb-12 pb-6 border-b border-rule"
-      >
-        {/* Top row: high-frequency surfaces. The ones Clay opens most
-            often during a writing session. */}
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-2">
-          <span
-            className="eyebrow mr-3"
-            style={{ letterSpacing: "0.32em", fontSize: "0.6rem" }}
-          >
-            Jump to
-          </span>
-          <AdminJumpLink href="/admin/channels" label="Elsewhere" />
-          <span className="text-ink-faint" aria-hidden="true">
-            &middot;
-          </span>
-          <AdminJumpLink href="/admin/desk/voice" label="Voice memos" />
-          <span className="text-ink-faint" aria-hidden="true">
-            &middot;
-          </span>
-          <AdminJumpLink href="/admin/lounge" label="Lounge" />
-          <span className="text-ink-faint" aria-hidden="true">
-            &middot;
-          </span>
-          <AdminJumpLink href="/admin/comments" label="Comments" />
-        </div>
-        {/* Bottom row: everything else. Same visual register so the
-            split reads as priority rather than category. */}
-        <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-2">
-          <AdminJumpLink href="/admin/case-submissions" label="Case submissions" />
-          <span className="text-ink-faint" aria-hidden="true">
-            &middot;
-          </span>
-          <AdminJumpLink href="/admin/lounge/moderation" label="Lounge log" />
-          <span className="text-ink-faint" aria-hidden="true">
-            &middot;
-          </span>
-          <AdminJumpLink href="/admin/book" label="Book" />
-          <span className="text-ink-faint" aria-hidden="true">
-            &middot;
-          </span>
-          <AdminJumpLink href="/admin/members" label="Members" />
-        </div>
-      </nav>
 
       {/* === Section 1: Right now ==========================
           Day-to-day control surface. Presence toggle + status
@@ -255,23 +202,5 @@ export default async function DeskAdminPage() {
       </section>
 
     </div>
-  );
-}
-
-function AdminJumpLink({
-  href,
-  label,
-}: {
-  href: string;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="font-display uppercase tracking-[0.22em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
-      style={{ fontSize: "0.66rem", fontWeight: 500 }}
-    >
-      {label}
-    </Link>
   );
 }

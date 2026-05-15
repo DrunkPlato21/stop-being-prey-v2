@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { AdminDeskDarkToggle } from "@/components/AdminDeskDarkToggle";
-import { AdminBackToDesk } from "@/components/AdminBackToDesk";
+import { AdminPersistentNav } from "@/components/AdminPersistentNav";
 
 // Admin section layout. Three jobs:
 //
@@ -70,11 +70,12 @@ export default function AdminLayout({
       <div className="admin-theme-toggle-anchor">
         <AdminDeskDarkToggle />
       </div>
-      {/* Fixed top-left back-to-desk pill. Renders on every admin
-          page EXCEPT /admin/desk itself (suppressed via usePathname
-          inside the component) so every subsection has a one-click
-          escape hatch back to the home base. */}
-      <AdminBackToDesk />
+      {/* Persistent admin nav. Renders once here so every /admin/*
+          page shares the same Desk · Elsewhere · Voice memos · …
+          row with an olive underline on the current section. Replaces
+          the older fixed top-left back-to-desk pill — "Desk" is the
+          leftmost item and does the same homing job. */}
+      <AdminPersistentNav />
       {children}
     </>
   );
