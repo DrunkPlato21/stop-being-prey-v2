@@ -15,6 +15,7 @@ import type {
   LoungeReply,
   ReactionCounts,
   ReactionKey,
+  ReactionSnapshot,
 } from "@/lib/lounge";
 import {
   REACTION_EMOJI,
@@ -44,12 +45,6 @@ type MemberBadgeInfo = {
 
 const MAX_BODY = 280;
 
-type ReactionSnapshot = {
-  counts: ReactionCounts;
-  total: number;
-  myReaction: ReactionKey | null;
-};
-
 type Props = {
   initialPinned: LoungePost | null;
   initialPosts: LoungePost[];
@@ -71,6 +66,12 @@ type Props = {
       server doesn't expose ADMIN_EMAIL — admin styling will simply
       not fire. */
   adminEmail: string | null;
+  /** Current viewer's first name — used to optimistically slot them
+      into a reaction's reactor list when they tap a reaction pill,
+      so the "who reacted" popover updates without waiting for the
+      server round-trip. Falls back to the email's local-part on
+      the server when no display name is set. */
+  viewerFirstName: string | null;
   lastVisitedAt: number | null;
   isAdmin: boolean;
   activeNow: ActiveNowSnapshot;
@@ -185,7 +186,12 @@ type ApiError = {
 };
 
 function emptySnapshot(): ReactionSnapshot {
-  return { counts: emptyReactionCounts(), total: 0, myReaction: null };
+  return {
+    counts: emptyReactionCounts(),
+    total: 0,
+    myReaction: null,
+    reactors: {},
+  };
 }
 
 // A post is "live" when a reply landed within the last 10 minutes —
@@ -270,6 +276,14 @@ export function LoungeView(props: Props) {
 
   // Picker open state: only one picker can be open at a time
   const [pickerOpenFor, setPickerOpenFor] = useState<string | null>(null);
+
+  // "Who reacted" popover state. Encoded as `<targetId>:<reactionKey>`
+  // (or null when closed) so only one popover is open across the
+  // whole feed — hovering a pill on a different post auto-closes the
+  // previously open one.
+  const [reactorListOpenFor, setReactorListOpenFor] = useState<string | null>(
+    null
+  );
 
   // Read-by-Clay receipts. Two Sets — one for posts, one for replies.
   // Initialized from server-rendered state, mutated optimistically when
@@ -634,10 +648,41 @@ export function LoungeView(props: Props) {
       resolved = null;
     }
 
+    // Build an optimistic reactor map alongside the counts so the
+    // "who reacted" popover updates immediately for the tapping
+    // viewer (others see the change on their next poll).
+    const optimisticReactors: Partial<Record<ReactionKey, string[]>> = {};
+    for (const key of REACTION_KEYS) {
+      const list = current.reactors[key];
+      if (list && list.length) {
+        optimisticReactors[key] = [...list];
+      }
+    }
+    const me = props.viewerFirstName;
+    if (me) {
+      if (prior !== null) {
+        const list = optimisticReactors[prior];
+        if (list) {
+          const idx = list.indexOf(me);
+          if (idx >= 0) list.splice(idx, 1);
+          if (list.length === 0) delete optimisticReactors[prior];
+        }
+      }
+      if (resolved !== null) {
+        const list = optimisticReactors[resolved] ?? [];
+        if (!list.includes(me)) {
+          list.push(me);
+          list.sort((a, b) => a.localeCompare(b));
+        }
+        optimisticReactors[resolved] = list;
+      }
+    }
+
     const optimistic: ReactionSnapshot = {
       counts: { ...current.counts },
       total: current.total,
       myReaction: resolved,
+      reactors: optimisticReactors,
     };
     if (prior !== null) {
       optimistic.counts[prior] = Math.max(0, optimistic.counts[prior] - 1);
@@ -698,19 +743,23 @@ export function LoungeView(props: Props) {
         counts?: ReactionCounts;
         total?: number;
         myReaction?: ReactionKey | null;
+        reactors?: Partial<Record<ReactionKey, string[]>>;
       } = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
         // Rollback
         setReactions((prev) => ({ ...prev, [target.id]: current }));
         return;
       }
-      // Reconcile with server-truth (in case of races)
+      // Reconcile with server-truth (in case of races). The server's
+      // reactors map is authoritative — preferred over the optimistic
+      // one we built above so the popover converges to truth.
       setReactions((prev) => ({
         ...prev,
         [target.id]: {
           counts: data.counts ?? optimistic.counts,
           total: typeof data.total === "number" ? data.total : optimistic.total,
           myReaction: data.myReaction ?? null,
+          reactors: data.reactors ?? optimistic.reactors,
         },
       }));
     } catch {
@@ -1015,6 +1064,8 @@ export function LoungeView(props: Props) {
               setExpandedReplies={setExpandedReplies}
               pickerOpenFor={pickerOpenFor}
               setPickerOpenFor={setPickerOpenFor}
+              reactorListOpenFor={reactorListOpenFor}
+              setReactorListOpenFor={setReactorListOpenFor}
               onReact={chooseReaction}
               onSubmitReply={submitReply}
               onDelete={deleteTarget}
@@ -1071,6 +1122,8 @@ export function LoungeView(props: Props) {
                 setExpandedReplies={setExpandedReplies}
                 pickerOpenFor={pickerOpenFor}
                 setPickerOpenFor={setPickerOpenFor}
+                reactorListOpenFor={reactorListOpenFor}
+                setReactorListOpenFor={setReactorListOpenFor}
                 onReact={chooseReaction}
                 onSubmitReply={submitReply}
                 onDelete={deleteTarget}
@@ -1194,6 +1247,205 @@ export function LoungeView(props: Props) {
 
 const PICKER_OPEN_DELAY_MS = 180;
 const PICKER_CLOSE_DELAY_MS = 280;
+const POPOVER_OPEN_DELAY_MS = 140;
+const POPOVER_CLOSE_DELAY_MS = 200;
+const POPOVER_NAMES_VISIBLE = 6;
+
+// One reaction pill — emoji + count, with a "who reacted" popover
+// that opens on hover (desktop) or tap (mobile). The popover lists
+// the reactor first names; if there are more than POPOVER_NAMES_VISIBLE
+// the rest are folded into a "+N others" tail. Coordinated via
+// `reactorListOpenFor` so opening one pill auto-closes any other in
+// the feed; outside-click and Escape both dismiss.
+function ReactionPill({
+  targetId,
+  reactionKey,
+  count,
+  reactors,
+  small,
+  reactorListOpenFor,
+  setReactorListOpenFor,
+}: {
+  targetId: string;
+  reactionKey: ReactionKey;
+  count: number;
+  reactors: string[];
+  small: boolean;
+  reactorListOpenFor: string | null;
+  setReactorListOpenFor: (id: string | null) => void;
+}) {
+  const tag = `${targetId}:${reactionKey}`;
+  const isOpen = reactorListOpenFor === tag;
+  const wrapperRef = useRef<HTMLSpanElement>(null);
+  const openTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  function clearOpen() {
+    if (openTimerRef.current !== null) {
+      window.clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
+    }
+  }
+  function clearClose() {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }
+
+  function handleEnter() {
+    clearClose();
+    if (isOpen) return;
+    clearOpen();
+    openTimerRef.current = window.setTimeout(() => {
+      setReactorListOpenFor(tag);
+      openTimerRef.current = null;
+    }, POPOVER_OPEN_DELAY_MS);
+  }
+
+  function handleLeave() {
+    clearOpen();
+    if (!isOpen) return;
+    clearClose();
+    closeTimerRef.current = window.setTimeout(() => {
+      setReactorListOpenFor(null);
+      closeTimerRef.current = null;
+    }, POPOVER_CLOSE_DELAY_MS);
+  }
+
+  // Outside-click + Escape dismiss for the tap-open path. The picker
+  // higher up uses the same idea via a useEffect at the LoungeView
+  // level; we do it locally here since the popover is its own widget.
+  useEffect(() => {
+    if (!isOpen) return;
+    function onDocClick(e: MouseEvent) {
+      const w = wrapperRef.current;
+      if (!w) return;
+      if (e.target instanceof Node && w.contains(e.target)) return;
+      setReactorListOpenFor(null);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setReactorListOpenFor(null);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [isOpen, setReactorListOpenFor]);
+
+  useEffect(() => {
+    return () => {
+      clearOpen();
+      clearClose();
+    };
+  }, []);
+
+  const visible = reactors.slice(0, POPOVER_NAMES_VISIBLE);
+  const overflow = Math.max(0, reactors.length - visible.length);
+
+  return (
+    <span
+      ref={wrapperRef}
+      style={{ position: "relative", display: "inline-flex" }}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      <button
+        type="button"
+        onClick={() => {
+          clearOpen();
+          clearClose();
+          setReactorListOpenFor(isOpen ? null : tag);
+        }}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-label={`${count} ${
+          count === 1 ? "person" : "people"
+        } reacted with ${REACTION_LABEL[reactionKey]}`}
+        className="font-display transition-colors"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.25rem",
+          background: isOpen
+            ? "rgba(184, 168, 44, 0.10)"
+            : "transparent",
+          border: 0,
+          padding: small ? "0.1rem 0.35rem" : "0.15rem 0.4rem",
+          borderRadius: 2,
+          color: "var(--ink-faint)",
+          fontSize: small ? "0.6rem" : "0.66rem",
+          fontWeight: 600,
+          letterSpacing: "0.02em",
+          cursor: "pointer",
+          lineHeight: 1,
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            fontSize: small ? "0.85rem" : "0.95rem",
+            lineHeight: 1,
+          }}
+        >
+          {REACTION_EMOJI[reactionKey]}
+        </span>
+        <span style={{ color: "var(--ink-muted)" }}>{count}</span>
+      </button>
+
+      {isOpen && reactors.length > 0 && (
+        <div
+          role="dialog"
+          aria-label={`Who reacted with ${REACTION_LABEL[reactionKey]}`}
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 6px)",
+            left: 0,
+            zIndex: 30,
+            minWidth: "10rem",
+            maxWidth: "16rem",
+            background: "var(--paper)",
+            border: "1px solid var(--rule)",
+            boxShadow: "0 6px 22px rgba(26, 23, 20, 0.14)",
+            padding: "0.55rem 0.7rem",
+            fontFamily: "var(--font-cormorant), Georgia, serif",
+            fontSize: "0.82rem",
+            color: "var(--ink)",
+            lineHeight: 1.35,
+            whiteSpace: "normal",
+          }}
+        >
+          <p
+            className="font-display uppercase"
+            style={{
+              margin: 0,
+              marginBottom: "0.3rem",
+              fontSize: "0.55rem",
+              letterSpacing: "0.24em",
+              fontWeight: 700,
+              color: "var(--eye-deep)",
+            }}
+          >
+            {REACTION_EMOJI[reactionKey]} {REACTION_LABEL[reactionKey]}
+          </p>
+          <p style={{ margin: 0, fontStyle: "italic" }}>
+            {visible.join(", ")}
+            {overflow > 0 && (
+              <>
+                {" "}
+                <span style={{ color: "var(--ink-faint)" }}>
+                  +{overflow} other{overflow === 1 ? "" : "s"}
+                </span>
+              </>
+            )}
+          </p>
+        </div>
+      )}
+    </span>
+  );
+}
 
 function ReactionControl({
   targetId,
@@ -1201,6 +1453,8 @@ function ReactionControl({
   snapshot,
   pickerOpenFor,
   setPickerOpenFor,
+  reactorListOpenFor,
+  setReactorListOpenFor,
   onReact,
   small = false,
 }: {
@@ -1209,6 +1463,8 @@ function ReactionControl({
   snapshot: ReactionSnapshot;
   pickerOpenFor: string | null;
   setPickerOpenFor: (id: string | null) => void;
+  reactorListOpenFor: string | null;
+  setReactorListOpenFor: (id: string | null) => void;
   onReact: (
     target: { kind: "post" | "reply"; id: string },
     next: ReactionKey | null
@@ -1218,13 +1474,6 @@ function ReactionControl({
   const isOpen = pickerOpenFor === targetId;
   const mine = snapshot.myReaction;
   const hasReaction = mine !== null;
-
-  // Top-3 reaction keys by count for the summary cluster.
-  const topKeys: ReactionKey[] = REACTION_KEYS.filter(
-    (k) => snapshot.counts[k] > 0
-  )
-    .sort((a, b) => snapshot.counts[b] - snapshot.counts[a])
-    .slice(0, 3);
 
   // Hover-open / hover-close timers. Refs so re-renders don't wipe
   // the pending timeout id.
@@ -1323,38 +1572,41 @@ function ReactionControl({
         <span>{hasReaction ? REACTION_LABEL[mine] : "React"}</span>
       </button>
 
-      {/* Summary cluster (top emoji + total). Hidden when the user
-          is the only reactor — the trigger already shows their
-          emoji + label, no point echoing it. */}
-      {snapshot.total > 0 && !(hasReaction && snapshot.total === 1) && (
+      {/* Per-reaction pills with "who reacted" popover. Each non-zero
+          reaction renders as its own small button: emoji + count, plus
+          a popover above on hover / tap that lists the reactor first
+          names. Coordinated via reactorListOpenFor in the parent so
+          opening a pill on one post auto-closes any pill open elsewhere
+          in the feed.
+
+          The single-reactor-by-me suppression is dropped here on
+          purpose — when someone else also reacted, we want all pills
+          visible even if one of those pills happens to be the
+          viewer's. The trigger button to the left still echoes the
+          viewer's own emoji + label separately. */}
+      {snapshot.total > 0 && (
         <span
-          className="font-display"
           style={{
             marginLeft: "0.55rem",
             display: "inline-flex",
             alignItems: "center",
-            gap: "0.25rem",
-            color: "var(--ink-faint)",
-            fontSize: small ? "0.6rem" : "0.66rem",
-            fontWeight: 600,
-            letterSpacing: "0.02em",
+            gap: "0.35rem",
           }}
         >
-          <span aria-hidden="true" style={{ display: "inline-flex" }}>
-            {topKeys.map((k) => (
-              <span
-                key={k}
-                style={{
-                  fontSize: small ? "0.85rem" : "0.95rem",
-                  lineHeight: 1,
-                  marginRight: "-0.2rem",
-                }}
-              >
-                {REACTION_EMOJI[k]}
-              </span>
+          {REACTION_KEYS.filter((k) => snapshot.counts[k] > 0)
+            .sort((a, b) => snapshot.counts[b] - snapshot.counts[a])
+            .map((key) => (
+              <ReactionPill
+                key={key}
+                targetId={targetId}
+                reactionKey={key}
+                count={snapshot.counts[key]}
+                reactors={snapshot.reactors[key] ?? []}
+                small={small}
+                reactorListOpenFor={reactorListOpenFor}
+                setReactorListOpenFor={setReactorListOpenFor}
+              />
             ))}
-          </span>
-          <span style={{ marginLeft: "0.3rem" }}>{snapshot.total}</span>
         </span>
       )}
 
@@ -1450,6 +1702,8 @@ type CardProps = {
   setExpandedReplies: (next: Set<string>) => void;
   pickerOpenFor: string | null;
   setPickerOpenFor: (id: string | null) => void;
+  reactorListOpenFor: string | null;
+  setReactorListOpenFor: (id: string | null) => void;
   onReact: (
     target: { kind: "post" | "reply"; id: string },
     next: ReactionKey | null
@@ -1487,6 +1741,8 @@ function PostCard(props: CardProps) {
     setExpandedReplies,
     pickerOpenFor,
     setPickerOpenFor,
+    reactorListOpenFor,
+    setReactorListOpenFor,
     onReact,
     onSubmitReply,
     onDelete,
@@ -1713,6 +1969,8 @@ function PostCard(props: CardProps) {
           snapshot={snapshot}
           pickerOpenFor={pickerOpenFor}
           setPickerOpenFor={setPickerOpenFor}
+          reactorListOpenFor={reactorListOpenFor}
+          setReactorListOpenFor={setReactorListOpenFor}
           onReact={onReact}
         />
         <button
@@ -1858,6 +2116,8 @@ function PostCard(props: CardProps) {
                   isFresh={isNew(r.createdAt)}
                   pickerOpenFor={pickerOpenFor}
                   setPickerOpenFor={setPickerOpenFor}
+                  reactorListOpenFor={reactorListOpenFor}
+                  setReactorListOpenFor={setReactorListOpenFor}
                   onReact={onReact}
                   onDelete={() => onDelete("reply", r.id)}
                   onToggleReadByClay={() => onToggleReadByClay("reply", r.id)}
@@ -1918,6 +2178,8 @@ function ReplyRow({
   isFresh,
   pickerOpenFor,
   setPickerOpenFor,
+  reactorListOpenFor,
+  setReactorListOpenFor,
   onReact,
   onDelete,
   onToggleReadByClay,
@@ -1933,6 +2195,8 @@ function ReplyRow({
   isFresh: boolean;
   pickerOpenFor: string | null;
   setPickerOpenFor: (id: string | null) => void;
+  reactorListOpenFor: string | null;
+  setReactorListOpenFor: (id: string | null) => void;
   onReact: (
     target: { kind: "post" | "reply"; id: string },
     next: ReactionKey | null
@@ -2030,6 +2294,8 @@ function ReplyRow({
           snapshot={snapshot}
           pickerOpenFor={pickerOpenFor}
           setPickerOpenFor={setPickerOpenFor}
+          reactorListOpenFor={reactorListOpenFor}
+          setReactorListOpenFor={setReactorListOpenFor}
           onReact={onReact}
           small
         />

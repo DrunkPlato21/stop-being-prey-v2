@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { isAdmin } from "@/lib/comments";
+import { getProfile, isAdmin } from "@/lib/comments";
 import {
   bumpActiveNow,
   countLoungeAuthors,
@@ -135,6 +135,12 @@ export default async function AdminLoungePage() {
     { founderSlot: number | null; tierBadge: TierBadge | null }
   > = Object.fromEntries(memberBadgesEntries);
 
+  // Viewer's first name for optimistic reactor-popover updates.
+  const viewerProfile = await getProfile(session.email).catch(() => null);
+  const viewerFirstName =
+    (viewerProfile?.displayName?.trim().split(/\s+/)[0] ?? "") ||
+    (session.email.split("@")[0] ?? null);
+
   await setLastViewed(session.email).catch(() => null);
 
   const adminEmailNormalized =
@@ -155,6 +161,7 @@ export default async function AdminLoungePage() {
         initialReadByClayPostIds={readByClayPostIds}
         initialReadByClayReplyIds={readByClayReplyIds}
         adminEmail={adminEmailNormalized}
+        viewerFirstName={viewerFirstName}
         lastVisitedAt={lastVisitedAt}
         isAdmin={true}
         activeNow={activeNow}

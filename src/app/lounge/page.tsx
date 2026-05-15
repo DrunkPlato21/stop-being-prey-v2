@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { isAdmin } from "@/lib/comments";
+import { getProfile, isAdmin } from "@/lib/comments";
 import {
   bumpActiveNow,
   countLoungeAuthors,
@@ -128,6 +128,14 @@ export default async function LoungePage() {
   const adminEmailNormalized =
     process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null;
 
+  // Resolve the viewer's first name once so the client can optimistically
+  // insert / remove it in the "who reacted" popover when they toggle a
+  // reaction, without waiting for the server response.
+  const viewerProfile = await getProfile(session.email).catch(() => null);
+  const viewerFirstName =
+    (viewerProfile?.displayName?.trim().split(/\s+/)[0] ?? "") ||
+    (session.email.split("@")[0] ?? null);
+
   // Bump last-viewed after the snapshot is built so the current
   // request's NEW indicators still reflect the prior visit.
   await setLastViewed(session.email).catch(() => null);
@@ -143,6 +151,7 @@ export default async function LoungePage() {
       initialReadByClayPostIds={readByClayPostIds}
       initialReadByClayReplyIds={readByClayReplyIds}
       adminEmail={adminEmailNormalized}
+      viewerFirstName={viewerFirstName}
       lastVisitedAt={lastVisitedAt}
       isAdmin={adminUser}
       activeNow={activeNow}
