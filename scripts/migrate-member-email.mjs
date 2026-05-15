@@ -46,6 +46,14 @@
 //                         submission, every notification, every lounge
 //                         reactions hash (post + reply).
 //
+//   Stripe customer      customer.email field via stripe.customers
+//                         .update(). Required so /api/auth/request-link
+//                         (which looks the member up in Stripe before
+//                         minting a magic link) can find them at the
+//                         new address. Only runs when STRIPE_SECRET_KEY
+//                         is set in env — without it the script warns
+//                         and leaves Stripe alone.
+//
 // Caveats:
 //   - JWT session cookie still encodes the old email; the member must
 //     request a fresh magic link after the swap to get a session bound
@@ -54,8 +62,16 @@
 //     They'll expire on their own.
 //   - Profile audit log (displayNameHistory) is preserved as-is. Its
 //     entries don't store emails.
+//   - Stripe key in .env.local is usually a test key. To migrate a
+//     real customer you need the live key (sk_live_…) in env when you
+//     run --commit. If the test key is loaded the script will try to
+//     update a test-mode customer that doesn't exist and quietly skip;
+//     the loud "STRIPE_SECRET_KEY not set" path doesn't trigger. Fix
+//     the prod Stripe record in the dashboard if you're not sure
+//     which key is loaded.
 
 import { Redis } from "@upstash/redis";
+import Stripe from "stripe";
 
 // ---- args + env ----------------------------------------------------
 
@@ -97,6 +113,18 @@ if (!url || !token) {
 
 const redis = new Redis({ url, token });
 
+// Stripe is optional — without it, the script still migrates every
+// Upstash store but warns that the customer's Stripe email is now
+// out of sync with the rest of the system, which breaks email-based
+// lookups like the magic-link sign-in flow. Use a test key to dry-run
+// against test Stripe; the prod key (sk_live_…) to actually fix a
+// real member.
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2026-04-22.dahlia",
+    })
+  : null;
+
 // ---- output helpers ------------------------------------------------
 
 const mode = COMMIT ? "COMMIT" : "DRY-RUN";
@@ -130,6 +158,7 @@ const counts = {
   notesRewritten: 0,
   caseSubmissionsRewritten: 0,
   notificationsRewritten: 0,
+  stripeCustomersUpdated: 0,
 };
 
 // ---- primitive ops -------------------------------------------------
@@ -494,6 +523,71 @@ async function migrateAuthoredRecordsViaIndex(
   }
 }
 
+// Update the member's Stripe customer record so the new email is the
+// one Stripe knows them by. Without this, emailHasActiveMembership()
+// (called inside /api/auth/request-link) can't find them on sign-in
+// and the magic-link send silently no-ops.
+//
+// Two key bits of data needed:
+//   - the member's stripeCustomerId, read from the (already-migrated)
+//     member record
+//   - a Stripe secret key in env (STRIPE_SECRET_KEY)
+//
+// If either is missing we don't fail the migration — we surface a
+// loud warning so the operator can finish the job manually in the
+// Stripe dashboard. The Upstash migration has already succeeded by
+// the time we hit this phase and we don't want a Stripe outage to
+// undo it.
+async function migrateStripeCustomer(member) {
+  header("Stripe customer (email field)");
+  if (!stripe) {
+    note(
+      "STRIPE_SECRET_KEY not set — skipping. Update the customer's email"
+    );
+    note(
+      "in the Stripe dashboard manually, or re-run with STRIPE_SECRET_KEY"
+    );
+    note("in env. Otherwise the member can't sign in.");
+    return;
+  }
+  const customerId = member && member.stripeCustomerId;
+  if (!customerId) {
+    note("no stripeCustomerId on the member record — nothing to update");
+    return;
+  }
+  // Pull the current Stripe email so we can show before → after even
+  // when COMMIT is off. customers.retrieve is read-only.
+  let current;
+  try {
+    current = await stripe.customers.retrieve(customerId);
+  } catch (err) {
+    console.error(`  ! Stripe customer fetch failed: ${err.message}`);
+    return;
+  }
+  if (current.deleted) {
+    note(`Stripe customer ${customerId} is deleted; skipping`);
+    return;
+  }
+  const currentEmail = (current.email || "").toLowerCase().trim();
+  if (currentEmail === TO) {
+    note(
+      `Stripe customer ${customerId} already on ${TO} — nothing to do`
+    );
+    return;
+  }
+  row("update stripe", `customer ${customerId}: ${currentEmail} → ${TO}`);
+  if (!COMMIT) {
+    counts.stripeCustomersUpdated++;
+    return;
+  }
+  try {
+    await stripe.customers.update(customerId, { email: TO });
+    counts.stripeCustomersUpdated++;
+  } catch (err) {
+    console.error(`  ! Stripe customer update failed: ${err.message}`);
+  }
+}
+
 // ---- main ----------------------------------------------------------
 
 async function main() {
@@ -532,6 +626,12 @@ async function main() {
     "notificationsRewritten",
     "Notifications"
   );
+
+  // Stripe is the upstream identity for paid members — emailHasActive-
+  // Membership looks the customer up there before issuing a magic link.
+  // Without this step the migrated member can't sign in at all because
+  // Stripe still maps the old email to the customer record.
+  await migrateStripeCustomer(member);
 
   // Safety net: after all the targeted migrations, scan for any key
   // whose name still contains FROM. In COMMIT mode this surfaces
