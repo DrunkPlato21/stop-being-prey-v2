@@ -805,11 +805,19 @@ export async function createComment(
 
   const id = randomUUID();
   const now = Date.now();
-  // Admin comments auto-approve. The publisher shouldn't have to
-  // moderate themselves, and a delay between Clay posting and the
-  // comment going live would be jarring for readers refreshing the
-  // page after he replied.
+  // Auto-approve when:
+  //   - Admin (Clay) — the publisher shouldn't moderate himself, and
+  //     a delay between him posting and the comment going live would
+  //     be jarring for readers refreshing the page after his reply.
+  //   - kind === "note" — Field Notes live behind the member paywall;
+  //     everyone reaching the comment box has already passed the
+  //     membership trust filter, so a pre-publish hold adds latency
+  //     without value. Public articles (kind="article") still moderate
+  //     because they accept paid non-member comments where the trust
+  //     filter is just "had a dollar."
   const isAuthor = isAdmin(input.email);
+  const isMemberOnlySurface = input.kind === "note";
+  const autoApprove = isAuthor || isMemberOnlySurface;
   const record: CommentRecord = {
     id,
     kind: input.kind,
@@ -820,7 +828,7 @@ export async function createComment(
     createdAt: now,
     replyBody: null,
     replyAt: null,
-    approved: isAuthor ? true : false,
+    approved: autoApprove,
   };
 
   await client.set(`${COMMENT_PREFIX}${id}`, JSON.stringify(record));
@@ -831,7 +839,7 @@ export async function createComment(
   await client.zadd(ALL_INDEX_KEY, { score: now, member: id });
   await client.set(lockKey(input.email, input.kind, input.slug), id);
   await client.sadd(memberCommentsKey(input.email), id);
-  if (!isAuthor) {
+  if (!autoApprove) {
     await client.zadd(PENDING_INDEX_KEY, { score: now, member: id });
   }
 

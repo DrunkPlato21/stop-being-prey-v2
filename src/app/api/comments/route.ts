@@ -3,6 +3,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import {
   createComment,
   getProfile,
+  isApproved,
   setProfile,
   type CommentKind,
 } from "@/lib/comments";
@@ -117,11 +118,14 @@ export async function POST(req: NextRequest) {
 
   // Notify the admin (Clay) so they don't need to poll the queue.
   // Only fires if ADMIN_EMAIL is configured — otherwise there's no
-  // admin to notify and no queue UX to point them at anyway. Failure
+  // admin to notify and no queue UX to point them at anyway. Skipped
+  // when the comment is already approved (Clay's own comments and
+  // member comments on member-only Field Notes), since the email's
+  // job is to flag a queue item and there's nothing to queue. Failure
   // doesn't fail the request: the comment is already persisted and
   // visible to the author via the pending-state badge.
   const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail) {
+  if (adminEmail && !isApproved(result.comment)) {
     const piece =
       result.comment.kind === "article"
         ? (() => {
