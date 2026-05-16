@@ -1,17 +1,21 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getAllFieldNotes } from "@/lib/field-notes";
+import {
+  getAllFieldNotesWithActivity,
+  type FieldNoteMetaWithActivity,
+  type FieldNoteStatus,
+} from "@/lib/field-notes";
 
 export const metadata: Metadata = {
   title: "Field Notes",
-  description: "Annotated breakdowns of real engagements. Members only.",
+  description: "The work being made, in real time. Members only.",
 };
 
 export const dynamic = "force-dynamic";
 
-function formatDate(date: string): string {
-  if (!date) return "";
-  return new Date(date).toLocaleDateString("en-US", {
+function formatActivityDate(ms: number): string {
+  if (!ms) return "";
+  return new Date(ms).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -19,8 +23,21 @@ function formatDate(date: string): string {
   });
 }
 
+function statusLabel(status: FieldNoteStatus): string {
+  switch (status) {
+    case "drafting":
+      return "Drafting";
+    case "researching":
+      return "Researching";
+    case "in revision":
+      return "In revision";
+    case "shipped":
+      return "Shipped";
+  }
+}
+
 export default async function FieldNotesIndexPage() {
-  const notes = getAllFieldNotes();
+  const notes = await getAllFieldNotesWithActivity();
 
   return (
     <div>
@@ -39,8 +56,9 @@ export default async function FieldNotesIndexPage() {
             Field Notes.
           </h1>
           <p className="deck max-w-xl mx-auto fade-up stagger-3">
-            Annotated breakdowns of real engagements. Screenshots, post
-            links, doctrine tags. The footwork behind the public writing.
+            The work being made, in real time. Each Field Note grows
+            entry by entry while a piece is in progress, then becomes
+            the record of how it was made.
           </p>
         </div>
       </section>
@@ -60,41 +78,71 @@ export default async function FieldNotesIndexPage() {
                   idx === 0 ? "py-8" : "py-8 border-t border-rule"
                 }
               >
-                <Link
-                  href={`/notes/field-notes/${note.slug}`}
-                  className="block no-underline group"
-                >
-                  <p className="eyebrow mb-3">
-                    Field Note №{note.number}
-                    {note.date && (
-                      <>
-                        {" · "}
-                        {formatDate(note.date)}
-                      </>
-                    )}
-                  </p>
-                  <h3
-                    className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep transition-colors"
-                    style={{
-                      fontSize: "clamp(1.6rem, 3vw, 2.1rem)",
-                      fontWeight: 700,
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    {note.title}
-                  </h3>
-                  <p
-                    className="font-serif text-ink-muted leading-relaxed"
-                    style={{ fontSize: "1.02rem" }}
-                  >
-                    {note.excerpt}
-                  </p>
-                </Link>
+                <FieldNoteRow note={note} />
               </li>
             ))}
           </ul>
         )}
       </section>
     </div>
+  );
+}
+
+function FieldNoteRow({ note }: { note: FieldNoteMetaWithActivity }) {
+  const dateText = formatActivityDate(note.lastActivityAt);
+  return (
+    <Link
+      href={`/notes/field-notes/${note.slug}`}
+      className="block no-underline group"
+    >
+      <p className="eyebrow mb-3">
+        <span style={{ color: "var(--eye-deep)" }}>
+          {statusLabel(note.status)}
+        </span>
+        {dateText && (
+          <>
+            <span className="mx-2 text-rule">·</span>
+            <span>
+              {note.kind === "journal" && note.entryCount > 0
+                ? `Last entry ${dateText}`
+                : dateText}
+            </span>
+          </>
+        )}
+      </p>
+      <h3
+        className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep transition-colors"
+        style={{
+          fontSize: "clamp(1.6rem, 3vw, 2.1rem)",
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+        }}
+      >
+        {note.title}
+      </h3>
+      {note.kind === "journal" && note.latestEntryTitle ? (
+        <p
+          className="font-serif text-ink-muted leading-relaxed"
+          style={{ fontSize: "1.02rem" }}
+        >
+          <span className="font-display italic" style={{ fontWeight: 500 }}>
+            {note.latestEntryTitle}
+          </span>
+          {note.excerpt && (
+            <>
+              <span className="mx-2 text-rule">—</span>
+              <span>{note.excerpt}</span>
+            </>
+          )}
+        </p>
+      ) : (
+        <p
+          className="font-serif text-ink-muted leading-relaxed"
+          style={{ fontSize: "1.02rem" }}
+        >
+          {note.excerpt}
+        </p>
+      )}
+    </Link>
   );
 }
