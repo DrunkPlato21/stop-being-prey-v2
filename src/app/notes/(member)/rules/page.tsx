@@ -72,7 +72,7 @@ const FOUNDING_LINK_BY_RULE: Record<
   number,
   { title: string; href: string }
 > = {
-  5: { title: "Predator and Prey", href: "/founding/charlie-kirk" },
+  5: { title: "The Losertarian Problem", href: "/the-losertarian-problem" },
   8: {
     title: "We Pray For Our Prey",
     href: "/founding/we-pray-for-our-prey",
