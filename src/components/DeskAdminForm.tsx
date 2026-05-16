@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type TextareaHTMLAttributes,
+} from "react";
 import { useRouter } from "next/navigation";
 import type { PresenceState } from "@/lib/desk";
 
@@ -12,6 +18,50 @@ const AWAY_NOTE_MAX = 200;
 //   - PresenceToggle: "I'm at the desk" / "End session"
 //   - ActiveWallControl: feature/hide the Active Wall panel + paste a
 //     wall link to pin a specific wall
+
+// Textarea that grows with its content. Initial size = minRows; expands
+// as the user types so they're not stuck wrestling the resize handle on
+// long status notes. Mirrors the helper in LoungeView.tsx — duplicated
+// here rather than extracted so the Lounge composer's behavior stays
+// insulated from admin-side changes.
+type AutoResizingTextareaProps =
+  Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "rows" | "ref"> & {
+    value: string;
+    minRows?: number;
+  };
+
+function AutoResizingTextarea({
+  value,
+  minRows = 2,
+  style,
+  ...rest
+}: AutoResizingTextareaProps) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Reset to "auto" first so the box can shrink when content is
+    // deleted. Without this, scrollHeight stays at the previous taller
+    // value and the box never gets smaller.
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      rows={minRows}
+      style={{
+        resize: "none",
+        overflow: "hidden",
+        ...style,
+      }}
+      {...rest}
+    />
+  );
+}
 
 export function DeskAdminForm() {
   const router = useRouter();
@@ -53,14 +103,14 @@ export function DeskAdminForm() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <label className="block">
         <span className="eyebrow block mb-2">New update</span>
-        <textarea
+        <AutoResizingTextarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          rows={4}
+          minRows={4}
           maxLength={600}
           placeholder="What's on the desk right now?"
           disabled={pending}
-          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
           style={{ fontSize: "1rem", lineHeight: 1.55 }}
         />
       </label>
@@ -310,14 +360,14 @@ function AwayNoteEditor({
         >
           Away note
         </span>
-        <textarea
+        <AutoResizingTextarea
           value={draft}
           onChange={(e) => setDraft(e.target.value.slice(0, AWAY_NOTE_MAX))}
-          rows={3}
+          minRows={3}
           maxLength={AWAY_NOTE_MAX}
           placeholder="Optional. Members see this on the widget."
           disabled={pending}
-          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
           style={{ fontSize: "0.95rem", lineHeight: 1.55 }}
         />
       </label>
@@ -434,17 +484,17 @@ function EndSessionModal({
               hours.
             </p>
 
-            <textarea
+            <AutoResizingTextarea
               autoFocus
               value={note}
               onChange={(e) =>
                 setNote(e.target.value.slice(0, AWAY_NOTE_MAX))
               }
-              rows={3}
+              minRows={3}
               maxLength={AWAY_NOTE_MAX}
               placeholder="e.g. back tomorrow morning, working through the next field note."
               disabled={pending}
-              className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+              className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
               style={{ fontSize: "0.95rem", lineHeight: 1.55 }}
             />
             <p
