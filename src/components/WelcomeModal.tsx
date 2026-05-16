@@ -261,6 +261,27 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
                 .
               </p>
               <p
+                className="font-serif italic text-ink-muted mb-3"
+                style={{ fontSize: "0.9rem", lineHeight: 1.55 }}
+              >
+                Then leave a line in{" "}
+                <Link
+                  href="/lounge"
+                  onClick={dismiss}
+                  className="text-eye-deep hover:text-ink not-italic"
+                  style={{
+                    textDecoration: "underline",
+                    textDecorationColor: "var(--eye)",
+                    textDecorationThickness: "1px",
+                    textUnderlineOffset: "3px",
+                    fontWeight: 500,
+                  }}
+                >
+                  the Lounge
+                </Link>
+                . Who you are, what brought you in.
+              </p>
+              <p
                 className="font-serif italic text-ink-muted"
                 style={{ fontSize: "0.95rem" }}
               >
