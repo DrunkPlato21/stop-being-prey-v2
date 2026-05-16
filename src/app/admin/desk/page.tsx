@@ -123,29 +123,8 @@ export default async function DeskAdminPage() {
           the primary flow ("am I in? what'd I just say?") reads
           as one block. */}
       <section className="mb-14">
-        <p
-          className="eyebrow mb-2"
-          style={{ letterSpacing: "0.32em", fontSize: "0.65rem" }}
-        >
-          Right now
-        </p>
-        <p className="font-serif italic text-ink-muted mb-6">
-          Flip presence, drop a short status. Newest pinned to the
-          top of the Writer&apos;s Desk widget.
-        </p>
-
-        <PresenceToggle
-          initialState={state}
-          initialActive={presence.active}
-          initialAwayNote={awayNote}
-        />
-
-        <DeskAdminForm />
-
-        {current && (
-          <div
-            className="mt-10 pt-6 border-t border-rule flex items-start justify-between gap-4"
-          >
+        {current ? (
+          <div className="mb-6 flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <p
                 className="eyebrow mb-2"
@@ -162,7 +141,19 @@ export default async function DeskAdminPage() {
             </div>
             <DeleteDeskUpdateButton id={current.id} />
           </div>
-        )}
+        ) : null}
+
+        <PresenceToggle
+          initialState={state}
+          initialActive={presence.active}
+          initialAwayNote={awayNote}
+        />
+
+        {/* Status composer only appears while Clay is at the desk. When
+            away, the surface above (toggle + away-note editor) is the
+            whole control set — no point in offering "post update"
+            when the room sees you as gone. */}
+        {state === "active" && <DeskAdminForm />}
       </section>
 
       {/* === Section 2: Notes inbox =========================
