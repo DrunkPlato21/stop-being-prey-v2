@@ -261,8 +261,8 @@ function FieldNoteEntryCard({
 }
 
 /* === Legacy essay render =================================================
- * Original rendering — preserved verbatim for back-room essays
- * (e.g. two-days-out, _legacy/001-three-moves-in-one-sentence).
+ * Original rendering — preserved for any single-essay Field Notes
+ * (frontmatter with `title` but no `article_title`).
  */
 function LegacyFieldNote({
   note,
