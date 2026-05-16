@@ -116,6 +116,13 @@ function fieldNotePulses(limit: number): PulseEvent[] {
 const PINNED_EVENTS: PulseEvent[] = [
   {
     source: "case-file",
+    at: Date.parse("2026-05-15T16:00:00Z"),
+    label: "Case file",
+    body: "The Unworthy Business. Trish named it in the Lounge.",
+    link: "/case-files/004-the-unworthy-business",
+  },
+  {
+    source: "case-file",
     at: Date.parse("2026-05-14T16:00:00Z"),
     label: "Case files",
     body: "Three case files now in the archive.",
