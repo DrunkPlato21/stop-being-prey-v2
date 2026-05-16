@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
   getAllArticleSlugs,
@@ -53,6 +53,16 @@ export default async function ArticlePage({
   params: Promise<PageParams>;
 }) {
   const { slug } = await params;
+
+  // URL hygiene. Email clients (Outlook, parts of Gmail) sometimes
+  // include the sentence-ending period when auto-linking a URL like
+  // "Visit https://stopbeingprey.com/membership.". Strip a trailing
+  // "." and redirect to the cleaned slug. Site slug convention is
+  // [a-z0-9-]+ so no legitimate route ends in a period.
+  if (slug.endsWith(".") && slug.length > 1) {
+    redirect("/" + slug.slice(0, -1));
+  }
+
   const article = await getArticleBySlug(slug);
 
   if (!article) notFound();
