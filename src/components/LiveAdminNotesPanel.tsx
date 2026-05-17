@@ -17,6 +17,10 @@ import { AdminNoteRow } from "@/components/AdminNoteRow";
 
 const POLL_INTERVAL_MS = 10_000;
 const FRESH_ANIM_MS = 3_500;
+// Cap the inline preview on /admin/desk. Anything beyond the freshest
+// few belongs behind the "manage all" link rather than dominating the
+// dashboard. The count line above still reports the true total.
+const MAX_INLINE_NOTES = 3;
 
 type Props = {
   initialNotes: Note[];
@@ -137,7 +141,7 @@ export function LiveAdminNotesPanel({ initialNotes }: Props) {
         </p>
 
         <ul className="flex flex-col">
-          {notes.map((note, idx) => {
+          {notes.slice(0, MAX_INLINE_NOTES).map((note, idx) => {
             const isFresh = freshIds.has(note.id);
             return (
               <li
