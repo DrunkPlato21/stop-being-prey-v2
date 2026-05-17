@@ -1,9 +1,10 @@
 ---
 title: "The Minimum Wage - Settled Once and For All"
 slug: "the-minimum-wage"
-date: "2026-05-17"
+date: "2026-05-17T20:45:00Z"
 description: "A 1963 Canadian silver dollar, half an ounce of silver, and what it teaches you about the minimum wage and the collapse of the dollar."
 subtitle: "the minimum wage didn't fail to keep up with inflation. the dollar collapsed underneath it."
+spotifyEpisodeId: "5a7oKAcgdLrlAjVf47IJpL"
 postscript: |
   **p.s.** here's a picture of the coin in my hand next to a loonie, with a little more on how I use it: [stopbeingprey.com/coin](/coin)
 
