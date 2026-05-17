@@ -3814,21 +3814,25 @@ body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .moon-icon {
    <details>-based collapsible that hangs beneath a screenshot
    caption. Closed by default. Native disclosure widget — works
    without JS, accessible by default. Opened state reveals the
-   plain-text version of the screenshot so readers on small or
-   low-DPI displays don't have to squint, and screen readers can
-   reach the content. Speaker heads (FRAZELL:, CLAY'S REPLY:)
-   read as small-caps eyebrows; body paragraphs in serif. */
+   plain-text version of the screenshot in editorial typography:
+   speaker eyebrows with a rule beneath, generous paragraph
+   spacing, hanging-indent numbered lists, and **bold** for the
+   key beats. Visually echoes the prose-article column so readers
+   move between the body and the transcript without a register
+   shift. */
 
 .case-file-transcript {
-  margin: 0.8rem auto 0;
+  margin: 1.2rem auto 0;
   max-width: 38rem;
 }
 
 .case-file-transcript > summary {
   cursor: pointer;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 500;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -3843,13 +3847,17 @@ body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .moon-icon {
 }
 
 .case-file-transcript > summary::before {
-  content: "+ ";
+  content: "+";
   color: var(--ink-faint);
-  font-weight: 500;
+  font-weight: 600;
+  width: 0.8rem;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1;
 }
 
 .case-file-transcript[open] > summary::before {
-  content: "− ";
+  content: "−";
 }
 
 .case-file-transcript > summary:hover {
@@ -3857,25 +3865,34 @@ body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .moon-icon {
 }
 
 .case-file-transcript-body {
-  margin-top: 1rem;
-  padding: 1.25rem 1.5rem;
+  margin-top: 1.25rem;
+  padding: 1.75rem 1.5rem;
   background: var(--paper);
   border: 1px solid var(--rule);
   font-family: var(--font-source-serif), Georgia, serif;
-  font-size: 0.98rem;
-  line-height: 1.7;
+  font-size: 1.02rem;
+  line-height: 1.75;
   color: var(--ink);
   text-align: left;
 }
 
+@media (min-width: 640px) {
+  .case-file-transcript-body {
+    padding: 2.25rem 2.5rem;
+    font-size: 1.05rem;
+  }
+}
+
 .case-file-transcript-speaker {
   font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
   color: var(--eye-deep);
-  margin: 1.5rem 0 0.5rem 0;
+  margin: 2rem 0 1.25rem 0;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--rule);
 }
 
 .case-file-transcript-speaker:first-child {
@@ -3883,11 +3900,45 @@ body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .moon-icon {
 }
 
 .case-file-transcript-paragraph {
-  margin: 0 0 1rem 0;
-  white-space: pre-wrap;
+  margin: 0 0 1.15rem 0;
 }
 
 .case-file-transcript-paragraph:last-child {
   margin-bottom: 0;
+}
+
+.case-file-transcript-paragraph strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.case-file-transcript-list {
+  list-style: none;
+  margin: 0.4rem 0 1.4rem 0;
+  padding: 0;
+  counter-reset: transcript-q;
+}
+
+.case-file-transcript-list li {
+  position: relative;
+  padding-left: 2.4rem;
+  margin: 0 0 0.7rem 0;
+  counter-increment: transcript-q;
+}
+
+.case-file-transcript-list li:last-child {
+  margin-bottom: 0;
+}
+
+.case-file-transcript-list li::before {
+  content: counter(transcript-q) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-weight: 700;
+  color: var(--eye-deep);
+  font-size: 1.05rem;
+  width: 1.8rem;
 }
 

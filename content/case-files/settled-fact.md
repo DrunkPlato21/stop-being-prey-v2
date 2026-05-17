@@ -64,34 +64,36 @@ screenshot_caption: "Round one. The exchange as it appeared on the Thomas Sowell
 live_post_url: "https://www.facebook.com/ThomasSowellQuotes/posts/pfbid02xU1JKM71XqAAzfHywjtRXoG2GY6EaEKbPPec4HzCp8qRbhFw7m2GMyNxNyUrQu9tl?comment_id=1379963437273848&reply_comment_id=2071772983746007"
 screenshot_transcript: |
   FRAZELL:
-  Always been proven BS. Minumum wages has Never led to higher unemployment. For redstates its been stuck at under $8 for decades, and they the ones in trailers. Cali is the job creator and pays more. Problem is too many at 40 million, double when I was in college because here is where people want to be. Your supply and demand. And worse Sowell backers, real estate speculators
+
+  Always been proven BS. Minumum wages has Never led to higher unemployment. For redstates its been stuck at under $8 for decades, and they the ones in trailers. Cali is the job creator and pays more. Problem is too many at 40 million, double when I was in college because here is where people want to be. Your supply and demand. And worse Sowell backers, real estate speculators.
 
   CLAY'S REPLY:
-  Donald Frazell Donald, welcome. I'm glad to have you here, genuinely! You seem quite confident in your position, that's great! Perhaps I have something to learn from you.
+
+  Donald, welcome. I'm glad to have you here, genuinely. You seem quite confident in your position, that's great. Perhaps I have something to learn from you.
 
   Let's find out, shall we?
 
-  You claim minimum wage has "never led to higher unemployment." You say this is "proven," now that's fascinating! I did not know this and I'm eager to learn! But please understand, I can't just accept what you say at face value...
+  You claim minimum wage has "never led to higher unemployment." You say this is "proven." Now that's fascinating. I did not know this, and I'm eager to learn. But please understand, I can't just accept what you say at face value.
 
-  You will have to demonstrate that proof for me... show your work.
+  You will have to demonstrate that proof for me. **Show your work.**
 
-  Here are three questions, Donald. Answer them in order...
+  Here are three questions, Donald. Answer them in order.
 
   1. Does the price of a good affect demand for it? Yes or no.
   2. Is the wage the price of labor? Yes or no.
   3. If you force the price of labor above what some workers can produce, will employers hire those workers? Yes or no.
 
-  Take your time. I'll wait... and just a heads up... the normal tricks you try on people who won't work here. I'm not going to let you move the goal posts.
+  Take your time. I'll wait. And just a heads up: the normal tricks you try on people won't work here. I'm not going to let you move the goal posts.
 
-  If you answered yes to 1 and 2, you've just answered yes to 3, whether you like it or not. The unemployment effect is not a Sowell claim... it's arithmetic... not a matter of opinion.
+  If you answered yes to 1 and 2, you've just answered yes to 3, whether you like it or not. The unemployment effect is not a Sowell claim. **It's arithmetic. Not a matter of opinion.**
 
-  This is why I know you're not thinking... you're running a script... you absorbed a position. You didn't reason to it... The proof is that you invoked "supply and demand" in your own comment while denying its conclusion. A person reasoning from first principles can't make that error.
+  This is why I know you're not thinking. You're running a script. You absorbed a position. You didn't reason to it. The proof is that you invoked "supply and demand" in your own comment while denying its conclusion. **A person reasoning from first principles can't make that error.**
 
-  You said this is "proven BS." Let's look at the proof... You like data, right? Are you into empirical studies? Or do you just like to pick and choose the ones that support your claims and ignore the ones that don't?
+  You said this is "proven BS." Let's look at the proof. You like data, right? Are you into empirical studies? Or do you just like to pick and choose the ones that support your claims and ignore the ones that don't?
 
-  The Congressional Budget Office projected 1.4 million job losses from a $15 federal minimum wage. Not Sowell. Not Cato. The CBO... The same nonpartisan agency that scores every bill Congress writes. They confirm the arithmetic above.
+  The Congressional Budget Office projected 1.4 million job losses from a $15 federal minimum wage. Not Sowell. Not Cato. The CBO. The same nonpartisan agency that scores every bill Congress writes. They confirm the arithmetic above.
 
-  What you have is a script... What I have is sound logic and data.
+  **What you have is a script. What I have is sound logic and data.**
 
   But you did come in here very confident. Perhaps I'm missing something, and you can teach me. Let's find out.
 
@@ -103,7 +105,8 @@ wall_screenshot_alt: "Screenshot of Donald Frazell's follow-up reply telling Cla
 wall_screenshot_caption: "Round two. No answers. A burden-flip and a Fake News brush-off. The script had nowhere left to go."
 wall_screenshot_transcript: |
   FRAZELL:
-  Thomas Sowell Quotes Try researching, easy enough. Thats what the www was created for, not social media Fake News
+
+  Try researching, easy enough. Thats what the www was created for, not social media Fake News.
 exhibit:
   intro: |
     Clay had called the move in round one: "I'll notice if you try

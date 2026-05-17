@@ -100,38 +100,84 @@ function findNextCaseFile(current: CaseFile): CaseFile | null {
 }
 
 // Native HTML <details> collapsible holding the plain-text content
-// of a screenshot for readability + accessibility. Speaker labels
-// (FRAZELL:, CLAY'S REPLY:) in the source get rendered as small-caps
-// section heads; blank lines become paragraph breaks. No JS needed —
-// browsers render the disclosure widget natively, and screen readers
-// announce it as a button + region.
-function ScreenshotTranscript({ text }: { text: string }) {
-  // Split on blank lines into paragraphs. Lines that are all-caps +
-  // end with a colon (e.g. "FRAZELL:", "CLAY'S REPLY:") render as
-  // section heads so the reader can find each speaker quickly.
-  const blocks = text
+// of a screenshot for readability + accessibility. The body parses
+// the transcript into three block types:
+//   - speaker labels (FRAZELL:, CLAY'S REPLY:) → small-caps eyebrow
+//     heading with a hairline rule under it
+//   - numbered question lines (1. … / 2. … / 3. …) → ordered list
+//     with eye-deep numerals and a hanging indent
+//   - everything else → body paragraph
+// Inline `**bold**` markers render as <strong> so the author can
+// emphasize the key beats. No JS gating needed — <details> is a
+// native disclosure widget, accessible by default.
+
+type TranscriptBlock =
+  | { type: "speaker"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "list"; items: string[] };
+
+function parseTranscript(text: string): TranscriptBlock[] {
+  const rawBlocks = text
     .split(/\n\s*\n/)
     .map((b) => b.trim())
     .filter((b) => b.length > 0);
+  return rawBlocks.map((block): TranscriptBlock => {
+    // Speaker label like "FRAZELL:" or "CLAY'S REPLY:".
+    if (/^[A-Z][A-Z' ]*:\s*$/.test(block)) {
+      return { type: "speaker", text: block.replace(/:\s*$/, "") };
+    }
+    // Numbered list: two or more lines, every line starts with "N. ".
+    const lines = block.split("\n");
+    const matches = lines.map((l) => l.match(/^\s*\d+\.\s+(.+)$/));
+    if (matches.length >= 2 && matches.every((m) => m !== null)) {
+      return {
+        type: "list",
+        items: matches.map((m) => (m as RegExpMatchArray)[1]),
+      };
+    }
+    return { type: "paragraph", text: block };
+  });
+}
+
+function renderInline(text: string): React.ReactNode[] {
+  // Splits on **bold** markers and wraps the matches in <strong>.
+  // Plain text on either side passes through unchanged. Greedy
+  // matching is fine here — transcripts don't nest emphasis.
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function ScreenshotTranscript({ text }: { text: string }) {
+  const blocks = parseTranscript(text);
   return (
     <details className="case-file-transcript">
       <summary>Read the text</summary>
       <div className="case-file-transcript-body">
         {blocks.map((block, i) => {
-          const isSpeaker = /^[A-Z][A-Z' ]*:\s*$/.test(block);
-          if (isSpeaker) {
+          if (block.type === "speaker") {
             return (
               <p key={i} className="case-file-transcript-speaker">
-                {block.replace(/:\s*$/, "")}
+                {block.text}
               </p>
             );
           }
-          // Speaker labels are sometimes followed inline by their
-          // content on the next line (depends on author formatting).
-          // Render as a standard paragraph either way.
+          if (block.type === "list") {
+            return (
+              <ol key={i} className="case-file-transcript-list">
+                {block.items.map((item, j) => (
+                  <li key={j}>{renderInline(item)}</li>
+                ))}
+              </ol>
+            );
+          }
           return (
             <p key={i} className="case-file-transcript-paragraph">
-              {block}
+              {renderInline(block.text)}
             </p>
           );
         })}
