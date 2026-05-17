@@ -645,8 +645,8 @@ export default async function CaseFileDetailPage({
                 letterSpacing: "-0.015em",
               }}
             >
-              Four more like the one you just read. Plus the Lounge,
-              Field Notes, and the book in progress.
+              Four more like the one you just read. Plus the Writer&apos;s
+              Desk, the Lounge, Field Notes, and the book in progress.
             </p>
             <p
               className="font-serif text-ink-soft mb-5"
