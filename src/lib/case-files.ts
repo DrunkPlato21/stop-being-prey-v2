@@ -64,11 +64,15 @@ export type CaseFile = {
       etc.). When null, the OUTCOME section is omitted. */
   outcome: string | null;
   /** Visual evidence of the exchange. All three fields move together
-      — when src is null, the screenshot block is omitted entirely. */
+      — when src is null, the screenshot block is omitted entirely.
+      `transcript` optionally carries the plain-text content of the
+      image for a <details>-based collapsible "read the text" beneath
+      the caption. */
   screenshot: {
     src: string;
     alt: string;
     caption: string;
+    transcript: string | null;
   } | null;
   /** Direct link to the live post on the original platform. Renders
       as a small olive "see the live post →" link beneath the caption.
@@ -85,6 +89,7 @@ export type CaseFile = {
     alt: string;
     caption: string;
     liveUrl: string | null;
+    transcript: string | null;
   } | null;
   /** Optional EXHIBIT block. Renders between THE FRAME SHIFT (or its
       wall screenshot, if present) and THE ONE-SHOT. Used when a
@@ -174,6 +179,11 @@ function readOne(slug: string): CaseFile | null {
               typeof data.screenshot_caption === "string"
                 ? data.screenshot_caption.trim()
                 : "",
+            transcript:
+              typeof data.screenshot_transcript === "string" &&
+              data.screenshot_transcript.trim().length > 0
+                ? data.screenshot_transcript
+                : null,
           }
         : null,
     livePostUrl:
@@ -198,6 +208,11 @@ function readOne(slug: string): CaseFile | null {
               typeof data.wall_url === "string" &&
               data.wall_url.trim().length > 0
                 ? data.wall_url.trim()
+                : null,
+            transcript:
+              typeof data.wall_screenshot_transcript === "string" &&
+              data.wall_screenshot_transcript.trim().length > 0
+                ? data.wall_screenshot_transcript
                 : null,
           }
         : null,

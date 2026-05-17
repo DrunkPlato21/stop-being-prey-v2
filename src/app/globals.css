@@ -3810,3 +3810,84 @@ body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .moon-icon {
   transform: rotate(0deg) scale(1);
 }
 
+/* === Case file screenshot transcript ============================
+   <details>-based collapsible that hangs beneath a screenshot
+   caption. Closed by default. Native disclosure widget — works
+   without JS, accessible by default. Opened state reveals the
+   plain-text version of the screenshot so readers on small or
+   low-DPI displays don't have to squint, and screen readers can
+   reach the content. Speaker heads (FRAZELL:, CLAY'S REPLY:)
+   read as small-caps eyebrows; body paragraphs in serif. */
+
+.case-file-transcript {
+  margin: 0.8rem auto 0;
+  max-width: 38rem;
+}
+
+.case-file-transcript > summary {
+  cursor: pointer;
+  display: inline-block;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--eye-deep);
+  padding: 0.2rem 0;
+  list-style: none;
+  transition: color 180ms ease;
+}
+
+.case-file-transcript > summary::-webkit-details-marker {
+  display: none;
+}
+
+.case-file-transcript > summary::before {
+  content: "+ ";
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+
+.case-file-transcript[open] > summary::before {
+  content: "− ";
+}
+
+.case-file-transcript > summary:hover {
+  color: var(--ink);
+}
+
+.case-file-transcript-body {
+  margin-top: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: var(--ink);
+  text-align: left;
+}
+
+.case-file-transcript-speaker {
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--eye-deep);
+  margin: 1.5rem 0 0.5rem 0;
+}
+
+.case-file-transcript-speaker:first-child {
+  margin-top: 0;
+}
+
+.case-file-transcript-paragraph {
+  margin: 0 0 1rem 0;
+  white-space: pre-wrap;
+}
+
+.case-file-transcript-paragraph:last-child {
+  margin-bottom: 0;
+}
+

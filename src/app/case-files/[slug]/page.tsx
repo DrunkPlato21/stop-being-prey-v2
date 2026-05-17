@@ -99,6 +99,47 @@ function findNextCaseFile(current: CaseFile): CaseFile | null {
   return all[idx - 1];
 }
 
+// Native HTML <details> collapsible holding the plain-text content
+// of a screenshot for readability + accessibility. Speaker labels
+// (FRAZELL:, CLAY'S REPLY:) in the source get rendered as small-caps
+// section heads; blank lines become paragraph breaks. No JS needed —
+// browsers render the disclosure widget natively, and screen readers
+// announce it as a button + region.
+function ScreenshotTranscript({ text }: { text: string }) {
+  // Split on blank lines into paragraphs. Lines that are all-caps +
+  // end with a colon (e.g. "FRAZELL:", "CLAY'S REPLY:") render as
+  // section heads so the reader can find each speaker quickly.
+  const blocks = text
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter((b) => b.length > 0);
+  return (
+    <details className="case-file-transcript">
+      <summary>Read the text</summary>
+      <div className="case-file-transcript-body">
+        {blocks.map((block, i) => {
+          const isSpeaker = /^[A-Z][A-Z' ]*:\s*$/.test(block);
+          if (isSpeaker) {
+            return (
+              <p key={i} className="case-file-transcript-speaker">
+                {block.replace(/:\s*$/, "")}
+              </p>
+            );
+          }
+          // Speaker labels are sometimes followed inline by their
+          // content on the next line (depends on author formatting).
+          // Render as a standard paragraph either way.
+          return (
+            <p key={i} className="case-file-transcript-paragraph">
+              {block}
+            </p>
+          );
+        })}
+      </div>
+    </details>
+  );
+}
+
 // Body section. Same shape for Situation / Move / Trap / Frame Shift.
 // Pulled into a component to keep the page render terse.
 function BodySection({
@@ -259,11 +300,14 @@ export default async function CaseFileDetailPage({
                     className="text-eye-deep hover:text-ink no-underline transition-colors not-italic"
                     style={{ fontWeight: 500 }}
                   >
-                    see the live post →
+                    see the live post &rarr;
                   </a>
                 </>
               )}
             </figcaption>
+            {cf.screenshot.transcript && (
+              <ScreenshotTranscript text={cf.screenshot.transcript} />
+            )}
           </figure>
         )}
 
@@ -306,11 +350,14 @@ export default async function CaseFileDetailPage({
                     className="text-eye-deep hover:text-ink no-underline transition-colors not-italic"
                     style={{ fontWeight: 500 }}
                   >
-                    see the live wall →
+                    see the live wall &rarr;
                   </a>
                 </>
               )}
             </figcaption>
+            {cf.wallScreenshot.transcript && (
+              <ScreenshotTranscript text={cf.wallScreenshot.transcript} />
+            )}
           </figure>
         )}
 
