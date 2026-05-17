@@ -28,6 +28,7 @@ type ApiResponse = {
 
 const HOVER_OPEN_DELAY_MS = 180;
 const HOVER_CLOSE_DELAY_MS = 280;
+const POLL_INTERVAL_MS = 20_000;
 
 function formatRelativeAgo(ms: number, now: number): string {
   const diff = Math.max(0, now - ms);
@@ -123,6 +124,64 @@ export function OnTheDeskBadge({
       cancelled = true;
     };
   }, [open]);
+
+  // Background poll so the count stays live without needing to hover.
+  // Pauses when the tab is hidden, and catches up immediately when it
+  // becomes visible again.
+  useEffect(() => {
+    let cancelled = false;
+    let timer: number | null = null;
+
+    async function refresh() {
+      try {
+        const res = await fetch("/api/admin/desk/visitors");
+        const data: ApiResponse = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && data.ok && Array.isArray(data.visitors)) {
+          setVisitors(data.visitors);
+          setTotalCount(
+            typeof data.totalCount === "number"
+              ? data.totalCount
+              : data.visitors.length
+          );
+          setStampedAt(
+            typeof data.generatedAt === "number" ? data.generatedAt : Date.now()
+          );
+        }
+      } catch {
+        // Network blip — keep the last snapshot.
+      }
+    }
+
+    function start() {
+      if (timer !== null) return;
+      timer = window.setInterval(() => {
+        if (document.visibilityState === "visible") void refresh();
+      }, POLL_INTERVAL_MS);
+    }
+    function stop() {
+      if (timer !== null) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+    }
+    function onVisibility() {
+      if (document.visibilityState === "visible") {
+        void refresh();
+        start();
+      } else {
+        stop();
+      }
+    }
+
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
   // Tick relative-time formatter while open
   useEffect(() => {
