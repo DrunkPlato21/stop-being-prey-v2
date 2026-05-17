@@ -53,8 +53,17 @@ frame_shift: |
   person running a script can.
 one_shot: "What you have is a script. What I have is sound logic and data."
 rules_applied: [1, 3, 6]
-outcome: "One reply. The argument the right has been losing for decades, dispatched in a single comment. The three-question audit is reproducible. Every member can run it on every minimum wage argument they'll meet."
+outcome: |
+  Clay's reply gathered 48 reactions in four hours. Frazell came
+  back, but not with answers. He told Clay to "Try researching,
+  easy enough. Thats what the www was created for, not social
+  media Fake News." Burden-flip plus poison-the-well. The three
+  questions stay unanswered. The audience watched the script run
+  out of road.
 screenshot_src: "/assets/case-files/frazell-exchange.png"
 screenshot_alt: "Screenshot of Donald Frazell's Facebook comment dismissing the minimum wage unemployment effect as 'proven BS,' with Clay's three-question reply below."
 screenshot_caption: "The exchange, as it appeared on the Thomas Sowell Quotes Facebook page."
+wall_screenshot_src: "/assets/case-files/frazell-deflection.png"
+wall_screenshot_alt: "Screenshot of Donald Frazell's follow-up reply telling Clay to 'try researching, easy enough.'"
+wall_screenshot_caption: "Round two. No answers to the three questions. A burden-flip and a 'Fake News' brush-off. The script had nowhere else to go."
 ---
