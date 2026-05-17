@@ -15,6 +15,7 @@ import { EyeDivider } from "@/components/Eyes";
 import { Comments } from "@/components/Comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { markNavViewed } from "@/lib/nav-dots";
+import { FOUNDER_CAP, getFounderClaimed } from "@/lib/members";
 
 type PageParams = { slug: string };
 
@@ -231,6 +232,13 @@ export default async function CaseFileDetailPage({
     cookieStore.get(SESSION_COOKIE)?.value
   );
   const previewMode = !session?.email && cf.publicPreview;
+
+  // Pull the live founder count only when we're going to render the
+  // preview CTA — saves a Redis read for member viewers who never see
+  // the seat-counter line. Clamped to non-negative just in case.
+  const founderSeatsLeft = previewMode
+    ? Math.max(0, FOUNDER_CAP - (await getFounderClaimed()))
+    : 0;
 
   // Clear the nav dot — a member who came in via a direct link to a
   // specific case file has still effectively engaged with the section.
@@ -637,16 +645,16 @@ export default async function CaseFileDetailPage({
                 letterSpacing: "-0.015em",
               }}
             >
-              Four more case files like this one. Plus the Writer&apos;s
-              Desk, the Lounge, Field Notes, and the book in progress.
+              Four more like the one you just read. Plus the Lounge,
+              Field Notes, and the book in progress.
             </p>
             <p
               className="font-serif text-ink-soft mb-5"
               style={{ fontSize: "1.05rem", lineHeight: 1.65 }}
             >
-              100 founder seats. $8/month locked for life. Over half
-              are gone. When the door closes, the price goes to $13
-              forever.
+              {founderSeatsLeft} founder seat
+              {founderSeatsLeft === 1 ? "" : "s"} left. $8/month locked
+              for life. When the last fills, $13 forever.
             </p>
             <p>
               <Link
@@ -654,7 +662,7 @@ export default async function CaseFileDetailPage({
                 className="text-eye-deep hover:text-ink no-underline transition-colors"
                 style={{ fontWeight: 600 }}
               >
-                Become a founder &rarr;
+                Take the seat &rarr;
               </Link>
             </p>
           </div>
