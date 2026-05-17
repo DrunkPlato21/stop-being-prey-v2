@@ -4,6 +4,10 @@ slug: "the-coin-in-my-pocket"
 date: "2026-05-17"
 description: "A 1963 Canadian silver dollar, half an ounce of silver, and what it teaches you about the minimum wage and the collapse of the dollar."
 subtitle: "the minimum wage didn't fail to keep up with inflation. the dollar collapsed underneath it."
+postscript: |
+  **p.s.** here's a picture of the coin in my hand next to a loonie, with a little more on how I use it: [stopbeingprey.com/coin](/coin)
+
+  **p.p.s.** this writing is reader-funded. The reason this piece exists is that other readers backed the last one. If you want more like it, [here's how](/tip).
 ---
 
 I have a 1963 Canadian silver dollar in my pocket right now... half an ounce of silver. It's heavier than the loonie sitting next to it... heavier than the dollar bill in your wallet. Heavier than the lie of fiat money...
