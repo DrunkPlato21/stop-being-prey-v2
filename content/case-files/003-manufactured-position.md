@@ -35,4 +35,18 @@ rules_applied: [3, 6]
 screenshot_src: "/assets/case-files/jamie-exchange.png"
 screenshot_alt: "Screenshot of Jamie Lex Unwin's Facebook comment manufacturing a censorship position"
 screenshot_caption: "The actual comment, as it appeared on Facebook."
+screenshot_transcript: |
+  JAMIE LEX UNWIN:
+
+  Awww so should the government restrict the comments because someone "might" use it as motivation for murder? Time to ban everything then including the bible.
+
+  CLAY'S REPLY:
+
+  Jamie Lex Unwin **Three moves in one sentence.** None of them engage what I actually wrote. Did you realize that, Jamie? Not once did I even mention censorship. Push me on that point, I dare you.
+
+  This is what prey looks like when it can't engage with the post in front of it. It argues with a post that wasn't written. It manufactures the position it wishes you held. It hopes you don't notice. **Did you know that you are my prey, Jamie? Fascinating, right?** If you want to test it, keep replying.
+
+  Anyways, to my readers: watch for this pattern. You'll see it everywhere once you know what to look for.
+
+  ~ Clay
 ---
