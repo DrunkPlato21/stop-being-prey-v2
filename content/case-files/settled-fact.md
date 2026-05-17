@@ -55,9 +55,9 @@ frame_shift: |
 one_shot: "What you have is a script. What I have is sound logic and data."
 rules_applied: [1, 3, 6, 8]
 outcome: |
-  Frazell came back, but not with answers. After the finishing move,
-  silence. The full demonstration ran in three beats: the audit,
-  the deflection, the predator's mercy.
+  Frazell came back, but not with answers. The full demonstration
+  ran in three beats: the audit, the deflection, the predator's
+  mercy.
 screenshot_src: "/assets/case-files/frazell-exchange.png"
 screenshot_alt: "Screenshot of Donald Frazell's Facebook comment dismissing the minimum wage unemployment effect as 'proven BS,' with Clay's three-question reply below."
 screenshot_caption: "Round one. The exchange as it appeared on the Thomas Sowell Quotes Facebook page."
