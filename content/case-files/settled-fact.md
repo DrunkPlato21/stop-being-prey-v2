@@ -4,6 +4,7 @@ number: 5
 date: 2026-05-17
 archetype: "Dismissive One-Liner"
 platform: "Facebook"
+public_preview: true
 situation: |
   A post on the Thomas Sowell Quotes Facebook page about minimum
   wage. Donald Frazell arrived in the comments with a verdict
@@ -26,11 +27,11 @@ trap: |
   back-and-forth. That is the trap.
 
   Once you are inside the studies, you have accepted his frame.
-  The question is settled, in his telling, by counting jobs lost in
-  some narrow window of the literature, not by reasoning from first
-  principles. The audience cannot follow it. The louder, more
-  confident voice wins by default. Frazell came confident. He wins
-  by attrition.
+  The question is settled, in his telling, by counting jobs lost
+  in some narrow window of the literature, not by reasoning from
+  first principles. The audience cannot follow it. The louder,
+  more confident voice wins by default. Frazell came confident. He
+  wins by attrition.
 frame_shift: |
   Don't litigate the studies. Audit the logic.
 
@@ -52,18 +53,30 @@ frame_shift: |
   person reasoning from first principles cannot make that error. A
   person running a script can.
 one_shot: "What you have is a script. What I have is sound logic and data."
-rules_applied: [1, 3, 6]
+rules_applied: [1, 3, 6, 8]
 outcome: |
-  Clay's reply gathered 48 reactions in four hours. Frazell came
-  back, but not with answers. He told Clay to "Try researching,
-  easy enough. Thats what the www was created for, not social
-  media Fake News." Burden-flip plus poison-the-well. The three
-  questions stay unanswered. The audience watched the script run
-  out of road.
+  48 reactions on Clay's reply in four hours. Frazell came back,
+  but not with answers. After the finishing move, silence. The
+  full demonstration ran in three beats: the audit, the deflection,
+  the predator's mercy.
 screenshot_src: "/assets/case-files/frazell-exchange.png"
 screenshot_alt: "Screenshot of Donald Frazell's Facebook comment dismissing the minimum wage unemployment effect as 'proven BS,' with Clay's three-question reply below."
-screenshot_caption: "The exchange, as it appeared on the Thomas Sowell Quotes Facebook page."
+screenshot_caption: "Round one. The exchange as it appeared on the Thomas Sowell Quotes Facebook page."
 wall_screenshot_src: "/assets/case-files/frazell-deflection.png"
 wall_screenshot_alt: "Screenshot of Donald Frazell's follow-up reply telling Clay to 'try researching, easy enough.'"
-wall_screenshot_caption: "Round two. No answers to the three questions. A burden-flip and a 'Fake News' brush-off. The script had nowhere else to go."
+wall_screenshot_caption: "Round two. No answers. A burden-flip and a Fake News brush-off. The script had nowhere left to go."
+exhibit:
+  intro: |
+    Clay had called the move in round one: "I'll notice if you try
+    to move goalposts, change topics, or run away with your tail
+    between your legs." Round two was Frazell doing all three in
+    one sentence. The finishing reply named the demonstration and
+    closed it with Rule VIII grace.
+  quote: |
+    I'm your predator. But I'm a decent predator. I don't eat my prey. I protect them. There are a lot meaner predators than me out there. Be careful. I say this for your own good. God bless you. Stay safe.
+  attribution_name: "Clay"
+  attribution_date: "Round three"
+  framing: |
+    Rule VIII operating in real time. Devastation without cruelty.
+    Frazell read it as he wanted. The audience read it as doctrine.
 ---

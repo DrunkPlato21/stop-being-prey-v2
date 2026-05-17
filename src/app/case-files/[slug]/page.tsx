@@ -39,12 +39,34 @@ export async function generateMetadata({
   return {
     title: { absolute: `${cf.title} | Case Files | Stop Being Prey` },
     description: cf.situation[0] ?? cf.move[0] ?? "",
-    // Gated content — proxy.ts already redirects unauthenticated
-    // visitors, but keep search engines out of the index too.
-    robots: {
-      index: false,
-      follow: false,
-    },
+    // Members-only case files stay out of the index; public-preview
+    // case files (marketing/email funnel surfaces) flip indexable
+    // so they can be shared and ranked.
+    robots: cf.publicPreview
+      ? { index: true, follow: true }
+      : { index: false, follow: false },
+    alternates: cf.publicPreview
+      ? { canonical: `/case-files/${cf.slug}` }
+      : undefined,
+    openGraph: cf.publicPreview
+      ? {
+          title: cf.title,
+          description: cf.situation[0] ?? cf.move[0] ?? "",
+          type: "article",
+          authors: ["Clay"],
+          url: `/case-files/${cf.slug}`,
+          images: cf.screenshot ? [cf.screenshot.src] : undefined,
+        }
+      : undefined,
+    twitter: cf.publicPreview
+      ? {
+          card: "summary_large_image",
+          title: cf.title,
+          description: cf.situation[0] ?? cf.move[0] ?? "",
+          creator: "@stopbeingprey",
+          images: cf.screenshot ? [cf.screenshot.src] : undefined,
+        }
+      : undefined,
   };
 }
 
@@ -113,14 +135,17 @@ export default async function CaseFileDetailPage({
   const cf = getCaseFileBySlug(slug);
   if (!cf) notFound();
 
-  // Clear the nav dot — a member who came in via a direct link to a
-  // specific case file has still effectively engaged with the section.
-  // Cookie read makes this page dynamic, but proxy.ts already gates
-  // /case-files behind auth so it's never truly static in practice.
+  // Auth-aware rendering. Members see the standard page; cold-traffic
+  // visitors landing on a public-preview slug get the sign-off swapped
+  // for a sales CTA and the footer nav repointed at /membership.
   const cookieStore = await cookies();
   const session = await verifySession(
     cookieStore.get(SESSION_COOKIE)?.value
   );
+  const previewMode = !session?.email && cf.publicPreview;
+
+  // Clear the nav dot — a member who came in via a direct link to a
+  // specific case file has still effectively engaged with the section.
   if (session?.email) {
     await markNavViewed("case-files", session.email).catch(() => null);
   }
@@ -129,11 +154,14 @@ export default async function CaseFileDetailPage({
   // Continuation links. Backward = predecessor explicitly named in
   // this case file's frontmatter. Forward = any case file pointing
   // at THIS slug via continues_from (auto-discovered, no field on
-  // this record to maintain).
-  const predecessor = cf.continuesFrom
-    ? getCaseFileBySlug(cf.continuesFrom)
-    : null;
-  const successor = findSuccessor(cf.slug);
+  // this record to maintain). Both are suppressed in preview mode
+  // since those routes are still gated and would dead-end at the
+  // sign-in page rather than another readable artifact.
+  const predecessor =
+    !previewMode && cf.continuesFrom
+      ? getCaseFileBySlug(cf.continuesFrom)
+      : null;
+  const successor = previewMode ? null : findSuccessor(cf.slug);
 
   return (
     <article className="rules-paper">
@@ -485,67 +513,129 @@ export default async function CaseFileDetailPage({
           </p>
         )}
 
-        {/* === Sign-off ==========================================
-            Matches the Rules of Engagement and Case Files archive
-            bottom note so the three doctrine surfaces all close
-            with the same beat. */}
-        <div className="mt-14 pt-10 border-t border-rule text-center">
-          <p
-            className="font-serif italic text-ink-muted leading-relaxed mb-3"
-            style={{ fontSize: "1.05rem" }}
+        {/* === Sign-off / Preview CTA ============================
+            Members get the standard doctrine sign-off. Cold-traffic
+            visitors on a public-preview case file get a quiet sales
+            CTA in the same visual register — paper-deep callout,
+            olive border, single inline link to /membership. The
+            preview pitch echoes the Lounge / Field Notes / Book
+            language from the /membership page so the funnel reads
+            as one continuous voice. */}
+        {previewMode ? (
+          <div
+            className="mt-14 px-6 py-7 md:px-9 md:py-8"
+            style={{
+              background: "var(--paper-deep)",
+              borderLeft: "2px solid var(--eye-deep)",
+            }}
           >
-            the doctrine teaches. the case files drill.
-          </p>
-          <p
-            className="font-display text-ink"
-            style={{ fontSize: "1rem", fontWeight: 500 }}
-          >
-            stay close,
-            <br />~ Clay
-          </p>
-        </div>
+            <p
+              className="eyebrow mb-3"
+              style={{ fontSize: "0.66rem", letterSpacing: "0.32em" }}
+            >
+              Inside the Membership
+            </p>
+            <p
+              className="font-display text-ink leading-snug tracking-tight mb-4"
+              style={{
+                fontSize: "clamp(1.35rem, 2.4vw, 1.6rem)",
+                fontWeight: 700,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Four more case files like this one. Plus the Writer&apos;s
+              Desk, the Lounge, Field Notes, and the book in progress.
+            </p>
+            <p
+              className="font-serif text-ink-soft mb-5"
+              style={{ fontSize: "1.05rem", lineHeight: 1.65 }}
+            >
+              100 founder seats. $8/month locked for life. Over half
+              are gone. When the door closes, the price goes to $13
+              forever.
+            </p>
+            <p>
+              <Link
+                href="/membership"
+                className="text-eye-deep hover:text-ink no-underline transition-colors"
+                style={{ fontWeight: 600 }}
+              >
+                Become a founder &rarr;
+              </Link>
+            </p>
+          </div>
+        ) : (
+          <div className="mt-14 pt-10 border-t border-rule text-center">
+            <p
+              className="font-serif italic text-ink-muted leading-relaxed mb-3"
+              style={{ fontSize: "1.05rem" }}
+            >
+              the doctrine teaches. the case files drill.
+            </p>
+            <p
+              className="font-display text-ink"
+              style={{ fontSize: "1rem", fontWeight: 500 }}
+            >
+              stay close,
+              <br />~ Clay
+            </p>
+          </div>
+        )}
       </section>
 
       <EyeDivider />
 
       {/* === Footer navigation ====================================
-          "Back to archive" always renders. "Next case file" only
-          renders when one exists (we're not at the top of the
-          archive). Two-column flex with each anchor pinned to its
-          edge — the centerline lets the eye find the right link
-          without scanning. */}
-      <nav
-        aria-label="Case files navigation"
-        className="max-w-3xl mx-auto px-6 pb-16 flex flex-wrap items-center justify-between gap-y-3"
-      >
-        <Link
-          href="/case-files"
-          className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
-          style={{ fontWeight: 500 }}
+          Members see the archive-step nav (back to /case-files,
+          next case file). Preview viewers get a single membership
+          link instead — every escape route funnels. */}
+      {previewMode ? (
+        <nav
+          aria-label="Case files navigation"
+          className="max-w-3xl mx-auto px-6 pb-16 text-center"
         >
-          ← back to case files
-        </Link>
-        {nextCase && (
           <Link
-            href={`/case-files/${nextCase.slug}`}
-            className="text-ink-muted hover:text-eye-deep font-display text-sm no-underline transition-colors text-right"
+            href="/membership"
+            className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
             style={{ fontWeight: 500 }}
           >
-            <span
-              className="uppercase tracking-[0.18em] block"
-              style={{ fontSize: "0.7rem" }}
-            >
-              Next case file
-            </span>
-            <span
-              className="font-serif italic text-eye-deep"
-              style={{ fontSize: "1rem", letterSpacing: 0 }}
-            >
-              {nextCase.title} →
-            </span>
+            Join the membership &rarr;
           </Link>
-        )}
-      </nav>
+        </nav>
+      ) : (
+        <nav
+          aria-label="Case files navigation"
+          className="max-w-3xl mx-auto px-6 pb-16 flex flex-wrap items-center justify-between gap-y-3"
+        >
+          <Link
+            href="/case-files"
+            className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
+            style={{ fontWeight: 500 }}
+          >
+            ← back to case files
+          </Link>
+          {nextCase && (
+            <Link
+              href={`/case-files/${nextCase.slug}`}
+              className="text-ink-muted hover:text-eye-deep font-display text-sm no-underline transition-colors text-right"
+              style={{ fontWeight: 500 }}
+            >
+              <span
+                className="uppercase tracking-[0.18em] block"
+                style={{ fontSize: "0.7rem" }}
+              >
+                Next case file
+              </span>
+              <span
+                className="font-serif italic text-eye-deep"
+                style={{ fontSize: "1rem", letterSpacing: 0 }}
+              >
+                {nextCase.title} &rarr;
+              </span>
+            </Link>
+          )}
+        </nav>
+      )}
     </article>
   );
 }

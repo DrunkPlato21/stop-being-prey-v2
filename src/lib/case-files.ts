@@ -111,6 +111,13 @@ export type CaseFile = {
       ("Continued in Case File №M: … →") — the reverse direction is
       derived at render time by scanning all case files. */
   continuesFrom: string | null;
+  /** When true, this case file is reachable to unauthenticated
+      visitors as a marketing/email funnel surface. The case-files
+      layout swaps the member nav for a preview clone (links point at
+      /membership), the detail page adds a "Join the founders" CTA,
+      and SEO opens up to indexable. proxy.ts also reads this list
+      via a hardcoded slug allowlist (kept in sync manually). */
+  publicPreview: boolean;
 };
 
 function splitParagraphs(value: unknown): string[] {
@@ -200,6 +207,7 @@ function readOne(slug: string): CaseFile | null {
       data.continues_from.trim().length > 0
         ? data.continues_from.trim()
         : null,
+    publicPreview: data.public_preview === true,
   };
 }
 

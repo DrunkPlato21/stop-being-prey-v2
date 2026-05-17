@@ -11,6 +11,15 @@ const SESSION_COOKIE = "sbp_session";
 const SIGN_IN_PATH = "/notes/sign-in";
 const ADMIN_REALM = 'Basic realm="Stop Being Prey admin"';
 
+// Case files that are open to non-members as a marketing/email funnel
+// surface. The detail page itself swaps in a preview chrome (links go
+// to /membership) for unauthenticated viewers. Keep this list in sync
+// with `public_preview: true` in each case file's frontmatter — proxy
+// runs at the edge and can't read the markdown files at request time.
+const PUBLIC_PREVIEW_CASE_FILE_SLUGS: ReadonlySet<string> = new Set([
+  "settled-fact",
+]);
+
 function authSecret(): Uint8Array | null {
   const secret = process.env.AUTH_SECRET;
   if (!secret) return null;
@@ -138,6 +147,19 @@ export async function proxy(request: NextRequest) {
       return new NextResponse("Not Found", { status: 404 });
     }
     return adminGate(request);
+  }
+
+  // Public-preview case files: unauthenticated visitors are allowed
+  // through. The detail page renders preview chrome for them. Members
+  // continue to see the normal layout.
+  if (pathname.startsWith("/case-files/")) {
+    const slug = pathname
+      .replace(/^\/case-files\//, "")
+      .replace(/\/$/, "")
+      .split("/")[0];
+    if (PUBLIC_PREVIEW_CASE_FILE_SLUGS.has(slug)) {
+      return NextResponse.next();
+    }
   }
 
   if (
