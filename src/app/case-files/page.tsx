@@ -1,11 +1,14 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import {
   getAllCaseFiles,
   RULE_ROMAN,
   RULE_SHORT_LABEL,
   teaseOneShot,
 } from "@/lib/case-files";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { markNavViewed } from "@/lib/nav-dots";
 
 export const metadata: Metadata = {
   title: "Case Files",
@@ -60,8 +63,19 @@ const TEMPLATE_SECTIONS: Array<{
   },
 ];
 
-export default function CaseFilesPage() {
+export default async function CaseFilesPage() {
   const cases = getAllCaseFiles();
+
+  // Clear the "new case file" nav dot for this viewer. Fire-and-forget
+  // — degrading to a stale dot on a Redis hiccup is acceptable.
+  const cookieStore = await cookies();
+  const session = await verifySession(
+    cookieStore.get(SESSION_COOKIE)?.value
+  );
+  if (session?.email) {
+    await markNavViewed("case-files", session.email).catch(() => null);
+  }
+
   return (
     <div className="rules-paper">
       {/* === Header === */}

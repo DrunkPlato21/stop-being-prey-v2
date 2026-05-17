@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import {
   findSuccessor,
   getAllCaseFiles,
@@ -11,8 +12,17 @@ import {
   type CaseFile,
 } from "@/lib/case-files";
 import { EyeDivider } from "@/components/Eyes";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { markNavViewed } from "@/lib/nav-dots";
 
 type PageParams = { slug: string };
+
+// Page is auth-gated by proxy.ts middleware on every request anyway,
+// and we now read the session cookie inside the body to clear the nav
+// dot. Explicitly opt into dynamic rendering so Next doesn't emit a
+// build-time warning about the cookies() call shadowing the static
+// generation path.
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   return getAllCaseFileSlugs().map((slug) => ({ slug }));
@@ -102,6 +112,18 @@ export default async function CaseFileDetailPage({
   const { slug } = await params;
   const cf = getCaseFileBySlug(slug);
   if (!cf) notFound();
+
+  // Clear the nav dot — a member who came in via a direct link to a
+  // specific case file has still effectively engaged with the section.
+  // Cookie read makes this page dynamic, but proxy.ts already gates
+  // /case-files behind auth so it's never truly static in practice.
+  const cookieStore = await cookies();
+  const session = await verifySession(
+    cookieStore.get(SESSION_COOKIE)?.value
+  );
+  if (session?.email) {
+    await markNavViewed("case-files", session.email).catch(() => null);
+  }
 
   const nextCase = findNextCaseFile(cf);
   // Continuation links. Backward = predecessor explicitly named in

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import {
   getAllFieldNotesWithActivity,
   type FieldNoteMetaWithActivity,
   type FieldNoteStatus,
 } from "@/lib/field-notes";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { markNavViewed } from "@/lib/nav-dots";
 
 export const metadata: Metadata = {
   title: "Field Notes",
@@ -38,6 +41,15 @@ function statusLabel(status: FieldNoteStatus): string {
 
 export default async function FieldNotesIndexPage() {
   const notes = await getAllFieldNotesWithActivity();
+
+  // Clear the field-notes nav dot for this member.
+  const cookieStore = await cookies();
+  const session = await verifySession(
+    cookieStore.get(SESSION_COOKIE)?.value
+  );
+  if (session?.email) {
+    await markNavViewed("field-notes", session.email).catch(() => null);
+  }
 
   return (
     <div>

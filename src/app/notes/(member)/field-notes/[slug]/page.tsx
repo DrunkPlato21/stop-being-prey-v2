@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import {
   getAllFieldNoteSlugs,
   getFieldNoteBySlug,
@@ -10,8 +11,15 @@ import {
 } from "@/lib/field-notes";
 import { EyeDivider } from "@/components/Eyes";
 import { Comments } from "@/components/Comments";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { markNavViewed } from "@/lib/nav-dots";
 
 type PageParams = { slug: string };
+
+// Cookie read for the nav-dot clear opts this page into dynamic
+// rendering. Make it explicit so Next doesn't emit a build-time
+// warning shadowing the generateStaticParams pre-render path.
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   return getAllFieldNoteSlugs().map((slug) => ({ slug }));
@@ -81,6 +89,15 @@ export default async function FieldNotePage({
   const { slug } = await params;
   const note = await getFieldNoteBySlug(slug);
   if (!note) notFound();
+
+  // Clear the field-notes nav dot — direct-link visitors still count.
+  const cookieStore = await cookies();
+  const session = await verifySession(
+    cookieStore.get(SESSION_COOKIE)?.value
+  );
+  if (session?.email) {
+    await markNavViewed("field-notes", session.email).catch(() => null);
+  }
 
   if (note.kind === "journal") {
     return <JournalFieldNote note={note} slug={slug} />;

@@ -1,4 +1,4 @@
-import { MemberNav } from "@/components/MemberNav";
+import { MemberNavServer } from "@/components/MemberNavServer";
 
 // Layout for the member landing at /desk. Mirrors notes/(member)/layout
 // — same sidebar nav vocabulary so the URL move doesn't introduce a
@@ -11,7 +11,7 @@ export default function DeskLayout({
 }) {
   return (
     <div className="md:flex md:max-w-6xl md:mx-auto md:gap-10 md:px-6">
-      <MemberNav />
+      <MemberNavServer />
       <div className="md:flex-1 md:min-w-0">{children}</div>
     </div>
   );

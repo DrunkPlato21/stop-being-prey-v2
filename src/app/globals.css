@@ -1294,6 +1294,27 @@ a.no-underline {
 
 /* (HMR nudge) */
 
+/* === MemberNav "new content" dot ===
+   Small gold dot rendered to the right of a nav label when that section
+   has activity newer than the member's last visit. Quiet by design — a
+   single 6px circle, no animation. The mid-tone --eye gold keeps it in
+   the same hue family as the active-state --eye-deep without colliding
+   (a member can read "this section is open AND has new stuff" at a
+   glance). A faint outer ring lifts it off the cream paper just enough
+   to feel intentional rather than incidental. */
+
+.nav-new-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--eye);
+  flex-shrink: 0;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+  box-shadow: 0 0 0 2px rgba(184, 168, 44, 0.16);
+}
+
 /* === Writer's Desk status panel ===
    Wraps the presence line + away note + current thought. The
    widget's focal element — first thing a reader sees. When Clay is

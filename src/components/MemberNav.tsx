@@ -13,6 +13,14 @@ import { usePathname } from "next/navigation";
 //
 // Mobile: horizontal sticky strip pinned to top:0. The site header
 // itself is not sticky, so this pins as you scroll past the header.
+//
+// "New since you were last here" indicators: a small gold dot sits to
+// the right of the label when the section has activity newer than the
+// member's last visit. Dot state is computed server-side (see
+// getNavDots) and passed in via the `dots` prop. Map keys are the
+// section's href; absent or false values render no dot. The dot reuses
+// var(--eye) so it sits in the same gold hue family as the rest of the
+// chrome without clashing with the eye-deep active state.
 
 type NavItem = {
   href: string;
@@ -22,6 +30,8 @@ type NavItem = {
       Mobile horizontal strip ignores this flag. */
   clusterBreak?: boolean;
 };
+
+export type MemberNavDots = Partial<Record<string, boolean>>;
 
 // Three clusters, no dividing lines, just whitespace:
 //   1. Presence layer: Desk, Lounge
@@ -55,8 +65,9 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function MemberNav() {
+export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
   const pathname = usePathname() ?? "";
+  const hasDot = (href: string): boolean => !!(dots && dots[href]);
 
   return (
     <>
@@ -68,6 +79,7 @@ export function MemberNav() {
         <ul className="flex items-stretch justify-center max-w-3xl mx-auto px-2">
           {ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
+            const showDot = hasDot(item.href);
             return (
               <li key={item.href} className="flex">
                 <Link
@@ -87,6 +99,9 @@ export function MemberNav() {
                   }}
                 >
                   {item.label}
+                  {showDot && (
+                    <span className="nav-new-dot" aria-hidden="true" />
+                  )}
                 </Link>
               </li>
             );
@@ -108,6 +123,7 @@ export function MemberNav() {
         <ul className="flex flex-col">
           {ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
+            const showDot = hasDot(item.href);
             return (
               <li
                 key={item.href}
@@ -118,7 +134,7 @@ export function MemberNav() {
                 <Link
                   href={item.href}
                   className={
-                    "block font-display uppercase tracking-[0.22em] no-underline py-2.5 pl-4 transition-colors " +
+                    "block font-display uppercase tracking-[0.22em] no-underline py-2.5 pl-4 pr-3 transition-colors " +
                     (active
                       ? "text-eye-deep"
                       : "text-ink-muted hover:text-ink")
@@ -129,9 +145,16 @@ export function MemberNav() {
                     borderLeft: active
                       ? "2px solid var(--eye-deep)"
                       : "2px solid var(--rule)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "0.5rem",
                   }}
                 >
-                  {item.label}
+                  <span>{item.label}</span>
+                  {showDot && (
+                    <span className="nav-new-dot" aria-hidden="true" />
+                  )}
                 </Link>
               </li>
             );

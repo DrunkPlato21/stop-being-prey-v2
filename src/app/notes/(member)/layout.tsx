@@ -1,4 +1,4 @@
-import { MemberNav } from "@/components/MemberNav";
+import { MemberNavServer } from "@/components/MemberNavServer";
 
 // Layout for the authenticated member surface. The (member) route group
 // scopes this layout to /notes, /notes/start, /notes/[slug], and
@@ -16,7 +16,7 @@ export default function MemberLayout({
 }) {
   return (
     <div className="md:flex md:max-w-6xl md:mx-auto md:gap-10 md:px-6">
-      <MemberNav />
+      <MemberNavServer />
       <div className="md:flex-1 md:min-w-0">{children}</div>
     </div>
   );
