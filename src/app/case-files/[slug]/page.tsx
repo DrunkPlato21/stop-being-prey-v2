@@ -632,29 +632,40 @@ export default async function CaseFileDetailPage({
             }}
           >
             <p
-              className="eyebrow mb-3"
-              style={{ fontSize: "0.66rem", letterSpacing: "0.32em" }}
+              className="eyebrow mb-5"
+              style={{
+                fontSize: "0.86rem",
+                letterSpacing: "0.28em",
+                fontWeight: 600,
+                color: "var(--eye-deep)",
+              }}
             >
               Inside the Membership
             </p>
             <p
-              className="font-display text-ink leading-snug tracking-tight mb-4"
-              style={{
-                fontSize: "clamp(1.35rem, 2.4vw, 1.6rem)",
-                fontWeight: 700,
-                letterSpacing: "-0.015em",
-              }}
+              className="font-serif text-ink mb-4"
+              style={{ fontSize: "1.1rem", lineHeight: 1.65 }}
             >
-              Four more like the one you just read. Plus the Writer&apos;s
-              Desk, the Lounge, Field Notes, and the book in progress.
+              The case file you just read is one of a growing library.
+              I add new ones every week as I dispatch new fights.
+              Founders get them all, forever, including the ones I
+              haven&apos;t written yet.
+            </p>
+            <p
+              className="font-serif text-ink mb-5"
+              style={{ fontSize: "1.05rem", lineHeight: 1.65 }}
+            >
+              Plus the Writer&apos;s Desk, the Lounge, Field Notes,
+              and the book in progress.
             </p>
             <p
               className="font-serif text-ink-soft mb-5"
-              style={{ fontSize: "1.05rem", lineHeight: 1.65 }}
+              style={{ fontSize: "1rem", lineHeight: 1.65 }}
             >
               {founderSeatsLeft} founder seat
               {founderSeatsLeft === 1 ? "" : "s"} left. $8/month locked
-              for life. When the last fills, $13 forever.
+              for life. When the last fills, $13 forever. There is no
+              second cohort.
             </p>
             <p>
               <Link
