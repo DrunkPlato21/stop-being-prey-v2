@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 // Persistent admin nav, rendered once from the admin layout so every
 // /admin/* surface gets the same utility rail at the top. Quiet small
@@ -22,6 +23,7 @@ const PRIMARY: NavItem[] = [
   { href: "/admin/desk/voice", label: "Voice memos" },
   { href: "/admin/lounge", label: "Lounge" },
   { href: "/admin/comments", label: "Comments" },
+  { href: "/admin/presence", label: "Presence" },
 ];
 
 const SECONDARY: NavItem[] = [
@@ -52,17 +54,22 @@ function resolveActiveHref(pathname: string | null): string | null {
 function NavRow({
   items,
   activeHref,
+  isMobile,
 }: {
   items: NavItem[];
   activeHref: string | null;
+  isMobile: boolean;
 }) {
   return (
-    <ul className="admin-persistent-nav-row">
+    <ul
+      className="admin-persistent-nav-row"
+      style={isMobile ? { columnGap: "1.1rem" } : undefined}
+    >
       {items.map((item, idx) => {
         const active = item.href === activeHref;
         return (
           <li key={item.href} className="admin-persistent-nav-cell">
-            {idx > 0 && (
+            {idx > 0 && !isMobile && (
               <span
                 className="admin-persistent-nav-dot"
                 aria-hidden="true"
@@ -86,15 +93,40 @@ function NavRow({
   );
 }
 
+/** Track the narrow-viewport state so the nav can drop its inline
+    middle-dot separators on mobile (where they'd leave stray leading
+    dots on every wrapped line). Initialised to `false` to match SSR;
+    flips post-mount if matchMedia says we're under the breakpoint. */
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return isMobile;
+}
+
 export function AdminPersistentNav() {
   const pathname = usePathname();
   const activeHref = resolveActiveHref(pathname);
+  const isMobile = useIsMobile();
 
   return (
     <nav aria-label="Admin sections" className="admin-persistent-nav">
       <div className="admin-persistent-nav-inner">
-        <NavRow items={PRIMARY} activeHref={activeHref} />
-        <NavRow items={SECONDARY} activeHref={activeHref} />
+        <NavRow
+          items={PRIMARY}
+          activeHref={activeHref}
+          isMobile={isMobile}
+        />
+        <NavRow
+          items={SECONDARY}
+          activeHref={activeHref}
+          isMobile={isMobile}
+        />
       </div>
     </nav>
   );

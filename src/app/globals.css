@@ -3650,6 +3650,19 @@ body[data-theme="admin-desk-dark"] .admin-persistent-nav {
   user-select: none;
 }
 
+/* Mobile: drop the middle-dot separators and rely on gap. Inline dots
+   in a wrapping row leave a stray dot at the start of every wrapped
+   line, which reads as broken — column-gap spaces items cleanly
+   regardless of how many wrap. */
+@media (max-width: 639px) {
+  .admin-persistent-nav-row {
+    column-gap: 1.1rem;
+  }
+  .admin-persistent-nav-dot {
+    display: none;
+  }
+}
+
 .admin-persistent-nav-link {
   font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
   font-size: 0.66rem;
