@@ -10,11 +10,12 @@ import {
 import { sendPendingCommentNotification } from "@/lib/email";
 import { getAllArticles } from "@/lib/articles";
 import { getAllFieldNotes } from "@/lib/field-notes";
+import { getAllCaseFiles } from "@/lib/case-files";
 import { baseUrl } from "@/lib/membership";
 
 // POST /api/comments
-// Body: { kind: "article" | "note", slug: string, body: string,
-//         displayName?: string }
+// Body: { kind: "article" | "note" | "case-file", slug: string,
+//         body: string, displayName?: string }
 // Auth: requires a valid member session.
 //
 // If the member has no display name on file yet, `displayName` is
@@ -25,7 +26,7 @@ import { baseUrl } from "@/lib/membership";
 const MAX_BODY_LENGTH = 4000; // raw input cap before sanitize trim
 
 function isCommentKind(value: unknown): value is CommentKind {
-  return value === "article" || value === "note";
+  return value === "article" || value === "note" || value === "case-file";
 }
 
 function isSlug(value: unknown): value is string {
@@ -137,15 +138,25 @@ export async function POST(req: NextRequest) {
               url: `${baseUrl()}/${result.comment.slug}#c-${result.comment.id}`,
             };
           })()
-        : (() => {
-            const n = getAllFieldNotes().find(
-              (x) => x.slug === result.comment.slug
-            );
-            return {
-              title: n?.title ?? result.comment.slug,
-              url: `${baseUrl()}/notes/field-notes/${result.comment.slug}#c-${result.comment.id}`,
-            };
-          })();
+        : result.comment.kind === "case-file"
+          ? (() => {
+              const c = getAllCaseFiles().find(
+                (x) => x.slug === result.comment.slug
+              );
+              return {
+                title: c?.title ?? result.comment.slug,
+                url: `${baseUrl()}/case-files/${result.comment.slug}#c-${result.comment.id}`,
+              };
+            })()
+          : (() => {
+              const n = getAllFieldNotes().find(
+                (x) => x.slug === result.comment.slug
+              );
+              return {
+                title: n?.title ?? result.comment.slug,
+                url: `${baseUrl()}/notes/field-notes/${result.comment.slug}#c-${result.comment.id}`,
+              };
+            })();
     const sendResult = await sendPendingCommentNotification({
       to: adminEmail,
       authorDisplayName: result.comment.displayName,

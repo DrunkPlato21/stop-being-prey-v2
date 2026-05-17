@@ -30,7 +30,7 @@ import {
 //   comments:all                            ZSET of every comment ID, score=createdAt
 //   profiles:flagged                        ZSET of emails flagged for review
 
-export type CommentKind = "article" | "note";
+export type CommentKind = "article" | "note" | "case-file";
 
 export type ThreadReply = {
   id: string;
@@ -815,8 +815,15 @@ export async function createComment(
   //     without value. Public articles (kind="article") still moderate
   //     because they accept paid non-member comments where the trust
   //     filter is just "had a dollar."
+  //   - kind === "case-file" — same logic as "note." Case files are
+  //     behind the member paywall except for explicit public-preview
+  //     slugs, and even there the $1 paid form is the only path for
+  //     non-members. The marketing surfaces are narrow enough that
+  //     auto-approval here is fine; post-publish admin moderation
+  //     stays available via /admin/comments.
   const isAuthor = isAdmin(input.email);
-  const isMemberOnlySurface = input.kind === "note";
+  const isMemberOnlySurface =
+    input.kind === "note" || input.kind === "case-file";
   const autoApprove = isAuthor || isMemberOnlySurface;
   const record: CommentRecord = {
     id,

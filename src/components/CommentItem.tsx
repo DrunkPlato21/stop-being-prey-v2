@@ -63,6 +63,9 @@ function permalinkPath(comment: CommentRecord): string {
   if (comment.kind === "article") {
     return `/${comment.slug}#c-${comment.id}`;
   }
+  if (comment.kind === "case-file") {
+    return `/case-files/${comment.slug}#c-${comment.id}`;
+  }
   return `/notes/field-notes/${comment.slug}#c-${comment.id}`;
 }
 
@@ -72,6 +75,9 @@ function threadReplyPermalinkPath(
 ): string {
   if (parent.kind === "article") {
     return `/${parent.slug}#r-${replyId}`;
+  }
+  if (parent.kind === "case-file") {
+    return `/case-files/${parent.slug}#r-${replyId}`;
   }
   return `/notes/field-notes/${parent.slug}#r-${replyId}`;
 }

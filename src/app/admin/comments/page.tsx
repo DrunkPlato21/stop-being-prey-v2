@@ -8,6 +8,7 @@ import {
 } from "@/lib/comments";
 import { getAllArticles } from "@/lib/articles";
 import { getAllFieldNotes } from "@/lib/field-notes";
+import { getAllCaseFiles } from "@/lib/case-files";
 import { ApproveCommentButton } from "@/components/ApproveCommentButton";
 import { DeleteCommentButton } from "@/components/DeleteCommentButton";
 import { AdminReplyControls } from "@/components/AdminReplyControls";
@@ -112,6 +113,13 @@ function pieceMeta(comment: CommentRecord): { title: string; url: string } {
     return {
       title: a?.title ?? comment.slug,
       url: `/${comment.slug}#c-${comment.id}`,
+    };
+  }
+  if (comment.kind === "case-file") {
+    const c = getAllCaseFiles().find((x) => x.slug === comment.slug);
+    return {
+      title: c?.title ?? comment.slug,
+      url: `/case-files/${comment.slug}#c-${comment.id}`,
     };
   }
   const n = getAllFieldNotes().find((x) => x.slug === comment.slug);
@@ -345,7 +353,11 @@ export default async function CommentsAdminPage({
                 {/* Piece reference + open-in-context link */}
                 <div className="flex items-baseline justify-between gap-4 flex-wrap mb-3">
                   <p className="eyebrow">
-                    {c.kind === "article" ? "Essay" : "Field Note"}
+                    {c.kind === "article"
+                      ? "Essay"
+                      : c.kind === "case-file"
+                        ? "Case File"
+                        : "Field Note"}
                     {" · "}
                     <Link
                       href={piece.url}

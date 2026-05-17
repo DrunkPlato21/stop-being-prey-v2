@@ -9,6 +9,7 @@ import { createNotification } from "@/lib/notifications";
 import { sendCommentThreadReplyNotification } from "@/lib/email";
 import { getAllArticles } from "@/lib/articles";
 import { getAllFieldNotes } from "@/lib/field-notes";
+import { getAllCaseFiles } from "@/lib/case-files";
 import { baseUrl } from "@/lib/membership";
 
 // POST /api/comments/:id/thread-reply  body: { body }
@@ -27,18 +28,20 @@ export const runtime = "nodejs";
 type PieceMeta = { title: string; path: string; absoluteUrl: string };
 
 function pieceMeta(
-  kind: "article" | "note",
+  kind: "article" | "note" | "case-file",
   slug: string,
   commentId: string
 ): PieceMeta {
-  const path =
-    kind === "article"
-      ? `/${slug}#c-${commentId}`
-      : `/notes/field-notes/${slug}#c-${commentId}`;
+  let path: string;
   let title = slug;
   if (kind === "article") {
+    path = `/${slug}#c-${commentId}`;
     title = getAllArticles().find((x) => x.slug === slug)?.title ?? slug;
+  } else if (kind === "case-file") {
+    path = `/case-files/${slug}#c-${commentId}`;
+    title = getAllCaseFiles().find((x) => x.slug === slug)?.title ?? slug;
   } else {
+    path = `/notes/field-notes/${slug}#c-${commentId}`;
     title = getAllFieldNotes().find((x) => x.slug === slug)?.title ?? slug;
   }
   return { title, path, absoluteUrl: `${baseUrl()}${path}` };

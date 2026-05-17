@@ -33,6 +33,7 @@ import {
 } from "@/lib/paid-comments";
 import { getAllArticles } from "@/lib/articles";
 import { getAllFieldNotes } from "@/lib/field-notes";
+import { getAllCaseFiles } from "@/lib/case-files";
 import { sendPendingCommentNotification } from "@/lib/email";
 import { baseUrl } from "@/lib/membership";
 import {
@@ -454,12 +455,17 @@ async function handlePaidCommentCheckout(
         finalized.kind === "article"
           ? (getAllArticles().find((x) => x.slug === finalized.slug)?.title ??
             finalized.slug)
-          : (getAllFieldNotes().find((x) => x.slug === finalized.slug)?.title ??
-            finalized.slug);
+          : finalized.kind === "case-file"
+            ? (getAllCaseFiles().find((x) => x.slug === finalized.slug)?.title ??
+              finalized.slug)
+            : (getAllFieldNotes().find((x) => x.slug === finalized.slug)?.title ??
+              finalized.slug);
       const piecePath =
         finalized.kind === "article"
           ? `/${finalized.slug}#c-${finalized.id}`
-          : `/notes/field-notes/${finalized.slug}#c-${finalized.id}`;
+          : finalized.kind === "case-file"
+            ? `/case-files/${finalized.slug}#c-${finalized.id}`
+            : `/notes/field-notes/${finalized.slug}#c-${finalized.id}`;
       await sendPendingCommentNotification({
         to: adminEmail,
         authorDisplayName: finalized.displayName,

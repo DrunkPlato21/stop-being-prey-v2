@@ -7,6 +7,7 @@ import {
 import { createPaidCommentCheckoutSession } from "@/lib/membership";
 import { getAllArticles } from "@/lib/articles";
 import { getAllFieldNotes } from "@/lib/field-notes";
+import { getAllCaseFiles } from "@/lib/case-files";
 
 // POST /api/paid-comments/create
 // Body: { email, displayName, kind, slug, body, amountCents, showAmount }
@@ -21,8 +22,10 @@ const MAX_BODY_LENGTH = 4000;
 // Stripe charge. $1000 is plenty of room for an enthusiastic guest.
 const PAID_COMMENT_MAX_CENTS = 100_000;
 
-function isCommentKind(value: unknown): value is "article" | "note" {
-  return value === "article" || value === "note";
+function isCommentKind(
+  value: unknown
+): value is "article" | "note" | "case-file" {
+  return value === "article" || value === "note" || value === "case-file";
 }
 
 function isSlug(value: unknown): value is string {
@@ -34,9 +37,15 @@ function isSlug(value: unknown): value is string {
   );
 }
 
-function pieceTitle(kind: "article" | "note", slug: string): string {
+function pieceTitle(
+  kind: "article" | "note" | "case-file",
+  slug: string
+): string {
   if (kind === "article") {
     return getAllArticles().find((x) => x.slug === slug)?.title ?? slug;
+  }
+  if (kind === "case-file") {
+    return getAllCaseFiles().find((x) => x.slug === slug)?.title ?? slug;
   }
   return getAllFieldNotes().find((x) => x.slug === slug)?.title ?? slug;
 }

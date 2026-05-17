@@ -12,6 +12,7 @@ import {
   type CaseFile,
 } from "@/lib/case-files";
 import { EyeDivider } from "@/components/Eyes";
+import { Comments } from "@/components/Comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { markNavViewed } from "@/lib/nav-dots";
 
@@ -675,6 +676,12 @@ export default async function CaseFileDetailPage({
           </div>
         )}
       </section>
+
+      {/* Comments. Members comment free, non-members on the public-
+          preview case file can pay $1 to add one. The Comments
+          component handles every state internally — list, form,
+          paid-CTA, admin reply controls. */}
+      <Comments kind="case-file" slug={cf.slug} />
 
       <EyeDivider />
 

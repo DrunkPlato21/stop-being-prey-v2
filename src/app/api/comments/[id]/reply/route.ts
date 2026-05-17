@@ -10,6 +10,7 @@ import {
 import { sendReplyNotification } from "@/lib/email";
 import { getAllArticles } from "@/lib/articles";
 import { getAllFieldNotes } from "@/lib/field-notes";
+import { getAllCaseFiles } from "@/lib/case-files";
 import { baseUrl } from "@/lib/membership";
 
 // POST /api/comments/:id/reply  — set or replace Clay's reply
@@ -21,7 +22,7 @@ import { baseUrl } from "@/lib/membership";
 // persisted; a missing notification is just a degraded outcome.
 
 function lookupPiece(
-  kind: "article" | "note",
+  kind: "article" | "note" | "case-file",
   slug: string
 ): { title: string; url: string } {
   if (kind === "article") {
@@ -29,6 +30,13 @@ function lookupPiece(
     return {
       title: meta?.title ?? slug,
       url: `${baseUrl()}/${slug}`,
+    };
+  }
+  if (kind === "case-file") {
+    const meta = getAllCaseFiles().find((c) => c.slug === slug);
+    return {
+      title: meta?.title ?? slug,
+      url: `${baseUrl()}/case-files/${slug}`,
     };
   }
   const meta = getAllFieldNotes().find((n) => n.slug === slug);

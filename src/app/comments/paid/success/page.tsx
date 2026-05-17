@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getPaidCommentByCheckoutSession } from "@/lib/paid-comments";
 import { getAllArticles } from "@/lib/articles";
 import { getAllFieldNotes } from "@/lib/field-notes";
+import { getAllCaseFiles } from "@/lib/case-files";
 import type { CommentRecord } from "@/lib/comments";
 
 // Landing page after Stripe redirects from a paid-comment Checkout.
@@ -38,6 +39,13 @@ function pieceLink(record: CommentRecord): { title: string; href: string } {
   if (record.kind === "article") {
     const a = getAllArticles().find((x) => x.slug === record.slug);
     return { title: a?.title ?? record.slug, href: `/${record.slug}` };
+  }
+  if (record.kind === "case-file") {
+    const c = getAllCaseFiles().find((x) => x.slug === record.slug);
+    return {
+      title: c?.title ?? record.slug,
+      href: `/case-files/${record.slug}`,
+    };
   }
   const n = getAllFieldNotes().find((x) => x.slug === record.slug);
   return {

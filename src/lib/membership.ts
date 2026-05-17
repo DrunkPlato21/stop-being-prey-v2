@@ -467,7 +467,7 @@ export async function createPaidCommentCheckoutSession(args: {
   commentId: string;
   amountCents: number;
   email: string;
-  pieceKind: "article" | "note";
+  pieceKind: "article" | "note" | "case-file";
   pieceSlug: string;
   pieceTitle: string;
 }): Promise<{ url: string; sessionId: string } | { error: CheckoutError }> {
