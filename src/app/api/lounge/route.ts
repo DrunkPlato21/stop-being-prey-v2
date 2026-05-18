@@ -19,6 +19,8 @@ import {
   setLastViewed,
   type ReactionTarget,
 } from "@/lib/lounge";
+import { createNotification } from "@/lib/notifications";
+import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
 
 // GET  /api/lounge?before=<createdAt>&limit=20
 //   → { pinned, posts, replies, reacted, lastVisitedAt, hasMore, isAdmin }
@@ -202,5 +204,40 @@ export async function POST(req: NextRequest) {
     }
     return Response.json(result, { status: 400 });
   }
+
+  // Fan out `lounge_mention` notifications to anyone @-tagged in the
+  // post body. Mirrors the reply route's mention block, minus the
+  // parent-author dedupe (top-level posts have no parent author to
+  // double-tap). Self-mentions are skipped — drafting your own name
+  // doesn't ping you.
+  void (async () => {
+    try {
+      const post = result.post;
+      const tokens = parseMentions(post.body);
+      if (tokens.length === 0) return;
+      const excerpt =
+        post.body.length > 60
+          ? `${post.body.slice(0, 60).trim()}…`
+          : post.body;
+      const notified = new Set<string>();
+      for (const token of tokens) {
+        const targetEmail = await resolveMentionToEmail(token);
+        if (!targetEmail) continue;
+        if (targetEmail === post.memberEmail) continue;
+        if (notified.has(targetEmail)) continue;
+        notified.add(targetEmail);
+        await createNotification({
+          memberEmail: targetEmail,
+          type: "lounge_mention",
+          title: `${post.firstName} mentioned you in the lounge`,
+          body: excerpt,
+          linkUrl: `/lounge#post-${post.id}`,
+        });
+      }
+    } catch (err) {
+      console.error(`[notifications] lounge_mention write failed:`, err);
+    }
+  })();
+
   return Response.json(result);
 }

@@ -3,11 +3,9 @@
 import {
   Fragment,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type TextareaHTMLAttributes,
 } from "react";
 import type {
   ActiveNowSnapshot,
@@ -28,6 +26,7 @@ import { MemberBadge } from "@/components/MemberBadge";
 import { InitialAvatar } from "@/components/InitialAvatar";
 import { Linkified } from "@/components/Linkified";
 import { mentionTokenFor } from "@/lib/display-name";
+import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
 
 type MemberBadgeInfo = {
   founderSlot: number | null;
@@ -113,69 +112,9 @@ function formatLaunchDate(iso: string): string {
   });
 }
 
-// Textarea that grows with its content. Initial size = `minRows`,
-// expands as needed up to whatever the browser can fit. Used by both
-// compose and reply composers so members don't have to hand-resize.
-//
-// The layout effect (vs. plain useEffect) runs before paint, so the
-// height is correct on the very first render when value is non-empty
-// — important for the reply composer which auto-focuses on open.
-type AutoResizingTextareaProps =
-  Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "rows" | "ref"> & {
-    value: string;
-    minRows?: number;
-  };
-
-function AutoResizingTextarea({
-  value,
-  minRows = 2,
-  style,
-  ...rest
-}: AutoResizingTextareaProps) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    // Reset to "auto" first so the textarea can shrink when content
-    // is deleted. Without this, scrollHeight stays at the previous
-    // taller value and the box never gets smaller.
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value]);
-
-  // On first mount, when autoFocus + an initial value combine (the
-  // reply composer prefills `@<name> ` when the user clicks reply on
-  // a reply), drop the cursor at the end of that prefill so they can
-  // start typing right after the @mention instead of in front of it.
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (rest.autoFocus && typeof value === "string" && value.length > 0) {
-      const end = value.length;
-      el.setSelectionRange(end, end);
-    }
-    // Run on mount only — subsequent value changes shouldn't yank the
-    // user's cursor around.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      rows={minRows}
-      style={{
-        // Hide the native resize handle and the scrollbar — the
-        // textarea size follows the content, no manual resize needed.
-        resize: "none",
-        overflow: "hidden",
-        ...style,
-      }}
-      {...rest}
-    />
-  );
-}
+// Textarea behavior (auto-resize + cursor-at-end on autoFocus) lives
+// in ./AutoResizingTextarea; the lounge composers use the mention-
+// aware wrapper (./MentionAutoResizingTextarea) for the @-picker.
 
 function activeNowLine(snap: ActiveNowSnapshot): string | null {
   const { otherCount, authorPresent } = snap;
@@ -665,6 +604,15 @@ export function LoungeView(props: Props) {
     }
     setReactions((prev) => ({ ...prev, [target.id]: optimistic }));
 
+    // Admin reacting to a post or reply implies they've read it —
+    // auto-stamp the read-by-Clay receipt so it shows the eye glyph
+    // without a second click. Only fires when adding/changing a
+    // reaction (resolved !== null); clearing a reaction is not an
+    // unread signal. Idempotent — markReadByClay no-ops if already on.
+    if (props.isAdmin && resolved !== null) {
+      void markReadByClay(target.kind, target.id);
+    }
+
     // Sync the post's denormalized reactionCount in the feed so the
     // pinned/feed cards stay accurate.
     const delta = optimistic.total - current.total;
@@ -771,6 +719,38 @@ export function LoungeView(props: Props) {
       }
     } catch {
       // No-op
+    }
+  }
+
+  // One-way "mark as read" helper. Used when admin reacts to a post
+  // or reply — the reaction implies the read, no point also clicking
+  // the manual stamp. No-ops if the id is already in the read set so
+  // a second reaction doesn't re-fire the API call.
+  async function markReadByClay(kind: "post" | "reply", id: string) {
+    if (!props.isAdmin) return;
+    const currentSet = kind === "post" ? readByClayPostIds : readByClayReplyIds;
+    if (currentSet.has(id)) return;
+    const setState =
+      kind === "post" ? setReadByClayPostIds : setReadByClayReplyIds;
+    setState((prev) => {
+      const out = new Set(prev);
+      out.add(id);
+      return out;
+    });
+    try {
+      const res = await fetch("/api/admin/lounge/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, id, read: true }),
+      });
+      const data: { ok?: boolean } = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error("mark_failed");
+    } catch {
+      setState((prev) => {
+        const out = new Set(prev);
+        out.delete(id);
+        return out;
+      });
     }
   }
 
@@ -1147,11 +1127,9 @@ export function LoungeView(props: Props) {
           className="lounge-compose-dock"
         >
           <label className="block">
-            <AutoResizingTextarea
+            <MentionAutoResizingTextarea
               value={composeBody}
-              onChange={(e) =>
-                setComposeBody(e.target.value.slice(0, MAX_BODY))
-              }
+              onValueChange={(v) => setComposeBody(v.slice(0, MAX_BODY))}
               onFocus={() => {
                 composeFocusedRef.current = true;
               }}
@@ -1542,9 +1520,9 @@ function PostCard(props: CardProps) {
   // sibling reply on the parent post regardless of anchor.
   const renderComposer = (replyingToName: string) => (
     <div className="mt-4 pt-4 border-t border-rule">
-      <AutoResizingTextarea
+      <MentionAutoResizingTextarea
         value={replyDraft}
-        onChange={(e) => setReplyDraft(e.target.value.slice(0, MAX_BODY))}
+        onValueChange={(v) => setReplyDraft(v.slice(0, MAX_BODY))}
         onFocus={props.onReplyFocus}
         onBlur={props.onReplyBlur}
         minRows={2}
@@ -1735,34 +1713,68 @@ function PostCard(props: CardProps) {
           setPickerOpenFor={setPickerOpenFor}
           onReact={onReact}
         />
-        <button
-          type="button"
-          onClick={() => {
-            // Toggle when composer is already anchored under THIS
-            // post's body. Otherwise (closed, anchored under one of
-            // this post's replies, or anchored under another post)
-            // move it here under the post body.
-            if (openReplyFor === post.id && openUnderReplyId === null) {
-              setOpenReplyFor(null);
-              setOpenUnderReplyId(null);
-            } else {
-              setOpenReplyFor(post.id);
-              setOpenUnderReplyId(null);
-            }
-          }}
-          className="font-display uppercase tracking-[0.22em] transition-colors"
-          style={{
-            fontSize: "0.62rem",
-            fontWeight: 600,
-            background: "transparent",
-            border: 0,
-            color: "var(--ink-faint)",
-            cursor: "pointer",
-            padding: 0,
-          }}
-        >
-          Reply &middot; {post.replyCount}
-        </button>
+        {(() => {
+          const composerHere =
+            openReplyFor === post.id && openUnderReplyId === null;
+          return (
+            <button
+              type="button"
+              onClick={() => {
+                // Toggle when composer is already anchored under THIS
+                // post's body. Otherwise (closed, anchored under one of
+                // this post's replies, or anchored under another post)
+                // move it here under the post body.
+                if (composerHere) {
+                  setOpenReplyFor(null);
+                  setOpenUnderReplyId(null);
+                } else {
+                  setOpenReplyFor(post.id);
+                  setOpenUnderReplyId(null);
+                }
+              }}
+              className="lounge-reply-cta font-display uppercase tracking-[0.22em] transition-colors"
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 600,
+                background: "transparent",
+                border: 0,
+                color: composerHere ? "var(--eye-deep)" : "var(--ink-muted)",
+                cursor: "pointer",
+                padding: "0.25rem 0",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+              }}
+              aria-pressed={composerHere}
+              aria-label={`Reply to ${post.firstName}`}
+            >
+              <svg
+                aria-hidden="true"
+                width="11"
+                height="9"
+                viewBox="0 0 14 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0 }}
+              >
+                <path d="M5 2 L1.5 5.5 L5 9" />
+                <path d="M1.5 5.5 H8.5 Q12.5 5.5 12.5 10" />
+              </svg>
+              <span>
+                Reply
+                {post.replyCount > 0 && (
+                  <>
+                    {" "}
+                    <span style={{ opacity: 0.75 }}>· {post.replyCount}</span>
+                  </>
+                )}
+              </span>
+            </button>
+          );
+        })()}
         {isAdmin && (
           <>
             <span
@@ -2056,19 +2068,37 @@ function ReplyRow({
         <button
           type="button"
           onClick={onMentionReply}
-          className="font-display uppercase tracking-[0.22em] hover:text-eye-deep transition-colors"
+          className="lounge-reply-cta font-display uppercase tracking-[0.22em] hover:text-eye-deep transition-colors"
           style={{
-            fontSize: "0.58rem",
+            fontSize: "0.62rem",
             fontWeight: 600,
             background: "transparent",
             border: 0,
-            color: "var(--ink-faint)",
+            color: "var(--ink-muted)",
             cursor: "pointer",
-            padding: 0,
+            padding: "0.2rem 0",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.35rem",
           }}
           title={`Reply to ${reply.firstName}`}
         >
-          reply
+          <svg
+            aria-hidden="true"
+            width="10"
+            height="8"
+            viewBox="0 0 14 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
+          >
+            <path d="M5 2 L1.5 5.5 L5 9" />
+            <path d="M1.5 5.5 H8.5 Q12.5 5.5 12.5 10" />
+          </svg>
+          <span>reply</span>
         </button>
         {isAdmin && (
           <>

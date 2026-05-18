@@ -2268,6 +2268,15 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   opacity: 0.78;
 }
 
+/* Reply button on lounge posts + replies. Sits in the footer next to
+   the React control. Hover slides to the olive accent so it reads as
+   an action, not eyebrow body copy — important for the audience that
+   defaults to "Post" at the bottom because the inline reply doesn't
+   look clickable. */
+.lounge-reply-cta:hover {
+  color: var(--eye-deep);
+}
+
 /* Small green pulse beside a post's timestamp when a reply has
    landed in the last 10 minutes. Matches the writer's desk "live
    now" green so the signal reads consistently across the site. */
