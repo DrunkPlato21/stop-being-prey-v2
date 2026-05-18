@@ -18,7 +18,11 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const WINDOW_MINUTES = 5;
+// Matches the OnTheDeskBadge's window so the two indicators agree.
+// A member who shows up on /admin/desk's "On the desk" pill should
+// also show on this panel — anything tighter (e.g. 5 min) made the
+// panel look empty while the desk badge still surfaced live members.
+const WINDOW_MINUTES = 30;
 
 export default async function PresenceAdminPage() {
   const now = Date.now();
