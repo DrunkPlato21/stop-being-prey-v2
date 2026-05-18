@@ -1,5 +1,5 @@
 import { getAllArticles } from "./articles";
-import { getAllFieldNotes } from "./field-notes";
+import { getAllFieldNotesWithActivity } from "./field-notes";
 import {
   listChannelPosts,
   type ChannelPost,
@@ -81,17 +81,23 @@ function essayPulses(limit: number): PulseEvent[] {
   return out.sort((a, b) => b.at - a.at).slice(0, limit);
 }
 
-function fieldNotePulses(limit: number): PulseEvent[] {
-  const notes = getAllFieldNotes();
+async function fieldNotePulses(limit: number): Promise<PulseEvent[]> {
+  // Journal-style field notes surface their latest *entry* (the
+  // working-journal updates Clay appends over the life of the piece)
+  // rather than the original creation date, so the desk feed reflects
+  // what's actually new. Legacy single-essay notes still surface by
+  // their frontmatter date with the note's own title as the body.
+  const notes = await getAllFieldNotesWithActivity();
   const out: PulseEvent[] = [];
   for (const n of notes) {
-    const at = parseDateMs(n.date);
-    if (at === null) continue;
+    const at = n.lastActivityAt || parseDateMs(n.date) || 0;
+    if (!at) continue;
+    const hasEntry = n.kind === "journal" && !!n.latestEntryTitle;
     out.push({
       source: "field-note",
       at,
-      label: "Field note",
-      body: n.title,
+      label: hasEntry ? "Field note update" : "Field note",
+      body: hasEntry ? (n.latestEntryTitle as string) : n.title,
       link: `/notes/field-notes/${n.slug}`,
     });
   }
@@ -162,8 +168,10 @@ export async function getRecentWorkEvents({
 }: { limit?: number } = {}): Promise<PulseEvent[]> {
   const perLane = Math.max(2, Math.ceil(limit * 0.75));
 
-  const essays = essayPulses(perLane);
-  const fieldNotes = fieldNotePulses(perLane);
+  const [essays, fieldNotes] = await Promise.all([
+    Promise.resolve(essayPulses(perLane)),
+    fieldNotePulses(perLane),
+  ]);
 
   const events: PulseEvent[] = [...PINNED_EVENTS, ...essays, ...fieldNotes];
   events.sort((a, b) => b.at - a.at);
