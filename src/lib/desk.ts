@@ -342,6 +342,12 @@ export async function setSession(
     awayNoteSetAt: cleaned ? now : 0,
   };
   await writePresence(next);
+  // Going away also clears the latest status. The away-note IS Clay's
+  // status while he's gone; leaving an active-session status note
+  // pinned beside "Clay is away from the desk" reads as out of date
+  // on both the admin view and the public Desk widget, and he was
+  // hitting the manual X every time anyway.
+  await deleteUpdate("").catch(() => null);
   return next;
 }
 
