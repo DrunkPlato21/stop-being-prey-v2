@@ -159,16 +159,16 @@ export async function createNote(
   const fromName = sanitizeName(input.displayName) || "";
   const id = randomUUID();
   const now = Date.now();
-  // Visibility is forced to "public" — the toggle was removed and all
-  // notes land on the public Quick Notes board. The field stays in
-  // the data model for backward compatibility with notes created
-  // before this change.
+  // Visibility is forced to "private" — notes are the direct-to-Clay
+  // channel; public room talk lives in the Lounge. The field stays in
+  // the data model since older records may still be `public` until
+  // they're flipped, and `maxReplyLengthFor()` still keys off it.
   const note: Note = {
     id,
     fromEmail: normEmail(input.email),
     fromName,
     body,
-    visibility: "public",
+    visibility: "private",
     createdAt: now,
     clayReply: null,
     clayRepliedAt: null,

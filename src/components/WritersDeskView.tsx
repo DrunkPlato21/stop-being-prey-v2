@@ -7,21 +7,11 @@ import type { PresenceState } from "@/lib/desk";
 import type { PulseEvent } from "@/lib/pulse";
 import type { Note } from "@/lib/notes";
 import { NotePaperPanel } from "@/components/NotePaperPanel";
-import { PublicNotesPanel } from "@/components/PublicNotesPanel";
 import { VoiceMemoCard } from "@/components/VoiceMemoCard";
 import { ActiveWallPanel } from "@/components/ActiveWallPanel";
 import { Linkified } from "@/components/Linkified";
 import { PulseSourceGlyph } from "@/components/PulseSourceGlyph";
 import { DeskLamp } from "@/components/DeskLamp";
-
-const PUBLIC_VIEWED_KEY = "sbp:public-notes-viewed-at";
-// Total hold time the panel stays open after an auto-open from a
-// public note submission. Includes the enter animation; the close
-// animation tacks on its own ~300ms after.
-const AUTO_OPEN_PUBLIC_PANEL_MS = 5300;
-// Duration of the panel's closing fade-out keyframe; must match
-// the CSS animation length on `.public-notes-panel-closing`.
-const PUBLIC_PANEL_CLOSE_MS = 300;
 
 // Polling cadence. Tight enough that "I just changed something in
 // another tab / on my phone" registers within a few seconds, but not
@@ -55,30 +45,6 @@ function formatRelative(at: number, now: number): string {
     month: "short",
     day: "numeric",
   });
-}
-
-// Small notebook silhouette. Same single-stroke outline vocabulary
-// as the lamp icon so the two read as a pair on the widget header.
-function NotebookIcon() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <line x1="6.5" y1="3" x2="6.5" y2="21" />
-      <rect x="6.5" y="3" width="12.5" height="18" rx="0.5" />
-      <line x1="10" y1="8" x2="16" y2="8" />
-      <line x1="10" y1="12" x2="16" y2="12" />
-      <line x1="10" y1="16" x2="14" y2="16" />
-    </svg>
-  );
 }
 
 // Banker's-lamp silhouette. Single-stroke outline. Picks up the gold
@@ -237,92 +203,6 @@ export function WritersDeskView({
   );
   // Public board: phase machine so we can animate the exit instead
   // of snap-unmounting. `closed` keeps the panel out of the tree,
-  // `open` mounts it (CSS plays the enter animation on first paint),
-  // `closing` keeps it mounted while the exit keyframe runs.
-  const [publicPanelPhase, setPublicPanelPhase] = useState<
-    "closed" | "open" | "closing"
-  >("closed");
-  // ID of the note that should get the "freshly landed" highlight
-  // animation when the panel auto-opens after a submission. Cleared
-  // once the panel fully closes so the same note isn't re-flashed
-  // on a later open.
-  const [freshNoteId, setFreshNoteId] = useState<string | null>(null);
-  const [lastViewedAt, setLastViewedAt] = useState<number>(0);
-  const autoCloseTimer = useRef<number | null>(null);
-  const closeAnimTimer = useRef<number | null>(null);
-
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(PUBLIC_VIEWED_KEY);
-      if (raw) {
-        const parsed = parseInt(raw, 10);
-        if (Number.isFinite(parsed)) setLastViewedAt(parsed);
-      }
-    } catch {
-      // Storage blocked — badge will always show until they open once.
-    }
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (autoCloseTimer.current !== null) {
-        window.clearTimeout(autoCloseTimer.current);
-      }
-      if (closeAnimTimer.current !== null) {
-        window.clearTimeout(closeAnimTimer.current);
-      }
-    };
-  }, []);
-
-  function clearTimers() {
-    if (autoCloseTimer.current !== null) {
-      window.clearTimeout(autoCloseTimer.current);
-      autoCloseTimer.current = null;
-    }
-    if (closeAnimTimer.current !== null) {
-      window.clearTimeout(closeAnimTimer.current);
-      closeAnimTimer.current = null;
-    }
-  }
-
-  function openPublicPanel(autoClose = false, fresh?: string) {
-    clearTimers();
-    setPublicPanelPhase("open");
-    if (fresh) setFreshNoteId(fresh);
-    const stamp = Date.now();
-    try {
-      window.localStorage.setItem(PUBLIC_VIEWED_KEY, String(stamp));
-    } catch {
-      // ignore
-    }
-    setLastViewedAt(stamp);
-    if (autoClose) {
-      autoCloseTimer.current = window.setTimeout(() => {
-        beginClose();
-      }, AUTO_OPEN_PUBLIC_PANEL_MS);
-    }
-  }
-
-  function beginClose() {
-    setPublicPanelPhase("closing");
-    if (autoCloseTimer.current !== null) {
-      window.clearTimeout(autoCloseTimer.current);
-      autoCloseTimer.current = null;
-    }
-    closeAnimTimer.current = window.setTimeout(() => {
-      setPublicPanelPhase("closed");
-      setFreshNoteId(null);
-      closeAnimTimer.current = null;
-    }, PUBLIC_PANEL_CLOSE_MS);
-  }
-
-  function closePublicPanel() {
-    if (publicPanelPhase === "closing" || publicPanelPhase === "closed") {
-      return;
-    }
-    beginClose();
-  }
-
   // Bump `now` on a 30s tick so relative timestamps stay honest
   // between polls. Doesn't fetch anything — pure display refresh.
   useEffect(() => {
@@ -403,7 +283,6 @@ export function WritersDeskView({
     recentWork,
     elsewhere,
     memberNotes,
-    publicNotes,
     voiceMemo,
     activeWall,
     isSignedIn,
@@ -419,19 +298,6 @@ export function WritersDeskView({
     return at > frozenLastVisitedAt;
   }
 
-  // Newest timestamp across publicNotes (created or replied). The
-  // badge fires when this is past the per-device last-viewed stamp.
-  let newestPublicActivity = 0;
-  for (const n of publicNotes) {
-    if (n.createdAt > newestPublicActivity) newestPublicActivity = n.createdAt;
-    if (n.clayRepliedAt && n.clayRepliedAt > newestPublicActivity) {
-      newestPublicActivity = n.clayRepliedAt;
-    }
-  }
-  const hasNewPublic =
-    publicNotes.length > 0 && newestPublicActivity > lastViewedAt;
-  const showNotebookIcon = publicNotes.length > 0;
-
   function handleNoteSubmitted(note: Note) {
     // Optimistic prepend — the next poll will reconcile against the
     // server-authoritative list, but the user shouldn't have to wait
@@ -440,21 +306,8 @@ export function WritersDeskView({
       const nextMember = prev.memberNotes.some((n) => n.id === note.id)
         ? prev.memberNotes
         : [note, ...prev.memberNotes];
-      const nextPublic =
-        note.visibility === "public" &&
-        !prev.publicNotes.some((n) => n.id === note.id)
-          ? [note, ...prev.publicNotes]
-          : prev.publicNotes;
-      return { ...prev, memberNotes: nextMember, publicNotes: nextPublic };
+      return { ...prev, memberNotes: nextMember };
     });
-
-    // Public submissions briefly auto-open the public panel so the
-    // member sees their note land on the board. The note id flows to
-    // the panel so the just-submitted entry gets the "freshly landed"
-    // gold-tint settle animation as it appears.
-    if (note.visibility === "public") {
-      openPublicPanel(true, note.id);
-    }
   }
   // Apply the fresh-update animation when a new update id rolls in
   // via polling AND Clay is currently active. Re-mount the node so
@@ -474,15 +327,6 @@ export function WritersDeskView({
       <span className="absolute -bottom-px -left-px w-5 h-5 border-b-2 border-l-2 border-eye z-10" />
       <span className="absolute -bottom-px -right-px w-5 h-5 border-b-2 border-r-2 border-eye z-10" />
 
-      {publicPanelPhase !== "closed" && (
-        <PublicNotesPanel
-          notes={publicNotes}
-          onClose={closePublicPanel}
-          phase={publicPanelPhase}
-          freshNoteId={freshNoteId}
-        />
-      )}
-
       <div className="relative z-[1] px-6 sm:px-8 py-7">
         <div className="flex items-center gap-2.5 mb-2">
           <DeskLamp lit={state === "active"} />
@@ -496,32 +340,6 @@ export function WritersDeskView({
           >
             Writer&apos;s Desk
           </p>
-          {showNotebookIcon && (
-            <button
-              type="button"
-              onClick={() => openPublicPanel(false)}
-              aria-label={`View public notes (${publicNotes.length})`}
-              title="View all public notes from Clay's readers."
-              className="desk-notebook-button ml-auto"
-            >
-              <span className="desk-notebook-icon-wrap">
-                <NotebookIcon />
-                {hasNewPublic && (
-                  <span
-                    className="desk-notebook-badge"
-                    aria-hidden="true"
-                  />
-                )}
-              </span>
-              <span className="desk-notebook-label">Notes</span>
-              <span className="desk-notebook-sep" aria-hidden="true">
-                ·
-              </span>
-              <span className="desk-notebook-count">
-                {publicNotes.length}
-              </span>
-            </button>
-          )}
         </div>
         <p
           className="font-serif italic text-ink-muted leading-relaxed mb-5"

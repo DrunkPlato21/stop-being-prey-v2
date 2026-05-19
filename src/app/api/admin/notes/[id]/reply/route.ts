@@ -36,11 +36,12 @@ export async function POST(
     return Response.json({ error: result.error }, { status });
   }
 
-  // In-site notification to the note author. Only fires for public
-  // notes — private notes are already an email channel and the
-  // author doesn't need a duplicate in-site ping. Best-effort write.
+  // In-site notification to the note author. Notes are now uniformly
+  // private (the public Quick Notes board was retired in 2026-05),
+  // so the old "only-fire-for-public" branch is gone — every reply
+  // pings the member who wrote the note. Best-effort write.
   const replied = result.note;
-  if (replied.visibility === "public" && replied.fromEmail) {
+  if (replied.fromEmail) {
     const bodyExcerpt =
       rawBody.length > 60 ? `${rawBody.slice(0, 60).trim()}…` : rawBody;
     await createNotification({

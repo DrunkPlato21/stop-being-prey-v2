@@ -53,15 +53,15 @@ export async function POST(req: NextRequest) {
     session.email.split("@")[0] ||
     session.email;
 
-  // Visibility is forced to "public" — the toggle was removed; every
-  // note lands on the public Quick Notes board. The createNote lib
-  // also forces this server-side so any stale client can't post a
-  // private note.
+  // Visibility is forced to "private" — notes are the direct-to-Clay
+  // channel; public room talk lives in the Lounge. The createNote lib
+  // also coerces this server-side so any stale client can't post a
+  // public note. The public Quick Notes board has been retired.
   const result = await createNote({
     email: session.email,
     displayName,
     body: rawBody,
-    visibility: "public",
+    visibility: "private",
   });
   if (!result.ok) {
     const status = result.error === "storage_unavailable" ? 503 : 400;

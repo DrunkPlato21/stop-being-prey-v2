@@ -13,7 +13,7 @@ import {
   type PulseEvent,
 } from "./pulse";
 import { isAdmin } from "./comments";
-import { listAll, listByMember, type Note } from "./notes";
+import { listByMember, type Note } from "./notes";
 import { getLatestPublished, type VoiceMemo } from "./voice-memos";
 import {
   getActiveWallSnapshot,
@@ -46,11 +46,6 @@ export type WritersDeskState = {
   // polling loop keeps past notes (and Clay's reply when it lands)
   // fresh without a second endpoint.
   memberNotes: Note[];
-  // Public-board notes (newest first, recent N). Visible to every
-  // viewer, including not-yet-members. Folded into the polling
-  // snapshot so the badge on the notebook icon stays honest without
-  // a separate fetch.
-  publicNotes: Note[];
   /** The single most recent published voice memo. Null if none. */
   voiceMemo: VoiceMemo | null;
   /** Live snapshot of the wall to feature on the widget. Null when
@@ -78,7 +73,6 @@ export async function getWritersDeskState(
     recentWork,
     elsewhere,
     memberNotes,
-    publicNotes,
     voiceMemoRaw,
     activeWall,
     lastVisitedAt,
@@ -90,7 +84,6 @@ export async function getWritersDeskState(
     shouldLoadMemberNotes
       ? listByMember(viewerEmail!)
       : Promise.resolve([] as Note[]),
-    listAll({ visibility: "public", limit: 30 }),
     getLatestPublished(),
     getActiveWallSnapshot(),
     viewerEmail && !viewerIsAdmin
@@ -120,9 +113,6 @@ export async function getWritersDeskState(
     recentWork,
     elsewhere,
     memberNotes,
-    publicNotes: publicNotes.filter(
-      (n) => n.status !== "archived"
-    ),
     voiceMemo,
     activeWall,
     lastVisitedAt,

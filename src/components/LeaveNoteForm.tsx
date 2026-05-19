@@ -3,10 +3,10 @@
 import { useState } from "react";
 import type { Note } from "@/lib/notes";
 
-// "Leave a note for Clay" composer. All notes are public — they land
-// on the public board (Quick Notes) and Clay may reply publicly. The
-// private channel is now the email line below the submit button.
-// 150-char cap is the forcing function for brevity.
+// "Leave a note for Clay" composer. Notes go straight to Clay's
+// private inbox — they never appear publicly on the desk or anywhere
+// else. Public room talk lives in the Lounge. 150-char cap is the
+// forcing function for brevity.
 
 const MAX_BODY = 150;
 
@@ -75,7 +75,7 @@ export function LeaveNoteForm({
         style={{ fontSize: "0.9rem" }}
       >
         Drop a note here. Clay picks them up when he&apos;s at the desk.
-        Public, and may be answered as a Quick Note.
+        Private. Just between you and him.
       </p>
 
       <label className="block">
@@ -111,27 +111,12 @@ export function LeaveNoteForm({
         </button>
       </div>
 
-      <p
-        className="font-serif italic text-ink-faint leading-relaxed"
-        style={{ fontSize: "0.82rem" }}
-      >
-        Need to reach Clay privately? Slip a message through{" "}
-        <a
-          href="mailto:clay@stopbeingprey.com"
-          className="text-eye-deep hover:text-ink"
-          style={{ textDecoration: "underline" }}
-        >
-          clay@stopbeingprey.com
-        </a>{" "}
-        instead.
-      </p>
-
       {confirm && (
         <p
           className="font-serif italic text-eye-deep"
           style={{ fontSize: "0.92rem" }}
         >
-          Note posted to the public board.
+          Note delivered to Clay&apos;s desk.
         </p>
       )}
       {error && (
