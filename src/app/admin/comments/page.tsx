@@ -14,6 +14,7 @@ import { DeleteCommentButton } from "@/components/DeleteCommentButton";
 import { AdminReplyControls } from "@/components/AdminReplyControls";
 import { BackfillCommentsIndexButton } from "@/components/BackfillCommentsIndexButton";
 import { FeatureCommentButton } from "@/components/FeatureCommentButton";
+import { markSectionSeen } from "@/lib/admin-nav-badges";
 
 // Chrono comment feed — every comment site-wide, newest first.
 // Pending ones surface inline with a "Pending" pill so Clay can triage
@@ -153,6 +154,10 @@ export default async function CommentsAdminPage({
       </div>
     );
   }
+
+  // Clear the unread dot for this section on the next nav render.
+  // Fire-and-forget so it never blocks the page.
+  void markSectionSeen("comments");
 
   const resolvedParams = await searchParams;
   const filters = parseFilters(resolvedParams);

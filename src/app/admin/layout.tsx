@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AdminDeskDarkToggle } from "@/components/AdminDeskDarkToggle";
 import { AdminPersistentNav } from "@/components/AdminPersistentNav";
+import { getAdminNavBadges } from "@/lib/admin-nav-badges";
 
 // Admin section layout. Three jobs:
 //
@@ -51,11 +52,12 @@ const NO_FLASH_THEME_SCRIPT = `
 })();
 `;
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const navBadges = await getAdminNavBadges();
   return (
     <>
       <script
@@ -74,8 +76,10 @@ export default function AdminLayout({
           page shares the same Desk · Elsewhere · Voice memos · …
           row with an olive underline on the current section. Replaces
           the older fixed top-left back-to-desk pill — "Desk" is the
-          leftmost item and does the same homing job. */}
-      <AdminPersistentNav />
+          leftmost item and does the same homing job. `navBadges` is
+          fetched server-side per request so the dot reflects the
+          truth at page-load time without a client poll. */}
+      <AdminPersistentNav badges={navBadges} />
       {children}
     </>
   );

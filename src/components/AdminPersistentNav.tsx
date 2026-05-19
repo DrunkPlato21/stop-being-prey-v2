@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import type {
+  AdminNavBadges,
+  NavBadgeSection,
+} from "@/lib/admin-nav-badges";
 
 // Persistent admin nav, rendered once from the admin layout so every
 // /admin/* surface gets the same utility rail at the top. Quiet small
@@ -14,20 +18,28 @@ import { useEffect, useState } from "react";
 // Two rows by priority — same visual register so the split reads as
 // frequency, not category. Top row is the day-to-day surfaces Clay
 // opens most; bottom row is everything else.
+//
+// `badges` flags unread state per section — see lib/admin-nav-badges.
+// Dot is hidden on the active item itself (you can't be "unread" on a
+// page you're currently looking at).
 
-type NavItem = { href: string; label: string };
+type NavItem = { href: string; label: string; badgeSection?: NavBadgeSection };
 
 const PRIMARY: NavItem[] = [
   { href: "/admin/desk", label: "Desk" },
   { href: "/admin/channels", label: "Elsewhere" },
   { href: "/admin/desk/voice", label: "Voice memos" },
-  { href: "/admin/lounge", label: "Lounge" },
-  { href: "/admin/comments", label: "Comments" },
+  { href: "/admin/lounge", label: "Lounge", badgeSection: "lounge" },
+  { href: "/admin/comments", label: "Comments", badgeSection: "comments" },
   { href: "/admin/presence", label: "Presence" },
 ];
 
 const SECONDARY: NavItem[] = [
-  { href: "/admin/case-submissions", label: "Case submissions" },
+  {
+    href: "/admin/case-submissions",
+    label: "Case submissions",
+    badgeSection: "case-submissions",
+  },
   { href: "/admin/lounge/moderation", label: "Lounge log" },
   { href: "/admin/book", label: "Book" },
   { href: "/admin/members", label: "Members" },
@@ -55,10 +67,12 @@ function NavRow({
   items,
   activeHref,
   isMobile,
+  badges,
 }: {
   items: NavItem[];
   activeHref: string | null;
   isMobile: boolean;
+  badges: AdminNavBadges;
 }) {
   return (
     <ul
@@ -67,6 +81,8 @@ function NavRow({
     >
       {items.map((item, idx) => {
         const active = item.href === activeHref;
+        const showBadge =
+          !!item.badgeSection && !active && badges[item.badgeSection];
         return (
           <li key={item.href} className="admin-persistent-nav-cell">
             {idx > 0 && !isMobile && (
@@ -85,6 +101,12 @@ function NavRow({
               }
             >
               {item.label}
+              {showBadge && (
+                <span
+                  aria-label="New activity since you last looked"
+                  className="admin-nav-unread-dot"
+                />
+              )}
             </Link>
           </li>
         );
@@ -109,7 +131,11 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
-export function AdminPersistentNav() {
+export function AdminPersistentNav({
+  badges = { comments: false, lounge: false, "case-submissions": false },
+}: {
+  badges?: AdminNavBadges;
+}) {
   const pathname = usePathname();
   const activeHref = resolveActiveHref(pathname);
   const isMobile = useIsMobile();
@@ -121,11 +147,13 @@ export function AdminPersistentNav() {
           items={PRIMARY}
           activeHref={activeHref}
           isMobile={isMobile}
+          badges={badges}
         />
         <NavRow
           items={SECONDARY}
           activeHref={activeHref}
           isMobile={isMobile}
+          badges={badges}
         />
       </div>
     </nav>

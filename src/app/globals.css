@@ -3719,6 +3719,23 @@ body[data-theme="admin-desk-dark"] .admin-persistent-nav-link:hover {
   color: var(--eye-bright);
 }
 
+/* Small olive unread dot next to a nav item label, shown when there's
+   new activity in that section since the last visit. Inline with the
+   label so the dot rides along on wrap. Suppressed on the active
+   item via the JSX (you can't be unread on a page you're viewing). */
+.admin-nav-unread-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--eye-deep);
+  margin-left: 0.4rem;
+  vertical-align: 0.2em;
+}
+body[data-theme="admin-desk-dark"] .admin-nav-unread-dot {
+  background: var(--eye-bright);
+}
+
 /* Highlight applied to a notes-inbox row that arrived via live poll
    during the current admin session. Fades from olive-tinted back to
    transparent over a few seconds so the eye is drawn once, then the

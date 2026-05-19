@@ -27,6 +27,7 @@ import {
   type TierBadge,
 } from "@/lib/members";
 import { LoungeView } from "@/components/LoungeView";
+import { markSectionSeen } from "@/lib/admin-nav-badges";
 
 // Admin-side view of the lounge. Identical content + interactions to
 // /lounge, but lives under /admin/* for two reasons:
@@ -66,6 +67,8 @@ export default async function AdminLoungePage() {
   }
 
   await bumpActiveNow(session.email).catch(() => null);
+  // Clear the lounge unread dot on the nav for the next admin render.
+  void markSectionSeen("lounge");
 
   const [pinned, page, lastVisitedAt, activeNow, authorCount] =
     await Promise.all([

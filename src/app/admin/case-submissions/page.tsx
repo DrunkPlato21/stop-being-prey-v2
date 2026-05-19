@@ -10,6 +10,7 @@ import {
   type CaseTier,
 } from "@/lib/case-submissions";
 import { CaseSubmissionRow } from "@/components/CaseSubmissionRow";
+import { markSectionSeen } from "@/lib/admin-nav-badges";
 
 export const metadata: Metadata = {
   title: "Case Submissions, admin",
@@ -49,6 +50,8 @@ export default async function CaseSubmissionsAdminPage({
   const status = parseStatus(params.status);
 
   const submissions = await listAll({ tier, status, limit: 200 });
+  // Clear the case-submissions unread dot on the nav for the next render.
+  void markSectionSeen("case-submissions");
 
   const tierFilters: Array<{
     href: string;
