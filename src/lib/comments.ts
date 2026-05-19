@@ -308,6 +308,46 @@ export async function getProfile(email: string): Promise<Profile | null> {
   }
 }
 
+/**
+ * Batched profile lookup — one MGET round-trip for many emails. Used
+ * by the presence snapshot helper so the admin panel doesn't fan out
+ * one Redis call per present member. Returned map is keyed by
+ * normalized email; null when no profile exists for that email.
+ */
+export async function getProfilesByEmails(
+  emails: string[]
+): Promise<Map<string, Profile | null>> {
+  const out = new Map<string, Profile | null>();
+  if (emails.length === 0) return out;
+  const client = getClient();
+  const unique = Array.from(new Set(emails.map(normEmail)));
+  if (!client) {
+    for (const e of unique) out.set(e, null);
+    return out;
+  }
+  const keys = unique.map((e) => `${PROFILE_PREFIX}${e}`);
+  const raw = (await client
+    .mget<(string | null)[]>(...keys)
+    .catch(() => [] as (string | null)[])) ?? [];
+  unique.forEach((email, i) => {
+    const value = raw[i];
+    if (!value) {
+      out.set(email, null);
+      return;
+    }
+    try {
+      const parsed =
+        typeof value === "string"
+          ? (JSON.parse(value) as Profile)
+          : (value as Profile);
+      out.set(email, parsed);
+    } catch {
+      out.set(email, null);
+    }
+  });
+  return out;
+}
+
 export type SetProfileError =
   | "invalid_display_name"
   | "reserved"

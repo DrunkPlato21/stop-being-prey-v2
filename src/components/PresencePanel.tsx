@@ -31,7 +31,10 @@ type Snapshot = {
 
 type ApiResponse = Partial<Snapshot> & { ok?: boolean };
 
-const POLL_INTERVAL_MS = 20_000;
+// 60s — admin-only panel; faster polling burns Redis budget for no
+// material UX gain (Clay doesn't need member presence updated every
+// 20 seconds). See the rate-limit incident on 2026-05-18.
+const POLL_INTERVAL_MS = 60_000;
 const TICK_INTERVAL_MS = 15_000;
 
 function formatRelativeAgo(ms: number, now: number): string {

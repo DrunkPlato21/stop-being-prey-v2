@@ -81,7 +81,24 @@ function essayPulses(limit: number): PulseEvent[] {
   return out.sort((a, b) => b.at - a.at).slice(0, limit);
 }
 
+// In-memory cache for the field-note activity lookup. The desk page
+// re-renders on every visit and used to hit Redis 2x per journal
+// field note each time — a cold-cache cost of ~10+ commands per page
+// load just for this lane. 60s is short enough that a fresh entry
+// surfaces near-instantly to anyone who hasn't loaded the desk in the
+// last minute, long enough to absorb bursts when several members
+// land on the desk in the same minute. See the 2026-05-18 rate-limit
+// incident. Module-level state survives the request lifecycle in a
+// long-running Node process; serverless deployments will simply
+// recompute per cold-start, which is fine.
+const FIELD_NOTE_CACHE_TTL_MS = 60_000;
+let fieldNoteCache: { events: PulseEvent[]; expiresAt: number } | null = null;
+
 async function fieldNotePulses(limit: number): Promise<PulseEvent[]> {
+  const now = Date.now();
+  if (fieldNoteCache && fieldNoteCache.expiresAt > now) {
+    return fieldNoteCache.events.slice(0, limit);
+  }
   // Journal-style field notes surface their latest *entry* (the
   // working-journal updates Clay appends over the life of the piece)
   // rather than the original creation date, so the desk feed reflects
@@ -101,7 +118,12 @@ async function fieldNotePulses(limit: number): Promise<PulseEvent[]> {
       link: `/notes/field-notes/${n.slug}`,
     });
   }
-  return out.sort((a, b) => b.at - a.at).slice(0, limit);
+  const sorted = out.sort((a, b) => b.at - a.at);
+  fieldNoteCache = {
+    events: sorted,
+    expiresAt: now + FIELD_NOTE_CACHE_TTL_MS,
+  };
+  return sorted.slice(0, limit);
 }
 
 // Case files don't have a content source yet — the lane is placeholder

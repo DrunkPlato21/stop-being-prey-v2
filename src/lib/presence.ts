@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import { getProfile } from "./comments";
+import { getProfilesByEmails } from "./comments";
 
 // Site-wide "where is every member right now" layer. Sibling to
 // desk-visits.ts but broader in scope: desk-visits tracks the
@@ -181,16 +181,23 @@ export async function listPresenceSnapshot(
   }
   ranked.sort((a, b) => b.lastSeenAt - a.lastSeenAt);
 
+  // Profiles batched via MGET — one Redis call for the whole snapshot
+  // instead of one per present member. Hashes still fetched per member
+  // because Upstash REST doesn't pipeline HGETALL across keys; the
+  // savings on profiles alone is the bulk of the N+1. See the
+  // 2026-05-18 rate-limit incident for context.
+  const profilesByEmail = await getProfilesByEmails(
+    ranked.map((r) => r.email)
+  );
+
   const entries: PresenceEntry[] = [];
   for (const r of ranked) {
-    const [hash, profile] = await Promise.all([
-      client
-        .hgetall<{ path?: string; lastSeenAt?: number | string }>(
-          `${HASH_PREFIX}${r.email}`
-        )
-        .catch(() => null),
-      getProfile(r.email).catch(() => null),
-    ]);
+    const hash = await client
+      .hgetall<{ path?: string; lastSeenAt?: number | string }>(
+        `${HASH_PREFIX}${r.email}`
+      )
+      .catch(() => null);
+    const profile = profilesByEmail.get(r.email) ?? null;
     const path = (hash?.path && typeof hash.path === "string") ? hash.path : "/";
     const name = profile?.displayName?.trim();
     entries.push({

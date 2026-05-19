@@ -203,6 +203,35 @@ export async function getMember(email: string): Promise<MemberRecord | null> {
   return parseMember(raw);
 }
 
+/**
+ * Batched member lookup — one MGET round-trip for many emails instead
+ * of N sequential GETs. Returned map is keyed by normalized email and
+ * carries null for emails with no record (e.g. admin, who has a
+ * profile but no member record). Used by /api/lounge to build the
+ * per-author badge map without firing one Redis call per unique
+ * commenter.
+ */
+export async function getMembersByEmails(
+  emails: string[]
+): Promise<Map<string, MemberRecord | null>> {
+  const out = new Map<string, MemberRecord | null>();
+  if (emails.length === 0) return out;
+  const client = getClient();
+  const unique = Array.from(new Set(emails.map(normEmail)));
+  if (!client) {
+    for (const e of unique) out.set(e, null);
+    return out;
+  }
+  const keys = unique.map((e) => `${MEMBER_PREFIX}${e}`);
+  const raw = (await client
+    .mget<(string | null)[]>(...keys)
+    .catch(() => [] as (string | null)[])) ?? [];
+  unique.forEach((email, i) => {
+    out.set(email, parseMember(raw[i] ?? null));
+  });
+  return out;
+}
+
 export async function getMemberByCustomerId(
   customerId: string
 ): Promise<MemberRecord | null> {

@@ -546,8 +546,8 @@ export async function listVisibleReplies(
 /* === Reactions ============================================ */
 
 export type ReactionTarget =
-  | { kind: "post"; id: string }
-  | { kind: "reply"; id: string };
+  | { kind: "post"; id: string; reactionCount?: number }
+  | { kind: "reply"; id: string; reactionCount?: number };
 
 export type ReactionSnapshot = {
   counts: ReactionCounts;
@@ -698,6 +698,19 @@ export async function reactionSnapshots(
 
   const out: Record<string, ReactionSnapshot> = {};
   for (const t of targets) {
+    // Skip the HGETALL when the caller already knows this target has
+    // no reactions yet — there's nothing to aggregate and the current
+    // user can't have a reaction on it either. Saves one Redis call
+    // per zero-count target. Big win on a busy feed since most posts
+    // never get reacted to. See the 2026-05-18 rate-limit incident.
+    if (typeof t.reactionCount === "number" && t.reactionCount === 0) {
+      out[t.id] = {
+        counts: emptyReactionCounts(),
+        total: 0,
+        myReaction: null,
+      };
+      continue;
+    }
     const hash = (await client
       .hgetall<Record<string, unknown>>(reactionHashKeyFor(t))
       .catch(() => null)) as Record<string, unknown> | null;

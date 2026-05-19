@@ -5,6 +5,7 @@ import { getProfile, isAdmin } from "@/lib/comments";
 import {
   getFounderSlot,
   getMember,
+  getMembersByEmails,
   getTierBadge,
   type TierBadge,
 } from "@/lib/members";
@@ -106,11 +107,18 @@ export async function GET(req: NextRequest) {
   });
 
   // Build the per-viewer reaction snapshot for everything visible.
+  // Pass the denormalized reactionCount with each target so the helper
+  // can skip the Redis HGETALL for targets with no reactions yet —
+  // most posts on a busy feed.
   const targets: ReactionTarget[] = [];
   for (const p of allPosts) {
-    targets.push({ kind: "post", id: p.id });
+    targets.push({ kind: "post", id: p.id, reactionCount: p.reactionCount });
     for (const r of replies[p.id]) {
-      targets.push({ kind: "reply", id: r.id });
+      targets.push({
+        kind: "reply",
+        id: r.id,
+        reactionCount: r.reactionCount,
+      });
     }
   }
   const reactions = await reactionSnapshots(session.email, targets);
@@ -118,6 +126,8 @@ export async function GET(req: NextRequest) {
   // Per-author badge map for the visible page. Looked up live (no
   // baked-in field on the post record) so a tier change is reflected
   // across all of that member's historical posts on the next poll.
+  // Batched via MGET so a busy thread doesn't fan out one Redis call
+  // per unique author — see the 2026-05-18 rate-limit incident.
   const uniqueEmails = Array.from(
     new Set([
       session.email.toLowerCase().trim(),
@@ -127,22 +137,18 @@ export async function GET(req: NextRequest) {
       ),
     ])
   );
-  const memberBadgesEntries = await Promise.all(
-    uniqueEmails.map(async (email) => {
-      const m = await getMember(email).catch(() => null);
-      return [
-        email,
-        {
-          founderSlot: getFounderSlot(m),
-          tierBadge: getTierBadge(m),
-        },
-      ] as const;
-    })
-  );
+  const memberMap = await getMembersByEmails(uniqueEmails);
   const memberBadges: Record<
     string,
     { founderSlot: number | null; tierBadge: TierBadge | null }
-  > = Object.fromEntries(memberBadgesEntries);
+  > = {};
+  for (const email of uniqueEmails) {
+    const m = memberMap.get(email.toLowerCase().trim()) ?? null;
+    memberBadges[email] = {
+      founderSlot: getFounderSlot(m),
+      tierBadge: getTierBadge(m),
+    };
+  }
 
   const adminUser = isAdmin(session.email);
 
