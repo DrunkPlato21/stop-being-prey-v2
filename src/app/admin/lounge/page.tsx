@@ -67,8 +67,10 @@ export default async function AdminLoungePage() {
   }
 
   await bumpActiveNow(session.email).catch(() => null);
-  // Clear the lounge unread dot on the nav for the next admin render.
-  void markSectionSeen("lounge");
+  // Clear the lounge unread dot on the nav. Awaited so the seen mark
+  // is in Redis before the client-side router.refresh() in
+  // AdminPersistentNav re-fetches the layout's badges.
+  await markSectionSeen("lounge").catch(() => null);
 
   const [pinned, page, lastVisitedAt, activeNow, authorCount] =
     await Promise.all([

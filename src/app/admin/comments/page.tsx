@@ -155,9 +155,10 @@ export default async function CommentsAdminPage({
     );
   }
 
-  // Clear the unread dot for this section on the next nav render.
-  // Fire-and-forget so it never blocks the page.
-  void markSectionSeen("comments");
+  // Clear the unread dot for this section. Awaited so the seen mark is
+  // in Redis before the client-side router.refresh() in
+  // AdminPersistentNav re-fetches the layout's badges.
+  await markSectionSeen("comments").catch(() => null);
 
   const resolvedParams = await searchParams;
   const filters = parseFilters(resolvedParams);

@@ -50,8 +50,10 @@ export default async function CaseSubmissionsAdminPage({
   const status = parseStatus(params.status);
 
   const submissions = await listAll({ tier, status, limit: 200 });
-  // Clear the case-submissions unread dot on the nav for the next render.
-  void markSectionSeen("case-submissions");
+  // Clear the case-submissions unread dot. Awaited so the seen mark is
+  // in Redis before the client-side router.refresh() in
+  // AdminPersistentNav re-fetches the layout's badges.
+  await markSectionSeen("case-submissions").catch(() => null);
 
   const tierFilters: Array<{
     href: string;

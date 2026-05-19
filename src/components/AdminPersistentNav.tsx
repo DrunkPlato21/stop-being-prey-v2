@@ -131,14 +131,46 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
+const EMPTY_BADGES: AdminNavBadges = {
+  comments: false,
+  lounge: false,
+  "case-submissions": false,
+};
+
 export function AdminPersistentNav({
-  badges = { comments: false, lounge: false, "case-submissions": false },
+  badges: initialBadges = EMPTY_BADGES,
 }: {
+  /** Server-rendered first paint. Replaced on every pathname change by
+      a client-side fetch of /api/admin/nav-badges — see below. */
   badges?: AdminNavBadges;
 }) {
   const pathname = usePathname();
   const activeHref = resolveActiveHref(pathname);
   const isMobile = useIsMobile();
+
+  // All /admin/* pages share one layout, and Next.js 16 reuses that
+  // layout's RSC payload across sibling navigations (per its docs:
+  // "shared layouts won't automatically be refetched on every
+  // navigation, only the page segment that changes"). If we trust the
+  // layout's badges prop, visiting /admin/lounge bumps the seen marker
+  // in Redis but the next /admin/desk render serves the cached layout
+  // with the dot still on. router.refresh() didn't help because each
+  // route segment combination keeps its own cache entry. Fix: fetch
+  // badges client-side on every pathname change. One request per admin
+  // nav; admin is one user, so the cost is negligible.
+  const [badges, setBadges] = useState<AdminNavBadges>(initialBadges);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/nav-badges", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: AdminNavBadges | null) => {
+        if (!cancelled && data) setBadges(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   return (
     <nav aria-label="Admin sections" className="admin-persistent-nav">

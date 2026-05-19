@@ -71,8 +71,8 @@ export async function getAdminNavBadges(): Promise<AdminNavBadges> {
   if (!client) return { ...EMPTY_BADGES };
 
   const seenRaw = (await client
-    .mget<(string | null)[]>(...NAV_SECTIONS.map(seenKey))
-    .catch(() => [] as (string | null)[])) ?? [];
+    .mget<(string | number | null)[]>(...NAV_SECTIONS.map(seenKey))
+    .catch(() => [] as (string | number | null)[])) ?? [];
 
   const latests = await Promise.all(
     NAV_SECTIONS.map((s) => latestScore(client, s))
@@ -80,11 +80,18 @@ export async function getAdminNavBadges(): Promise<AdminNavBadges> {
 
   const out: AdminNavBadges = { ...EMPTY_BADGES };
   NAV_SECTIONS.forEach((section, i) => {
-    const seenStr = seenRaw[i];
-    const seenAt =
-      typeof seenStr === "string"
-        ? Number.parseInt(seenStr, 10) || 0
-        : 0;
+    // Upstash auto-deserializes numeric strings, so a value SET as
+    // String(Date.now()) comes back as a JS number. Handle both shapes
+    // — the older string-only branch silently returned 0 here, which
+    // meant `latests > 0` was always true and the dot never cleared.
+    const raw = seenRaw[i];
+    const n =
+      typeof raw === "number"
+        ? raw
+        : typeof raw === "string"
+          ? Number(raw)
+          : 0;
+    const seenAt = Number.isFinite(n) ? n : 0;
     out[section] = latests[i] > seenAt;
   });
   return out;
