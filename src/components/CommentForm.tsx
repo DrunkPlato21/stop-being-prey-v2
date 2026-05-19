@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { CommentKind } from "@/lib/comments";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // Comment input form. Renders the display-name field only for first-
 // time commenters (when the server says hasProfile=false). On submit,
@@ -224,15 +225,15 @@ export function CommentForm({
         >
           Your comment
         </label>
-        <textarea
+        <AutoResizingTextarea
           id="comment-body"
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          rows={5}
+          minRows={5}
           maxLength={1500}
           placeholder="One per piece. Make it count."
           disabled={pending}
-          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y"
+          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink"
           style={{ fontSize: "1rem", lineHeight: 1.55 }}
         />
       </div>

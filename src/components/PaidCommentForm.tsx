@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CommentKind } from "@/lib/comments";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // Non-member paid-comment form. Renders below the value prop ("Members
 // comment free / Non-members: $1") in the Comments section. Submits
@@ -172,14 +173,14 @@ export function PaidCommentForm({ kind, slug }: Props) {
         >
           Your comment
         </span>
-        <textarea
+        <AutoResizingTextarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          rows={5}
+          minRows={5}
           maxLength={1500}
           placeholder="One per piece. Make it count."
           disabled={pending}
-          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y"
+          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink"
           style={{ fontSize: "1rem", lineHeight: 1.55 }}
         />
       </label>

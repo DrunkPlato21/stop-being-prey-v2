@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // 5-minute edit window control. Used for both top-level comments
 // (POST /api/comments/:id/edit) and member-to-member thread replies
@@ -128,14 +129,14 @@ export function EditCommentControls({
 
   return (
     <form onSubmit={handleSubmit} className="w-full mt-3 flex flex-col gap-2">
-      <textarea
+      <AutoResizingTextarea
         ref={textareaRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        rows={4}
+        minRows={4}
         maxLength={1500}
         disabled={pending}
-        className="font-serif text-ink bg-paper border border-border px-3 py-2 outline-none focus:border-ink resize-y"
+        className="font-serif text-ink bg-paper border border-border px-3 py-2 outline-none focus:border-ink"
         style={{ fontSize: "1rem", lineHeight: 1.55 }}
       />
       <div className="flex flex-wrap items-center gap-4">
