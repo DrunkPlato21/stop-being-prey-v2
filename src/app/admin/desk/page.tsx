@@ -7,7 +7,7 @@ import {
 } from "@/lib/desk";
 import { getWallOverride } from "@/lib/active-wall";
 import { getAllWalls } from "@/lib/walls";
-import { listRecentVisitorsEnriched } from "@/lib/desk-visits";
+import { listPresenceSnapshot } from "@/lib/presence";
 import { listAll } from "@/lib/notes";
 import {
   ActiveWallControl,
@@ -16,7 +16,7 @@ import {
   PresenceToggle,
 } from "@/components/DeskAdminForm";
 import { BroadcastForm } from "@/components/BroadcastForm";
-import { OnTheDeskBadge } from "@/components/OnTheDeskBadge";
+import { OnTheSiteBadge } from "@/components/OnTheSiteBadge";
 import { LiveAdminNotesPanel } from "@/components/LiveAdminNotesPanel";
 import { Linkified } from "@/components/Linkified";
 
@@ -60,25 +60,21 @@ function formatTimestamp(ms: number): string {
 // Cross-admin nav lives in the layout (AdminPersistentNav) so every
 // /admin/* surface shares the same utility rail.
 
-const VISITOR_WINDOW_MINUTES = 30;
-const VISITOR_LIMIT = 20;
+// Window for the "On the site" badge in the masthead. Matches the
+// /admin/presence panel so the two views agree about who's around.
+const PRESENCE_WINDOW_MINUTES = 30;
 
 export default async function DeskAdminPage() {
   const now = Date.now();
-  const visitorSinceMs = now - VISITOR_WINDOW_MINUTES * 60 * 1000;
-  const [updates, presence, activeNotes, wallOverride, visitorsPage] =
+  const presenceSinceMs = now - PRESENCE_WINDOW_MINUTES * 60 * 1000;
+  const [updates, presence, activeNotes, wallOverride, presenceEntries] =
     await Promise.all([
       listRecentUpdates(1),
       getPresence(),
       listAll({ status: "active", limit: 50 }),
       getWallOverride(),
-      listRecentVisitorsEnriched(visitorSinceMs, {
-        limit: VISITOR_LIMIT,
-        now,
-      }),
+      listPresenceSnapshot(presenceSinceMs, now),
     ]);
-  const recentVisitors = visitorsPage.visitors;
-  const visitorsTotal = visitorsPage.totalCount;
   const current = updates[0];
   const state = derivePresenceState(presence);
   const awayNote = getActiveAwayNote(presence) ?? "";
@@ -109,10 +105,9 @@ export default async function DeskAdminPage() {
         >
           Writer&apos;s Desk
         </h1>
-        <OnTheDeskBadge
-          initialVisitors={recentVisitors}
-          initialTotalCount={visitorsTotal}
-          windowMinutes={VISITOR_WINDOW_MINUTES}
+        <OnTheSiteBadge
+          initialEntries={presenceEntries}
+          windowMinutes={PRESENCE_WINDOW_MINUTES}
           generatedAt={now}
         />
       </header>

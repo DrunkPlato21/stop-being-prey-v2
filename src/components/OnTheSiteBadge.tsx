@@ -3,32 +3,34 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-// Compact "on the desk" indicator that lives in the page title row
-// on /admin/desk. Renders as a small dot + count + label; on hover
-// (or click on touch) it expands a portal'd popover with the full
-// visitor list. Portal pattern matches IdentityMenu / NotificationsBell
-// so it can't get clipped by any ancestor stacking context.
+// Compact "on the site" indicator that lives in the page title row
+// on /admin/desk. Renders as a small dot + total count + label; on
+// hover (or click on touch) it expands a portal'd popover with a
+// per-section breakdown and the recent member list — same data the
+// full /admin/presence panel uses, just condensed into a card.
 //
-// Source of truth for the data is /api/admin/desk/visitors. The
-// initial paint is server-rendered (via initialVisitors), and the
-// "refresh" affordance fetches a fresh snapshot.
+// Source of truth: /api/admin/presence?window=N. Initial paint is
+// server-rendered via the initial* props.
 
-type Visitor = {
+type Entry = {
   email: string;
   displayName: string | null;
-  lastVisitedAt: number;
+  path: string;
+  section: { id: string; label: string };
+  lastSeenAt: number;
 };
 
 type ApiResponse = {
   ok?: boolean;
-  visitors?: Visitor[];
-  totalCount?: number;
+  entries?: Entry[];
+  windowMinutes?: number;
   generatedAt?: number;
 };
 
 const HOVER_OPEN_DELAY_MS = 180;
 const HOVER_CLOSE_DELAY_MS = 280;
-const POLL_INTERVAL_MS = 20_000;
+// 60s — admin-only badge; see PresencePanel for the rationale.
+const POLL_INTERVAL_MS = 60_000;
 
 function formatRelativeAgo(ms: number, now: number): string {
   const diff = Math.max(0, now - ms);
@@ -42,21 +44,29 @@ function formatRelativeAgo(ms: number, now: number): string {
   return `${days}d ago`;
 }
 
+function displayFor(e: Entry): string {
+  if (e.displayName) return e.displayName;
+  const local = e.email.split("@")[0];
+  return local || e.email;
+}
+
+function truncatePath(p: string, max = 32): string {
+  if (p.length <= max) return p;
+  return p.slice(0, max - 1) + "…";
+}
+
 type AnchorPos = { top: number; right: number };
 
-export function OnTheDeskBadge({
-  initialVisitors,
-  initialTotalCount,
+export function OnTheSiteBadge({
+  initialEntries,
   windowMinutes,
   generatedAt,
 }: {
-  initialVisitors: Visitor[];
-  initialTotalCount: number;
+  initialEntries: Entry[];
   windowMinutes: number;
   generatedAt: number;
 }) {
-  const [visitors, setVisitors] = useState<Visitor[]>(initialVisitors);
-  const [totalCount, setTotalCount] = useState<number>(initialTotalCount);
+  const [entries, setEntries] = useState<Entry[]>(initialEntries);
   const [stampedAt, setStampedAt] = useState<number>(generatedAt);
   const [now, setNow] = useState<number>(generatedAt);
   const [open, setOpen] = useState(false);
@@ -94,62 +104,32 @@ export function OnTheDeskBadge({
     };
   }, [open]);
 
-  // Refresh visitors when the popover opens (cheap one-shot fetch).
-  useEffect(() => {
-    if (!open) return;
-    setNow(Date.now());
-    let cancelled = false;
-    setPending(true);
-    void (async () => {
-      try {
-        const res = await fetch("/api/admin/desk/visitors");
-        const data: ApiResponse = await res.json().catch(() => ({}));
-        if (cancelled) return;
-        if (res.ok && data.ok && Array.isArray(data.visitors)) {
-          setVisitors(data.visitors);
-          setTotalCount(
-            typeof data.totalCount === "number"
-              ? data.totalCount
-              : data.visitors.length
-          );
-          setStampedAt(
-            typeof data.generatedAt === "number" ? data.generatedAt : Date.now()
-          );
-        }
-      } finally {
-        if (!cancelled) setPending(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
-
   // Background poll so the count stays live without needing to hover.
-  // Pauses when the tab is hidden, and catches up immediately when it
-  // becomes visible again.
+  // Pauses when the tab is hidden, catches up on visibility return.
   useEffect(() => {
     let cancelled = false;
     let timer: number | null = null;
 
     async function refresh() {
       try {
-        const res = await fetch("/api/admin/desk/visitors");
+        setPending(true);
+        const res = await fetch(
+          `/api/admin/presence?window=${windowMinutes}`,
+          { cache: "no-store" }
+        );
         const data: ApiResponse = await res.json().catch(() => ({}));
         if (cancelled) return;
-        if (res.ok && data.ok && Array.isArray(data.visitors)) {
-          setVisitors(data.visitors);
-          setTotalCount(
-            typeof data.totalCount === "number"
-              ? data.totalCount
-              : data.visitors.length
-          );
+        if (res.ok && data.ok) {
+          if (Array.isArray(data.entries)) setEntries(data.entries);
           setStampedAt(
             typeof data.generatedAt === "number" ? data.generatedAt : Date.now()
           );
+          setNow(Date.now());
         }
       } catch {
         // Network blip — keep the last snapshot.
+      } finally {
+        if (!cancelled) setPending(false);
       }
     }
 
@@ -181,7 +161,7 @@ export function OnTheDeskBadge({
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, []);
+  }, [windowMinutes]);
 
   // Tick relative-time formatter while open
   useEffect(() => {
@@ -253,23 +233,15 @@ export function OnTheDeskBadge({
     };
   }, []);
 
-  // Trigger label always reflects the true count in the window
-  // (not the truncated list length). The popover handles the
-  // "+N more" affordance when more than `visitors.length` exist.
-  const count = totalCount;
+  const total = entries.length;
   const summary =
-    count === 0
-      ? `0 visitors in last ${windowMinutes} min`
-      : count === 1
-        ? `1 visitor in last ${windowMinutes} min`
-        : `${count} visitors in last ${windowMinutes} min`;
-  const hiddenCount = Math.max(0, totalCount - visitors.length);
-
-  function displayFor(v: Visitor): string {
-    if (v.displayName) return v.displayName;
-    const local = v.email.split("@")[0];
-    return local || v.email;
-  }
+    total === 0
+      ? `0 members on the site in the last ${windowMinutes} min`
+      : total === 1
+        ? `1 member on the site in the last ${windowMinutes} min`
+        : `${total} members on the site in the last ${windowMinutes} min`;
+  const dotColor =
+    total > 0 ? "var(--eye-deep)" : "rgba(138, 125, 32, 0.35)";
 
   const popover =
     open && mounted && pos !== null
@@ -277,7 +249,7 @@ export function OnTheDeskBadge({
           <div
             ref={popoverRef}
             role="dialog"
-            aria-label="Recent desk visitors"
+            aria-label="Members on the site"
             onMouseEnter={() => {
               clearCloseTimer();
             }}
@@ -287,8 +259,8 @@ export function OnTheDeskBadge({
               top: pos.top,
               right: pos.right,
               zIndex: 1000,
-              minWidth: 260,
-              maxWidth: "min(360px, calc(100vw - 16px))",
+              minWidth: 280,
+              maxWidth: "min(380px, calc(100vw - 16px))",
               background: "var(--paper)",
               border: "1px solid var(--rule)",
               boxShadow: "0 6px 22px rgba(26, 23, 20, 0.12)",
@@ -302,7 +274,7 @@ export function OnTheDeskBadge({
                 className="eyebrow"
                 style={{ fontSize: "0.62rem", letterSpacing: "0.32em" }}
               >
-                On the desk
+                On the site
               </p>
               <span
                 className="ui-sans text-ink-muted"
@@ -311,67 +283,83 @@ export function OnTheDeskBadge({
                   letterSpacing: "0.02em",
                 }}
               >
-                {pending ? "refreshing…" : `as of ${formatRelativeAgo(stampedAt, now)}`}
+                {pending
+                  ? "refreshing…"
+                  : `as of ${formatRelativeAgo(stampedAt, now)}`}
               </span>
             </header>
 
-            <div style={{ maxHeight: "50vh", overflowY: "auto" }}>
-              {visitors.length === 0 ? (
+            <div style={{ maxHeight: "60vh", overflowY: "auto" }}>
+              {total === 0 ? (
                 <p
                   className="font-serif italic text-ink-faint px-4 py-4 leading-relaxed"
                   style={{ fontSize: "0.9rem" }}
                 >
-                  No visits in the last {windowMinutes} min.
+                  Nobody&apos;s here in the last {windowMinutes} min.
                 </p>
               ) : (
                 <ul className="flex flex-col">
-                  {visitors.map((v, idx) => (
+                  {entries.map((e, idx) => (
                     <li
-                      key={v.email}
+                      key={e.email}
                       className={
-                        "px-4 py-2.5 flex items-center justify-between gap-4 " +
+                        "px-4 py-2.5 flex items-center justify-between gap-3 " +
                         (idx === 0 ? "" : "border-t border-rule")
                       }
                     >
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="font-serif text-ink truncate"
+                          style={{ fontSize: "0.92rem", lineHeight: 1.3 }}
+                          title={e.email}
+                        >
+                          {displayFor(e)}
+                        </p>
+                        <p
+                          className="ui-sans text-ink-muted truncate"
+                          style={{
+                            fontSize: "0.68rem",
+                            letterSpacing: "0.02em",
+                            marginTop: "0.15rem",
+                            lineHeight: 1.4,
+                          }}
+                          title={e.path}
+                        >
+                          <span
+                            className="text-eye-deep"
+                            style={{ fontWeight: 600 }}
+                          >
+                            {e.section.label}
+                          </span>
+                          <span
+                            className="mx-1.5 text-ink-faint"
+                            aria-hidden="true"
+                          >
+                            ·
+                          </span>
+                          <span className="font-mono">
+                            {truncatePath(e.path)}
+                          </span>
+                        </p>
+                      </div>
                       <span
-                        className="font-serif text-ink min-w-0 truncate"
-                        style={{ fontSize: "0.92rem" }}
-                        title={v.email}
-                      >
-                        {displayFor(v)}
-                      </span>
-                      <span
-                        className="ui-sans text-ink-muted whitespace-nowrap"
+                        className="ui-sans text-ink-muted whitespace-nowrap shrink-0"
                         style={{
-                          fontSize: "0.74rem",
+                          fontSize: "0.7rem",
                           letterSpacing: "0.01em",
                         }}
                       >
-                        {formatRelativeAgo(v.lastVisitedAt, now)}
+                        {formatRelativeAgo(e.lastSeenAt, now)}
                       </span>
                     </li>
                   ))}
                 </ul>
-              )}
-              {hiddenCount > 0 && (
-                <p
-                  className="ui-sans text-ink-muted px-4 py-2.5 border-t border-rule text-center"
-                  style={{
-                    fontSize: "0.72rem",
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  +{hiddenCount} more in the last {windowMinutes} min
-                </p>
               )}
             </div>
           </div>,
           document.body
         )
       : null;
-
-  const dotColor =
-    count > 0 ? "var(--eye-deep)" : "rgba(138, 125, 32, 0.35)";
 
   return (
     <>
@@ -411,7 +399,7 @@ export function OnTheDeskBadge({
             borderRadius: "50%",
             background: dotColor,
             boxShadow:
-              count > 0
+              total > 0
                 ? "0 0 0 3px rgba(138, 125, 32, 0.18)"
                 : "none",
           }}
@@ -423,7 +411,7 @@ export function OnTheDeskBadge({
             letterSpacing: "-0.005em",
           }}
         >
-          {count}
+          {total}
         </span>
         <span
           style={{
@@ -434,7 +422,7 @@ export function OnTheDeskBadge({
             color: "var(--ink-muted)",
           }}
         >
-          on the desk
+          on the site
         </span>
       </button>
       {popover}
