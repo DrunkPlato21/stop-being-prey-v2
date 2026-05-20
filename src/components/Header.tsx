@@ -23,7 +23,8 @@ const navLinkClass =
 //
 // Identity composition:
 //   - firstName: first word of display name, fallback to email local-part.
-//   - role: "author" for admin, "founder" with founderSlot, else "member".
+//   - role: "author" for admin, "founder" with founderSlot, "charter"
+//     with charterSlot, else "member".
 //   - memberSinceMs: createdAt on the member record (null for the author
 //     since admins don't carry a member record).
 
@@ -53,6 +54,7 @@ async function resolveIdentity(email: string): Promise<IdentityResolution> {
         email,
         role: "author",
         founderSlot: null,
+        charterSlot: null,
         tierBadge: null,
         memberSinceMs: null,
         avatarUrl: null,
@@ -70,7 +72,9 @@ async function resolveIdentity(email: string): Promise<IdentityResolution> {
   const role: IdentityMenuProps["role"] =
     member?.tier === "founder" && typeof member.founderSlot === "number"
       ? "founder"
-      : "member";
+      : member?.tier === "charter" && typeof member.charterSlot === "number"
+        ? "charter"
+        : "member";
   const isPaidMember =
     !!member && (member.status === "active" || member.status === "trialing");
 
@@ -83,6 +87,10 @@ async function resolveIdentity(email: string): Promise<IdentityResolution> {
       founderSlot:
         member?.tier === "founder" && typeof member.founderSlot === "number"
           ? member.founderSlot
+          : null,
+      charterSlot:
+        member?.tier === "charter" && typeof member.charterSlot === "number"
+          ? member.charterSlot
           : null,
       tierBadge: getTierBadge(member),
       memberSinceMs:
@@ -147,10 +155,12 @@ export async function Header() {
           </Link>
 
           {isPaidMember && identity ? (
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-4 sm:gap-6">
               <DeskPresenceIndicator initialState={presenceState} />
-              <NotificationsBell />
-              <IdentityMenu {...identity} />
+              <div className="flex items-center gap-2">
+                <NotificationsBell />
+                <IdentityMenu {...identity} />
+              </div>
             </div>
           ) : (
             <div className="flex items-center gap-3 sm:gap-4">

@@ -1,7 +1,9 @@
 import Stripe from "stripe";
 import {
+  claimCharterSlot,
   claimFounderSlot,
   getMember,
+  isCharterEligible,
   isFounderEligible,
   saveMember,
   type Tier,
@@ -13,12 +15,16 @@ import {
 // Pricing is dynamic + pay-what-you-want:
 //   - Founder tier ($8 floor monthly / $80 yearly) available until the
 //     first 100 founder slots are claimed (see members.ts).
+//   - Charter tier (same $13 floor as Regular) for the next 200 sign-
+//     ups after the Founder cap fills. Same floor as Regular — Charter
+//     is a permanent-earned badge, not a price tier; the difference is
+//     purely the badge claim.
 //   - Regular tier ($13 floor monthly / $130 yearly) thereafter.
 //   - The slider lets a buyer pay anything ≥ the floor; the server
 //     enforces the floor at checkout-create time and the webhook
-//     atomically claims the founder slot (or stamps Regular if the
-//     race lost). Annual is exactly 10× monthly so the toggle's "save
-//     2 months" framing stays honest.
+//     atomically claims the founder/charter slot (or stamps Regular if
+//     the race lost). Annual is exactly 10× monthly so the toggle's
+//     "save 2 months" framing stays honest.
 
 let cached: Stripe | null = null;
 
@@ -140,6 +146,7 @@ export async function emailHasActiveMembership(
    without going through Stripe:
 
      DEV_AUTO_GRANT_TIER=founder    →  $8/mo founder, claims a slot
+     DEV_AUTO_GRANT_TIER=charter    →  $13/mo charter, claims a slot
      DEV_AUTO_GRANT_TIER=regular    →  $13/mo (default, no badge)
      DEV_AUTO_GRANT_TIER=hunter     →  $25/mo regular
      DEV_AUTO_GRANT_TIER=operator   →  $50/mo regular
@@ -149,12 +156,19 @@ export async function emailHasActiveMembership(
    a record, they manage it themselves (via the dev set-tier
    endpoint, direct Redis edits, or real Stripe test mode). */
 
-type DevGrantTier = "founder" | "regular" | "hunter" | "operator" | "apex";
+type DevGrantTier =
+  | "founder"
+  | "charter"
+  | "regular"
+  | "hunter"
+  | "operator"
+  | "apex";
 
 function readDevGrantTier(): DevGrantTier {
   const raw = (process.env.DEV_AUTO_GRANT_TIER ?? "").toLowerCase().trim();
   if (
     raw === "founder" ||
+    raw === "charter" ||
     raw === "hunter" ||
     raw === "operator" ||
     raw === "apex"
@@ -168,6 +182,8 @@ function devGrantAmountCents(tier: DevGrantTier): number {
   switch (tier) {
     case "founder":
       return 800;
+    case "charter":
+      return 1300;
     case "hunter":
       return 2500;
     case "operator":
@@ -195,15 +211,22 @@ export async function ensureDevMemberRecord(email: string): Promise<void> {
   const tier = readDevGrantTier();
   const amountCents = devGrantAmountCents(tier);
 
-  // Founder slot is real — claiming one consumes a slot from the
-  // dev Redis instance. Skip claim if not requesting founder.
+  // Founder + Charter slots are real — claiming one consumes a slot
+  // from the dev Redis instance. Skip claim if not requesting one.
   let founderSlot: number | null = null;
+  let charterSlot: number | null = null;
   let recordTier: Tier = "regular";
   if (tier === "founder") {
     const slot = await claimFounderSlot();
     if (slot !== null) {
       founderSlot = slot;
       recordTier = "founder";
+    }
+  } else if (tier === "charter") {
+    const slot = await claimCharterSlot();
+    if (slot !== null) {
+      charterSlot = slot;
+      recordTier = "charter";
     }
   }
 
@@ -214,6 +237,7 @@ export async function ensureDevMemberRecord(email: string): Promise<void> {
     stripeSubscriptionId: `dev_sub_${normalised}`,
     tier: recordTier,
     founderSlot,
+    charterSlot,
     status: "active",
     interval: "month",
     amountCents,
@@ -261,7 +285,15 @@ export async function createMembershipCheckoutSession(args: {
 
   const founderEligible = await isFounderEligible();
   const floor = floorCentsFor(args.plan, founderEligible);
-  const tierAtCheckout: Tier = founderEligible ? "founder" : "regular";
+  // Charter only matters after Founder fills. The webhook re-checks
+  // atomically; this is just the buyer-side hint so the success page
+  // can show the right welcome.
+  const charterEligible = !founderEligible && (await isCharterEligible());
+  const tierAtCheckout: Tier = founderEligible
+    ? "founder"
+    : charterEligible
+      ? "charter"
+      : "regular";
 
   if (args.amountCents < floor) {
     return { error: "below_floor", floor };

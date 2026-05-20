@@ -36,6 +36,7 @@ export type MentionDirectoryEntry = {
   isAdmin: boolean;
   isSelf: boolean;
   founderSlot: number | null;
+  charterSlot: number | null;
   tierBadge: TierBadge | null;
 };
 
@@ -372,6 +373,21 @@ export function MentionAutoResizingTextarea({
                         }}
                       >
                         founder
+                      </span>
+                    )}
+                    {!entry.isAdmin && entry.charterSlot !== null && (
+                      <span
+                        className="font-display"
+                        style={{
+                          marginLeft: "0.5rem",
+                          fontSize: "0.62rem",
+                          letterSpacing: "0.22em",
+                          textTransform: "uppercase",
+                          color: "var(--ink-faint)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        charter
                       </span>
                     )}
                   </span>

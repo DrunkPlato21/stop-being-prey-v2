@@ -21,6 +21,7 @@ import {
   type ReactionTarget,
 } from "@/lib/lounge";
 import {
+  getCharterSlot,
   getFounderSlot,
   getMember,
   getTierBadge,
@@ -114,6 +115,7 @@ export default async function LoungePage() {
         email,
         {
           founderSlot: getFounderSlot(m),
+          charterSlot: getCharterSlot(m),
           tierBadge: getTierBadge(m),
         },
       ] as const;
@@ -121,7 +123,11 @@ export default async function LoungePage() {
   );
   const initialMemberBadges: Record<
     string,
-    { founderSlot: number | null; tierBadge: TierBadge | null }
+    {
+      founderSlot: number | null;
+      charterSlot: number | null;
+      tierBadge: TierBadge | null;
+    }
   > = Object.fromEntries(memberBadgesEntries);
 
   const adminUser = isAdmin(session.email);

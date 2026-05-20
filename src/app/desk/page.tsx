@@ -33,7 +33,10 @@ export default async function DeskPage() {
       {/* Welcome modal — client island, only renders on first visit
           (localStorage-gated). Server emits nothing for it on initial
           paint so there's no flash for returning members. */}
-      <WelcomeModal founderSlot={member?.founderSlot ?? null} />
+      <WelcomeModal
+        founderSlot={member?.founderSlot ?? null}
+        charterSlot={member?.charterSlot ?? null}
+      />
 
       <section className="max-w-3xl mx-auto px-6 py-12 md:py-16">
         <WritersDesk />

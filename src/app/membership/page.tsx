@@ -2,14 +2,19 @@ import Link from "next/link";
 import { MembershipPlans } from "@/components/MembershipPlans";
 import { EyeDivider } from "@/components/Eyes";
 import { DeskPresenceIndicator } from "@/components/DeskPresenceIndicator";
-import { FOUNDER_CAP, getFounderClaimed } from "@/lib/members";
+import {
+  CHARTER_CAP,
+  FOUNDER_CAP,
+  getCharterClaimed,
+  getFounderClaimed,
+} from "@/lib/members";
 import { derivePresenceState, getPresence } from "@/lib/desk";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Membership",
   description:
-    "Inside Stop Being Prey. Commenting access, the Field Notes archive, early access to issues, first in line for the book. Founder rate locked for life on the first 100.",
+    "Inside Stop Being Prey. Commenting access, the Field Notes archive, early access to issues, first in line for the book. Founder rate locked for life on the first 100. Charter badge on the next 200.",
 };
 
 // Counter is rendered fresh on each request (no caching) so the
@@ -110,7 +115,7 @@ const FAQ: FAQEntry[] = [
   },
   {
     q: "why $8 for the first hundred?",
-    a: "the first hundred are my inner circle. the people who say yes before everyone else. they lock $8 a month for as long as they stay subscribed, and they carry a founder badge with their number for as long as they're here. it's not a discount. it's recognition for being first. after that, the floor moves to $13. pay what you want above either.",
+    a: "the first hundred are my inner circle. the people who say yes before everyone else. they lock $8 a month for as long as they stay subscribed, and they carry a founder badge with their number for as long as they're here. it's not a discount. it's recognition for being first. after the founders fill, the next 200 sign-ups at $13 get a Charter badge with their number, locked the same way. pay what you want above either.",
   },
   {
     q: "can i cancel anytime?",
@@ -122,13 +127,44 @@ const FAQ: FAQEntry[] = [
   },
 ];
 
-export default async function MembershipLandingPage() {
-  const [founderClaimed, presence] = await Promise.all([
+export default async function MembershipLandingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ preview?: string }>;
+}) {
+  const [founderClaimed, charterClaimed, presence] = await Promise.all([
     getFounderClaimed(),
+    getCharterClaimed(),
     getPresence(),
   ]);
-  const founderEligible = founderClaimed < FOUNDER_CAP;
-  const remaining = Math.max(0, FOUNDER_CAP - founderClaimed);
+
+  // Dev-only state preview: ?preview=charter forces the charter strip
+  // (founder cap "filled", charter open at 0/200). ?preview=filled
+  // forces both filled. Lets Clay see the post-cap copy locally
+  // without burning real founder slots in Redis. Ignored in prod.
+  const previewArg = (await searchParams)?.preview ?? "";
+  const previewCharter =
+    process.env.NODE_ENV !== "production" && previewArg === "charter";
+  const previewFilled =
+    process.env.NODE_ENV !== "production" && previewArg === "filled";
+
+  const effectiveFounderClaimed = previewCharter || previewFilled
+    ? FOUNDER_CAP
+    : founderClaimed;
+  const effectiveCharterClaimed = previewFilled
+    ? CHARTER_CAP
+    : previewCharter
+      ? 0
+      : charterClaimed;
+
+  const founderEligible = effectiveFounderClaimed < FOUNDER_CAP;
+  const charterEligible =
+    !founderEligible && effectiveCharterClaimed < CHARTER_CAP;
+  const remaining = Math.max(0, FOUNDER_CAP - effectiveFounderClaimed);
+  const charterRemaining = Math.max(
+    0,
+    CHARTER_CAP - effectiveCharterClaimed
+  );
   // Live presence on the sales page: the Writer's Desk beat carries
   // a pulsing pill that reflects Clay's actual current state, so the
   // abstract promise ("a green light pulses next to my name") is
@@ -291,7 +327,7 @@ export default async function MembershipLandingPage() {
                   letterSpacing: "-0.01em",
                 }}
               >
-                {founderClaimed} of {FOUNDER_CAP} founder spots claimed
+                {effectiveFounderClaimed} of {FOUNDER_CAP} founder spots claimed
               </p>
               <p
                 className="font-serif italic text-ink-muted"
@@ -313,6 +349,36 @@ export default async function MembershipLandingPage() {
                 </Link>
               </p>
             </>
+          ) : charterEligible ? (
+            <>
+              <p
+                className="font-display text-ink leading-none mb-3"
+                style={{
+                  fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
+                  fontWeight: 700,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                {effectiveCharterClaimed} of {CHARTER_CAP} charter spots claimed
+              </p>
+              <p
+                className="font-serif italic text-ink-muted"
+                style={{ fontSize: "0.98rem" }}
+              >
+                $13/mo with a Charter badge locked for life.{" "}
+                {charterRemaining}{" "}
+                {charterRemaining === 1 ? "slot" : "slots"} left.
+              </p>
+              <p className="mt-6">
+                <Link
+                  href="#pricing"
+                  className="font-display uppercase tracking-[0.24em] text-eye-deep hover:text-ink no-underline transition-colors"
+                  style={{ fontSize: "0.75rem", fontWeight: 600 }}
+                >
+                  Claim your slot &rarr;
+                </Link>
+              </p>
+            </>
           ) : (
             <>
               <p
@@ -323,13 +389,13 @@ export default async function MembershipLandingPage() {
                   letterSpacing: "-0.01em",
                 }}
               >
-                founder spots filled
+                founder + charter spots filled
               </p>
               <p
                 className="font-serif italic text-ink-muted"
                 style={{ fontSize: "0.98rem" }}
               >
-                regular tier opens at $13/mo.
+                regular tier at $13/mo.
               </p>
               <p className="mt-6">
                 <Link
@@ -473,7 +539,9 @@ export default async function MembershipLandingPage() {
 
         <MembershipPlans
           founderEligible={founderEligible}
-          founderClaimed={founderClaimed}
+          founderClaimed={effectiveFounderClaimed}
+          charterEligible={charterEligible}
+          charterClaimed={effectiveCharterClaimed}
         />
 
         <p className="text-center mt-10">

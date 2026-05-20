@@ -26,6 +26,9 @@ function describe(event: ActivityEvent): string {
     if (event.member.tier === "founder" && event.member.founderSlot) {
       return `new founder · No. ${event.member.founderSlot}`;
     }
+    if (event.member.tier === "charter" && event.member.charterSlot) {
+      return `new charter · No. ${event.member.charterSlot}`;
+    }
     return "new member";
   }
   if (event.kind === "comment" && event.comment) {

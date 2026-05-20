@@ -13,6 +13,7 @@ import {
 import { getWallBySlug } from "@/lib/walls";
 import { notifyNewWallDonation } from "@/lib/email";
 import {
+  claimCharterSlot,
   claimFounderSlot,
   getMemberByCustomerId,
   getMemberBySessionId,
@@ -272,20 +273,42 @@ async function handleMembershipCheckout(
     return new Response("ok", { status: 200 });
   }
 
-  // Atomic founder slot claim. The page rendered "founder eligible" at
-  // some point in the past; between then and now another buyer may
-  // have taken the last slot. claimFounderSlot returns null when the
-  // cap is filled and we stamp Regular instead.
-  const tierAtCheckout =
-    metadata.tier_at_checkout === "founder" ? "founder" : "regular";
+  // Atomic founder/charter slot claim. The page rendered "founder/charter
+  // eligible" at some point in the past; between then and now another
+  // buyer may have taken the last slot. claim*Slot returns null when the
+  // cap is filled and we stamp Regular instead. Founder takes precedence:
+  // if a buyer races past the founder cap, they fall through to charter
+  // (or regular if charter is also full).
+  const tierAtCheckout: Tier =
+    metadata.tier_at_checkout === "founder"
+      ? "founder"
+      : metadata.tier_at_checkout === "charter"
+        ? "charter"
+        : "regular";
 
   let tier: Tier = "regular";
   let founderSlot: number | null = null;
+  let charterSlot: number | null = null;
   if (tierAtCheckout === "founder") {
     const slot = await claimFounderSlot();
     if (slot !== null) {
       tier = "founder";
       founderSlot = slot;
+    } else {
+      // Lost the founder race. Try charter next — the buyer intended
+      // to be among the early-loyalty cohort and the next slot type
+      // honours that intent without dropping them to plain Regular.
+      const charter = await claimCharterSlot();
+      if (charter !== null) {
+        tier = "charter";
+        charterSlot = charter;
+      }
+    }
+  } else if (tierAtCheckout === "charter") {
+    const slot = await claimCharterSlot();
+    if (slot !== null) {
+      tier = "charter";
+      charterSlot = slot;
     }
   }
 
@@ -322,6 +345,7 @@ async function handleMembershipCheckout(
     stripeSubscriptionId: subscriptionId,
     tier,
     founderSlot,
+    charterSlot,
     status,
     interval,
     amountCents,
@@ -379,16 +403,20 @@ async function handleMembershipCheckout(
     }
   }
 
-  // In-site welcome notification. Founders get the slot number;
-  // regular tier gets a generic welcome.
+  // In-site welcome notification. Founder + Charter get the slot
+  // number; regular tier gets a generic welcome.
   const welcomeTitle =
     tier === "founder" && founderSlot !== null
       ? `You're Founder #${founderSlot}. Welcome.`
-      : "Welcome to Stop Being Prey.";
+      : tier === "charter" && charterSlot !== null
+        ? `You're Charter #${charterSlot}. Welcome.`
+        : "Welcome to Stop Being Prey.";
   const welcomeBody =
     tier === "founder"
       ? "Your founder rate is locked. Click for your member home."
-      : "Click for your member home.";
+      : tier === "charter"
+        ? "Charter badge locked for life. Click for your member home."
+        : "Click for your member home.";
   await createNotification({
     memberEmail: email,
     type: "founder_confirmed",

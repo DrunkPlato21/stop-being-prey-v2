@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import {
+  claimCharterSlot,
   claimFounderSlot,
   getMember,
   saveMember,
@@ -15,7 +16,7 @@ import {
 // reachable.
 //
 //   POST /api/dev/set-tier
-//   body: { tier: "founder" | "regular" | "hunter" | "operator" | "apex" }
+//   body: { tier: "founder" | "charter" | "regular" | "hunter" | "operator" | "apex" }
 //
 // Returns 404 in production / when the dev grant flag isn't set, so
 // the endpoint reads as nonexistent to anyone but a developer who
@@ -24,11 +25,18 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type DevTier = "founder" | "regular" | "hunter" | "operator" | "apex";
+type DevTier =
+  | "founder"
+  | "charter"
+  | "regular"
+  | "hunter"
+  | "operator"
+  | "apex";
 
 function isDevTier(v: unknown): v is DevTier {
   return (
     v === "founder" ||
+    v === "charter" ||
     v === "regular" ||
     v === "hunter" ||
     v === "operator" ||
@@ -40,6 +48,8 @@ function amountFor(tier: DevTier): number {
   switch (tier) {
     case "founder":
       return 800;
+    case "charter":
+      return 1300;
     case "regular":
       return 1300;
     case "hunter":
@@ -84,11 +94,14 @@ export async function POST(req: NextRequest) {
   const existing = await getMember(email);
   const now = Date.now();
 
-  // Founder slot handling: if the caller asks for founder and doesn't
-  // already hold a slot, try to claim one. If slots are gone, fall
-  // back to regular tier rather than silently lying about the badge.
+  // Founder / Charter slot handling: claim a slot if the caller asks
+  // for that permanent tier and doesn't already hold one. If slots
+  // are gone, return 409 rather than silently lying. Founder takes
+  // precedence — an existing founder switching tier badges keeps
+  // their founder status. Same for Charter.
   let recordTier: Tier = "regular";
   let founderSlot: number | null = existing?.founderSlot ?? null;
+  let charterSlot: number | null = existing?.charterSlot ?? null;
   if (rawTier === "founder") {
     if (founderSlot !== null) {
       recordTier = "founder";
@@ -104,10 +117,27 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+  } else if (rawTier === "charter") {
+    if (charterSlot !== null) {
+      recordTier = "charter";
+    } else {
+      const slot = await claimCharterSlot();
+      if (slot !== null) {
+        charterSlot = slot;
+        recordTier = "charter";
+      } else {
+        return Response.json(
+          { error: "charter_cap_reached" },
+          { status: 409 }
+        );
+      }
+    }
   } else if (founderSlot !== null) {
-    // Keep founder status even when switching tier badges — that's
-    // the documented "founder persists through tier change" rule.
+    // Keep founder status even when switching tier badges.
     recordTier = "founder";
+  } else if (charterSlot !== null) {
+    // Same for charter.
+    recordTier = "charter";
   }
 
   await saveMember({
@@ -117,6 +147,7 @@ export async function POST(req: NextRequest) {
       existing?.stripeSubscriptionId ?? `dev_sub_${email}`,
     tier: recordTier,
     founderSlot,
+    charterSlot,
     status: "active",
     interval: "month",
     amountCents: amountFor(rawTier),
@@ -130,5 +161,6 @@ export async function POST(req: NextRequest) {
     tier: rawTier,
     amountCents: amountFor(rawTier),
     founderSlot,
+    charterSlot,
   });
 }

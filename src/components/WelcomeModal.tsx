@@ -11,17 +11,19 @@ import Link from "next/link";
 // so server output stays empty and there's no hydration mismatch when
 // the localStorage flag is set.
 //
-// Founder slot is passed from the server-rendered parent so the badge
-// can render without a client fetch. Null for regular tier members
-// (badge is skipped entirely).
+// Founder/Charter slot is passed from the server-rendered parent so
+// the badge can render without a client fetch. Both null for regular
+// tier members (badge is skipped entirely). Founder + Charter are
+// mutually exclusive on the member record so at most one renders.
 
 const STORAGE_KEY = "sbp:welcomed";
 
 type WelcomeModalProps = {
   founderSlot: number | null;
+  charterSlot: number | null;
 };
 
-export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
+export function WelcomeModal({ founderSlot, charterSlot }: WelcomeModalProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -109,8 +111,10 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
               Welcome inside.
             </h2>
 
-            {/* Founder badge. Renders only for the first-100 paid
-                members. Single line, no price, dynamic slot number. */}
+            {/* Founder / Charter badge. Renders for the first-100
+                Founders and the next 200 Charters. Single line, no
+                price, dynamic slot number. Mutually exclusive — at
+                most one of the two filled chips appears. */}
             {founderSlot !== null && (
               <div className="mb-6 flex">
                 <div
@@ -125,6 +129,23 @@ export function WelcomeModal({ founderSlot }: WelcomeModalProps) {
                   }}
                 >
                   FOUNDER &#8470;{founderSlot}
+                </div>
+              </div>
+            )}
+            {founderSlot === null && charterSlot !== null && (
+              <div className="mb-6 flex">
+                <div
+                  className="member-chip member-chip-charter"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "0.85rem 1.5rem",
+                    fontSize: "0.95rem",
+                    letterSpacing: "0.22em",
+                    fontWeight: 600,
+                  }}
+                >
+                  CHARTER &#8470;{charterSlot}
                 </div>
               </div>
             )}

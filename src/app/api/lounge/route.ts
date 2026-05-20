@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getProfile, isAdmin } from "@/lib/comments";
 import {
+  getCharterSlot,
   getFounderSlot,
   getMember,
   getMembersByEmails,
@@ -140,12 +141,17 @@ export async function GET(req: NextRequest) {
   const memberMap = await getMembersByEmails(uniqueEmails);
   const memberBadges: Record<
     string,
-    { founderSlot: number | null; tierBadge: TierBadge | null }
+    {
+      founderSlot: number | null;
+      charterSlot: number | null;
+      tierBadge: TierBadge | null;
+    }
   > = {};
   for (const email of uniqueEmails) {
     const m = memberMap.get(email.toLowerCase().trim()) ?? null;
     memberBadges[email] = {
       founderSlot: getFounderSlot(m),
+      charterSlot: getCharterSlot(m),
       tierBadge: getTierBadge(m),
     };
   }

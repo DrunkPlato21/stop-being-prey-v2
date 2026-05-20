@@ -30,6 +30,7 @@ import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTex
 
 type MemberBadgeInfo = {
   founderSlot: number | null;
+  charterSlot: number | null;
   tierBadge: TierBadge | null;
 };
 
@@ -1653,6 +1654,7 @@ function PostCard(props: CardProps) {
               return (
                 <MemberBadge
                   founderSlot={b?.founderSlot ?? null}
+                  charterSlot={b?.charterSlot ?? null}
                   tierBadge={b?.tierBadge ?? null}
                   size="small"
                 />
@@ -2019,6 +2021,7 @@ function ReplyRow({
           ) : (
             <MemberBadge
               founderSlot={badge?.founderSlot ?? null}
+              charterSlot={badge?.charterSlot ?? null}
               tierBadge={badge?.tierBadge ?? null}
               size="small"
             />

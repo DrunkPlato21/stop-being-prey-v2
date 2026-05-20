@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getProfile, isAdmin } from "@/lib/comments";
 import {
+  getCharterSlot,
   getFounderSlot,
   getMember,
   getTierBadge,
@@ -31,6 +32,7 @@ type DirectoryEntry = {
   isAdmin: boolean;
   isSelf: boolean;
   founderSlot: number | null;
+  charterSlot: number | null;
   tierBadge: TierBadge | null;
 };
 
@@ -75,6 +77,7 @@ export async function GET() {
       isAdmin: admin,
       isSelf: email === callerEmail,
       founderSlot: getFounderSlot(member),
+      charterSlot: getCharterSlot(member),
       tierBadge: getTierBadge(member),
     });
   }

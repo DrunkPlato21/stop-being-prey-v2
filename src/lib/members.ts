@@ -6,6 +6,7 @@ import { Redis } from "@upstash/redis";
 //
 // Redis schema:
 //   founder:claimed                  STRING/integer, INCR'd atomically via EVAL
+//   charter:claimed                  STRING/integer, INCR'd atomically via EVAL
 //   member:<email>                   JSON MemberRecord (primary)
 //   member:by-customer:<customerId>  STRING email (Stripe lifecycle webhook lookup)
 //   member:by-session:<sessionId>    STRING email (idempotency dedupe for checkout.session.completed retries)
@@ -13,13 +14,15 @@ import { Redis } from "@upstash/redis";
 
 const FOUNDER_KEY = "founder:claimed";
 export const FOUNDER_CAP = 100;
+const CHARTER_KEY = "charter:claimed";
+export const CHARTER_CAP = 200;
 
 const MEMBER_PREFIX = "member:";
 const MEMBER_BY_CUSTOMER_PREFIX = "member:by-customer:";
 const MEMBER_BY_SESSION_PREFIX = "member:by-session:";
 const MEMBERS_ALL_INDEX = "members:all";
 
-export type Tier = "founder" | "regular";
+export type Tier = "founder" | "charter" | "regular";
 
 export type MemberSubscriptionStatus =
   | "active"
@@ -37,6 +40,11 @@ export type MemberRecord = {
   stripeSubscriptionId: string;
   tier: Tier;
   founderSlot: number | null;
+  /** Charter slot number 1..200, set on the webhook for members who
+      signed up during the Charter window (after founder cap filled,
+      before charter cap fills). Backward compatible: legacy records
+      without this field read as null and render no charter chip. */
+  charterSlot: number | null;
   status: MemberSubscriptionStatus;
   interval: "month" | "year";
   amountCents: number;
@@ -107,6 +115,22 @@ export function getFounderSlot(
   if (record.status !== "active" && record.status !== "trialing") return null;
   if (record.tier !== "founder") return null;
   return typeof record.founderSlot === "number" ? record.founderSlot : null;
+}
+
+/**
+ * The charter slot a member is entitled to display, or null. Same
+ * active/trialing gate as getFounderSlot. Founder + Charter are
+ * mutually exclusive: a member can hold at most one of the two
+ * permanent-earned slots (tier is a single value), so this returns
+ * null whenever the member's tier is anything other than "charter".
+ */
+export function getCharterSlot(
+  record: Pick<MemberRecord, "tier" | "charterSlot" | "status"> | null
+): number | null {
+  if (!record) return null;
+  if (record.status !== "active" && record.status !== "trialing") return null;
+  if (record.tier !== "charter") return null;
+  return typeof record.charterSlot === "number" ? record.charterSlot : null;
 }
 
 let cachedClient: Redis | null = null;
@@ -181,6 +205,58 @@ export async function claimFounderSlot(): Promise<number | null> {
  */
 export async function isFounderEligible(): Promise<boolean> {
   return (await getFounderClaimed()) < FOUNDER_CAP;
+}
+
+/* === Charter counter ====================================== */
+
+/**
+ * Read the current Charter-slots-claimed count for display. Clamped to
+ * the cap so the UI never shows "201 of 200" if the counter overshoots
+ * under contention. Returns 0 when Redis is unconfigured.
+ */
+export async function getCharterClaimed(): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const raw = await client.get<string | number | null>(CHARTER_KEY);
+  if (raw === null || raw === undefined) return 0;
+  const n = typeof raw === "string" ? parseInt(raw, 10) : Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(Math.max(n, 0), CHARTER_CAP);
+}
+
+/**
+ * Atomically claim the next Charter slot. Returns slot number 1..CAP
+ * on success, null when all slots are taken. Same Lua script shape as
+ * claimFounderSlot — single Redis round-trip enforces the cap so
+ * concurrent webhook firings can't both walk away with the last slot.
+ */
+export async function claimCharterSlot(): Promise<number | null> {
+  const client = getClient();
+  if (!client) return null;
+  const script = `
+    local current = tonumber(redis.call('GET', KEYS[1]) or '0')
+    local cap = tonumber(ARGV[1])
+    if current >= cap then
+      return -1
+    end
+    return redis.call('INCR', KEYS[1])
+  `;
+  const result = await client.eval(
+    script,
+    [CHARTER_KEY],
+    [String(CHARTER_CAP)]
+  );
+  if (typeof result === "number" && result > 0) return result;
+  return null;
+}
+
+/**
+ * Whether a fresh purchase would be eligible for a Charter slot. Only
+ * meaningful AFTER the founder cap is exhausted — callers should gate
+ * with `!isFounderEligible() && isCharterEligible()`.
+ */
+export async function isCharterEligible(): Promise<boolean> {
+  return (await getCharterClaimed()) < CHARTER_CAP;
 }
 
 /* === Member records ======================================= */

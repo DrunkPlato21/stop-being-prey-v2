@@ -27,20 +27,28 @@ function formatDollars(cents: number): string {
 
 type TierOutcome =
   | { kind: "founder"; slot: number; member: MemberRecord }
+  | { kind: "charter"; slot: number; member: MemberRecord }
   | { kind: "regular"; member: MemberRecord }
   | { kind: "missed-founder"; member: MemberRecord }
+  | { kind: "missed-charter"; member: MemberRecord }
   | { kind: "pending" };
 
 function resolveOutcome(
   member: MemberRecord | null,
-  intendedFounder: boolean
+  intended: "founder" | "charter" | "regular"
 ): TierOutcome {
   if (!member) return { kind: "pending" };
   if (member.tier === "founder" && member.founderSlot) {
     return { kind: "founder", slot: member.founderSlot, member };
   }
-  if (intendedFounder) {
+  if (member.tier === "charter" && member.charterSlot) {
+    return { kind: "charter", slot: member.charterSlot, member };
+  }
+  if (intended === "founder") {
     return { kind: "missed-founder", member };
+  }
+  if (intended === "charter") {
+    return { kind: "missed-charter", member };
   }
   return { kind: "regular", member };
 }
@@ -61,14 +69,19 @@ export default async function MembershipSuccessPage({
     const info = await getCheckoutSessionInfo(session_id);
     if (info?.email && info.customerId) {
       email = info.email;
-      const intendedFounder = info.metadata.tier_at_checkout === "founder";
+      const intended: "founder" | "charter" | "regular" =
+        info.metadata.tier_at_checkout === "founder"
+          ? "founder"
+          : info.metadata.tier_at_checkout === "charter"
+            ? "charter"
+            : "regular";
 
       // Poll briefly for the webhook to land the member record. ~1.2s
       // budget total. The Stripe redirect happens fast enough that the
       // webhook is usually already there, but in dev (or under load)
       // we want to give it a beat.
       const member = await pollMemberBySession(session_id);
-      outcome = resolveOutcome(member, intendedFounder);
+      outcome = resolveOutcome(member, intended);
 
       // Magic link send — same flow as before. Failure here is logged
       // (in dev) but doesn't gate the page.
@@ -153,6 +166,48 @@ export default async function MembershipSuccessPage({
           </div>
         )}
 
+        {/* Charter badge block — for the 200 members who claimed a slot
+            after the founder cap filled. Same chassis as the founder
+            block; bronze fill via the .member-chip-charter modifier. */}
+        {outcome.kind === "charter" && (
+          <div className="flex justify-center mb-10 fade-up stagger-3">
+            <div
+              className="member-chip member-chip-charter"
+              style={{
+                display: "inline-flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "1.2rem 2.1rem",
+                fontSize: "1rem",
+                letterSpacing: "0.18em",
+                lineHeight: 1.35,
+                whiteSpace: "normal",
+              }}
+            >
+              <span>
+                You&apos;re Charter{" "}
+                <span
+                  style={{
+                    fontWeight: 600,
+                    fontSize: "1.55em",
+                    letterSpacing: 0,
+                    textTransform: "none",
+                    fontVariantNumeric: "lining-nums",
+                    fontFeatureSettings: '"lnum" 1',
+                  }}
+                >
+                  №{outcome.slot}
+                </span>
+                .
+              </span>
+              <span style={{ fontSize: "0.78em", opacity: 0.92 }}>
+                Badge locked for life.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Missed-founder edge case: paid expecting the founder rate
             but slot 100 filled mid-checkout. They need to know they're
             on the regular rate, not the floor. Subtle italic note,
@@ -166,6 +221,20 @@ export default async function MembershipSuccessPage({
             you&apos;re in at {formatDollars(outcome.member.amountCents)}/
             {outcome.member.interval === "year" ? "yr" : "mo"}, and that
             rate stays.
+          </p>
+        )}
+
+        {/* Missed-charter edge case: paid during the charter window but
+            the cap filled mid-checkout. They're on the regular tier. */}
+        {outcome.kind === "missed-charter" && (
+          <p
+            className="font-display italic text-ink-muted mb-10 fade-up stagger-3"
+            style={{ fontSize: "0.95rem" }}
+          >
+            the last charter slot filled while you were checking out.
+            you&apos;re in at {formatDollars(outcome.member.amountCents)}/
+            {outcome.member.interval === "year" ? "yr" : "mo"} as a regular
+            member.
           </p>
         )}
 

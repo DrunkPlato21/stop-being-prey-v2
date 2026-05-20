@@ -714,6 +714,42 @@ a.no-underline {
   transform: rotate(-18deg) translateX(-1px);
 }
 
+/* Visible note count next to the label when the member has any
+   past notes. Quiet pill, italic numeral, so the eye reads it as
+   a tally rather than a CTA. */
+.note-paper-count {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  margin-left: 0.4rem;
+}
+
+/* Lock glyph on the collapsed paper signaling privacy. Sits inline
+   between the count (or label) and the pencil. */
+.note-paper-lock {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-faint);
+  margin-left: 0.4rem;
+  margin-right: 0.15rem;
+}
+
+/* Small olive dot when there's unread reply or reaction activity
+   from Clay since the member's last visit. Positioned absolutely
+   in the top-right corner of the paper so it doesn't push the
+   label around when it flips on/off. */
+.note-paper-unread-dot {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.55rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--eye-deep);
+  box-shadow: 0 0 0 3px rgba(138, 125, 32, 0.18);
+}
+
 .note-paper-rising {
   animation: note-paper-rise 350ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
   pointer-events: none;
@@ -2689,6 +2725,19 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   background: var(--eye-deep);
   color: var(--paper);
   border-color: var(--eye-deep);
+  font-weight: 400;
+}
+
+/* CHARTER modifier — same filled silhouette as Founder, bronze fill
+   instead of olive. Same saturation/luminance band as --eye-deep, hue
+   shifted to warm bronze so the two read as a medal-hierarchy pair
+   (gold → bronze) rather than two random colors. Paper-cream text
+   stays the same so the chip remains a "filled, earned by timing"
+   chip first, color a secondary identifier. */
+.member-chip-charter {
+  background: #8a5a2c;
+  color: var(--paper);
+  border-color: #8a5a2c;
   font-weight: 400;
 }
 

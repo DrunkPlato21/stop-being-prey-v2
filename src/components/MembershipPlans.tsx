@@ -14,12 +14,22 @@ import type { TierBadge } from "@/lib/members";
 // Floor flips $8 → $13 based on the server-rendered `founderEligible`
 // prop. The "Pup" preset is hidden once the founder cap fills — the
 // label exists but the price would no longer be valid.
+//
+// After the founder cap fills, the next 200 sign-ups claim a Charter
+// slot at the same $13 floor. Charter is a permanent-earned badge
+// (mirrors Founder), not a separate price tier — the floor and slider
+// behaviour are identical to Regular; the difference is the badge and
+// the scarcity copy.
 
 type Plan = "monthly" | "yearly";
 
 type Props = {
   founderEligible: boolean;
   founderClaimed: number;
+  /** True when founder cap is exhausted AND charter cap is not yet
+      reached. Drives Charter scarcity copy + live preview chip. */
+  charterEligible: boolean;
+  charterClaimed: number;
 };
 
 const FOUNDER_MONTHLY_CENTS = 800;
@@ -78,14 +88,16 @@ function previewTierBadge(cents: number, plan: Plan): TierBadge | null {
 
 /**
  * Single line of copy below the big price. Derived from the selected
- * monthly-equivalent amount + founder eligibility so a custom $35
- * still gets the HUNTER pitch, not a "regular tier" placeholder.
+ * monthly-equivalent amount + founder/charter eligibility so a custom
+ * $35 still gets the HUNTER pitch, not a "regular tier" placeholder.
  */
 function describeAmount(
   cents: number,
   plan: Plan,
   founderEligible: boolean,
-  founderRemaining: number
+  founderRemaining: number,
+  charterEligible: boolean,
+  charterRemaining: number
 ): string {
   const monthly = monthlyEquivalentCents(cents, plan);
   // Founder rate: only when the user is below the standard floor AND
@@ -96,6 +108,14 @@ function describeAmount(
   if (founderEligible && monthly < STANDARD_MONTHLY) {
     return `founder rate. locked for life. ${founderRemaining} of 100 ${
       founderRemaining === 1 ? "slot" : "slots"
+    } left.`;
+  }
+  // Charter window: founder is filled, charter is still open, user is
+  // at the standard floor. Same shape as the founder line so the
+  // scarcity register reads consistent.
+  if (charterEligible && monthly === STANDARD_MONTHLY) {
+    return `charter rate. badge locked for life. ${charterRemaining} of 200 ${
+      charterRemaining === 1 ? "slot" : "slots"
     } left.`;
   }
   if (monthly >= APEX_MONTHLY) {
@@ -134,6 +154,8 @@ function formatDollarsBody(cents: number): string {
 export function MembershipPlans({
   founderEligible,
   founderClaimed,
+  charterEligible,
+  charterClaimed,
 }: Props) {
   const [plan, setPlan] = useState<Plan>("monthly");
   const [cents, setCents] = useState<number>(() =>
@@ -233,7 +255,15 @@ export function MembershipPlans({
       ? "billed monthly. cancel anytime."
       : "billed annually. two months on the house.";
   const remaining = Math.max(0, 100 - founderClaimed);
-  const tierLine = describeAmount(cents, plan, founderEligible, remaining);
+  const charterRemaining = Math.max(0, 200 - charterClaimed);
+  const tierLine = describeAmount(
+    cents,
+    plan,
+    founderEligible,
+    remaining,
+    charterEligible,
+    charterRemaining
+  );
 
   const visiblePresets = PRESETS.filter(
     (p) => founderEligible || !p.founderOnly
@@ -246,17 +276,24 @@ export function MembershipPlans({
   const onCustom = !matchedPreset && !editing;
 
   /* === Live badge preview =====================================
-     Tier badge derives from the current amount. Founder badge
-     fires while founder slots are still open AND the user is at
-     a paid floor (any positive cents qualifies — paying anything
-     during the launch window earns the slot). Slot number is
-     `founderClaimed + 1` so the preview reads "the slot you'd
-     actually claim" rather than a placeholder. */
+     Tier badge derives from the current amount. Founder/Charter
+     badge fires while their respective slots are still open AND
+     the user is at a paid floor (any positive cents qualifies —
+     paying anything during the window earns the slot). Slot
+     number is `claimed + 1` so the preview reads "the slot you'd
+     actually claim" rather than a placeholder. Founder takes
+     precedence; Charter only previews when Founder is exhausted. */
   const previewTier = previewTierBadge(cents, plan);
   const previewFounderSlot =
     founderEligible && cents > 0 ? founderClaimed + 1 : null;
+  const previewCharterSlot =
+    !founderEligible && charterEligible && cents > 0
+      ? charterClaimed + 1
+      : null;
   const previewHasBadge =
-    previewTier !== null || previewFounderSlot !== null;
+    previewTier !== null ||
+    previewFounderSlot !== null ||
+    previewCharterSlot !== null;
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -459,6 +496,7 @@ export function MembershipPlans({
               {previewHasBadge ? (
                 <MemberBadge
                   founderSlot={previewFounderSlot}
+                  charterSlot={previewCharterSlot}
                   tierBadge={previewTier}
                   size="small"
                 />

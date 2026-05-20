@@ -1,4 +1,5 @@
-// Reset the founder-slot counter and clean up test member records.
+// Reset the founder + charter slot counters and clean up test member
+// records.
 //
 // One-shot script for pre-launch hygiene: dev work has been writing to
 // the same Upstash instance that will serve production, so any test
@@ -12,7 +13,7 @@
 //   node --env-file=.env.local scripts/reset-founder-state.mjs --execute
 //
 // What it does (in --execute mode):
-//   1. DEL founder:claimed (counter resets to 0)
+//   1. DEL founder:claimed AND charter:claimed (counters reset to 0)
 //   2. For every email in members:all:
 //        - fetch member:<email>
 //        - DEL member:<email>
@@ -43,6 +44,7 @@ if (!url || !token) {
 const redis = new Redis({ url, token });
 
 const FOUNDER_KEY = "founder:claimed";
+const CHARTER_KEY = "charter:claimed";
 const MEMBER_PREFIX = "member:";
 const MEMBER_BY_CUSTOMER_PREFIX = "member:by-customer:";
 const MEMBER_BY_SESSION_PREFIX = "member:by-session:";
@@ -55,6 +57,7 @@ function fmt(rec) {
     email: rec?.email,
     tier: rec?.tier,
     founderSlot: rec?.founderSlot,
+    charterSlot: rec?.charterSlot,
     status: rec?.status,
     stripeCustomerId: rec?.stripeCustomerId,
     stripeSubscriptionId: rec?.stripeSubscriptionId,
@@ -81,9 +84,11 @@ async function main() {
   console.log(`Mode: ${execute ? "EXECUTE (will modify Redis)" : "READ-ONLY inspect"}`);
   console.log("");
 
-  // 1. Founder counter
+  // 1. Founder + Charter counters
   const counterRaw = await redis.get(FOUNDER_KEY);
   console.log(`founder:claimed = ${counterRaw ?? "(unset)"}`);
+  const charterRaw = await redis.get(CHARTER_KEY);
+  console.log(`charter:claimed = ${charterRaw ?? "(unset)"}`);
   console.log("");
 
   // 2. Members in the index
@@ -149,17 +154,21 @@ async function main() {
   await redis.del(MEMBERS_ALL_INDEX);
   console.log(`  DEL ${MEMBERS_ALL_INDEX}`);
 
-  // Reset the counter
+  // Reset the counters
   await redis.del(FOUNDER_KEY);
   console.log(`  DEL ${FOUNDER_KEY}`);
+  await redis.del(CHARTER_KEY);
+  console.log(`  DEL ${CHARTER_KEY}`);
 
   console.log("");
   console.log("Done. Verifying...");
   console.log("");
 
   const counterAfter = await redis.get(FOUNDER_KEY);
+  const charterAfter = await redis.get(CHARTER_KEY);
   const emailsAfter = await redis.zrange(MEMBERS_ALL_INDEX, 0, -1);
   console.log(`founder:claimed = ${counterAfter ?? "(unset, treated as 0)"}`);
+  console.log(`charter:claimed = ${charterAfter ?? "(unset, treated as 0)"}`);
   console.log(`members:all has ${emailsAfter.length} email(s)`);
 }
 

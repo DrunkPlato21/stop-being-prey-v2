@@ -20,6 +20,7 @@ import type { TierBadge } from "@/lib/members";
 
 export type MemberBadgeInfo = {
   founderSlot: number | null;
+  charterSlot: number | null;
   tierBadge: TierBadge | null;
 };
 
@@ -113,6 +114,7 @@ export function CommentItem({
   const threadReplies = comment.threadReplies ?? [];
   const badgeInfo = memberBadgeByEmail?.get(comment.email);
   const founderSlot = badgeInfo?.founderSlot ?? null;
+  const charterSlot = badgeInfo?.charterSlot ?? null;
   const tierBadge = badgeInfo?.tierBadge ?? null;
 
   return (
@@ -166,10 +168,11 @@ export function CommentItem({
             {!byAuthor && (
               <MemberBadge
                 founderSlot={founderSlot}
+                charterSlot={charterSlot}
                 tierBadge={tierBadge}
               />
             )}
-            {comment.paidComment && !byAuthor && founderSlot === null && tierBadge === null && (
+            {comment.paidComment && !byAuthor && founderSlot === null && charterSlot === null && tierBadge === null && (
               <GuestChip
                 showAmount={!!comment.paidShowAmount}
                 amountCents={
@@ -367,6 +370,7 @@ function ThreadReplyView({
   const byAuthor = isAdmin(reply.email);
   const badgeInfo = memberBadgeByEmail?.get(reply.email);
   const founderSlot = badgeInfo?.founderSlot ?? null;
+  const charterSlot = badgeInfo?.charterSlot ?? null;
   const tierBadge = badgeInfo?.tierBadge ?? null;
 
   return (
@@ -413,6 +417,7 @@ function ThreadReplyView({
             {!byAuthor && (
               <MemberBadge
                 founderSlot={founderSlot}
+                charterSlot={charterSlot}
                 tierBadge={tierBadge}
                 size="small"
               />

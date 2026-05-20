@@ -11,6 +11,7 @@ import {
   type CommentRecord,
 } from "@/lib/comments";
 import {
+  getCharterSlot,
   getFounderSlot,
   getMember,
   getTierBadge,
@@ -88,6 +89,7 @@ export async function Comments({ kind, slug }: Props) {
         email,
         {
           founderSlot: getFounderSlot(m),
+          charterSlot: getCharterSlot(m),
           tierBadge: getTierBadge(m),
         },
       ] as const;
@@ -95,7 +97,11 @@ export async function Comments({ kind, slug }: Props) {
   );
   const memberBadgeByEmail = new Map<
     string,
-    { founderSlot: number | null; tierBadge: TierBadge | null }
+    {
+      founderSlot: number | null;
+      charterSlot: number | null;
+      tierBadge: TierBadge | null;
+    }
   >(badgeEntries);
 
   return (

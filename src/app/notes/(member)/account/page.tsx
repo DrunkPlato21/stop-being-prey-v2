@@ -7,6 +7,7 @@ import { ManageSubscriptionButton } from "@/components/ManageSubscriptionButton"
 import { EditDisplayNameForm } from "@/components/EditDisplayNameForm";
 import { NotifyOnReplyToggle } from "@/components/NotifyOnReplyToggle";
 import { FounderMedallion } from "@/components/FounderMedallion";
+import { CharterMedallion } from "@/components/CharterMedallion";
 import { AuthorPlate } from "@/components/AuthorPlate";
 import {
   getProfile,
@@ -16,6 +17,7 @@ import {
   selfEditCooldownInfo,
 } from "@/lib/comments";
 import {
+  getCharterSlot,
   getFounderSlot,
   getMember,
   getTierBadge,
@@ -75,7 +77,12 @@ export default async function AccountPage() {
     !viewerIsAdmin &&
     member?.tier === "founder" &&
     typeof member.founderSlot === "number";
+  const isCharter =
+    !viewerIsAdmin &&
+    member?.tier === "charter" &&
+    typeof member.charterSlot === "number";
   const founderSlot = viewerIsAdmin ? null : getFounderSlot(member);
+  const charterSlot = viewerIsAdmin ? null : getCharterSlot(member);
   const tierBadge = viewerIsAdmin ? null : getTierBadge(member);
 
   return (
@@ -98,9 +105,10 @@ export default async function AccountPage() {
       </section>
 
       <section className="max-w-xl mx-auto px-6 py-14 md:py-20">
-        {/* Tier plate — three states, mutually exclusive:
+        {/* Tier plate — four states, mutually exclusive:
             - Admin (the author): AuthorPlate, no slot, no amount.
             - Founder: FounderMedallion with slot # + locked rate.
+            - Charter: CharterMedallion with slot # + badge-locked copy.
             - Regular member or pre-webhook: no plate. */}
         {viewerIsAdmin ? (
           <div className="mb-14 md:mb-16">
@@ -114,12 +122,22 @@ export default async function AccountPage() {
               interval={member.interval}
             />
           </div>
+        ) : isCharter && member?.charterSlot ? (
+          <div className="mb-14 md:mb-16">
+            <CharterMedallion
+              slot={member.charterSlot}
+              amountCents={member.amountCents}
+              interval={member.interval}
+            />
+          </div>
         ) : null}
 
         {/* Your badge — shows the exact chip rendered everywhere
             else (comments, lounge, identity dropdown). Compound for
-            founders who also qualify for a tier badge. */}
-        {(founderSlot !== null || tierBadge !== null) && (
+            founders/charters who also qualify for a tier badge. */}
+        {(founderSlot !== null ||
+          charterSlot !== null ||
+          tierBadge !== null) && (
           <div className="mb-12 text-center">
             <p className="eyebrow mb-3">Your badge</p>
             {/* Inline-flex wrapper so Fragment-returned chips share
@@ -129,6 +147,7 @@ export default async function AccountPage() {
             <div className="inline-flex items-baseline gap-2 flex-wrap">
               <MemberBadge
                 founderSlot={founderSlot}
+                charterSlot={charterSlot}
                 tierBadge={tierBadge}
               />
             </div>
