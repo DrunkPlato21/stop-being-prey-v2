@@ -8,6 +8,19 @@ export const metadata: Metadata = {
   title: "Join",
   description:
     "Get Stop Being Prey in your inbox. Reader-supported. Algorithms don't deliver this writing.",
+  openGraph: {
+    title: "Join the list. Stop Being Prey.",
+    description:
+      "Original writing on politics, power, and the apex class. Algorithms don't deliver this writing. It only arrives if you ask.",
+    url: "https://stopbeingprey.com/join",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Join the list. Stop Being Prey.",
+    description:
+      "Original writing on politics, power, and the apex class. Algorithms don't deliver this writing.",
+  },
 };
 
 export default function JoinPage() {
