@@ -68,9 +68,10 @@ export default async function FieldNotesIndexPage() {
             Field Notes.
           </h1>
           <p className="deck max-w-xl mx-auto fade-up stagger-3">
-            The work being made, in real time. Each Field Note grows
-            entry by entry while a piece is in progress, then becomes
-            the record of how it was made.
+            A Field Note is the working journal of a piece in progress.
+            Short entries land as the writing happens. Not polished, not
+            rehearsed. When the piece ships, the Note becomes the record
+            of how it was made. Until then, you&apos;re inside the work.
           </p>
         </div>
       </section>
