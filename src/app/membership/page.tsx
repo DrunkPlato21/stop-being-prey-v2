@@ -388,7 +388,7 @@ export default async function MembershipLandingPage({
                   letterSpacing: "-0.012em",
                 }}
               >
-                Charter is open.
+                Charter Membership is open.
               </h2>
 
               {/* Social proof + scarcity. Seat metaphor carries the
