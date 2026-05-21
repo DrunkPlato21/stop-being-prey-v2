@@ -377,10 +377,9 @@ export default async function MembershipLandingPage({
             </>
           ) : charterEligible ? (
             <>
-              {/* Headline — matches the founder strip's scale so the
-                  scarcity block reads as one beat, not a hero. Dynamic
-                  slot number compounds early-bird pride as the counter
-                  ticks up. */}
+              {/* Headline — calm, room-is-set framing. Same scale as
+                  the founder counter so the block reads as one beat,
+                  not a hero. */}
               <h2
                 className="font-display text-ink leading-none tracking-tight mb-3"
                 style={{
@@ -389,41 +388,28 @@ export default async function MembershipLandingPage({
                   letterSpacing: "-0.012em",
                 }}
               >
-                Be Charter #{effectiveCharterClaimed + 1}.
+                Charter is open.
               </h2>
 
-              {/* Social proof + scarcity. Body-serif size, no italic,
-                  full ink color so it sits above the muted price line
-                  in the hierarchy without shouting. */}
+              {/* Social proof + scarcity. Seat metaphor carries the
+                  gathering register — "100 Founders are seated" reads
+                  as a room already in session, not a counter widget. */}
               <p
                 className="font-serif text-ink leading-snug mb-2"
                 style={{ fontSize: "1rem" }}
               >
-                100 Founders are already inside. {charterRemaining}{" "}
-                Charter{" "}
-                {charterRemaining === 1 ? "slot is" : "slots are"} open.
+                100 Founders are seated. {charterRemaining} Charter{" "}
+                {charterRemaining === 1 ? "seat remains" : "seats remain"}.
               </p>
 
-              {/* Price reassurance — italic muted, the strip's
-                  existing vocabulary. */}
+              {/* Price reassurance — italic muted, the strip's existing
+                  vocabulary. */}
               <p
                 className="font-serif italic text-ink-muted"
                 style={{ fontSize: "0.95rem" }}
               >
-                $13/mo locked for life. After Charter fills, the base rate
-                goes up.
-              </p>
-
-              {/* Small progress indicator — italic serif text-ink-faint
-                  to sit naturally beneath the italic reassurance line
-                  in the same family, just smaller and fainter. Avoids
-                  the eyebrow's uppercase-olive register which reads as
-                  a third-party UI badge instead of editorial copy. */}
-              <p
-                className="font-serif italic text-ink-faint mt-2"
-                style={{ fontSize: "0.82rem" }}
-              >
-                {effectiveCharterClaimed} of {CHARTER_CAP} claimed.
+                $13/mo, locked for life. After Charter fills, the rate
+                rises.
               </p>
 
               <p className="mt-5">
@@ -432,7 +418,7 @@ export default async function MembershipLandingPage({
                   className="font-display uppercase tracking-[0.24em] text-eye-deep hover:text-ink no-underline transition-colors"
                   style={{ fontSize: "0.75rem", fontWeight: 600 }}
                 >
-                  Claim your slot &rarr;
+                  Claim your seat &rarr;
                 </Link>
               </p>
             </>
