@@ -114,8 +114,12 @@ const FAQ: FAQEntry[] = [
     a: "commenting access on every piece, the Field Notes archive, 24 to 48 hours of early access on new issues and walls, and the manuscript when the book lands.",
   },
   {
-    q: "why $8 for the first hundred?",
-    a: "the first hundred are my inner circle. the people who say yes before everyone else. they lock $8 a month for as long as they stay subscribed, and they carry a founder badge with their number for as long as they're here. it's not a discount. it's recognition for being first. after the founders fill, the next 200 sign-ups at $13 get a Charter badge with their number, locked the same way. pay what you want above either.",
+    q: "what's the founder badge?",
+    a: "the first hundred members. they locked $8 a month for as long as they stay subscribed, and they carry a founder badge with their slot number. not a discount. recognition for being first. the cap filled in May 2026.",
+  },
+  {
+    q: "what's the charter badge?",
+    a: "after the founder hundred filled, the next 200 sign-ups at the $13 floor claim a charter badge with their slot number. same idea as founder. earned by timing, not amount. locked for as long as they stay subscribed. pay what you want above $13.",
   },
   {
     q: "can i cancel anytime?",
