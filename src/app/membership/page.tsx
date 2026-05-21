@@ -321,23 +321,30 @@ export default async function MembershipLandingPage({
         </div>
       </section>
 
-      {/* Founder counter strip. The "N readers in the room" line is
-          the same across every branch — it's the social-proof anchor
-          that keeps "0 of 100 charter spots claimed" from reading like
-          an empty room. Total count (joined-ever, not active-right-now)
-          comes from ZCARD on members:all. */}
+      {/* Scarcity strip. Three branches:
+          - founder open: counter at top, $8 floor copy.
+          - charter open: leads with "Be Charter #N" headline + Founder
+            social proof to defeat the "empty room" problem at 0/100.
+            The raw counter is demoted to a small progress line.
+          - both filled: regular tier fallback.
+
+          The "N readers in the room" eyebrow rendered up top in the
+          founder + filled branches; in the charter branch the
+          "100 Founders are already inside" line carries that work
+          more directly, so the eyebrow is omitted there. */}
       <section className="border-b border-rule">
         <div className="max-w-3xl mx-auto px-6 py-8 md:py-10 text-center">
-          {totalMembers > 0 && (
-            <p
-              className="eyebrow mb-3"
-              style={{ fontSize: "0.72rem", letterSpacing: "0.28em" }}
-            >
-              {totalMembers} {totalMembers === 1 ? "reader" : "readers"} in the room
-            </p>
-          )}
           {founderEligible ? (
             <>
+              {totalMembers > 0 && (
+                <p
+                  className="eyebrow mb-3"
+                  style={{ fontSize: "0.72rem", letterSpacing: "0.28em" }}
+                >
+                  {totalMembers}{" "}
+                  {totalMembers === 1 ? "reader" : "readers"} in the room
+                </p>
+              )}
               <p
                 className="font-display text-ink leading-none mb-3"
                 style={{
@@ -370,24 +377,55 @@ export default async function MembershipLandingPage({
             </>
           ) : charterEligible ? (
             <>
-              <p
-                className="font-display text-ink leading-none mb-3"
+              {/* Dominant headline — dynamic slot number compounds
+                  early-bird pride as the counter ticks up. */}
+              <h2
+                className="font-display text-ink leading-[1.0] tracking-tight mb-5"
                 style={{
-                  fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
+                  fontSize: "clamp(2.25rem, 5vw, 3.5rem)",
                   fontWeight: 700,
-                  letterSpacing: "-0.01em",
+                  letterSpacing: "-0.025em",
                 }}
               >
-                {effectiveCharterClaimed} of {CHARTER_CAP} charter spots claimed
-              </p>
+                Be Charter #{effectiveCharterClaimed + 1}.
+              </h2>
+
+              {/* Medium social-proof + scarcity statement. Two short
+                  lines so the eye lands on "100 Founders" before
+                  "100 Charter slots" — the order is the persuasion. */}
               <p
-                className="font-serif italic text-ink-muted"
-                style={{ fontSize: "0.98rem" }}
+                className="font-display text-ink leading-snug mb-3"
+                style={{
+                  fontSize: "clamp(1.1rem, 2.2vw, 1.35rem)",
+                  fontWeight: 500,
+                  letterSpacing: "-0.005em",
+                }}
               >
-                $13/mo with a Charter badge locked for life.{" "}
-                {charterRemaining}{" "}
-                {charterRemaining === 1 ? "slot" : "slots"} left.
+                100 Founders are already inside.
+                <br />
+                {charterRemaining} Charter {charterRemaining === 1 ? "slot is" : "slots are"} open.
               </p>
+
+              {/* Price reassurance. Italic serif, muted — supports the
+                  headline without competing. */}
+              <p
+                className="font-serif italic text-ink-muted mb-4"
+                style={{ fontSize: "1rem" }}
+              >
+                $13/mo locked for life. After Charter fills, the base rate
+                goes up.
+              </p>
+
+              {/* Small progress indicator — counter demoted from
+                  dominant to ambient. Eyebrow register so it reads as
+                  metadata, not a headline. */}
+              <p
+                className="eyebrow"
+                style={{ fontSize: "0.62rem", letterSpacing: "0.28em" }}
+              >
+                {effectiveCharterClaimed} of {CHARTER_CAP} claimed
+              </p>
+
               <p className="mt-6">
                 <Link
                   href="#pricing"
@@ -400,6 +438,15 @@ export default async function MembershipLandingPage({
             </>
           ) : (
             <>
+              {totalMembers > 0 && (
+                <p
+                  className="eyebrow mb-3"
+                  style={{ fontSize: "0.72rem", letterSpacing: "0.28em" }}
+                >
+                  {totalMembers}{" "}
+                  {totalMembers === 1 ? "reader" : "readers"} in the room
+                </p>
+              )}
               <p
                 className="font-display text-ink leading-none mb-3"
                 style={{
