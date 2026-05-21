@@ -377,56 +377,53 @@ export default async function MembershipLandingPage({
             </>
           ) : charterEligible ? (
             <>
-              {/* Dominant headline — dynamic slot number compounds
-                  early-bird pride as the counter ticks up. */}
+              {/* Headline — matches the founder strip's scale so the
+                  scarcity block reads as one beat, not a hero. Dynamic
+                  slot number compounds early-bird pride as the counter
+                  ticks up. */}
               <h2
-                className="font-display text-ink leading-[1.0] tracking-tight mb-5"
+                className="font-display text-ink leading-none tracking-tight mb-3"
                 style={{
-                  fontSize: "clamp(2.25rem, 5vw, 3.5rem)",
+                  fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
                   fontWeight: 700,
-                  letterSpacing: "-0.025em",
+                  letterSpacing: "-0.012em",
                 }}
               >
                 Be Charter #{effectiveCharterClaimed + 1}.
               </h2>
 
-              {/* Medium social-proof + scarcity statement. Two short
-                  lines so the eye lands on "100 Founders" before
-                  "100 Charter slots" — the order is the persuasion. */}
+              {/* Social proof + scarcity. Body-serif size, no italic,
+                  full ink color so it sits above the muted price line
+                  in the hierarchy without shouting. */}
               <p
-                className="font-display text-ink leading-snug mb-3"
-                style={{
-                  fontSize: "clamp(1.1rem, 2.2vw, 1.35rem)",
-                  fontWeight: 500,
-                  letterSpacing: "-0.005em",
-                }}
+                className="font-serif text-ink leading-snug mb-2"
+                style={{ fontSize: "1rem" }}
               >
-                100 Founders are already inside.
-                <br />
-                {charterRemaining} Charter {charterRemaining === 1 ? "slot is" : "slots are"} open.
+                100 Founders are already inside. {charterRemaining}{" "}
+                Charter{" "}
+                {charterRemaining === 1 ? "slot is" : "slots are"} open.
               </p>
 
-              {/* Price reassurance. Italic serif, muted — supports the
-                  headline without competing. */}
+              {/* Price reassurance — italic muted, the strip's
+                  existing vocabulary. */}
               <p
-                className="font-serif italic text-ink-muted mb-4"
-                style={{ fontSize: "1rem" }}
+                className="font-serif italic text-ink-muted"
+                style={{ fontSize: "0.95rem" }}
               >
                 $13/mo locked for life. After Charter fills, the base rate
                 goes up.
               </p>
 
               {/* Small progress indicator — counter demoted from
-                  dominant to ambient. Eyebrow register so it reads as
-                  metadata, not a headline. */}
+                  dominant to ambient. */}
               <p
-                className="eyebrow"
+                className="eyebrow mt-3"
                 style={{ fontSize: "0.62rem", letterSpacing: "0.28em" }}
               >
                 {effectiveCharterClaimed} of {CHARTER_CAP} claimed
               </p>
 
-              <p className="mt-6">
+              <p className="mt-5">
                 <Link
                   href="#pricing"
                   className="font-display uppercase tracking-[0.24em] text-eye-deep hover:text-ink no-underline transition-colors"
