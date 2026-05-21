@@ -414,13 +414,16 @@ export default async function MembershipLandingPage({
                 goes up.
               </p>
 
-              {/* Small progress indicator — counter demoted from
-                  dominant to ambient. */}
+              {/* Small progress indicator — italic serif text-ink-faint
+                  to sit naturally beneath the italic reassurance line
+                  in the same family, just smaller and fainter. Avoids
+                  the eyebrow's uppercase-olive register which reads as
+                  a third-party UI badge instead of editorial copy. */}
               <p
-                className="eyebrow mt-3"
-                style={{ fontSize: "0.62rem", letterSpacing: "0.28em" }}
+                className="font-serif italic text-ink-faint mt-2"
+                style={{ fontSize: "0.82rem" }}
               >
-                {effectiveCharterClaimed} of {CHARTER_CAP} claimed
+                {effectiveCharterClaimed} of {CHARTER_CAP} claimed.
               </p>
 
               <p className="mt-5">
