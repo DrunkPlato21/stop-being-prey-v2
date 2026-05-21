@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Membership",
   description:
-    "Inside Stop Being Prey. Commenting access, the Field Notes archive, early access to issues, first in line for the book. Founder rate locked for life on the first 100. Charter badge on the next 200.",
+    "Inside Stop Being Prey. Commenting access, the Field Notes archive, early access to issues, first in line for the book. Founder rate locked for life on the first 100. Charter badge on the next 100.",
 };
 
 // Counter is rendered fresh on each request (no caching) so the
@@ -119,7 +119,7 @@ const FAQ: FAQEntry[] = [
   },
   {
     q: "what's the charter badge?",
-    a: "after the founder hundred filled, the next 200 sign-ups at the $13 floor claim a charter badge with their slot number. same idea as founder. earned by timing, not amount. locked for as long as they stay subscribed. pay what you want above $13.",
+    a: "after the founder hundred filled, the next 100 sign-ups at the $13 floor claim a charter badge with their slot number. same idea as founder. earned by timing, not amount. locked for as long as they stay subscribed. pay what you want above $13.",
   },
   {
     q: "can i cancel anytime?",
@@ -143,7 +143,7 @@ export default async function MembershipLandingPage({
   ]);
 
   // Dev-only state preview: ?preview=charter forces the charter strip
-  // (founder cap "filled", charter open at 0/200). ?preview=filled
+  // (founder cap "filled", charter open at 0/100). ?preview=filled
   // forces both filled. Lets Clay see the post-cap copy locally
   // without burning real founder slots in Redis. Ignored in prod.
   const previewArg = (await searchParams)?.preview ?? "";

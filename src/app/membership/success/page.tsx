@@ -166,7 +166,7 @@ export default async function MembershipSuccessPage({
           </div>
         )}
 
-        {/* Charter badge block — for the 200 members who claimed a slot
+        {/* Charter badge block — for the 100 members who claimed a slot
             after the founder cap filled. Same chassis as the founder
             block; bronze fill via the .member-chip-charter modifier. */}
         {outcome.kind === "charter" && (

@@ -112,7 +112,7 @@ export function WelcomeModal({ founderSlot, charterSlot }: WelcomeModalProps) {
             </h2>
 
             {/* Founder / Charter badge. Renders for the first-100
-                Founders and the next 200 Charters. Single line, no
+                Founders and the next 100 Charters. Single line, no
                 price, dynamic slot number. Mutually exclusive — at
                 most one of the two filled chips appears. */}
             {founderSlot !== null && (

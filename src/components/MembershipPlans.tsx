@@ -15,7 +15,7 @@ import type { TierBadge } from "@/lib/members";
 // prop. The "Pup" preset is hidden once the founder cap fills — the
 // label exists but the price would no longer be valid.
 //
-// After the founder cap fills, the next 200 sign-ups claim a Charter
+// After the founder cap fills, the next 100 sign-ups claim a Charter
 // slot at the same $13 floor. Charter is a permanent-earned badge
 // (mirrors Founder), not a separate price tier — the floor and slider
 // behaviour are identical to Regular; the difference is the badge and
@@ -114,7 +114,7 @@ function describeAmount(
   // at the standard floor. Same shape as the founder line so the
   // scarcity register reads consistent.
   if (charterEligible && monthly === STANDARD_MONTHLY) {
-    return `charter rate. badge locked for life. ${charterRemaining} of 200 ${
+    return `charter rate. badge locked for life. ${charterRemaining} of 100 ${
       charterRemaining === 1 ? "slot" : "slots"
     } left.`;
   }
@@ -255,7 +255,7 @@ export function MembershipPlans({
       ? "billed monthly. cancel anytime."
       : "billed annually. two months on the house.";
   const remaining = Math.max(0, 100 - founderClaimed);
-  const charterRemaining = Math.max(0, 200 - charterClaimed);
+  const charterRemaining = Math.max(0, 100 - charterClaimed);
   const tierLine = describeAmount(
     cents,
     plan,

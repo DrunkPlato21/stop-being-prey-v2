@@ -13,7 +13,7 @@ import type { TierBadge } from "@/lib/members";
 //   FOUNDER  — filled olive interior, paper-cream text.
 //              Permanent, earned by timing. First 100.
 //   CHARTER  — filled bronze interior, paper-cream text.
-//              Permanent, earned by timing. Next 200 after Founder.
+//              Permanent, earned by timing. Next 100 after Founder.
 //   TIER     — paper interior, olive border + olive text.
 //              Current, recurring, member-chosen.
 //

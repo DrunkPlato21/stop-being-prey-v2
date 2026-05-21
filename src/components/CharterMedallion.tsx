@@ -1,5 +1,5 @@
 // Charter-tier emblem. Sibling of FounderMedallion for accounts that
-// hold one of the next 200 charter slots (after the 100 founder cap
+// hold one of the next 100 charter slots (after the 100 founder cap
 // fills). Same chassis as the Founder medallion — cat-eye corners,
 // centered prestige register — with the Charter label and the bronze
 // accent rule under the slot number. The "locked for life" copy stays

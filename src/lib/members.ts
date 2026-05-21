@@ -15,7 +15,7 @@ import { Redis } from "@upstash/redis";
 const FOUNDER_KEY = "founder:claimed";
 export const FOUNDER_CAP = 100;
 const CHARTER_KEY = "charter:claimed";
-export const CHARTER_CAP = 200;
+export const CHARTER_CAP = 100;
 
 const MEMBER_PREFIX = "member:";
 const MEMBER_BY_CUSTOMER_PREFIX = "member:by-customer:";
@@ -40,7 +40,7 @@ export type MemberRecord = {
   stripeSubscriptionId: string;
   tier: Tier;
   founderSlot: number | null;
-  /** Charter slot number 1..200, set on the webhook for members who
+  /** Charter slot number 1..100, set on the webhook for members who
       signed up during the Charter window (after founder cap filled,
       before charter cap fills). Backward compatible: legacy records
       without this field read as null and render no charter chip. */
@@ -211,7 +211,7 @@ export async function isFounderEligible(): Promise<boolean> {
 
 /**
  * Read the current Charter-slots-claimed count for display. Clamped to
- * the cap so the UI never shows "201 of 200" if the counter overshoots
+ * the cap so the UI never shows "101 of 100" if the counter overshoots
  * under contention. Returns 0 when Redis is unconfigured.
  */
 export async function getCharterClaimed(): Promise<number> {

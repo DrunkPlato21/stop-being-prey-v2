@@ -15,7 +15,7 @@ import {
 // Pricing is dynamic + pay-what-you-want:
 //   - Founder tier ($8 floor monthly / $80 yearly) available until the
 //     first 100 founder slots are claimed (see members.ts).
-//   - Charter tier (same $13 floor as Regular) for the next 200 sign-
+//   - Charter tier (same $13 floor as Regular) for the next 100 sign-
 //     ups after the Founder cap fills. Same floor as Regular — Charter
 //     is a permanent-earned badge, not a price tier; the difference is
 //     purely the badge claim.
