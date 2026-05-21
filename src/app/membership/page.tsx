@@ -561,6 +561,7 @@ export default async function MembershipLandingPage({
           founderClaimed={effectiveFounderClaimed}
           charterEligible={charterEligible}
           charterClaimed={effectiveCharterClaimed}
+          totalMembers={totalMembers}
         />
 
         <p className="text-center mt-10">

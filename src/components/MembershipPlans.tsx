@@ -30,6 +30,10 @@ type Props = {
       reached. Drives Charter scarcity copy + live preview chip. */
   charterEligible: boolean;
   charterClaimed: number;
+  /** Total members ever joined (ZCARD on members:all). Surfaced as a
+      single line beneath the subscribe button — social proof at the
+      moment of decision. Renders only when > 0. */
+  totalMembers: number;
 };
 
 const FOUNDER_MONTHLY_CENTS = 800;
@@ -156,6 +160,7 @@ export function MembershipPlans({
   founderClaimed,
   charterEligible,
   charterClaimed,
+  totalMembers,
 }: Props) {
   const [plan, setPlan] = useState<Plan>("monthly");
   const [cents, setCents] = useState<number>(() =>
@@ -536,6 +541,19 @@ export function MembershipPlans({
           style={{ color: "#7a3a2e" }}
         >
           {error}
+        </p>
+      )}
+
+      {/* Social proof tucked under the CTA — the same total reader
+          count the scarcity strip shows up top, rendered here as a
+          quiet italic line so it reinforces at the decision moment
+          without competing with the button. */}
+      {totalMembers > 0 && (
+        <p
+          className="font-serif italic text-ink-muted text-center mt-3"
+          style={{ fontSize: "0.88rem" }}
+        >
+          join {totalMembers} {totalMembers === 1 ? "reader" : "readers"} inside.
         </p>
       )}
     </div>
