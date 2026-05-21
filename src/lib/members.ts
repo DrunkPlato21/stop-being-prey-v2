@@ -361,6 +361,21 @@ export async function saveMember(record: MemberRecord): Promise<void> {
 }
 
 /**
+ * Total count of distinct members ever saved. ZCARD on the broadcast
+ * index — single round-trip, no per-member fetches. Used by the sales
+ * page to surface "N readers in the room" social proof above the
+ * scarcity strip. Includes canceled members historically (they joined
+ * once); the count is a "joined ever" not "active right now" figure,
+ * which is the honest framing for marketing copy on a sales page.
+ */
+export async function countAllMembers(): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const n = await client.zcard(MEMBERS_ALL_INDEX).catch(() => 0);
+  return typeof n === "number" && Number.isFinite(n) ? n : 0;
+}
+
+/**
  * Newest-first list of every member email ever saved. Used by the
  * notifications fan-out broadcasts (essays, voice memos, walls).
  * For V1 with hundreds of members this is fine; if the list grows

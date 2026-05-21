@@ -5,6 +5,7 @@ import { DeskPresenceIndicator } from "@/components/DeskPresenceIndicator";
 import {
   CHARTER_CAP,
   FOUNDER_CAP,
+  countAllMembers,
   getCharterClaimed,
   getFounderClaimed,
 } from "@/lib/members";
@@ -136,11 +137,13 @@ export default async function MembershipLandingPage({
 }: {
   searchParams?: Promise<{ preview?: string }>;
 }) {
-  const [founderClaimed, charterClaimed, presence] = await Promise.all([
-    getFounderClaimed(),
-    getCharterClaimed(),
-    getPresence(),
-  ]);
+  const [founderClaimed, charterClaimed, totalMembers, presence] =
+    await Promise.all([
+      getFounderClaimed(),
+      getCharterClaimed(),
+      countAllMembers(),
+      getPresence(),
+    ]);
 
   // Dev-only state preview: ?preview=charter forces the charter strip
   // (founder cap "filled", charter open at 0/100). ?preview=filled
@@ -318,9 +321,21 @@ export default async function MembershipLandingPage({
         </div>
       </section>
 
-      {/* Founder counter strip */}
+      {/* Founder counter strip. The "N readers in the room" line is
+          the same across every branch — it's the social-proof anchor
+          that keeps "0 of 100 charter spots claimed" from reading like
+          an empty room. Total count (joined-ever, not active-right-now)
+          comes from ZCARD on members:all. */}
       <section className="border-b border-rule">
         <div className="max-w-3xl mx-auto px-6 py-8 md:py-10 text-center">
+          {totalMembers > 0 && (
+            <p
+              className="eyebrow mb-3"
+              style={{ fontSize: "0.72rem", letterSpacing: "0.28em" }}
+            >
+              {totalMembers} {totalMembers === 1 ? "reader" : "readers"} in the room
+            </p>
+          )}
           {founderEligible ? (
             <>
               <p
