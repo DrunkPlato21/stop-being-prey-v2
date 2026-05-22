@@ -144,6 +144,13 @@ async function fieldNotePulses(limit: number): Promise<PulseEvent[]> {
 const PINNED_EVENTS: PulseEvent[] = [
   {
     source: "case-file",
+    at: Date.parse("2026-05-22T16:00:00Z"),
+    label: "Case file",
+    body: "Show Your Work. The Credentialed Dodge, then the Frame Reset.",
+    link: "/case-files/006-show-your-work",
+  },
+  {
+    source: "case-file",
     at: Date.parse("2026-05-15T16:00:00Z"),
     label: "Case file",
     body: "The Unworthy Business. Trish named it in the Lounge.",

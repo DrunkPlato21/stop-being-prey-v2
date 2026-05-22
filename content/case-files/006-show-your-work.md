@@ -77,8 +77,8 @@ one_shot: "We, the lesser intelligent, are still waiting."
 rules_applied: [1, 3, 6]
 outcome: ""
 screenshot_src: "/assets/case-files/sasser-exchange.png"
-screenshot_alt: "Screenshot of Ben Sasser's two Facebook comments on a Thomas Sowell quote and Clay's two replies"
-screenshot_caption: "The full exchange across both rounds, as it appeared on Facebook."
+screenshot_alt: "Screenshot of Ben Sasser's first Facebook comment on a Thomas Sowell quote and Clay's reply"
+screenshot_caption: "Round one. Sasser pronounced the verdict and withheld the work."
 screenshot_transcript: |
   BEN SASSER:
 
@@ -99,7 +99,10 @@ screenshot_transcript: |
   Your move
 
   ~ Clay
-
+wall_screenshot_src: "/assets/case-files/sasser-exchange-round-2.png"
+wall_screenshot_alt: "Screenshot of Ben Sasser's second Facebook comment switching to tone-policing and Clay's reply naming the switch"
+wall_screenshot_caption: "Round two. Sasser came back with tone-policing. Clay refused the reset."
+wall_screenshot_transcript: |
   BEN SASSER:
 
   Thomas Sowell Quotes do you think the attitude you present in your reply makes a reader more or less likely to take your perspective seriously. If you "had" to come up with an answer to Sowell, what would it be. Try to be a good representative of your "side" in your reply and try.
