@@ -5,17 +5,14 @@ date: 2026-05-22
 archetype: "The Credentialed Dodge"
 platform: "Facebook"
 situation: |
-  A Facebook post sharing a Thomas Sowell quote from Random
-  Thoughts (2001): "If you believe in equal rights, then what do
-  'women's rights,' 'gay rights,' etc. mean? Either they are
-  redundant or they are violations of the principle of equal
-  rights for all." Ben Sasser arrived with a dismissive verdict.
-  The quote made him think less of Sowell and anyone who used
-  it. He claimed the answer was so obvious it was rhetorical
-  "among any intelligent folk," then refused to provide the
-  answer himself. When the dodge was called out, he came back
-  with a second comment that switched the conversation from
-  substance to manners.
+  A Thomas Sowell quote from Random Thoughts (2001) on the
+  Thomas Sowell Quotes Facebook page. Ben Sasser arrived with a
+  dismissive verdict. The quote made him think less of Sowell
+  and anyone who used it. He claimed the answer was so obvious
+  it was rhetorical "among any intelligent folk," then refused
+  to provide the answer himself. When the dodge was called out,
+  he came back with a second comment that switched the
+  conversation from substance to manners.
 move: |
   Round one: The Credentialed Dodge. Two beats stacked into a
   single posture. Declare the answer obvious. Then refuse to
@@ -77,8 +74,8 @@ one_shot: "We, the lesser intelligent, are still waiting."
 rules_applied: [1, 3, 6]
 outcome: ""
 screenshot_src: "/assets/case-files/sasser-exchange.png"
-screenshot_alt: "Screenshot of Ben Sasser's first Facebook comment on a Thomas Sowell quote and Clay's reply"
-screenshot_caption: "Round one. Sasser pronounced the verdict and withheld the work."
+screenshot_alt: "The Sowell post on Facebook, Ben Sasser's first comment, and Clay's reply"
+screenshot_caption: "The post and round one. Sasser pronounced the verdict and withheld the work."
 screenshot_transcript: |
   BEN SASSER:
 
