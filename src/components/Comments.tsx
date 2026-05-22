@@ -66,6 +66,18 @@ export async function Comments({ kind, slug }: Props) {
     ? allComments.find((c) => c.email === viewerEmail) ?? null
     : null;
 
+  // Featured comments float to the top as standalone cards (see card
+  // styling in CommentItem). Author replies aren't eligible to be
+  // featured-floated — they're a separate visual lane and stay in their
+  // chronological position. Within each group, original order is
+  // preserved.
+  const featuredComments = comments.filter(
+    (c) => c.featured && !isAdmin(c.email)
+  );
+  const regularComments = comments.filter(
+    (c) => !c.featured || isAdmin(c.email)
+  );
+
   // Build a per-email badge map for everyone visible on the page:
   // top-level commenters AND thread-reply authors. One Redis lookup
   // per unique email; at typical comment volumes this is cheap. The
@@ -118,24 +130,43 @@ export async function Comments({ kind, slug }: Props) {
           No comments yet. Be the first.
         </p>
       ) : (
-        <ul className="flex flex-col">
-          {comments.map((c, idx) => (
-            <li
-              key={c.id}
-              className={
-                idx === 0 ? "py-6" : "py-6 border-t border-rule"
-              }
-            >
-              <CommentItem
-                comment={c}
-                viewerEmail={session?.email ?? null}
-                viewerIsAdmin={viewerIsAdmin}
-                memberBadgeByEmail={memberBadgeByEmail}
-                viewerCanReply={!!profile?.displayName}
-              />
-            </li>
-          ))}
-        </ul>
+        <>
+          {featuredComments.length > 0 && (
+            <ul className="flex flex-col gap-5 mb-10">
+              {featuredComments.map((c) => (
+                <li key={c.id}>
+                  <CommentItem
+                    comment={c}
+                    viewerEmail={session?.email ?? null}
+                    viewerIsAdmin={viewerIsAdmin}
+                    memberBadgeByEmail={memberBadgeByEmail}
+                    viewerCanReply={!!profile?.displayName}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+          {regularComments.length > 0 && (
+            <ul className="flex flex-col">
+              {regularComments.map((c, idx) => (
+                <li
+                  key={c.id}
+                  className={
+                    idx === 0 ? "py-6" : "py-6 border-t border-rule"
+                  }
+                >
+                  <CommentItem
+                    comment={c}
+                    viewerEmail={session?.email ?? null}
+                    viewerIsAdmin={viewerIsAdmin}
+                    memberBadgeByEmail={memberBadgeByEmail}
+                    viewerCanReply={!!profile?.displayName}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
       {/* Form / CTA */}

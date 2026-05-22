@@ -125,9 +125,10 @@ export function CommentItem({
         scrollMarginTop: "5rem",
         opacity: pending ? 0.85 : 1,
         borderLeft: byAuthor ? "2px solid var(--eye-deep)" : undefined,
-        borderTop:
-          featured && !byAuthor ? "1px solid var(--eye-deep)" : undefined,
-        paddingTop: featured && !byAuthor ? "1rem" : undefined,
+        border: featured && !byAuthor ? "1px solid var(--eye-deep)" : undefined,
+        background: featured && !byAuthor ? "var(--paper-deep)" : undefined,
+        padding:
+          featured && !byAuthor ? "1.5rem 1.5rem 1.25rem" : undefined,
       }}
     >
       <div className="flex items-start gap-3">
