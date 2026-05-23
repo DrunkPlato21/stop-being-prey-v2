@@ -184,54 +184,122 @@ export function WatchFeed({ initialPosts }: Props) {
         )}
       </div>
 
-      <ul className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-4">
         {sorted.map((p) => {
           const isFresh = now - p.createdAt < FRESH_WINDOW_MS;
           const isPulsing = pulsingIds.has(p.id);
           return (
             <li key={p.id}>
               <article
+                // Box-model + colors set inline so the billboard
+                // renders even if globals.css hasn't hot-reloaded.
+                // Animation classes layer on top.
                 className={
-                  "watch-feed-card" +
-                  (isPulsing ? " watch-feed-card-pulsing" : "") +
-                  (isPulsing ? " watch-feed-card-arriving" : "")
+                  isPulsing
+                    ? "watch-feed-card-arriving watch-feed-card-pulsing"
+                    : ""
                 }
+                style={{
+                  background: "var(--ink)",
+                  border: "2px solid var(--eye)",
+                  borderRadius: "3px",
+                  padding: "1.4rem 1.5rem 1.3rem",
+                  boxShadow:
+                    "0 1px 0 rgba(0,0,0,0.08), 0 10px 28px rgba(0,0,0,0.18)",
+                  color: "var(--paper)",
+                  position: "relative",
+                }}
               >
-                <header className="flex items-baseline justify-between gap-3 mb-2">
-                  <p
-                    className="font-display uppercase"
+                <header
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "0.75rem",
+                    marginBottom: "0.95rem",
+                  }}
+                >
+                  <div
                     style={{
-                      fontSize: "0.6rem",
-                      letterSpacing: "0.24em",
-                      fontWeight: 700,
-                      color: "var(--eye-deep)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.6rem",
                     }}
                   >
-                    From Clay
-                  </p>
-                  <p
-                    className="font-serif italic text-ink-faint"
-                    style={{ fontSize: "0.78rem" }}
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        display: "inline-block",
+                        width: "0.55rem",
+                        height: "0.55rem",
+                        borderRadius: "999px",
+                        background: "var(--eye)",
+                        animation: isFresh
+                          ? "watch-feed-live-dot 1.6s ease-in-out infinite"
+                          : undefined,
+                      }}
+                    />
+                    <span
+                      className="font-display uppercase"
+                      style={{
+                        fontSize: "0.7rem",
+                        letterSpacing: "0.28em",
+                        fontWeight: 700,
+                        color: "var(--eye)",
+                      }}
+                    >
+                      {isFresh ? "Live · From Clay" : "From Clay"}
+                    </span>
+                  </div>
+                  <span
+                    className="font-serif italic"
+                    style={{
+                      fontSize: "0.78rem",
+                      color: "rgba(245, 239, 225, 0.55)",
+                    }}
                   >
                     {formatRelative(p.createdAt, now)}
-                    {isFresh ? " · live" : ""}
-                  </p>
+                  </span>
                 </header>
+
                 <p
-                  className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
-                  style={{ fontSize: "1rem" }}
+                  className="font-serif whitespace-pre-wrap"
+                  style={{
+                    fontSize: "1.1rem",
+                    lineHeight: 1.55,
+                    color: "var(--paper)",
+                    margin: 0,
+                  }}
                 >
                   {p.body}
                 </p>
+
                 {p.link && (
                   <a
                     href={p.link}
                     target="_blank"
                     rel="noreferrer noopener"
                     className="watch-feed-card-link"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "baseline",
+                      gap: "0.4rem",
+                      marginTop: "1rem",
+                      padding: "0.55rem 1rem",
+                      background: "var(--eye)",
+                      color: "var(--ink)",
+                      fontFamily:
+                        "var(--font-cormorant), 'EB Garamond', Georgia, serif",
+                      fontSize: "0.95rem",
+                      fontWeight: 600,
+                      letterSpacing: "0.02em",
+                      textDecoration: "none",
+                      maxWidth: "100%",
+                      wordBreak: "break-all",
+                    }}
                   >
                     <span>{prettyLink(p.link)}</span>
-                    <span aria-hidden="true">&nbsp;&rarr;</span>
+                    <span aria-hidden="true">&rarr;</span>
                   </a>
                 )}
               </article>
