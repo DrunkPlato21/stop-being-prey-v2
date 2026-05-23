@@ -27,6 +27,7 @@ import { InitialAvatar } from "@/components/InitialAvatar";
 import { Linkified } from "@/components/Linkified";
 import { mentionTokenFor } from "@/lib/display-name";
 import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
+import { WatchFeed, type WatchPost } from "@/components/WatchFeed";
 
 type MemberBadgeInfo = {
   founderSlot: number | null;
@@ -42,7 +43,15 @@ type MemberBadgeInfo = {
 // target. Tapping the same key again removes; tapping a different
 // key replaces.
 
+// 280 is the recommended soft limit shown in the counter. Admin (Clay)
+// gets a hard cap of MAX_BODY_ADMIN; once he crosses 280 the composer
+// flips to a warning treatment but still accepts input up to the cap.
 const MAX_BODY = 280;
+const MAX_BODY_ADMIN = 1500;
+// Existing error/warning ink used elsewhere on the lounge surface
+// (composeError, replyError). Reused here so the over-recommended
+// state stays in the warm-paper palette instead of pure red.
+const WARN_INK = "#7a3a2e";
 
 type ReactionSnapshot = {
   counts: ReactionCounts;
@@ -76,6 +85,9 @@ type Props = {
   activeNow: ActiveNowSnapshot;
   authorCount: number;
   launchIso: string;
+  /** Initial server snapshot of The Watch Feed cards. The WatchFeed
+      component takes over from here, polling for updates client-side. */
+  initialWatchFeed: WatchPost[];
 };
 
 /* === Read-by-Clay mark =============================== */
@@ -945,6 +957,12 @@ export function LoungeView(props: Props) {
       </section>
 
       <section className="max-w-2xl mx-auto px-6 py-12 md:py-16">
+        {/* The Watch Feed — host broadcast cards above the chat.
+            Renders nothing when the feed is empty, so the lounge
+            looks normal outside event hours. Client component polls
+            for new cards every few seconds. */}
+        <WatchFeed initialPosts={props.initialWatchFeed} />
+
         {/* Active-now presence line. Quiet, italic, olive. Only
             renders when someone other than the caller is in the
             5-minute window. */}
@@ -1123,6 +1141,10 @@ export function LoungeView(props: Props) {
             viewport so it's always reachable while members scroll
             through the room. Becomes the page-end element naturally
             when the user reaches the bottom. */}
+        {(() => {
+          const composeCap = props.isAdmin ? MAX_BODY_ADMIN : MAX_BODY;
+          const composeOver = props.isAdmin && composeBody.length > MAX_BODY;
+          return (
         <form
           onSubmit={submitPost}
           className="lounge-compose-dock"
@@ -1130,7 +1152,7 @@ export function LoungeView(props: Props) {
           <label className="block">
             <MentionAutoResizingTextarea
               value={composeBody}
-              onValueChange={(v) => setComposeBody(v.slice(0, MAX_BODY))}
+              onValueChange={(v) => setComposeBody(v.slice(0, composeCap))}
               onFocus={() => {
                 composeFocusedRef.current = true;
               }}
@@ -1138,19 +1160,41 @@ export function LoungeView(props: Props) {
                 composeFocusedRef.current = false;
               }}
               minRows={2}
-              maxLength={MAX_BODY}
+              maxLength={composeCap}
               placeholder="Pull up a chair..."
               disabled={composing}
-              className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
-              style={{ fontSize: "1rem", lineHeight: 1.5 }}
+              className={`font-serif text-ink bg-paper border px-4 py-3 outline-none w-full ${
+                composeOver
+                  ? ""
+                  : "border-border focus:border-ink"
+              }`}
+              style={{
+                fontSize: "1rem",
+                lineHeight: 1.5,
+                ...(composeOver
+                  ? {
+                      borderColor: WARN_INK,
+                      borderWidth: "2px",
+                      boxShadow: `0 0 0 1px ${WARN_INK}33`,
+                    }
+                  : {}),
+              }}
             />
           </label>
           <div className="flex items-center justify-between gap-4 mt-2">
             <span
-              className="font-serif italic text-ink-faint"
-              style={{ fontSize: "0.78rem" }}
+              className={`font-serif italic ${
+                composeOver ? "" : "text-ink-faint"
+              }`}
+              style={{
+                fontSize: "0.78rem",
+                ...(composeOver
+                  ? { color: WARN_INK, fontWeight: 600 }
+                  : {}),
+              }}
             >
               {composeBody.length} / {MAX_BODY}
+              {composeOver && " — over recommended"}
             </span>
             <button
               type="submit"
@@ -1174,6 +1218,8 @@ export function LoungeView(props: Props) {
             </p>
           )}
         </form>
+          );
+        })()}
       </section>
     </div>
   );
@@ -1519,27 +1565,47 @@ function PostCard(props: CardProps) {
   // reply). Same component either way — only the placeholder name
   // and anchor location differ. Submission always lands a flat
   // sibling reply on the parent post regardless of anchor.
+  const replyCap = isAdmin ? MAX_BODY_ADMIN : MAX_BODY;
+  const replyOver = isAdmin && replyDraft.length > MAX_BODY;
   const renderComposer = (replyingToName: string) => (
     <div className="mt-4 pt-4 border-t border-rule">
       <MentionAutoResizingTextarea
         value={replyDraft}
-        onValueChange={(v) => setReplyDraft(v.slice(0, MAX_BODY))}
+        onValueChange={(v) => setReplyDraft(v.slice(0, replyCap))}
         onFocus={props.onReplyFocus}
         onBlur={props.onReplyBlur}
         minRows={2}
-        maxLength={MAX_BODY}
+        maxLength={replyCap}
         placeholder={`Reply to ${replyingToName}…`}
         disabled={replying}
-        className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
-        style={{ fontSize: "0.95rem", lineHeight: 1.5 }}
+        className={`font-serif text-ink bg-paper border px-4 py-3 outline-none w-full ${
+          replyOver ? "" : "border-border focus:border-ink"
+        }`}
+        style={{
+          fontSize: "0.95rem",
+          lineHeight: 1.5,
+          ...(replyOver
+            ? {
+                borderColor: WARN_INK,
+                borderWidth: "2px",
+                boxShadow: `0 0 0 1px ${WARN_INK}33`,
+              }
+            : {}),
+        }}
         autoFocus
       />
       <div className="flex items-center justify-between gap-3 mt-2">
         <span
-          className="font-serif italic text-ink-faint"
-          style={{ fontSize: "0.76rem" }}
+          className={`font-serif italic ${
+            replyOver ? "" : "text-ink-faint"
+          }`}
+          style={{
+            fontSize: "0.76rem",
+            ...(replyOver ? { color: WARN_INK, fontWeight: 600 } : {}),
+          }}
         >
           {replyDraft.length} / {MAX_BODY}
+          {replyOver && " — over recommended"}
         </span>
         <div className="flex items-center gap-3">
           <button
@@ -1916,14 +1982,14 @@ function PostCard(props: CardProps) {
                           ? ""
                           : " ";
                       setReplyDraft(
-                        (current + sep + mention).slice(0, MAX_BODY)
+                        (current + sep + mention).slice(0, replyCap)
                       );
                     } else {
                       // Composer was closed or anchored on another post —
                       // open here, anchor under this reply, replace draft.
                       setOpenReplyFor(post.id);
                       setOpenUnderReplyId(r.id);
-                      setReplyDraft(mention.slice(0, MAX_BODY));
+                      setReplyDraft(mention.slice(0, replyCap));
                     }
                   }}
                 />

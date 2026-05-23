@@ -19,6 +19,8 @@ import { BroadcastForm } from "@/components/BroadcastForm";
 import { OnTheSiteBadge } from "@/components/OnTheSiteBadge";
 import { LiveAdminNotesPanel } from "@/components/LiveAdminNotesPanel";
 import { Linkified } from "@/components/Linkified";
+import { WatchFeedAdmin } from "@/components/WatchFeedAdmin";
+import { listWatchPosts } from "@/lib/watch-feed";
 
 // Dark-mode toggle + no-flash script live in src/app/admin/layout.tsx
 // so every admin page shares the same control without each page
@@ -67,14 +69,21 @@ const PRESENCE_WINDOW_MINUTES = 30;
 export default async function DeskAdminPage() {
   const now = Date.now();
   const presenceSinceMs = now - PRESENCE_WINDOW_MINUTES * 60 * 1000;
-  const [updates, presence, activeNotes, wallOverride, presenceEntries] =
-    await Promise.all([
-      listRecentUpdates(1),
-      getPresence(),
-      listAll({ status: "active", limit: 50 }),
-      getWallOverride(),
-      listPresenceSnapshot(presenceSinceMs, now),
-    ]);
+  const [
+    updates,
+    presence,
+    activeNotes,
+    wallOverride,
+    presenceEntries,
+    watchFeed,
+  ] = await Promise.all([
+    listRecentUpdates(1),
+    getPresence(),
+    listAll({ status: "active", limit: 50 }),
+    getWallOverride(),
+    listPresenceSnapshot(presenceSinceMs, now),
+    listWatchPosts(20),
+  ]);
   const current = updates[0];
   const state = derivePresenceState(presence);
   const awayNote = getActiveAwayNote(presence) ?? "";
@@ -157,6 +166,13 @@ export default async function DeskAdminPage() {
           Polls /api/admin/notes every 10s; notes that arrived during
           the session get a brief olive highlight as they appear. */}
       <LiveAdminNotesPanel initialNotes={activeNotes} />
+
+      {/* === Section 2.5: The Watch Feed =====================
+          Live broadcast surface above the lounge chat. Used during
+          host-led events (The Watch). Cards appear in members' feed
+          within ~5 seconds. Collapsed by default — only relevant
+          during events, but reachable at all times. */}
+      <WatchFeedAdmin initialPosts={watchFeed} />
 
       {/* === Section 3: Signals ==============================
           Broadcast notifications + the active-wall override. These
