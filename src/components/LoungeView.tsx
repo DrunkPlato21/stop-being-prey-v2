@@ -940,7 +940,15 @@ export function LoungeView(props: Props) {
     }
   }
 
-  const feed = useMemo(() => posts, [posts]);
+  // Always exclude the pinned post from the feed — it's rendered in
+  // the pinned slot above. A reply bumps a post to the top of the feed
+  // index, so without this a reply to the pinned post would surface it
+  // a second time in the feed (the duplicate). Filtering here makes
+  // that impossible regardless of how it lands in `posts`.
+  const feed = useMemo(
+    () => (pinned ? posts.filter((p) => p.id !== pinned.id) : posts),
+    [posts, pinned]
+  );
 
   // Mirror loadMore into a ref so the deep-link effect can call the
   // freshest version without stale closures.
