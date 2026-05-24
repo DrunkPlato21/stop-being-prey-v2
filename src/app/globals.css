@@ -1860,6 +1860,14 @@ a.no-underline {
   }
 }
 
+/* Host editorial lines in the Wire — small gold diamond marker. */
+.watch-wire-marker {
+  color: var(--eye);
+  margin-right: 0.5ch;
+  font-size: 0.72em;
+  vertical-align: middle;
+}
+
 /* Brief gold-tint flash when a stat moves between polls. */
 .active-wall-flash {
   animation: active-wall-flash 1.4s ease-out;

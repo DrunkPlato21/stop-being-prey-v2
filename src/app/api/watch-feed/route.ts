@@ -2,6 +2,7 @@ import {
   isWatchFeedConfigured,
   isWatchFeedEnabled,
   listWatchPosts,
+  listWireLines,
 } from "@/lib/watch-feed";
 import { countRoomPresence, listRecentArrivals } from "@/lib/lounge";
 
@@ -33,12 +34,21 @@ export async function GET() {
       posts: [],
       arrivals: [],
       roomCount: 0,
+      lines: [],
     });
   }
-  const [posts, arrivals, roomCount] = await Promise.all([
+  const [posts, arrivals, roomCount, lines] = await Promise.all([
     listWatchPosts(50),
     listRecentArrivals({}),
     countRoomPresence(),
+    listWireLines(),
   ]);
-  return Response.json({ ok: true, enabled: true, posts, arrivals, roomCount });
+  return Response.json({
+    ok: true,
+    enabled: true,
+    posts,
+    arrivals,
+    roomCount,
+    lines,
+  });
 }

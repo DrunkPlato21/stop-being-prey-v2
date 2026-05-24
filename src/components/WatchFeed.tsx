@@ -36,6 +36,7 @@ type Props = {
   initialArrivals?: WatchArrival[];
   initialEnabled?: boolean;
   initialRoomCount?: number;
+  initialLines?: WireLine[];
 };
 
 // A single entry in the Wire — a live headcount, an arrival, or an
@@ -43,8 +44,11 @@ type Props = {
 // the Billboard, so the newest post (shown big below) is excluded.
 type WireEntry =
   | { kind: "room"; key: string; at: number; count: number }
+  | { kind: "custom"; key: string; at: number; text: string }
   | { kind: "post"; key: string; at: number; post: WatchPost }
   | { kind: "arrival"; key: string; at: number; name: string };
+
+export type WireLine = { id: string; text: string };
 
 const POLL_INTERVAL_MS = 5_000;
 const TICK_MS = 1_000;
@@ -55,11 +59,13 @@ export function WatchFeed({
   initialArrivals = [],
   initialEnabled = true,
   initialRoomCount = 0,
+  initialLines = [],
 }: Props) {
   const [posts, setPosts] = useState<WatchPost[]>(initialPosts);
   const [arrivals, setArrivals] = useState<WatchArrival[]>(initialArrivals);
   const [enabled, setEnabled] = useState<boolean>(initialEnabled);
   const [roomCount, setRoomCount] = useState<number>(initialRoomCount);
+  const [lines, setLines] = useState<WireLine[]>(initialLines);
   const [now, setNow] = useState<number>(() => Date.now());
   // Track post ids we've seen so a fresh page-load doesn't fire the
   // "breaking" flash for everything that was already on screen.
@@ -92,6 +98,7 @@ export function WatchFeed({
           posts?: WatchPost[];
           arrivals?: WatchArrival[];
           roomCount?: number;
+          lines?: WireLine[];
         } = await res.json().catch(() => ({}));
         if (!data.ok) return;
         if (cancelled) return;
@@ -101,6 +108,7 @@ export function WatchFeed({
         setEnabled(data.enabled !== false);
         if (Array.isArray(data.arrivals)) setArrivals(data.arrivals);
         if (typeof data.roomCount === "number") setRoomCount(data.roomCount);
+        if (Array.isArray(data.lines)) setLines(data.lines);
         if (!Array.isArray(data.posts)) return;
 
         const arriving = data.posts.filter((p) => !seenIds.current.has(p.id));
@@ -161,6 +169,13 @@ export function WatchFeed({
     ];
     activity.sort((x, y) => y.at - x.at);
 
+    const customLines: WireEntry[] = lines.map((l) => ({
+      kind: "custom" as const,
+      key: `c-${l.id}`,
+      at: 0,
+      text: l.text,
+    }));
+
     const entries: WireEntry[] = [];
     if (roomCount > 0) {
       entries.push({
@@ -170,9 +185,10 @@ export function WatchFeed({
         count: roomCount,
       });
     }
-    entries.push(...activity);
+    // Live activity leads; the host's evergreen lines ride after it.
+    entries.push(...activity, ...customLines);
     return entries;
-  }, [sorted, arrivals, roomCount, billboard]);
+  }, [sorted, arrivals, roomCount, lines, billboard]);
 
   if (!enabled) return null;
   // Show the section when there's a headline post or any live ticker
@@ -262,6 +278,19 @@ function WireSet({
             <span className="watch-wire-body">
               {entry.count} in the room
             </span>
+            <span className="watch-wire-sep" aria-hidden="true">
+              //
+            </span>
+          </li>
+        ) : entry.kind === "custom" ? (
+          <li
+            key={`${entry.key}-${idx}`}
+            className="watch-wire-item watch-wire-item-custom"
+          >
+            <span className="watch-wire-marker" aria-hidden="true">
+              ◆
+            </span>
+            <span className="watch-wire-body">{entry.text}</span>
             <span className="watch-wire-sep" aria-hidden="true">
               //
             </span>

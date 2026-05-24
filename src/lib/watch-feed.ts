@@ -82,6 +82,75 @@ export async function setWatchFeedEnabled(on: boolean): Promise<boolean> {
   return on;
 }
 
+/* === Custom Wire lines =====================================
+   Host-authored one-liners that scroll in the Wire alongside the live
+   activity (arrivals, headcount) and older bulletins — an editorial
+   lane for things like "TONIGHT: open hang till 9" or a teaser. Pure
+   ticker text; not lounge posts, not Billboard bulletins. Stored as a
+   small JSON array under one key — the list is short, so add/remove
+   just rewrites it. */
+
+const WIRE_LINES_KEY = "watch:wire:lines";
+const MAX_WIRE_LINES = 20;
+const MAX_WIRE_LINE_LEN = 140;
+
+export type WireLine = { id: string; text: string };
+
+function sanitizeWireLine(input: string): string {
+  return input
+    .replace(/[<>]/g, "")
+    .replace(/[\x00-\x1F\x7F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_WIRE_LINE_LEN);
+}
+
+export async function listWireLines(): Promise<WireLine[]> {
+  const client = getClient();
+  if (!client) return [];
+  const raw = await client.get<unknown>(WIRE_LINES_KEY).catch(() => null);
+  let arr: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      arr = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(arr)) return [];
+  const out: WireLine[] = [];
+  for (const item of arr) {
+    const text = (item as { text?: unknown })?.text;
+    const id = (item as { id?: unknown })?.id;
+    if (typeof text === "string" && text.length > 0) {
+      out.push({ id: typeof id === "string" ? id : randomUUID(), text });
+    }
+  }
+  return out;
+}
+
+export async function addWireLine(text: string): Promise<WireLine[]> {
+  const client = getClient();
+  if (!client) return [];
+  const clean = sanitizeWireLine(text);
+  if (!clean) return listWireLines();
+  const lines = await listWireLines();
+  const next = [...lines, { id: randomUUID(), text: clean }].slice(
+    -MAX_WIRE_LINES
+  );
+  await client.set(WIRE_LINES_KEY, JSON.stringify(next)).catch(() => null);
+  return next;
+}
+
+export async function removeWireLine(id: string): Promise<WireLine[]> {
+  const client = getClient();
+  if (!client) return [];
+  const lines = await listWireLines();
+  const next = lines.filter((l) => l.id !== id);
+  await client.set(WIRE_LINES_KEY, JSON.stringify(next)).catch(() => null);
+  return next;
+}
+
 function sanitizeBody(input: string): string {
   // Mirrors desk.ts: strip HTML brackets + C0 controls (keep LF),
   // collapse 3+ newlines, cap length.

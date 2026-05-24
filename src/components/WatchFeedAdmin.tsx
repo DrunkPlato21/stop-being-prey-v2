@@ -7,6 +7,7 @@ import {
   useState,
   type TextareaHTMLAttributes,
 } from "react";
+import { WatchWireControl } from "@/components/WatchWireControl";
 
 // Admin controls for The Watch Feed (live broadcast surface above the
 // lounge). Two pieces:
@@ -166,6 +167,8 @@ export function WatchFeedAdmin({ initialPosts }: WatchFeedAdminProps) {
       {expanded && (
         <div id="watch-feed-admin-body">
           <WatchFeedToggle />
+
+          <WatchWireControl />
 
           <p
             className="font-serif italic text-ink-muted mb-5"
