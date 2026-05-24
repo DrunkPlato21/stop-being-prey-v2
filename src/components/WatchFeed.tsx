@@ -53,6 +53,10 @@ export type WireLine = { id: string; text: string };
 const POLL_INTERVAL_MS = 5_000;
 const TICK_MS = 1_000;
 const BREAKING_DURATION_MS = 8_000;
+// Don't surface the live headcount in the Wire below this — a small
+// number reads as empty rather than exclusive. Same "embarrassing
+// number" guard as the lounge presence line.
+const MIN_ROOM_FOR_WIRE = 4;
 
 export function WatchFeed({
   initialPosts,
@@ -177,7 +181,7 @@ export function WatchFeed({
     }));
 
     const entries: WireEntry[] = [];
-    if (roomCount > 0) {
+    if (roomCount >= MIN_ROOM_FOR_WIRE) {
       entries.push({
         kind: "room",
         key: "room",
