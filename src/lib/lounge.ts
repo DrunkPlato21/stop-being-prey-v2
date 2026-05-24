@@ -2,7 +2,7 @@ import { Redis } from "@upstash/redis";
 import { randomUUID } from "crypto";
 import { getProfilesByEmails } from "./comments";
 
-// The Lounge: member-to-member async discussion. Short posts (≤280),
+// The Lounge: member-to-member async discussion. Short posts (≤500),
 // one-level-deep replies, single-reaction-per-target (the olive ✓).
 // Clay drops in when something earns it; otherwise the space is
 // owned by members.
@@ -63,10 +63,10 @@ const READ_BY_CLAY_REPLIES_KEY = "lounge:read-by-clay:replies";
 const RATE_POSTS_PREFIX = "lounge:rate:posts:";
 const RATE_REPLIES_PREFIX = "lounge:rate:replies:";
 
-// Soft "recommended" cap members must stay under. Admin (Clay) gets a
-// hard cap of MAX_BODY_ADMIN — the compose UI shows a warning when he
-// crosses 280 but still accepts the post up to the admin cap.
-export const MAX_BODY = 280;
+// Cap members must stay under. Admin (Clay) gets a higher hard cap of
+// MAX_BODY_ADMIN — the compose UI shows a warning when he crosses
+// MAX_BODY but still accepts the post up to the admin cap.
+export const MAX_BODY = 500;
 export const MAX_BODY_ADMIN = 1500;
 // Short cooldowns to catch accidental double-submits and basic
 // scripts. No daily caps — trust the membership.

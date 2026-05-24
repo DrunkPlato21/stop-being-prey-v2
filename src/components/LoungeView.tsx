@@ -48,10 +48,10 @@ type MemberBadgeInfo = {
 // target. Tapping the same key again removes; tapping a different
 // key replaces.
 
-// 280 is the recommended soft limit shown in the counter. Admin (Clay)
-// gets a hard cap of MAX_BODY_ADMIN; once he crosses 280 the composer
-// flips to a warning treatment but still accepts input up to the cap.
-const MAX_BODY = 280;
+// 500 is the member limit shown in the counter. Admin (Clay) gets a
+// higher hard cap of MAX_BODY_ADMIN; once he crosses MAX_BODY the
+// composer flips to a warning treatment but still accepts up to the cap.
+const MAX_BODY = 500;
 const MAX_BODY_ADMIN = 1500;
 // Existing error/warning ink used elsewhere on the lounge surface
 // (composeError, replyError). Reused here so the over-recommended
