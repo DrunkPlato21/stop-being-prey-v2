@@ -3,7 +3,7 @@ import {
   isWatchFeedEnabled,
   listWatchPosts,
 } from "@/lib/watch-feed";
-import { listRecentArrivals } from "@/lib/lounge";
+import { countRoomPresence, listRecentArrivals } from "@/lib/lounge";
 
 // Public-ish read endpoint for The Watch Feed. Polled by the member
 // view in /lounge every few seconds. Returns the on/off state, recent
@@ -27,11 +27,18 @@ export async function GET() {
   }
   const enabled = await isWatchFeedEnabled();
   if (!enabled) {
-    return Response.json({ ok: true, enabled: false, posts: [], arrivals: [] });
+    return Response.json({
+      ok: true,
+      enabled: false,
+      posts: [],
+      arrivals: [],
+      roomCount: 0,
+    });
   }
-  const [posts, arrivals] = await Promise.all([
+  const [posts, arrivals, roomCount] = await Promise.all([
     listWatchPosts(50),
     listRecentArrivals({}),
+    countRoomPresence(),
   ]);
-  return Response.json({ ok: true, enabled: true, posts, arrivals });
+  return Response.json({ ok: true, enabled: true, posts, arrivals, roomCount });
 }

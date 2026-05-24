@@ -35,11 +35,14 @@ type Props = {
   initialPosts: WatchPost[];
   initialArrivals?: WatchArrival[];
   initialEnabled?: boolean;
+  initialRoomCount?: number;
 };
 
-// A single entry in the Wire — either a host post or a live arrival.
-// Merged and sorted by time so the ticker reads as one activity feed.
+// A single entry in the Wire — a live headcount, an arrival, or an
+// (older) host post. The Wire is an activity ticker, not an echo of
+// the Billboard, so the newest post (shown big below) is excluded.
 type WireEntry =
+  | { kind: "room"; key: string; at: number; count: number }
   | { kind: "post"; key: string; at: number; post: WatchPost }
   | { kind: "arrival"; key: string; at: number; name: string };
 
@@ -51,10 +54,12 @@ export function WatchFeed({
   initialPosts,
   initialArrivals = [],
   initialEnabled = true,
+  initialRoomCount = 0,
 }: Props) {
   const [posts, setPosts] = useState<WatchPost[]>(initialPosts);
   const [arrivals, setArrivals] = useState<WatchArrival[]>(initialArrivals);
   const [enabled, setEnabled] = useState<boolean>(initialEnabled);
+  const [roomCount, setRoomCount] = useState<number>(initialRoomCount);
   const [now, setNow] = useState<number>(() => Date.now());
   // Track post ids we've seen so a fresh page-load doesn't fire the
   // "breaking" flash for everything that was already on screen.
@@ -86,6 +91,7 @@ export function WatchFeed({
           enabled?: boolean;
           posts?: WatchPost[];
           arrivals?: WatchArrival[];
+          roomCount?: number;
         } = await res.json().catch(() => ({}));
         if (!data.ok) return;
         if (cancelled) return;
@@ -94,6 +100,7 @@ export function WatchFeed({
         // collapses the feed for members within a poll cycle.
         setEnabled(data.enabled !== false);
         if (Array.isArray(data.arrivals)) setArrivals(data.arrivals);
+        if (typeof data.roomCount === "number") setRoomCount(data.roomCount);
         if (!Array.isArray(data.posts)) return;
 
         const arriving = data.posts.filter((p) => !seenIds.current.has(p.id));
@@ -130,35 +137,53 @@ export function WatchFeed({
     [posts]
   );
 
-  // Merge host posts and arrivals into one time-ordered ticker. The
-  // Billboard still rides on the newest post; arrivals only ever live
-  // in the Wire.
+  const billboard = sorted.length > 0 ? sorted[0] : null;
+
+  // The Wire is a live activity ticker, not a repeat of the Billboard.
+  // So: lead with the live headcount, then arrivals, then any *older*
+  // host posts (the newest is excluded — it's already the Billboard).
   const wireEntries = useMemo<WireEntry[]>(() => {
-    const entries: WireEntry[] = [
-      ...sorted.map((p) => ({
-        kind: "post" as const,
-        key: `p-${p.id}`,
-        at: p.createdAt,
-        post: p,
-      })),
+    const activity: WireEntry[] = [
       ...arrivals.map((a) => ({
         kind: "arrival" as const,
         key: `a-${a.email}-${a.at}`,
         at: a.at,
         name: a.name,
       })),
+      ...sorted
+        .filter((p) => p.id !== billboard?.id)
+        .map((p) => ({
+          kind: "post" as const,
+          key: `p-${p.id}`,
+          at: p.createdAt,
+          post: p,
+        })),
     ];
-    return entries.sort((x, y) => y.at - x.at);
-  }, [sorted, arrivals]);
+    activity.sort((x, y) => y.at - x.at);
+
+    const entries: WireEntry[] = [];
+    if (roomCount > 0) {
+      entries.push({
+        kind: "room",
+        key: "room",
+        at: Number.MAX_SAFE_INTEGER,
+        count: roomCount,
+      });
+    }
+    entries.push(...activity);
+    return entries;
+  }, [sorted, arrivals, roomCount, billboard]);
 
   if (!enabled) return null;
-  if (wireEntries.length === 0) return null;
-
-  const billboard = sorted.length > 0 ? sorted[0] : null;
+  // Show the section when there's a headline post or any live ticker
+  // content. (Don't let an empty Wire hide an existing Billboard.)
+  if (!billboard && wireEntries.length === 0) return null;
 
   return (
     <section className="watch-section" aria-label="The Watch">
-      <Wire items={wireEntries} now={now} breaking={breakingId !== null} />
+      {wireEntries.length > 0 && (
+        <Wire items={wireEntries} now={now} breaking={breakingId !== null} />
+      )}
       {billboard && (
         <Billboard
           post={billboard}
@@ -228,7 +253,20 @@ function WireSet({
   return (
     <ol className="watch-wire-set" aria-hidden={ariaHidden || undefined}>
       {items.map((entry, idx) =>
-        entry.kind === "arrival" ? (
+        entry.kind === "room" ? (
+          <li
+            key={`${entry.key}-${idx}`}
+            className="watch-wire-item watch-wire-item-room"
+          >
+            <span className="watch-wire-livedot" aria-hidden="true" />
+            <span className="watch-wire-body">
+              {entry.count} in the room
+            </span>
+            <span className="watch-wire-sep" aria-hidden="true">
+              //
+            </span>
+          </li>
+        ) : entry.kind === "arrival" ? (
           <li
             key={`${entry.key}-${idx}`}
             className="watch-wire-item watch-wire-item-arrival"

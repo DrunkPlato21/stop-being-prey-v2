@@ -1086,6 +1086,21 @@ export async function getRoomPresence(opts: {
   return { total, names };
 }
 
+/**
+ * Cheap headcount of everyone in the active-now window — no name
+ * lookups. Used by the Wire's "N in the room" ticker item, which polls
+ * often, so it stays a single ZCOUNT.
+ */
+export async function countRoomPresence(
+  now: number = Date.now()
+): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const since = now - ACTIVE_NOW_WINDOW_MS;
+  const n = await client.zcount(ACTIVE_NOW_KEY, since, now).catch(() => 0);
+  return typeof n === "number" ? n : 0;
+}
+
 /** Current admin-set floor for the room-presence indicator. */
 export async function getRoomPresenceFloor(): Promise<number> {
   const client = getClient();

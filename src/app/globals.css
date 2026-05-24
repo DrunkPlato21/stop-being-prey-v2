@@ -1839,6 +1839,27 @@ a.no-underline {
   color: #d6c14b;
 }
 
+/* Live headcount item that leads the Wire — green pulse + count. */
+.watch-wire-livedot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34a356;
+  margin-right: 0.5ch;
+  vertical-align: middle;
+  animation: active-wall-dot-pulse 2.4s ease-in-out infinite;
+}
+.watch-wire-item-room .watch-wire-body {
+  color: #34a356;
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .watch-wire-livedot {
+    animation: none;
+  }
+}
+
 /* Brief gold-tint flash when a stat moves between polls. */
 .active-wall-flash {
   animation: active-wall-flash 1.4s ease-out;
