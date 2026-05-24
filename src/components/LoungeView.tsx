@@ -179,6 +179,11 @@ function emptySnapshot(): ReactionSnapshot {
 // the 2026-05-18 rate-limit incident.
 const ACTIVE_POLL_MS = 5_000;
 const IDLE_POLL_MS = 20_000;
+// A just-posted reply is shown optimistically. Keep it from being
+// clobbered by a poll whose read raced the write — preserve a local
+// reply the server list doesn't have yet until this grace expires
+// (by which point the server list includes it and dedupes it).
+const REPLY_MERGE_GRACE_MS = 10_000;
 
 const LIVE_WINDOW_MS = 10 * 60 * 1000;
 function isPostLive(
@@ -313,6 +318,10 @@ export function LoungeView(props: Props) {
   // reaction. Polls within ~3s of an optimistic action skip reaction
   // updates for that target to avoid clobbering a still-flying write.
   const optimisticReactionAt = useRef<Record<string, number>>({});
+  // Per-reply timestamp of the user's most recent optimistic reply, so
+  // the poll's reply merge can protect a just-posted reply from a
+  // racing read until the server list catches up.
+  const optimisticReplyAt = useRef<Record<string, number>>({});
 
   useEffect(() => {
     postsRef.current = posts;
@@ -430,14 +439,29 @@ export function LoungeView(props: Props) {
           return serverPinned;
         });
 
-        // 2) Replies for posts in view: server is authoritative.
-        //    Adding under an existing post doesn't shift scroll, so
-        //    this is safe to merge silently.
+        // 2) Replies for posts in view: server is authoritative, but
+        //    don't drop a reply the user just posted that the server's
+        //    read hasn't caught up to yet. Keep any local reply absent
+        //    from the server list if it's within the grace window;
+        //    once the server returns it, dedupe by id keeps it single.
         if (Object.keys(serverReplies).length > 0) {
+          const nowMs = Date.now();
           setReplies((prev) => {
             const out = { ...prev };
             for (const [pid, list] of Object.entries(serverReplies)) {
-              out[pid] = list;
+              const serverIds = new Set(list.map((r) => r.id));
+              const survivors = (prev[pid] ?? []).filter(
+                (r) =>
+                  !serverIds.has(r.id) &&
+                  nowMs - (optimisticReplyAt.current[r.id] ?? 0) <
+                    REPLY_MERGE_GRACE_MS
+              );
+              out[pid] =
+                survivors.length > 0
+                  ? [...list, ...survivors].sort(
+                      (a, b) => a.createdAt - b.createdAt
+                    )
+                  : list;
             }
             return out;
           });
@@ -613,6 +637,9 @@ export function LoungeView(props: Props) {
         return;
       }
       const newReply = data.reply!;
+      // Stamp so the poll's reply merge won't clobber this until the
+      // server list includes it (see REPLY_MERGE_GRACE_MS).
+      optimisticReplyAt.current[newReply.id] = Date.now();
       setReplies((prev) => ({
         ...prev,
         [parentPostId]: [...(prev[parentPostId] ?? []), newReply],
