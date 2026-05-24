@@ -27,7 +27,6 @@ import { InitialAvatar } from "@/components/InitialAvatar";
 import { Linkified } from "@/components/Linkified";
 import { mentionTokenFor } from "@/lib/display-name";
 import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
-import { WatchFeed, type WatchPost } from "@/components/WatchFeed";
 
 type MemberBadgeInfo = {
   founderSlot: number | null;
@@ -85,9 +84,6 @@ type Props = {
   activeNow: ActiveNowSnapshot;
   authorCount: number;
   launchIso: string;
-  /** Initial server snapshot of The Watch Feed cards. The WatchFeed
-      component takes over from here, polling for updates client-side. */
-  initialWatchFeed: WatchPost[];
 };
 
 /* === Read-by-Clay mark =============================== */
@@ -957,12 +953,6 @@ export function LoungeView(props: Props) {
       </section>
 
       <section className="max-w-2xl mx-auto px-6 py-12 md:py-16">
-        {/* The Watch Feed — host broadcast cards above the chat.
-            Renders nothing when the feed is empty, so the lounge
-            looks normal outside event hours. Client component polls
-            for new cards every few seconds. */}
-        <WatchFeed initialPosts={props.initialWatchFeed} />
-
         {/* Active-now presence line. Quiet, italic, olive. Only
             renders when someone other than the caller is in the
             5-minute window. */}

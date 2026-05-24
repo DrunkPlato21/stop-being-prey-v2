@@ -27,7 +27,6 @@ import {
   getTierBadge,
   type TierBadge,
 } from "@/lib/members";
-import { listWatchPosts } from "@/lib/watch-feed";
 import { LoungeView } from "@/components/LoungeView";
 
 export const metadata: Metadata = {
@@ -51,14 +50,13 @@ export default async function LoungePage() {
   // read so the caller's own presence doesn't decay between writes.
   await bumpActiveNow(session.email).catch(() => null);
 
-  const [pinned, page, lastVisitedAt, activeNow, authorCount, watchFeed] =
+  const [pinned, page, lastVisitedAt, activeNow, authorCount] =
     await Promise.all([
       getPinnedPost(),
       listVisiblePosts({ limit: INITIAL_PAGE }),
       getLastViewed(session.email),
       getActiveNow(session.email, isAdmin),
       countLoungeAuthors(),
-      listWatchPosts(50),
     ]);
 
   const posts = pinned
@@ -156,7 +154,6 @@ export default async function LoungePage() {
       activeNow={activeNow}
       authorCount={authorCount}
       launchIso={MEMBER_AREA_LAUNCH_ISO}
-      initialWatchFeed={watchFeed}
     />
   );
 }
