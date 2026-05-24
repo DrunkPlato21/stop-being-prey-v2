@@ -1778,6 +1778,67 @@ a.no-underline {
   }
 }
 
+/* "Who's in the room" live dot — small olive heartbeat beside the
+   lounge presence line. Reuses the active-wall pulse keyframe. */
+.lounge-room-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34a356;
+  flex: none;
+  animation: active-wall-dot-pulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lounge-room-dot {
+    animation: none;
+  }
+}
+
+/* Watch Feed admin on/off switch. */
+.watch-toggle-switch {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  padding: 0;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.watch-toggle-switch[data-on="true"] {
+  background: #34a356;
+  border-color: #2c8f49;
+}
+.watch-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.18s ease;
+}
+.watch-toggle-switch[data-on="true"] .watch-toggle-knob {
+  transform: translateX(20px);
+}
+.watch-toggle-switch:disabled {
+  opacity: 0.6;
+}
+
+/* Arrival items in the Wire — a touch of gold so "Janet walked in"
+   reads as live activity against the host bulletins. */
+.watch-wire-arrival {
+  margin-right: 0.4ch;
+}
+.watch-wire-item-arrival .watch-wire-body {
+  color: #d6c14b;
+}
+
 /* Brief gold-tint flash when a stat moves between polls. */
 .active-wall-flash {
   animation: active-wall-flash 1.4s ease-out;
@@ -2372,105 +2433,478 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   outline: none;
 }
 
-/* === The Watch Feed =================================================
-   Live broadcast cards above the lounge chat during host events.
-   Billboard treatment: dark ink card with olive border and accent,
-   loud against the warm paper page so it can't be missed.
-   Box-model styles are inline on the article (so the card renders
-   even if globals.css is stale on a dev server). This file owns the
-   animations + hover state for the link button. */
+/* === The Watch =====================================================
+   Live broadcast surface above the lounge chat. Two pieces:
+     - .watch-wire:      always-on ticker tape across the top
+     - .watch-billboard: dark dominant card for the newest post
+   Motion is the spine of this widget. The dot pulses, the marquee
+   crawls, the billboard timer ticks each second, and the scan-line
+   drifts across the card every 8s. When a new post lands the wire
+   label flips to "Breaking" and the billboard cuts in with a glow. */
 
-.watch-feed-card-arriving {
-  animation: watch-feed-slide-in 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+.watch-section {
+  margin-bottom: 2.5rem;
 }
 
-.watch-feed-card-pulsing {
-  animation:
-    watch-feed-slide-in 320ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    watch-feed-glow-pulse 4s ease-out;
+/* ---- The Wire (ticker tape) ---------------------------------- */
+
+.watch-wire {
+  display: flex;
+  align-items: stretch;
+  height: 38px;
+  background: var(--ink);
+  border: 2px solid var(--eye);
+  border-bottom: 0;
+  overflow: hidden;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
 }
 
-@keyframes watch-feed-slide-in {
-  from {
+.watch-wire-label {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0 1rem;
+  background: var(--eye);
+  color: var(--ink);
+  font-size: 0.68rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-weight: 700;
+  border-right: 2px solid var(--ink);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.watch-wire-breaking .watch-wire-label {
+  background: var(--eye-bright);
+  animation: watch-wire-breaking-flash 0.55s ease-in-out 6;
+}
+
+@keyframes watch-wire-breaking-flash {
+  0%, 100% { background: var(--eye-bright); color: var(--ink); }
+  50%      { background: var(--ink);        color: var(--eye-bright); }
+}
+
+.watch-wire-dot {
+  display: inline-block;
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: var(--ink);
+  animation: watch-wire-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes watch-wire-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(0.65); opacity: 0.45; }
+}
+
+.watch-wire-track {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Edge fades so items don't snap in/out at the track boundaries —
+   they bleed into the dark ink at left/right. */
+.watch-wire-track::before,
+.watch-wire-track::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2.5rem;
+  pointer-events: none;
+  z-index: 2;
+}
+.watch-wire-track::before {
+  left: 0;
+  background: linear-gradient(to right, var(--ink), transparent);
+}
+.watch-wire-track::after {
+  right: 0;
+  background: linear-gradient(to left, var(--ink), transparent);
+}
+
+.watch-wire-marquee {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  animation: watch-wire-scroll 60s linear infinite;
+  will-change: transform;
+}
+
+.watch-wire:hover .watch-wire-marquee,
+.watch-wire:focus-within .watch-wire-marquee {
+  animation-play-state: paused;
+}
+
+@keyframes watch-wire-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.watch-wire-set {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5rem;
+  padding: 0 1.25rem;
+  list-style: none;
+  margin: 0;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.watch-wire-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  color: var(--paper);
+  font-size: 0.86rem;
+}
+
+.watch-wire-time {
+  font-style: italic;
+  color: var(--eye);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.watch-wire-sep {
+  color: var(--eye-deep);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+}
+
+.watch-wire-body {
+  color: rgba(245, 239, 225, 0.9);
+}
+
+/* ---- The Billboard (dominant card) --------------------------- */
+
+.watch-billboard {
+  position: relative;
+  background: var(--ink);
+  border: 2px solid var(--eye);
+  padding: 1.55rem 1.6rem 1.4rem;
+  color: var(--paper);
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.08),
+    0 10px 28px rgba(0, 0, 0, 0.22);
+  animation: watch-billboard-cut-in 620ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes watch-billboard-cut-in {
+  0% {
     opacity: 0;
     transform: translateY(-14px);
+    box-shadow:
+      0 0 0 0 rgba(212, 196, 74, 0.55),
+      0 10px 28px rgba(0, 0, 0, 0.22);
   }
-  to {
+  55% {
     opacity: 1;
     transform: translateY(0);
+    box-shadow:
+      0 0 0 8px rgba(212, 196, 74, 0.22),
+      0 10px 28px rgba(0, 0, 0, 0.22);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.08),
+      0 10px 28px rgba(0, 0, 0, 0.22);
   }
 }
 
-/* On a dark card, the "freshly arrived" cue is an olive glow that
-   blooms around the border and fades. Twice as bright as the desk
-   pulse since the contrast against the dark card is what carries it. */
-@keyframes watch-feed-glow-pulse {
+.watch-billboard-breaking {
+  animation:
+    watch-billboard-cut-in 620ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    watch-billboard-glow-pulse 3.6s ease-out 620ms;
+}
+
+@keyframes watch-billboard-glow-pulse {
   0% {
     box-shadow:
-      0 1px 0 rgba(0, 0, 0, 0.08),
-      0 10px 28px rgba(0, 0, 0, 0.18),
-      0 0 0 0 rgba(184, 168, 44, 0);
-  }
-  15% {
-    box-shadow:
-      0 1px 0 rgba(0, 0, 0, 0.08),
-      0 10px 28px rgba(0, 0, 0, 0.18),
-      0 0 0 6px rgba(184, 168, 44, 0.55);
+      0 0 0 0 rgba(212, 196, 74, 0.6),
+      0 10px 28px rgba(0, 0, 0, 0.22);
   }
   100% {
     box-shadow:
-      0 1px 0 rgba(0, 0, 0, 0.08),
-      0 10px 28px rgba(0, 0, 0, 0.18),
-      0 0 0 0 rgba(184, 168, 44, 0);
+      0 0 0 22px rgba(212, 196, 74, 0),
+      0 10px 28px rgba(0, 0, 0, 0.22);
   }
 }
 
-/* Soft 1.6s heartbeat on the LIVE dot beside "From Clay" when the
-   post is within the freshness window. */
-@keyframes watch-feed-live-dot {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgba(184, 168, 44, 0.55);
-  }
-  50% {
-    opacity: 0.55;
-    box-shadow: 0 0 0 5px rgba(184, 168, 44, 0);
-  }
+/* Faint olive scan line that drifts across the top edge every 8s.
+   Ambient micro-motion so the card never sits totally still. */
+.watch-billboard-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 196, 74, 0.7) 50%,
+    transparent 100%
+  );
+  background-size: 30% 100%;
+  background-repeat: no-repeat;
+  background-position: -30% 0;
+  animation: watch-billboard-scanline-drift 8s linear infinite;
+  pointer-events: none;
 }
 
-/* Link button hover state. Base style is inline on the anchor; this
-   only owns the hover/focus treatment (slightly dimmed background). */
-.watch-feed-card-link:hover,
-.watch-feed-card-link:focus-visible {
-  background: var(--eye-deep) !important;
-  outline: none;
+@keyframes watch-billboard-scanline-drift {
+  0%   { background-position: -30% 0; }
+  100% { background-position: 130% 0; }
 }
 
-.watch-feed-unseen-badge {
+.watch-billboard-eyebrow {
   display: inline-flex;
   align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
   font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--paper);
-  background: var(--eye-deep);
-  border: 1px solid var(--eye-deep);
-  padding: 0.3rem 0.7rem;
-  cursor: pointer;
-  transition: opacity 0.18s ease;
 }
-.watch-feed-unseen-badge:hover,
-.watch-feed-unseen-badge:focus-visible {
-  opacity: 0.85;
+
+.watch-billboard-eyebrow-tag {
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--eye);
+}
+
+.watch-billboard-eyebrow-rule {
+  display: inline-block;
+  width: 1px;
+  height: 0.9rem;
+  background: rgba(212, 196, 74, 0.55);
+}
+
+.watch-billboard-eyebrow-time {
+  font-size: 0.78rem;
+  font-style: italic;
+  letter-spacing: 0.05em;
+  color: rgba(245, 239, 225, 0.62);
+  font-variant-numeric: tabular-nums;
+}
+
+.watch-billboard-body {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: 1.15rem;
+  line-height: 1.55;
+  color: var(--paper);
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.watch-billboard-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin-top: 1.15rem;
+  padding: 0.55rem 1rem;
+  background: var(--eye);
+  color: var(--ink);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  max-width: 100%;
+  word-break: break-all;
+  transition: background 0.18s ease;
+}
+
+.watch-billboard-link:hover,
+.watch-billboard-link:focus-visible {
+  background: var(--eye-bright);
   outline: none;
+}
+
+/* ---- Voice note (billboard variant) -------------------------
+   When a watch post carries audio, the billboard renders a play
+   button + decorative waveform under the caption. Until the note is
+   heard the panel glows and the bars breathe to pull the tap; once
+   played it goes calm. Heard-state is per-browser (localStorage). */
+
+.watch-wire-voice {
+  color: var(--eye-bright);
+  font-size: 0.68rem;
+  margin-right: -0.2rem;
+}
+
+.watch-voice {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 1.15rem;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid rgba(212, 196, 74, 0.28);
+  background: rgba(245, 239, 225, 0.03);
+}
+
+.watch-voice-unheard {
+  border-color: rgba(212, 196, 74, 0.5);
+  animation: watch-voice-glow 3.8s ease-in-out infinite;
+}
+@keyframes watch-voice-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(212, 196, 74, 0);
+    border-color: rgba(212, 196, 74, 0.32);
+  }
+  50% {
+    box-shadow: 0 0 16px 1px rgba(212, 196, 74, 0.22);
+    border-color: rgba(212, 196, 74, 0.6);
+  }
+}
+
+.watch-voice-played {
+  opacity: 0.9;
+}
+
+.watch-voice-play {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1.5px solid var(--eye-bright);
+  background: transparent;
+  color: var(--eye-bright);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.1s ease;
+}
+.watch-voice-play:hover,
+.watch-voice-play:focus-visible {
+  background: var(--eye-bright);
+  color: var(--ink);
+  outline: none;
+}
+.watch-voice-play:active {
+  transform: scale(0.94);
+}
+
+.watch-voice-tri {
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 12px solid currentColor;
+}
+.watch-voice-pause {
+  display: inline-flex;
+  gap: 4px;
+}
+.watch-voice-pause span {
+  display: block;
+  width: 3.5px;
+  height: 14px;
+  background: currentColor;
+}
+
+.watch-voice-wave {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 38px;
+  cursor: pointer;
+}
+.watch-voice-bar {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 1px;
+  background: rgba(245, 239, 225, 0.26);
+  transition: background 0.12s linear;
+}
+.watch-voice-unheard .watch-voice-bar {
+  animation: watch-voice-breathe 2.8s ease-in-out infinite;
+}
+@keyframes watch-voice-breathe {
+  0%, 100% { transform: scaleY(0.82); opacity: 0.7; }
+  50%      { transform: scaleY(1);    opacity: 1; }
+}
+.watch-voice-bar-lit {
+  background: var(--eye-bright);
+}
+.watch-voice-playhead {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 1.5px;
+  background: var(--eye-bright);
+  box-shadow: 0 0 6px rgba(212, 196, 74, 0.8);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.watch-voice-time {
+  flex: 0 0 auto;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--eye);
+  min-width: 4.2rem;
+  text-align: right;
+}
+
+@media (max-width: 480px) {
+  .watch-wire {
+    height: 34px;
+  }
+  .watch-wire-label {
+    padding: 0 0.7rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.24em;
+  }
+  .watch-wire-item { font-size: 0.8rem; }
+  .watch-wire-set {
+    gap: 1.75rem;
+    padding: 0 1rem;
+  }
+  .watch-billboard {
+    padding: 1.2rem 1.1rem 1.15rem;
+  }
+  .watch-billboard-body {
+    font-size: 1.05rem;
+  }
+  .watch-voice {
+    gap: 0.65rem;
+    padding: 0.7rem 0.75rem;
+  }
+  .watch-voice-play {
+    width: 38px;
+    height: 38px;
+  }
+  .watch-voice-time {
+    min-width: 3.6rem;
+    font-size: 0.74rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .watch-feed-card-arriving,
-  .watch-feed-card-pulsing {
-    animation: none;
+  .watch-wire-dot,
+  .watch-wire-marquee,
+  .watch-billboard,
+  .watch-billboard-breaking,
+  .watch-billboard-scanline,
+  .watch-wire-breaking .watch-wire-label,
+  .watch-voice-unheard,
+  .watch-voice-unheard .watch-voice-bar {
+    animation: none !important;
   }
 }
 

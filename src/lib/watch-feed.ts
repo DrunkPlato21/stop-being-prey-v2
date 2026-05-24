@@ -18,6 +18,10 @@ import { randomUUID } from "crypto";
 
 const INDEX_KEY = "watch:posts";
 const POST_PREFIX = "watch:posts:";
+// On/off switch for showing the Watch Feed (Wire + Billboard) on the
+// live lounge. Off by default — the feed only appears to members when
+// Clay flips it on for an event.
+const ENABLED_KEY = "watch:enabled";
 
 const MAX_POSTS = 50;
 const MAX_BODY = 600;
@@ -29,6 +33,14 @@ export type WatchPost = {
   link: string | null;
   createdAt: number;
   hostEmail: string;
+  // Voice-note fields. Null on text-only posts. When `audioUrl` is set
+  // the card renders as a voice note and `body` is its caption (the
+  // hook shown on the card, the line shown in The Wire, and the text
+  // fallback for anyone who can't play audio). Audio lives in Vercel
+  // Blob; `audioPathname` is kept so deletion can free the object.
+  audioUrl: string | null;
+  audioPathname: string | null;
+  durationSeconds: number | null;
 };
 
 let cachedClient: Redis | null = null;
@@ -46,6 +58,28 @@ export function isWatchFeedConfigured(): boolean {
   return !!(
     process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   );
+}
+
+/**
+ * Whether the Watch Feed is currently shown to members on the lounge.
+ * Off unless explicitly enabled — so a stale feed never resurfaces on
+ * its own.
+ */
+export async function isWatchFeedEnabled(): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+  const raw = await client.get<number | string | boolean>(ENABLED_KEY).catch(
+    () => null
+  );
+  return raw === 1 || raw === "1" || raw === true || raw === "true";
+}
+
+/** Flip the member-facing Watch Feed on or off. Returns the new state. */
+export async function setWatchFeedEnabled(on: boolean): Promise<boolean> {
+  const client = getClient();
+  if (!client) return on;
+  await client.set(ENABLED_KEY, on ? 1 : 0).catch(() => null);
+  return on;
 }
 
 function sanitizeBody(input: string): string {
@@ -82,6 +116,19 @@ function parsePost(raw: unknown): WatchPost | null {
         typeof obj.link === "string" && obj.link.length > 0 ? obj.link : null,
       createdAt: obj.createdAt,
       hostEmail: typeof obj.hostEmail === "string" ? obj.hostEmail : "",
+      audioUrl:
+        typeof obj.audioUrl === "string" && obj.audioUrl.length > 0
+          ? obj.audioUrl
+          : null,
+      audioPathname:
+        typeof obj.audioPathname === "string" && obj.audioPathname.length > 0
+          ? obj.audioPathname
+          : null,
+      durationSeconds:
+        typeof obj.durationSeconds === "number" &&
+        Number.isFinite(obj.durationSeconds)
+          ? obj.durationSeconds
+          : null,
     };
   } catch {
     return null;
@@ -117,6 +164,11 @@ export async function addWatchPost(input: {
   body: string;
   link?: string;
   hostEmail: string;
+  // Optional voice-note payload. When `audioUrl` is provided the post
+  // is a voice note; otherwise it's a plain text bulletin.
+  audioUrl?: string;
+  audioPathname?: string;
+  durationSeconds?: number;
 }): Promise<
   | { ok: true; post: WatchPost }
   | { ok: false; error: "empty_body" | "storage_unavailable" }
@@ -129,6 +181,20 @@ export async function addWatchPost(input: {
 
   const link = input.link ? sanitizeLink(input.link) : null;
 
+  const audioUrl =
+    typeof input.audioUrl === "string" && input.audioUrl.length > 0
+      ? input.audioUrl
+      : null;
+  const audioPathname =
+    typeof input.audioPathname === "string" && input.audioPathname.length > 0
+      ? input.audioPathname
+      : null;
+  const durationSeconds =
+    typeof input.durationSeconds === "number" &&
+    Number.isFinite(input.durationSeconds)
+      ? Math.round(input.durationSeconds)
+      : null;
+
   const id = randomUUID();
   const now = Date.now();
   const post: WatchPost = {
@@ -137,6 +203,9 @@ export async function addWatchPost(input: {
     link,
     createdAt: now,
     hostEmail: input.hostEmail,
+    audioUrl,
+    audioPathname,
+    durationSeconds,
   };
 
   await client.set(`${POST_PREFIX}${id}`, JSON.stringify(post));
@@ -162,14 +231,19 @@ export async function addWatchPost(input: {
 export async function deleteWatchPost(
   id: string
 ): Promise<
-  | { ok: true }
+  | { ok: true; post: WatchPost | null }
   | { ok: false; error: "not_found" | "storage_unavailable" }
 > {
   const client = getClient();
   if (!client) return { ok: false, error: "storage_unavailable" };
 
+  // Read the record first so the caller can free the underlying blob
+  // (this lib stays decoupled from Blob storage, same as voice-memos).
+  const raw = await client.get<string>(`${POST_PREFIX}${id}`);
+  const post = parsePost(raw);
+
   const removed = await client.zrem(INDEX_KEY, id);
   if (removed === 0) return { ok: false, error: "not_found" };
   await client.del(`${POST_PREFIX}${id}`);
-  return { ok: true };
+  return { ok: true, post };
 }

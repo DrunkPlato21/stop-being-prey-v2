@@ -1,5 +1,6 @@
 import { Redis } from "@upstash/redis";
 import { randomUUID } from "crypto";
+import { getProfilesByEmails } from "./comments";
 
 // The Lounge: member-to-member async discussion. Short posts (≤280),
 // one-level-deep replies, single-reaction-per-target (the olive ✓).
@@ -31,6 +32,20 @@ const AUTHORS_KEY = "lounge:authors";
 const ACTIVE_NOW_KEY = "lounge:active-now";
 const ACTIVE_NOW_WINDOW_MS = 5 * 60 * 1000;
 const ACTIVE_NOW_PRUNE_AFTER_MS = 30 * 60 * 1000;
+// Floor for the member-facing "who's in the room" indicator. The
+// count + names line only renders once at least this many people are
+// in the active-now window — so a thin room never shows an
+// embarrassing number. Admin-tunable; raise it past any plausible
+// turnout to effectively hide the line.
+const ROOM_PRESENCE_FLOOR_KEY = "lounge:presence:floor";
+export const DEFAULT_ROOM_PRESENCE_FLOOR = 4;
+// Arrivals log — drives the live "just walked in" ticker in the Watch
+// Feed Wire. We log an entry only when a member re-enters the room
+// after being absent (not on every heartbeat), so it reads as real
+// foot traffic. Short eligibility window; bounded retention.
+const ARRIVALS_KEY = "lounge:arrivals";
+const ARRIVALS_WINDOW_MS = 3 * 60 * 1000;
+const ARRIVALS_PRUNE_AFTER_MS = 30 * 60 * 1000;
 const POST_PREFIX = "lounge:post:";
 const REPLY_PREFIX = "lounge:reply:";
 const POST_REPLIES_SUFFIX = ":replies";
@@ -48,7 +63,11 @@ const READ_BY_CLAY_REPLIES_KEY = "lounge:read-by-clay:replies";
 const RATE_POSTS_PREFIX = "lounge:rate:posts:";
 const RATE_REPLIES_PREFIX = "lounge:rate:replies:";
 
+// Soft "recommended" cap members must stay under. Admin (Clay) gets a
+// hard cap of MAX_BODY_ADMIN — the compose UI shows a warning when he
+// crosses 280 but still accepts the post up to the admin cap.
 export const MAX_BODY = 280;
+export const MAX_BODY_ADMIN = 1500;
 // Short cooldowns to catch accidental double-submits and basic
 // scripts. No daily caps — trust the membership.
 export const POST_COOLDOWN_MS = 60_000;
@@ -164,12 +183,12 @@ function normEmail(email: string): string {
   return email.toLowerCase().trim();
 }
 
-function sanitizeBody(input: string): string {
+function sanitizeBody(input: string, maxLen: number = MAX_BODY): string {
   return input
     .replace(/[\x00-\x09\x0B-\x1F\x7F]/g, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
-    .slice(0, MAX_BODY);
+    .slice(0, maxLen);
 }
 
 function parsePost(raw: unknown): LoungePost | null {
@@ -294,7 +313,10 @@ export async function createPost(
 ): Promise<CreatePostResult> {
   const client = getClient();
   if (!client) return { ok: false, error: "storage_unavailable" };
-  const body = sanitizeBody(input.body);
+  const body = sanitizeBody(
+    input.body,
+    input.isAdmin ? MAX_BODY_ADMIN : MAX_BODY
+  );
   if (!body) return { ok: false, error: "empty_body" };
 
   const email = normEmail(input.memberEmail);
@@ -458,7 +480,10 @@ export async function createReply(
 ): Promise<CreateReplyResult> {
   const client = getClient();
   if (!client) return { ok: false, error: "storage_unavailable" };
-  const body = sanitizeBody(input.body);
+  const body = sanitizeBody(
+    input.body,
+    input.isAdmin ? MAX_BODY_ADMIN : MAX_BODY
+  );
   if (!body) return { ok: false, error: "empty_body" };
 
   const parent = await getPost(input.parentPostId);
@@ -868,6 +893,19 @@ export async function bumpActiveNow(
   if (!client) return;
   const norm = normEmail(email);
   if (!norm) return;
+
+  // Was this member already in the active window? If not, this bump is
+  // a fresh arrival worth announcing. Checked before the zadd below
+  // overwrites the prior score.
+  const priorRaw = await client.zscore(ACTIVE_NOW_KEY, norm).catch(() => null);
+  const prior =
+    typeof priorRaw === "number"
+      ? priorRaw
+      : typeof priorRaw === "string"
+        ? Number(priorRaw)
+        : NaN;
+  const wasPresent = Number.isFinite(prior) && prior >= ms - ACTIVE_NOW_WINDOW_MS;
+
   await client
     .zadd(ACTIVE_NOW_KEY, { score: ms, member: norm })
     .catch(() => null);
@@ -876,6 +914,76 @@ export async function bumpActiveNow(
   await client
     .zremrangebyscore(ACTIVE_NOW_KEY, 0, ms - ACTIVE_NOW_PRUNE_AFTER_MS)
     .catch(() => null);
+
+  if (!wasPresent) {
+    // Member string carries the timestamp so re-arrivals stay distinct
+    // entries (a ZSET member must be unique).
+    await client
+      .zadd(ARRIVALS_KEY, { score: ms, member: `${ms}|${norm}` })
+      .catch(() => null);
+    await client
+      .zremrangebyscore(ARRIVALS_KEY, 0, ms - ARRIVALS_PRUNE_AFTER_MS)
+      .catch(() => null);
+  }
+}
+
+export type Arrival = {
+  email: string;
+  name: string;
+  at: number;
+};
+
+/**
+ * Recent lounge arrivals for the live "just walked in" ticker, newest
+ * first. Deduped by member (latest arrival wins) so a flaky tab that
+ * re-enters a few times doesn't spam the wire. Names resolve from
+ * profiles in one batched call.
+ */
+export async function listRecentArrivals(opts?: {
+  withinMs?: number;
+  now?: number;
+  excludeEmail?: string;
+  limit?: number;
+}): Promise<Arrival[]> {
+  const client = getClient();
+  if (!client) return [];
+  const now = opts?.now ?? Date.now();
+  const within = opts?.withinMs ?? ARRIVALS_WINDOW_MS;
+  const limit = opts?.limit ?? 8;
+  const exclude = opts?.excludeEmail ? normEmail(opts.excludeEmail) : null;
+
+  const raw = (await client
+    .zrange(ARRIVALS_KEY, now - within, now, {
+      byScore: true,
+      withScores: true,
+    })
+    .catch(() => [] as unknown[])) as Array<string | number>;
+
+  // Newest first, deduped by email.
+  const seen = new Set<string>();
+  const ordered: Arrival[] = [];
+  for (let i = raw.length - 2; i >= 0; i -= 2) {
+    const member = raw[i];
+    const at = Number(raw[i + 1]);
+    if (typeof member !== "string" || !Number.isFinite(at)) continue;
+    const sep = member.indexOf("|");
+    const email = sep >= 0 ? member.slice(sep + 1) : member;
+    if (!email || seen.has(email)) continue;
+    if (exclude && email === exclude) continue;
+    seen.add(email);
+    ordered.push({ email, name: "", at });
+    if (ordered.length >= limit) break;
+  }
+  if (ordered.length === 0) return [];
+
+  const profiles = await getProfilesByEmails(
+    ordered.map((a) => a.email)
+  ).catch(() => null);
+  for (const a of ordered) {
+    const dn = profiles?.get(a.email)?.displayName?.trim();
+    a.name = dn && dn.length > 0 ? dn : a.email.split("@")[0] || a.email;
+  }
+  return ordered;
 }
 
 export type ActiveNowSnapshot = {
@@ -916,6 +1024,246 @@ export async function getActiveNow(
     else otherCount += 1;
   }
   return { otherCount, authorPresent };
+}
+
+/* === Room presence (count + names, floor-gated) ============
+   Richer cousin of getActiveNow used by the member-facing "who's in
+   the room" indicator. Returns the total in the active-now window
+   plus the display names of everyone other than the viewer (newest
+   first), so the line can read "6 in the room · Janet, Mike, Trish
+   +2." Names resolve from member profiles in one batched MGET. */
+
+export type RoomPresence = {
+  /** Everyone in the active-now window, the viewer included. */
+  total: number;
+  /** Display names of everyone other than the viewer, newest-first. */
+  names: string[];
+};
+
+export async function getRoomPresence(opts: {
+  viewerEmail: string;
+  /** When set, skip the (pricier) name lookup and return names: [] if
+      the total is below the floor. The caller hides the line anyway,
+      so there's no point resolving profiles on a quiet room. */
+  floor?: number;
+  withinMs?: number;
+  now?: number;
+}): Promise<RoomPresence> {
+  const client = getClient();
+  if (!client) return { total: 0, names: [] };
+  const now = opts.now ?? Date.now();
+  const within = opts.withinMs ?? ACTIVE_NOW_WINDOW_MS;
+  const since = now - within;
+
+  const raw = (await client
+    .zrange(ACTIVE_NOW_KEY, since, now, { byScore: true, withScores: true })
+    .catch(() => [] as unknown[])) as Array<string | number>;
+  const ranked: Array<{ email: string; at: number }> = [];
+  for (let i = 0; i < raw.length; i += 2) {
+    const email = raw[i];
+    const at = Number(raw[i + 1]);
+    if (typeof email === "string" && Number.isFinite(at)) {
+      ranked.push({ email, at });
+    }
+  }
+
+  const total = ranked.length;
+  if (typeof opts.floor === "number" && total < opts.floor) {
+    return { total, names: [] };
+  }
+  const viewer = normEmail(opts.viewerEmail);
+  const others = ranked
+    .filter((r) => r.email !== viewer)
+    .sort((a, b) => b.at - a.at)
+    .map((r) => r.email);
+  if (others.length === 0) return { total, names: [] };
+
+  const profiles = await getProfilesByEmails(others).catch(() => null);
+  const names = others.map((email) => {
+    const dn = profiles?.get(email)?.displayName?.trim();
+    return dn && dn.length > 0 ? dn : email.split("@")[0] || email;
+  });
+  return { total, names };
+}
+
+/** Current admin-set floor for the room-presence indicator. */
+export async function getRoomPresenceFloor(): Promise<number> {
+  const client = getClient();
+  if (!client) return DEFAULT_ROOM_PRESENCE_FLOOR;
+  const raw = await client
+    .get<number | string>(ROOM_PRESENCE_FLOOR_KEY)
+    .catch(() => null);
+  const n =
+    typeof raw === "number"
+      ? raw
+      : typeof raw === "string"
+        ? Number.parseInt(raw, 10)
+        : NaN;
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_ROOM_PRESENCE_FLOOR;
+}
+
+/** Persist a new floor (clamped to 1..999). Returns the stored value. */
+export async function setRoomPresenceFloor(value: number): Promise<number> {
+  const clamped = Math.max(1, Math.min(999, Math.round(value)));
+  const client = getClient();
+  if (!client) return clamped;
+  await client.set(ROOM_PRESENCE_FLOOR_KEY, clamped).catch(() => null);
+  return clamped;
+}
+
+/* === Scheduled prompts (conversation starters + drip) ======
+   A queue of host prompts that surface as real lounge posts on a
+   schedule — the first as a pinned conversation starter, the rest
+   dripping in over the night to keep the room sparked while Clay is
+   heads-down. Stored as a ZSET scored by reveal time; each member is
+   the JSON-encoded prompt so a ZREM is an atomic claim. There's no
+   cron: reveal is driven by lounge traffic (the GET poll), and the
+   atomic claim guarantees a due prompt posts exactly once even when
+   many members poll at the same instant. If nobody's in the room,
+   nothing fires — which is fine, there's no one to spark. */
+
+const PROMPTS_QUEUE_KEY = "lounge:prompts:queue";
+
+export type ScheduledPrompt = {
+  id: string;
+  text: string;
+  /** Pin the post to the top of the lounge on reveal. */
+  pin: boolean;
+  /** Epoch ms when the prompt should post. */
+  revealAt: number;
+};
+
+function promptMember(p: { id: string; text: string; pin: boolean }): string {
+  // Stable key order so listScheduledPrompts can reconstruct the exact
+  // member string for a targeted ZREM.
+  return JSON.stringify({ id: p.id, text: p.text, pin: p.pin });
+}
+
+/** Queue prompts for future reveal. Returns how many were stored. */
+export async function enqueuePrompts(
+  prompts: Array<{ text: string; revealAt: number; pin?: boolean }>
+): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  let stored = 0;
+  for (const p of prompts) {
+    const text = sanitizeBody(p.text, MAX_BODY_ADMIN);
+    if (!text) continue;
+    const member = promptMember({
+      id: randomUUID(),
+      text,
+      pin: !!p.pin,
+    });
+    await client
+      .zadd(PROMPTS_QUEUE_KEY, { score: p.revealAt, member })
+      .catch(() => null);
+    stored += 1;
+  }
+  return stored;
+}
+
+/** All still-pending prompts, soonest first. */
+export async function listScheduledPrompts(): Promise<ScheduledPrompt[]> {
+  const client = getClient();
+  if (!client) return [];
+  const raw = (await client
+    .zrange(PROMPTS_QUEUE_KEY, 0, -1, { withScores: true })
+    .catch(() => [] as unknown[])) as Array<string | number>;
+  const out: ScheduledPrompt[] = [];
+  for (let i = 0; i < raw.length; i += 2) {
+    const member = raw[i];
+    const score = Number(raw[i + 1]);
+    if (typeof member !== "string" || !Number.isFinite(score)) continue;
+    try {
+      const p = JSON.parse(member) as Partial<ScheduledPrompt>;
+      if (typeof p.text === "string" && p.text.length > 0) {
+        out.push({
+          id: typeof p.id === "string" ? p.id : "",
+          text: p.text,
+          pin: !!p.pin,
+          revealAt: score,
+        });
+      }
+    } catch {
+      // Skip malformed.
+    }
+  }
+  out.sort((a, b) => a.revealAt - b.revealAt);
+  return out;
+}
+
+/** Drop the whole queue (admin "clear scheduled" action). */
+export async function clearScheduledPrompts(): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  await client.del(PROMPTS_QUEUE_KEY).catch(() => null);
+}
+
+/**
+ * Post any prompts whose reveal time has passed, as host-authored
+ * lounge posts. Atomic per-prompt claim (ZREM) means concurrent polls
+ * can't double-post. Returns the number actually posted by this call.
+ */
+export async function revealDuePrompts(opts: {
+  hostEmail: string;
+  now?: number;
+}): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const now = opts.now ?? Date.now();
+  const dueRaw = (await client
+    .zrange(PROMPTS_QUEUE_KEY, 0, now, { byScore: true })
+    .catch(() => [] as unknown[])) as unknown[];
+  const due = Array.isArray(dueRaw)
+    ? dueRaw.filter((v): v is string => typeof v === "string")
+    : [];
+  if (due.length === 0) return 0;
+
+  // Resolve the host's display name once, and only now that there's
+  // something to post — keeps the per-poll cost at a single empty
+  // ZRANGE on a quiet queue.
+  const hostEmail = normEmail(opts.hostEmail);
+  const profiles = await getProfilesByEmails([hostEmail]).catch(() => null);
+  const displayName = profiles?.get(hostEmail)?.displayName?.trim();
+  const hostFirstName =
+    (displayName && displayName.split(/\s+/)[0]) ||
+    hostEmail.split("@")[0] ||
+    "Host";
+
+  let created = 0;
+  for (const member of due) {
+    // Atomic claim — only the poll that removes the member posts it.
+    const claimed = await client
+      .zrem(PROMPTS_QUEUE_KEY, member)
+      .catch(() => 0);
+    if (claimed !== 1) continue;
+
+    let parsed: Partial<ScheduledPrompt>;
+    try {
+      parsed = JSON.parse(member) as Partial<ScheduledPrompt>;
+    } catch {
+      continue;
+    }
+    if (typeof parsed.text !== "string" || !parsed.text) continue;
+
+    const res = await createPost({
+      memberEmail: hostEmail,
+      firstName: hostFirstName,
+      isFounder: false,
+      body: parsed.text,
+      isAdmin: true,
+    });
+    if (res.ok) {
+      created += 1;
+      if (parsed.pin) {
+        await setPinned(res.post.id, {
+          email: hostEmail,
+          firstName: hostFirstName,
+        }).catch(() => null);
+      }
+    }
+  }
+  return created;
 }
 
 /* === Last-viewed (drives NEW indicator) ==================== */

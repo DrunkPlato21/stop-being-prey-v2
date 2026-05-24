@@ -13,6 +13,7 @@ import type {
   LoungeReply,
   ReactionCounts,
   ReactionKey,
+  RoomPresence,
 } from "@/lib/lounge";
 import {
   REACTION_EMOJI,
@@ -27,6 +28,11 @@ import { InitialAvatar } from "@/components/InitialAvatar";
 import { Linkified } from "@/components/Linkified";
 import { mentionTokenFor } from "@/lib/display-name";
 import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
+import {
+  WatchFeed,
+  type WatchPost,
+  type WatchArrival,
+} from "@/components/WatchFeed";
 
 type MemberBadgeInfo = {
   founderSlot: number | null;
@@ -82,6 +88,17 @@ type Props = {
   lastVisitedAt: number | null;
   isAdmin: boolean;
   activeNow: ActiveNowSnapshot;
+  /** "Who's in the room" indicator (count + names), or null when the
+      room is below the admin-set floor and the line should hide.
+      Refreshed live from the poll so the count tracks the event.
+      Optional — the admin moderation view omits it. */
+  roomPresence?: RoomPresence | null;
+  /** Watch Feed initial state for the lounge banner. The component
+      self-polls and self-gates, so these only seed the first paint;
+      `initialWatchEnabled` is false unless the admin toggle is on. */
+  initialWatchPosts?: WatchPost[];
+  initialWatchArrivals?: WatchArrival[];
+  initialWatchEnabled?: boolean;
   authorCount: number;
   launchIso: string;
 };
@@ -125,21 +142,22 @@ function formatLaunchDate(iso: string): string {
 // in ./AutoResizingTextarea; the lounge composers use the mention-
 // aware wrapper (./MentionAutoResizingTextarea) for the @-picker.
 
-function activeNowLine(snap: ActiveNowSnapshot): string | null {
-  const { otherCount, authorPresent } = snap;
-  if (!authorPresent && otherCount === 0) return null;
-  if (authorPresent && otherCount === 0) {
-    return "Clay is in the lounge.";
-  }
-  if (authorPresent && otherCount === 1) {
-    return "Clay and 1 other are in the lounge.";
-  }
-  if (authorPresent) {
-    return `Clay and ${otherCount} others are in the lounge.`;
-  }
-  return otherCount === 1
-    ? "1 member is in the lounge."
-    : `${otherCount} members are in the lounge.`;
+// "Who's in the room" line: count plus a few names and an overflow
+// tail, e.g. "6 in the room · Janet, Mike, Trish +2". `total` counts
+// everyone in the window (the viewer included); `names` are everyone
+// other than the viewer, newest-first, so the overflow is reckoned
+// against total - 1 (the others). Returns null when there's nothing
+// worth showing.
+const ROOM_PRESENCE_NAMES_SHOWN = 3;
+function roomPresenceLine(presence: RoomPresence | null): string | null {
+  if (!presence || presence.total <= 0) return null;
+  const head = `${presence.total} in the room`;
+  const shown = presence.names.slice(0, ROOM_PRESENCE_NAMES_SHOWN);
+  if (shown.length === 0) return head;
+  const others = Math.max(0, presence.total - 1);
+  const overflow = Math.max(0, others - shown.length);
+  const tail = overflow > 0 ? `${shown.join(", ")} +${overflow}` : shown.join(", ");
+  return `${head} · ${tail}`;
 }
 
 type ApiError = {
@@ -155,6 +173,13 @@ function emptySnapshot(): ReactionSnapshot {
 // A post is "live" when a reply landed within the last 10 minutes —
 // not just freshly created. Used to render a small green pulse beside
 // the timestamp so members can scan the room for active threads.
+// Poll cadence. Snappy while the room is live (presence above the
+// floor) so posts and reactions land near-instantly during an event;
+// relaxed otherwise so a normal quiet day doesn't hammer Redis. See
+// the 2026-05-18 rate-limit incident.
+const ACTIVE_POLL_MS = 5_000;
+const IDLE_POLL_MS = 20_000;
+
 const LIVE_WINDOW_MS = 10 * 60 * 1000;
 function isPostLive(
   post: LoungePost,
@@ -248,6 +273,13 @@ export function LoungeView(props: Props) {
   // Load-more state
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // "Who's in the room" indicator. Seeded from the server snapshot,
+  // then refreshed on every poll so the count + names track the event
+  // live. Null means the room is below the floor — render nothing.
+  const [roomPresence, setRoomPresence] = useState<RoomPresence | null>(
+    props.roomPresence ?? null
+  );
+
   /* === Live polling state ====================================
      A poll every ~20s keeps the room alive without WebSockets.
      Strategy:
@@ -272,6 +304,9 @@ export function LoungeView(props: Props) {
   // re-installing the interval on every render.
   const postsRef = useRef(posts);
   const pinnedRef = useRef(pinned);
+  // Mirror of roomPresence so the poll scheduler can read "is the room
+  // live?" without re-installing the interval on every presence change.
+  const roomPresenceRef = useRef(roomPresence);
   const composeFocusedRef = useRef(false);
   const replyFocusedRef = useRef(false);
   // Per-target timestamp of the user's most recent optimistic
@@ -285,6 +320,9 @@ export function LoungeView(props: Props) {
   useEffect(() => {
     pinnedRef.current = pinned;
   }, [pinned]);
+  useEffect(() => {
+    roomPresenceRef.current = roomPresence;
+  }, [roomPresence]);
 
   // Deep-link auto-scroll. When the page loads with /lounge#post-<id>
   // (typically from a notification), we try to scroll to that post.
@@ -331,8 +369,15 @@ export function LoungeView(props: Props) {
           replies?: Record<string, LoungeReply[]>;
           reactions?: Record<string, ReactionSnapshot>;
           memberBadges?: Record<string, MemberBadgeInfo>;
+          roomPresence?: RoomPresence | null;
         } = await res.json().catch(() => ({}));
         if (cancelled || !data.ok) return;
+
+        // Keep the "in the room" line live. `roomPresence` is present
+        // (possibly null) on every first-page poll, so mirror it
+        // straight through — null collapses the line when the room
+        // drops below the floor.
+        setRoomPresence(data.roomPresence ?? null);
 
         const serverPinned: LoungePost | null = data.pinned ?? null;
         const serverPosts: LoungePost[] = data.posts ?? [];
@@ -440,10 +485,23 @@ export function LoungeView(props: Props) {
       }
     }
 
-    const id = window.setInterval(poll, 20_000);
+    // Adaptive cadence: poll fast when the room is live (presence above
+    // the floor), slow when it's quiet. Self-scheduling timeout instead
+    // of a fixed interval so the delay can change between ticks without
+    // tearing down the effect.
+    let timeoutId: number | null = null;
+    function scheduleNext() {
+      if (cancelled) return;
+      const delay = roomPresenceRef.current ? ACTIVE_POLL_MS : IDLE_POLL_MS;
+      timeoutId = window.setTimeout(async () => {
+        await poll();
+        scheduleNext();
+      }, delay);
+    }
+    scheduleNext();
     return () => {
       cancelled = true;
-      window.clearInterval(id);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
     };
   }, []);
 
@@ -952,18 +1010,29 @@ export function LoungeView(props: Props) {
         </div>
       </section>
 
+      {/* The Watch Feed — live broadcast banner above the chat. Renders
+          nothing unless the admin toggle is on; self-polls and gates
+          itself, so it's safe to mount unconditionally. */}
+      <WatchFeed
+        initialPosts={props.initialWatchPosts ?? []}
+        initialArrivals={props.initialWatchArrivals ?? []}
+        initialEnabled={props.initialWatchEnabled ?? false}
+      />
+
       <section className="max-w-2xl mx-auto px-6 py-12 md:py-16">
-        {/* Active-now presence line. Quiet, italic, olive. Only
-            renders when someone other than the caller is in the
-            5-minute window. */}
+        {/* "Who's in the room" line. Count + a few names, floor-gated
+            on the server so a thin room shows nothing. A small olive
+            dot marks it as a live signal; the line itself stays quiet
+            and italic to match the room. */}
         {(() => {
-          const line = activeNowLine(props.activeNow);
+          const line = roomPresenceLine(roomPresence);
           if (!line) return null;
           return (
             <p
-              className="font-serif italic lounge-meta mb-7 text-center"
+              className="font-serif italic lounge-meta mb-7 text-center flex items-center justify-center gap-2"
               style={{ fontSize: "0.88rem" }}
             >
+              <span className="lounge-room-dot" aria-hidden="true" />
               {line}
             </p>
           );

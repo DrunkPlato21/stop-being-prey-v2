@@ -11,6 +11,9 @@ import {
   getPinnedPost,
   getReadByClayPostIds,
   getReadByClayReplyIds,
+  getRoomPresence,
+  getRoomPresenceFloor,
+  listRecentArrivals,
   listVisiblePosts,
   listVisibleReplies,
   MEMBER_AREA_LAUNCH_ISO,
@@ -19,7 +22,9 @@ import {
   type LoungePost,
   type LoungeReply,
   type ReactionTarget,
+  type RoomPresence,
 } from "@/lib/lounge";
+import { isWatchFeedEnabled, listWatchPosts } from "@/lib/watch-feed";
 import {
   getCharterSlot,
   getFounderSlot,
@@ -50,14 +55,34 @@ export default async function LoungePage() {
   // read so the caller's own presence doesn't decay between writes.
   await bumpActiveNow(session.email).catch(() => null);
 
-  const [pinned, page, lastVisitedAt, activeNow, authorCount] =
+  const [pinned, page, lastVisitedAt, activeNow, authorCount, roomFloor] =
     await Promise.all([
       getPinnedPost(),
       listVisiblePosts({ limit: INITIAL_PAGE }),
       getLastViewed(session.email),
       getActiveNow(session.email, isAdmin),
       countLoungeAuthors(),
+      getRoomPresenceFloor(),
     ]);
+
+  // "Who's in the room" indicator (count + names), gated by the
+  // admin-set floor so a thin room never shows. getRoomPresence skips
+  // the profile lookup when below the floor, so this stays cheap on a
+  // quiet day. Re-gate on the resolved total in case it differs from
+  // the active-now snapshot read just above.
+  const roomPresenceRaw = await getRoomPresence({
+    viewerEmail: session.email,
+    floor: roomFloor,
+  });
+  const roomPresence: RoomPresence | null =
+    roomPresenceRaw.total >= roomFloor ? roomPresenceRaw : null;
+
+  // Watch Feed banner state. Off by default; only pay for the posts +
+  // arrivals reads when the toggle is actually on.
+  const watchEnabled = await isWatchFeedEnabled();
+  const [watchPosts, watchArrivals] = watchEnabled
+    ? await Promise.all([listWatchPosts(50), listRecentArrivals({})])
+    : [[], []];
 
   const posts = pinned
     ? page.posts.filter((p) => p.id !== pinned.id)
@@ -152,6 +177,10 @@ export default async function LoungePage() {
       lastVisitedAt={lastVisitedAt}
       isAdmin={adminUser}
       activeNow={activeNow}
+      roomPresence={roomPresence}
+      initialWatchPosts={watchPosts}
+      initialWatchArrivals={watchArrivals}
+      initialWatchEnabled={watchEnabled}
       authorCount={authorCount}
       launchIso={MEMBER_AREA_LAUNCH_ISO}
     />

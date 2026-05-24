@@ -20,6 +20,8 @@ import { OnTheSiteBadge } from "@/components/OnTheSiteBadge";
 import { LiveAdminNotesPanel } from "@/components/LiveAdminNotesPanel";
 import { Linkified } from "@/components/Linkified";
 import { WatchFeedAdmin } from "@/components/WatchFeedAdmin";
+import { RoomPresenceControl } from "@/components/RoomPresenceControl";
+import { PromptScheduler } from "@/components/PromptScheduler";
 import { listWatchPosts } from "@/lib/watch-feed";
 
 // Dark-mode toggle + no-flash script live in src/app/admin/layout.tsx
@@ -173,6 +175,17 @@ export default async function DeskAdminPage() {
           within ~5 seconds. Collapsed by default — only relevant
           during events, but reachable at all times. */}
       <WatchFeedAdmin initialPosts={watchFeed} />
+
+      {/* === Section 2.6: Who's in the room ==================
+          Floor control for the member-facing lounge presence line.
+          Self-fetching client island — shows the live count and lets
+          Clay set the turnout floor below which the line stays dark. */}
+      <RoomPresenceControl />
+
+      {/* === Section 2.7: Conversation prompts ===============
+          Schedule a starter + drip of host prompts that post as
+          lounge posts over the night to keep the room talking. */}
+      <PromptScheduler />
 
       {/* === Section 3: Signals ==============================
           Broadcast notifications + the active-wall override. These

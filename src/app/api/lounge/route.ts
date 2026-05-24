@@ -11,15 +11,20 @@ import {
   type TierBadge,
 } from "@/lib/members";
 import {
+  bumpActiveNow,
   createPost,
   getLastViewed,
   getPinnedPost,
+  getRoomPresence,
+  getRoomPresenceFloor,
   isLoungeConfigured,
   listVisiblePosts,
   listVisibleReplies,
   reactionSnapshots,
+  revealDuePrompts,
   setLastViewed,
   type ReactionTarget,
+  type RoomPresence,
 } from "@/lib/lounge";
 import { createNotification } from "@/lib/notifications";
 import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
@@ -82,6 +87,23 @@ export async function GET(req: NextRequest) {
   const limit = rawLimit ? Number.parseInt(rawLimit, 10) : 20;
   const rawBefore = url.searchParams.get("before");
   const before = rawBefore ? Number.parseInt(rawBefore, 10) : undefined;
+
+  // Heartbeat. The lounge polls this endpoint every ~5-20s, so
+  // re-stamp the caller's active-now presence here — otherwise an idle
+  // member (sitting and watching, not clicking) silently drops out of
+  // the 5-minute window and the "in the room" count collapses mid-
+  // event. Only on the live first page; pagination isn't presence.
+  if (!before) {
+    await bumpActiveNow(session.email).catch(() => null);
+    // Traffic-driven reveal of any scheduled prompts now due. The
+    // atomic per-prompt claim inside makes concurrent polls safe, so
+    // each prompt posts exactly once. Fire-and-forget: a slow reveal
+    // shouldn't delay the poll response.
+    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+    if (adminEmail) {
+      void revealDuePrompts({ hostEmail: adminEmail }).catch(() => 0);
+    }
+  }
 
   const [pinned, page, lastVisitedAt] = await Promise.all([
     typeof before === "number" ? Promise.resolve(null) : getPinnedPost(),
@@ -158,6 +180,21 @@ export async function GET(req: NextRequest) {
 
   const adminUser = isAdmin(session.email);
 
+  // Room-presence indicator payload (count + names), floor-gated so a
+  // thin room shows nothing. Only on the live first page; null below
+  // the floor. Lets the lounge keep the line live across polls without
+  // a full reload. The floor read is one cheap GET; getRoomPresence
+  // skips the profile lookup entirely when below the floor.
+  let roomPresence: RoomPresence | null = null;
+  if (!before) {
+    const floor = await getRoomPresenceFloor();
+    const presence = await getRoomPresence({
+      viewerEmail: session.email,
+      floor,
+    });
+    roomPresence = presence.total >= floor ? presence : null;
+  }
+
   // Bump last-viewed AFTER the snapshot is built so NEW indicators
   // for the current request still reflect the prior visit.
   if (!before) {
@@ -175,6 +212,7 @@ export async function GET(req: NextRequest) {
       lastVisitedAt,
       hasMore: page.hasMore,
       isAdmin: adminUser,
+      roomPresence,
     },
     { headers: { "cache-control": "no-store, max-age=0" } }
   );

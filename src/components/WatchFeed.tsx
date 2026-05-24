@@ -2,79 +2,76 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-// The Watch Feed — member-facing card stack that sits above the lounge
-// chat. Polls /api/watch-feed every POLL_INTERVAL_MS, reconciles
-// against current state, and renders new cards with a slide-in
-// animation + brief border pulse so the live signal is felt, not just
-// noticed. When the user is scrolled away from the feed, an unseen
-// count is surfaced on a small badge so they can jump back up.
+// The Watch Feed — live broadcast surface above the lounge chat.
+// Two pieces:
+//   1. The Wire — horizontal ticker tape across the top. Pulsing LIVE
+//      dot, items continuously scroll left, hovering pauses motion.
+//      Every active post appears here. When a fresh post arrives, the
+//      label flips to "Breaking" for a few seconds and the billboard
+//      below cuts in.
+//   2. The Billboard — dominant dark card for the newest post.
+//      Timestamp ticks every second so the live feel is felt, not
+//      noticed.
 //
-// Visually distinct from the Writer's Desk update card: thinner border,
-// olive accent stripe on the left, smaller eyebrow ("THE WATCH").
-//
-// Returns null when there are no posts and never had any — keeps the
-// surface invisible outside event hours.
+// Returns null when there are no posts.
 
 export type WatchPost = {
   id: string;
   body: string;
   link: string | null;
   createdAt: number;
+  // Present on voice notes. `body` is the caption/hook for these.
+  audioUrl?: string | null;
+  durationSeconds?: number | null;
+};
+
+export type WatchArrival = {
+  email: string;
+  name: string;
+  at: number;
 };
 
 type Props = {
   initialPosts: WatchPost[];
+  initialArrivals?: WatchArrival[];
+  initialEnabled?: boolean;
 };
 
-const POLL_INTERVAL_MS = 5_000;
-const FRESH_WINDOW_MS = 5 * 60 * 1000; // 5min: pulses on freshly-arrived cards
-const PULSE_DURATION_MS = 4_000;
+// A single entry in the Wire — either a host post or a live arrival.
+// Merged and sorted by time so the ticker reads as one activity feed.
+type WireEntry =
+  | { kind: "post"; key: string; at: number; post: WatchPost }
+  | { kind: "arrival"; key: string; at: number; name: string };
 
-export function WatchFeed({ initialPosts }: Props) {
+const POLL_INTERVAL_MS = 5_000;
+const TICK_MS = 1_000;
+const BREAKING_DURATION_MS = 8_000;
+
+export function WatchFeed({
+  initialPosts,
+  initialArrivals = [],
+  initialEnabled = true,
+}: Props) {
   const [posts, setPosts] = useState<WatchPost[]>(initialPosts);
+  const [arrivals, setArrivals] = useState<WatchArrival[]>(initialArrivals);
+  const [enabled, setEnabled] = useState<boolean>(initialEnabled);
   const [now, setNow] = useState<number>(() => Date.now());
-  // IDs the viewer has already seen (so a fresh page load doesn't
-  // pulse every existing card; only NEW ones that arrive after
-  // mount get the live treatment).
+  // Track post ids we've seen so a fresh page-load doesn't fire the
+  // "breaking" flash for everything that was already on screen.
   const seenIds = useRef<Set<string>>(
     new Set(initialPosts.map((p) => p.id))
   );
-  // IDs that should pulse right now. Cleared per-id after
-  // PULSE_DURATION_MS so the CSS animation only fires once.
-  const [pulsingIds, setPulsingIds] = useState<Set<string>>(new Set());
-  // Hidden "new since you scrolled away" tracking. Reset to 0 when
-  // the feed scrolls into view.
-  const [unseenCount, setUnseenCount] = useState<number>(0);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const isInViewRef = useRef<boolean>(true);
+  const [breakingId, setBreakingId] = useState<string | null>(null);
 
-  // Track whether the header is on-screen. When it scrolls out of view,
-  // arriving posts increment unseenCount. When it scrolls back in,
-  // unseenCount resets.
+  // Tick once a second so the dominant card's timer ("Live · 0:43")
+  // visibly counts up instead of jumping in 15s steps.
   useEffect(() => {
-    const el = headerRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        isInViewRef.current = entry.isIntersecting;
-        if (entry.isIntersecting) setUnseenCount(0);
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // Tick relative-time formatter every 15s.
-  useEffect(() => {
-    const t = window.setInterval(() => setNow(Date.now()), 15_000);
+    const t = window.setInterval(() => setNow(Date.now()), TICK_MS);
     return () => window.clearInterval(t);
   }, []);
 
-  // Live poll. Pulls the feed every POLL_INTERVAL_MS and compares
-  // against seenIds; cards that weren't there before slide in and
-  // pulse. Pauses while the tab is hidden so background tabs aren't
-  // burning the lounge's Redis budget.
+  // Poll the server for new posts. On arrival: flag breaking, swap
+  // state. The billboard's keyed remount handles the cut-in animation.
   useEffect(() => {
     let cancelled = false;
 
@@ -84,49 +81,39 @@ export function WatchFeed({ initialPosts }: Props) {
       try {
         const res = await fetch("/api/watch-feed", { cache: "no-store" });
         if (!res.ok) return;
-        const data: { ok?: boolean; posts?: WatchPost[] } = await res
-          .json()
-          .catch(() => ({}));
-        if (!data.ok || !Array.isArray(data.posts)) return;
+        const data: {
+          ok?: boolean;
+          enabled?: boolean;
+          posts?: WatchPost[];
+          arrivals?: WatchArrival[];
+        } = await res.json().catch(() => ({}));
+        if (!data.ok) return;
         if (cancelled) return;
 
-        // Identify fresh arrivals. Anything we don't already have in
-        // seenIds is "new" — pulse it and bump unseen-when-scrolled.
+        // Honor the on/off switch live — flipping it off in admin
+        // collapses the feed for members within a poll cycle.
+        setEnabled(data.enabled !== false);
+        if (Array.isArray(data.arrivals)) setArrivals(data.arrivals);
+        if (!Array.isArray(data.posts)) return;
+
         const arriving = data.posts.filter((p) => !seenIds.current.has(p.id));
         if (arriving.length > 0) {
           for (const p of arriving) seenIds.current.add(p.id);
-          setPulsingIds((prev) => {
-            const next = new Set(prev);
-            for (const p of arriving) next.add(p.id);
-            return next;
-          });
-          if (!isInViewRef.current) {
-            setUnseenCount((n) => n + arriving.length);
-          }
-          // Clear pulse on each fresh arrival after the duration.
-          for (const p of arriving) {
-            window.setTimeout(() => {
-              setPulsingIds((prev) => {
-                if (!prev.has(p.id)) return prev;
-                const next = new Set(prev);
-                next.delete(p.id);
-                return next;
-              });
-            }, PULSE_DURATION_MS);
-          }
+          const freshest = [...arriving].sort(
+            (a, b) => b.createdAt - a.createdAt
+          )[0];
+          setBreakingId(freshest.id);
+          window.setTimeout(() => {
+            setBreakingId((cur) => (cur === freshest.id ? null : cur));
+          }, BREAKING_DURATION_MS);
         }
-
-        // Replace state with the server snapshot. Handles deletes too
-        // (anything missing from the snapshot drops out of state).
         setPosts(data.posts);
       } catch {
-        // Network blip — leave existing state alone.
+        // Network blip — leave state alone, next tick retries.
       }
     }
 
     const id = window.setInterval(poll, POLL_INTERVAL_MS);
-    // Also poll immediately on focus so a tab returning from sleep
-    // gets a fresh snapshot without waiting up to POLL_INTERVAL_MS.
     function onFocus() {
       void poll();
     }
@@ -143,184 +130,409 @@ export function WatchFeed({ initialPosts }: Props) {
     [posts]
   );
 
-  if (sorted.length === 0) {
-    // Stay invisible outside event hours. Header still renders nothing
-    // so the lounge layout doesn't shift when the first card lands.
-    return null;
-  }
+  // Merge host posts and arrivals into one time-ordered ticker. The
+  // Billboard still rides on the newest post; arrivals only ever live
+  // in the Wire.
+  const wireEntries = useMemo<WireEntry[]>(() => {
+    const entries: WireEntry[] = [
+      ...sorted.map((p) => ({
+        kind: "post" as const,
+        key: `p-${p.id}`,
+        at: p.createdAt,
+        post: p,
+      })),
+      ...arrivals.map((a) => ({
+        kind: "arrival" as const,
+        key: `a-${a.email}-${a.at}`,
+        at: a.at,
+        name: a.name,
+      })),
+    ];
+    return entries.sort((x, y) => y.at - x.at);
+  }, [sorted, arrivals]);
+
+  if (!enabled) return null;
+  if (wireEntries.length === 0) return null;
+
+  const billboard = sorted.length > 0 ? sorted[0] : null;
 
   return (
-    <div className="mb-10">
-      <div
-        ref={headerRef}
-        className="flex items-baseline justify-between gap-3 mb-3"
-      >
-        <p
-          className="eyebrow"
-          style={{
-            letterSpacing: "0.32em",
-            fontSize: "0.65rem",
-          }}
-        >
-          The Watch
-        </p>
-        {unseenCount > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              headerRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-              setUnseenCount(0);
-            }}
-            className="watch-feed-unseen-badge"
-            aria-label={`${unseenCount} new ${
-              unseenCount === 1 ? "post" : "posts"
-            } in The Watch`}
-          >
-            {unseenCount} new
-          </button>
-        )}
+    <section className="watch-section" aria-label="The Watch">
+      <Wire items={wireEntries} now={now} breaking={breakingId !== null} />
+      {billboard && (
+        <Billboard
+          post={billboard}
+          now={now}
+          breaking={breakingId === billboard.id}
+        />
+      )}
+    </section>
+  );
+}
+
+function Wire({
+  items,
+  now,
+  breaking,
+}: {
+  items: WireEntry[];
+  now: number;
+  breaking: boolean;
+}) {
+  // Repeat the source items enough times that a single set is wider
+  // than any reasonable viewport. Two sets back-to-back produce the
+  // seamless loop (translate -50% wraps the second set into the first
+  // set's position). With min 8 items per set the marquee never shows
+  // a visible gap, even with one short source post.
+  const repeats = Math.max(1, Math.ceil(8 / items.length));
+  const expanded: WireEntry[] = [];
+  for (let i = 0; i < repeats; i++) {
+    expanded.push(...items);
+  }
+
+  // Scale animation duration to content length so a sparse wire isn't
+  // a blur and a packed wire isn't a crawl. ~5s per visible item,
+  // clamped so it never feels broken.
+  const duration = Math.min(Math.max(expanded.length * 5, 30), 120);
+
+  return (
+    <div
+      className={breaking ? "watch-wire watch-wire-breaking" : "watch-wire"}
+    >
+      <div className="watch-wire-label">
+        <span className="watch-wire-dot" aria-hidden="true" />
+        <span>{breaking ? "Breaking" : "The Wire"}</span>
       </div>
-
-      <ul className="flex flex-col gap-4">
-        {sorted.map((p) => {
-          const isFresh = now - p.createdAt < FRESH_WINDOW_MS;
-          const isPulsing = pulsingIds.has(p.id);
-          return (
-            <li key={p.id}>
-              <article
-                // Box-model + colors set inline so the billboard
-                // renders even if globals.css hasn't hot-reloaded.
-                // Animation classes layer on top.
-                className={
-                  isPulsing
-                    ? "watch-feed-card-arriving watch-feed-card-pulsing"
-                    : ""
-                }
-                style={{
-                  background: "var(--ink)",
-                  border: "2px solid var(--eye)",
-                  borderRadius: "3px",
-                  padding: "1.4rem 1.5rem 1.3rem",
-                  boxShadow:
-                    "0 1px 0 rgba(0,0,0,0.08), 0 10px 28px rgba(0,0,0,0.18)",
-                  color: "var(--paper)",
-                  position: "relative",
-                }}
-              >
-                <header
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "0.75rem",
-                    marginBottom: "0.95rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.6rem",
-                    }}
-                  >
-                    <span
-                      aria-hidden="true"
-                      style={{
-                        display: "inline-block",
-                        width: "0.55rem",
-                        height: "0.55rem",
-                        borderRadius: "999px",
-                        background: "var(--eye)",
-                        animation: isFresh
-                          ? "watch-feed-live-dot 1.6s ease-in-out infinite"
-                          : undefined,
-                      }}
-                    />
-                    <span
-                      className="font-display uppercase"
-                      style={{
-                        fontSize: "0.7rem",
-                        letterSpacing: "0.28em",
-                        fontWeight: 700,
-                        color: "var(--eye)",
-                      }}
-                    >
-                      {isFresh ? "Live · From Clay" : "From Clay"}
-                    </span>
-                  </div>
-                  <span
-                    className="font-serif italic"
-                    style={{
-                      fontSize: "0.78rem",
-                      color: "rgba(245, 239, 225, 0.55)",
-                    }}
-                  >
-                    {formatRelative(p.createdAt, now)}
-                  </span>
-                </header>
-
-                <p
-                  className="font-serif whitespace-pre-wrap"
-                  style={{
-                    fontSize: "1.1rem",
-                    lineHeight: 1.55,
-                    color: "var(--paper)",
-                    margin: 0,
-                  }}
-                >
-                  {p.body}
-                </p>
-
-                {p.link && (
-                  <a
-                    href={p.link}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="watch-feed-card-link"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "baseline",
-                      gap: "0.4rem",
-                      marginTop: "1rem",
-                      padding: "0.55rem 1rem",
-                      background: "var(--eye)",
-                      color: "var(--ink)",
-                      fontFamily:
-                        "var(--font-cormorant), 'EB Garamond', Georgia, serif",
-                      fontSize: "0.95rem",
-                      fontWeight: 600,
-                      letterSpacing: "0.02em",
-                      textDecoration: "none",
-                      maxWidth: "100%",
-                      wordBreak: "break-all",
-                    }}
-                  >
-                    <span>{prettyLink(p.link)}</span>
-                    <span aria-hidden="true">&rarr;</span>
-                  </a>
-                )}
-              </article>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="watch-wire-track">
+        <div
+          className="watch-wire-marquee"
+          style={{ animationDuration: `${duration}s` }}
+        >
+          <WireSet items={expanded} now={now} />
+          <WireSet items={expanded} now={now} ariaHidden />
+        </div>
+      </div>
     </div>
   );
 }
 
-function formatRelative(ms: number, now: number): string {
-  const diff = Math.max(0, now - ms);
+function WireSet({
+  items,
+  now,
+  ariaHidden = false,
+}: {
+  items: WireEntry[];
+  now: number;
+  ariaHidden?: boolean;
+}) {
+  return (
+    <ol className="watch-wire-set" aria-hidden={ariaHidden || undefined}>
+      {items.map((entry, idx) =>
+        entry.kind === "arrival" ? (
+          <li
+            key={`${entry.key}-${idx}`}
+            className="watch-wire-item watch-wire-item-arrival"
+          >
+            <span className="watch-wire-time">
+              {relativeShort(entry.at, now)}
+            </span>
+            <span className="watch-wire-sep" aria-hidden="true">
+              //
+            </span>
+            <span className="watch-wire-arrival" aria-hidden="true">
+              👋
+            </span>
+            <span className="watch-wire-body">
+              {entry.name} walked in
+            </span>
+          </li>
+        ) : (
+          <li key={`${entry.key}-${idx}`} className="watch-wire-item">
+            <span className="watch-wire-time">
+              {relativeShort(entry.post.createdAt, now)}
+            </span>
+            <span className="watch-wire-sep" aria-hidden="true">
+              //
+            </span>
+            {entry.post.audioUrl && (
+              <span className="watch-wire-voice" aria-hidden="true">
+                ▶
+              </span>
+            )}
+            <span className="watch-wire-body">
+              {wirePreview(entry.post.body)}
+            </span>
+          </li>
+        )
+      )}
+    </ol>
+  );
+}
+
+function Billboard({
+  post,
+  now,
+  breaking,
+}: {
+  post: WatchPost;
+  now: number;
+  breaking: boolean;
+}) {
+  const sinceMs = Math.max(0, now - post.createdAt);
+  const justIn = sinceMs < 60_000;
+  const isVoice = !!post.audioUrl;
+
+  let tag: string;
+  if (isVoice) tag = justIn ? "New voice note" : "Voice note";
+  else tag = justIn ? "Just in" : "Bulletin";
+
+  return (
+    <article
+      key={post.id}
+      className={
+        breaking
+          ? "watch-billboard watch-billboard-breaking"
+          : "watch-billboard"
+      }
+    >
+      <span aria-hidden="true" className="watch-billboard-scanline" />
+
+      <header className="watch-billboard-eyebrow">
+        <span className="watch-billboard-eyebrow-tag">{tag}</span>
+        <span className="watch-billboard-eyebrow-rule" aria-hidden="true" />
+        <span className="watch-billboard-eyebrow-time">
+          {sinceLabel(sinceMs)}
+        </span>
+      </header>
+
+      <p className="watch-billboard-body">{post.body}</p>
+
+      {isVoice && <VoicePlayer post={post} />}
+
+      {post.link && (
+        <a
+          href={post.link}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="watch-billboard-link"
+        >
+          <span>{prettyLink(post.link)}</span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+      )}
+    </article>
+  );
+}
+
+// Member-side voice player for a Watch Feed voice note. A hidden
+// <audio> element does the playback; the visible chrome is a play
+// button + a decorative waveform whose progress tracks currentTime.
+// Until the note has been heard it glows and breathes to pull the tap;
+// once played it goes calm. "Heard" state is per-browser via
+// localStorage so the glow doesn't nag on every reload.
+const HEARD_STORAGE_KEY = "watch-voice-heard";
+const WAVE_BARS = 40;
+
+function VoicePlayer({ post }: { post: WatchPost }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const waveRef = useRef<HTMLDivElement | null>(null);
+  const [played, setPlayed] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [cur, setCur] = useState(0);
+
+  const total = post.durationSeconds ?? 0;
+  const bars = useMemo(() => barHeights(post.id, WAVE_BARS), [post.id]);
+
+  // Read prior "heard" state once on mount.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(HEARD_STORAGE_KEY);
+      const arr = raw ? (JSON.parse(raw) as unknown) : [];
+      if (Array.isArray(arr) && arr.includes(post.id)) setPlayed(true);
+    } catch {
+      // localStorage blocked — fine, the card just keeps glowing.
+    }
+  }, [post.id]);
+
+  function markHeard() {
+    setPlayed(true);
+    try {
+      const raw = window.localStorage.getItem(HEARD_STORAGE_KEY);
+      const arr = raw ? (JSON.parse(raw) as unknown) : [];
+      const list = Array.isArray(arr) ? (arr as string[]) : [];
+      if (!list.includes(post.id)) {
+        // Keep the tail bounded so the key can't grow without limit.
+        const next = [...list, post.id].slice(-200);
+        window.localStorage.setItem(HEARD_STORAGE_KEY, JSON.stringify(next));
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  function toggle() {
+    const a = audioRef.current;
+    if (!a) return;
+    if (a.paused) {
+      void a.play().catch(() => {});
+    } else {
+      a.pause();
+    }
+  }
+
+  function onTimeUpdate() {
+    const a = audioRef.current;
+    if (!a) return;
+    const dur = a.duration && Number.isFinite(a.duration) ? a.duration : total;
+    setCur(a.currentTime);
+    setProgress(dur > 0 ? Math.min(1, a.currentTime / dur) : 0);
+  }
+
+  function seekFromEvent(clientX: number) {
+    const wave = waveRef.current;
+    const a = audioRef.current;
+    if (!wave || !a) return;
+    const rect = wave.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    const dur = a.duration && Number.isFinite(a.duration) ? a.duration : total;
+    if (dur > 0) {
+      a.currentTime = frac * dur;
+      setProgress(frac);
+      setCur(a.currentTime);
+    }
+  }
+
+  const litCount = Math.round(progress * bars.length);
+  const showElapsed = playing || progress > 0;
+
+  return (
+    <div
+      className={
+        played
+          ? "watch-voice watch-voice-played"
+          : playing
+            ? "watch-voice"
+            : "watch-voice watch-voice-unheard"
+      }
+    >
+      <audio
+        ref={audioRef}
+        src={post.audioUrl ?? undefined}
+        preload="none"
+        onPlay={() => {
+          setPlaying(true);
+          markHeard();
+        }}
+        onPause={() => setPlaying(false)}
+        onEnded={() => {
+          setPlaying(false);
+          setProgress(1);
+        }}
+        onTimeUpdate={onTimeUpdate}
+      />
+
+      <button
+        type="button"
+        onClick={toggle}
+        className="watch-voice-play"
+        aria-label={playing ? "Pause voice note" : "Play voice note"}
+      >
+        {playing ? (
+          <span className="watch-voice-pause" aria-hidden="true">
+            <span />
+            <span />
+          </span>
+        ) : (
+          <span className="watch-voice-tri" aria-hidden="true" />
+        )}
+      </button>
+
+      <div
+        ref={waveRef}
+        className="watch-voice-wave"
+        role="presentation"
+        onClick={(e) => seekFromEvent(e.clientX)}
+      >
+        {bars.map((h, i) => (
+          <span
+            key={i}
+            className={
+              i < litCount ? "watch-voice-bar watch-voice-bar-lit" : "watch-voice-bar"
+            }
+            style={{ height: `${h}%`, animationDelay: `${i * 0.045}s` }}
+          />
+        ))}
+        <span
+          className="watch-voice-playhead"
+          style={{ left: `${progress * 100}%` }}
+          aria-hidden="true"
+        />
+      </div>
+
+      <span className="watch-voice-time">
+        {showElapsed
+          ? `${clockLabel(cur)} / ${clockLabel(total)}`
+          : clockLabel(total)}
+      </span>
+    </div>
+  );
+}
+
+// Deterministic per-post waveform silhouette (18%..96% bar heights) so
+// the wave is stable across re-renders without measuring real audio.
+function barHeights(seed: string, n: number): number[] {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    h = (Math.imul(h, 1103515245) + 12345) >>> 0;
+    const r = (h % 1000) / 1000;
+    out.push(18 + Math.round(r * 78));
+  }
+  return out;
+}
+
+function clockLabel(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function relativeShort(at: number, now: number): string {
+  const diff = Math.max(0, now - at);
   const sec = Math.floor(diff / 1000);
-  if (sec < 60) return "just now";
+  if (sec < 60) return `${sec}s`;
   const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h`;
+  return `${Math.floor(hr / 24)}d`;
+}
+
+function sinceLabel(ms: number): string {
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) {
+    return `Live · 0:${String(sec).padStart(2, "0")}`;
+  }
+  const min = Math.floor(sec / 60);
+  const remSec = sec % 60;
+  if (min < 10) {
+    return `${min}:${String(remSec).padStart(2, "0")} ago`;
+  }
   if (min < 60) return `${min}m ago`;
   const hr = Math.floor(min / 60);
   if (hr < 24) return `${hr}h ago`;
-  const days = Math.floor(hr / 24);
-  return `${days}d ago`;
+  return `${Math.floor(hr / 24)}d ago`;
+}
+
+function wirePreview(body: string): string {
+  const oneLine = body.replace(/\s+/g, " ").trim();
+  if (oneLine.length <= 90) return oneLine;
+  return oneLine.slice(0, 87) + "…";
 }
 
 function prettyLink(url: string): string {
