@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { FoundingPageLayout } from "@/components/FoundingPageLayout";
 
 // /founding/charlie-kirk — Predator and Prey. The founding text of
@@ -205,15 +206,13 @@ export default function CharlieKirkFoundingPage() {
         <p>
           P.S. I am writing <span className="not-italic">Stop Being Prey</span>{" "}
           without a publisher or an advance. If you want to help it exist:{" "}
-          <a
-            href="https://readsowell.com/support-donate"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/tip"
             className="text-eye-deep hover:text-ink no-underline transition-colors not-italic"
             style={{ fontWeight: 600 }}
           >
             support the book &rarr;
-          </a>
+          </Link>
         </p>
       </div>
     </FoundingPageLayout>

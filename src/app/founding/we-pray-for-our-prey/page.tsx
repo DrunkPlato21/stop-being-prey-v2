@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { FoundingPageLayout } from "@/components/FoundingPageLayout";
 
 // /founding/we-pray-for-our-prey — the grace dimension of the
@@ -186,15 +187,13 @@ export default function WePrayForOurPreyFoundingPage() {
           <span className="not-italic">Stop Being Prey</span> is being
           written without a publisher or an advance. If you want to help
           it exist:{" "}
-          <a
-            href="https://readsowell.com/support-donate"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/tip"
             className="text-eye-deep hover:text-ink no-underline transition-colors not-italic"
             style={{ fontWeight: 600 }}
           >
             support the book &rarr;
-          </a>
+          </Link>
         </p>
       </div>
     </FoundingPageLayout>
