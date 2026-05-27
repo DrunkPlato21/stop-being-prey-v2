@@ -197,8 +197,10 @@ The answer isn't tactical... it is structural. Let's start by taking a look at w
 
 Jeremy Kauffman, a libertarian operator I actually respect, shared that article on the eve of the Kentucky election. He said:
 
-> I want Massie to win tomorrow. I would vote for him without reservation.\
-> But asking why the NYT is willing to run a glowing article like this is absolutely a fair question.\
+> I want Massie to win tomorrow. I would vote for him without reservation.
+>
+> But asking why the NYT is willing to run a glowing article like this is absolutely a fair question.
+>
 > If Massie was a threat to the left, would this be run?
 
 The answer is no. If Massie was a threat to the left, they wouldn’t write puff pieces about him in the New York Times on the eve on his election. They would write about him the way they write about Trump and MAGA… do I need to say more?
