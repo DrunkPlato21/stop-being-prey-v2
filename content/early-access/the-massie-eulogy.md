@@ -642,13 +642,11 @@ Clint also seems like a total bro, and by that, I mean a good friend. It’s one
 
 But lastly… Dave Smith… genuinely, one of my heroes. I've spent an unseemly amount of time consuming Dave Smith podcasts over the years. I'm about as OG as a Dave Smith fan can be.
 
-I was there for Legion of Skanks (Dave's comedy podcast) before I even knew who Dave was, or anyone else did for that matter. From before the Cumia network era. I come from the Opie and Anthony world, the same comedy ecosystem that gave us Joe Rogan.
+I was there for Legion of Skanks (Dave's comedy podcast) before I even knew who Dave was, or anyone else did for that matter. From before the Cumia network era. I come from the Opie and Anthony world, the same comedy ecosystem that gave us Joe Rogan and a hundred other voices.
 
 I was on the JoeRogan.net forums long before there was ever a Joe Rogan podcast. I was on the Shit Talking 101 board when Brian Redban was running livestreams from comedy-club green rooms on Justin.tv, before The Joe Rogan Experience existed. I stuck around through the early Ustream era too.
 
-Very few people on this planet can say this honestly. I can.
-
-I've lived and breathed in the world Dave's podcast career spawned out of since the very beginning.
+I know, I know. I spent the prime of my life on internet forums for comedy podcasts that didn't exist yet. Not exactly a brag. But it matters here, because it means I'm not throwing rocks from outside Dave's world. I'm inside it. I've lived and breathed in the world Dave's podcast career spawned out of since the very beginning.
 
 Back in 2017, I spoke to Dave's best friend and comedian Luis J Gomez on the phone for an hour or so one night. We talked all about strategies to promote Dave's first comedy special “Libertas”, which they were independently producing on this budding podcast network called Gas Digital.
 
