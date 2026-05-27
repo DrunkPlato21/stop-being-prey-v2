@@ -12,7 +12,7 @@ That was Thomas Massie's concession line on the night of May 19, 2026.
 
 He had just lost the Kentucky Fourth Congressional District Republican primary to Ed Gallrein. The most expensive U.S. House primary in history, it would appear. $32 million spent. nine million of it from AIPAC against him. Seven million from Trump-aligned donors. He lost by ten points. It was decisive.
 
-I'd been writing this piece as a diagnosis... "The Thomas Massie Problem" I was calling it, but reality just made its verdict. I don't have to speculate about what will happen anymore. Thomas Massie is no longer a problem for Trump or his alliance. The MAGA Alliance.
+I'd been writing this piece as a diagnosis... I don't have to speculate about what will happen anymore. Reality made its verdict.
 
 So I'll begin the story where Massie ended...
 
