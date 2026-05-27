@@ -495,7 +495,7 @@ Here's a chihuahua barking just yesterday:
 
 Why did he wait 14 years to start doing this? Why only after he lost his election? Could it be… just another show?
 
-The libertarian movement, as currently constituted, is structurally incapable of taking a win. Trump delivered the largest libertarian victory in two decades. The movement thanked him at the time. Thomas Massie even hosted Ross at the State of the Union. The alliance was working. Charlie was there, somewhere in the background working to sustain that alliance.
+The libertarian movement, as currently constituted, is structurally incapable of taking a win. Trump delivered the largest libertarian victory in two decades. The movement thanked him at the time. Thomas Massie even hosted Ross at the State of the Union.
 
 The alliance was working. Charlie was there, somewhere in the background working to sustain that alliance.
 
