@@ -12,9 +12,9 @@ That was Thomas Massie's concession line on the night of May 19, 2026.
 
 He had just lost the Kentucky Fourth Congressional District Republican primary to Ed Gallrein. The most expensive U.S. House primary in history, it would appear. $32 million spent. nine million of it from AIPAC against him. Seven million from Trump-aligned donors. He lost by ten points. It was decisive.
 
-I'd been writing this piece as a diagnosis... I don't have to speculate about what will happen anymore. Reality made its verdict.
+I'd been writing this piece as a diagnosis. Then in the middle of it, reality made its verdict. The voters of Kentucky's 4th made a choice. Thomas Massie lost. I don't have to speculate about what will happen anymore... The MAGA Alliance took him out.
 
-So I'll begin the story where Massie ended...
+So that's where I'll begin...
 
 A man on the most consequential public night of his career, given the choice between a clean concession and one last jab at the coalition that had defeated him... chose the jab. He implied his opponent, a Kentucky-born Navy SEAL, owed his loyalty somewhere other than Kentucky.
 
