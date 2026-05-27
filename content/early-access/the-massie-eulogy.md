@@ -305,7 +305,7 @@ He wrote this on April 7, 2025. Five months before he was assassinated:
 
 Five months later... the bomb went off right in his face.
 
-Show me the equivalent on the right.
+Show me the equivalent on the other side.
 
 Show me their Charlie Kirk. The one they still cry over and pray for every day. The one they still can't believe is gone.
 
