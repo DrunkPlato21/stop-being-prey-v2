@@ -351,7 +351,7 @@ Thank you, Donald Trump.
 
 That was just sixteen months ago. A blink of an eye… 
 
-Today, Tom Woods is leading the charge against Trump. He's calling MAGA voters boomers who embarrassed the United States. He's calling Juanita Broaddrick, Bill Clinton's most prominent accuser, a brainwashed idiot.
+Today, Tom Woods is leading the charge against Trump. He's calling MAGA voters boomers who embarrassed the United States. He's calling Juanita Broaddrick, Bill Clinton's most credible accuser, a brainwashed idiot.
 
 What happened in those sixteen months?…
 
