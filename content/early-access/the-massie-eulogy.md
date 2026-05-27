@@ -10,11 +10,13 @@ description: "An early-access essay for members. Read it before anyone else."
 
 That was Thomas Massie's concession line on the night of May 19, 2026.
 
-He had just lost the Kentucky Fourth Congressional District Republican primary to Ed Gallrein. The most expensive U.S. House primary in history, it would appear. $32 million spent. nine million of it from AIPAC against him. Seven million from Trump-aligned donors. He lost by ten points. It was decisive.
+He had just lost the Kentucky Fourth Congressional District Republican primary to Ed Gallrein. The most expensive U.S. House primary in history, it would appear. $32 million spent. Nine million of it from AIPAC against him. Seven million from Trump-aligned donors. He lost by ten points. It was decisive.
 
-I'd been writing this piece as a diagnosis. Then in the middle of it, reality made its verdict. The voters of Kentucky's 4th made a choice. Thomas Massie lost. I don't have to speculate about what will happen anymore... The MAGA Alliance took him out.
+I'd been writing this piece as a diagnosis. Then mid-draft, reality made its verdict. I don't have to speculate about what will happen anymore. The alliance that took him out has a name worth knowing.
 
-So that's where I'll begin...
+The MAGA Alliance.
+
+Let me take you back to that night...
 
 A man on the most consequential public night of his career, given the choice between a clean concession and one last jab at the coalition that had defeated him... chose the jab. He implied his opponent, a Kentucky-born Navy SEAL, owed his loyalty somewhere other than Kentucky.
 
@@ -652,7 +654,7 @@ Back in 2017, I spoke to Dave's best friend and comedian Luis J Gomez on the pho
 
 The reason I got his attention was because I made a fan page on Facebook for Dave at the time, and got some serious engagement on the promotional clips for that comedy special. It got their attention… Dave gave me a shout out by name on the podcast, then Luis called me.
 
-It’s not much, and I doubt Dave or Luis even remember this really… but these are moments that meant a lot to me. I brag about it to my friends all the time. And both of these guys were both so cool to me! Genuinely awesome guys.
+Small moments. They meant a lot to me. I never forgot it.
 
 I gave Dave an entire section in [The Losertarian Problem](https://stopbeingprey.com/the-losertarian-problem), if you want to know more about all of the good he’s done… and unfortunately… some bad he’s currently doing.
 
