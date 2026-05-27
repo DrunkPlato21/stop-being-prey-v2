@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   // won't be copied into the Vercel function bundle.
   outputFileTracingIncludes: {
     "/api/admin/voice-memos": ["node_modules/ffmpeg-static/**/*"],
+    // The early-access essay reads its markdown from content/early-access
+    // via fs at request time. Opt the dir into the function bundle so the
+    // page can't 404 on its own content in production.
+    "/the-massie-eulogy": ["content/early-access/**/*"],
   },
 };
 

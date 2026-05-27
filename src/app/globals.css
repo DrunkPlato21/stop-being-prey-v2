@@ -260,6 +260,24 @@ a.no-underline {
   margin: 1.25rem auto 0;
 }
 
+/* Act dividers on the early-access essays (/the-massie-eulogy). Scoped
+   to .ea-essay so site-wide article/field-note h2 spacing is untouched.
+   Only the surrounding whitespace changes here. the hairlines, caps,
+   letter-spacing, font, and color all stay as the base h2 above defines
+   them. More space above than below so an act reads as the start of a
+   new movement, not a paragraph break. Top is ~2.2x the base 5rem,
+   bottom ~1.5x the base 2.5rem. */
+.prose-article.ea-essay h2 {
+  margin-top: 11rem;
+  margin-bottom: 3.75rem;
+}
+/* The opening heading (Prologue) sits directly under the masthead, which
+   already separates it with its border and padding. Don't open an
+   11rem void at the very top. */
+.prose-article.ea-essay h2:first-child {
+  margin-top: 2.5rem;
+}
+
 .prose-article h3 {
   font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
   font-size: 1.5rem;
@@ -296,6 +314,150 @@ a.no-underline {
   font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
   font-size: 1.15rem;
   line-height: 1.5;
+}
+
+/* === Early-access essay quote treatments ====================
+   Two deliberate variants layered over .prose-article for member
+   early-access pieces (e.g. /the-massie-eulogy). The page post-
+   processes rendered <blockquote>s into these figures. Restraint is
+   the rule: one typographic gesture per variant. The default
+   .prose-article blockquote above is left intact for every other
+   surface that still uses it. */
+
+/* Pull quote — kill-shot one-liners. Centered, no border, a hairline
+   rule above and below, large italic display serif, generous air. The
+   single gesture is the framing rules + scale. */
+.prose-article figure.ea-pullquote {
+  margin: 4rem auto;
+  max-width: 32rem;
+  padding: 0;
+  text-align: center;
+  border: none;
+}
+.prose-article figure.ea-pullquote::before,
+.prose-article figure.ea-pullquote::after {
+  content: "";
+  display: block;
+  width: 3rem;
+  height: 1px;
+  background: var(--rule);
+  margin: 0 auto;
+}
+.prose-article figure.ea-pullquote::before {
+  margin-bottom: 1.85rem;
+}
+.prose-article figure.ea-pullquote::after {
+  margin-top: 1.85rem;
+}
+.prose-article figure.ea-pullquote p {
+  margin: 0;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-style: italic;
+  font-size: 1.7rem;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+}
+.prose-article figure.ea-pullquote figcaption {
+  margin-top: 1.15rem;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-style: normal;
+  font-size: 0.74rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+/* The opening epigraph (the first pull quote, in the Prologue) drops the
+   framing hairlines. it sits right under the masthead, where the rules
+   stack awkwardly against the title block. Other pull quotes keep them. */
+.prose-article figure.ea-pullquote:first-of-type::before,
+.prose-article figure.ea-pullquote:first-of-type::after {
+  display: none;
+}
+
+/* Block quote — sourced receipts. Pure typography: no panel, border,
+   tint, or left border. An oversized olive opening-quote glyph (body
+   serif) hangs into the left margin via the figure's padding + a negative
+   offset; the quote text is indented to its right at 1.2x body, upright,
+   tighter line height. A short olive hairline under the quote (left-
+   aligned with the text) leads into a small-caps, bullet-separated
+   attribution in the same accent. The quote's own surrounding quote marks
+   are stripped server-side so the glyph is the only opening mark. */
+.prose-article figure.ea-blockquote {
+  position: relative;
+  margin: 3em 0;
+  padding-left: 3.25rem;
+  background: none;
+  border: none;
+}
+.prose-article figure.ea-blockquote::before {
+  content: "\201C";
+  position: absolute;
+  left: -0.3rem;
+  top: 1.7rem;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: 5.5rem;
+  line-height: 0;
+  color: var(--eye-deep);
+  pointer-events: none;
+}
+.prose-article figure.ea-blockquote blockquote {
+  margin: 0;
+  border: none;
+  padding: 0;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: normal;
+  font-size: 1.36rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.prose-article figure.ea-blockquote blockquote p {
+  margin: 0 0 1rem 0;
+}
+.prose-article figure.ea-blockquote blockquote p:last-child {
+  margin-bottom: 0;
+}
+.prose-article figure.ea-blockquote figcaption {
+  margin-top: 1.25rem;
+  text-align: left;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-variant: small-caps;
+  font-style: normal;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  color: var(--eye-deep);
+}
+.prose-article figure.ea-blockquote figcaption::before {
+  content: "";
+  display: block;
+  width: 4rem;
+  height: 1px;
+  background: var(--eye-deep);
+  margin-bottom: 1rem;
+}
+
+/* Short standalone quote, no attribution. A light beat, not an evidence
+   card: centered, slightly larger upright serif, no panel, no rules,
+   generous air. Reserved for punchy one-liners. */
+.prose-article figure.ea-quote-light {
+  margin: 3.25rem auto;
+  max-width: 30rem;
+  padding: 0;
+  background: none;
+  text-align: center;
+}
+.prose-article figure.ea-quote-light blockquote {
+  margin: 0;
+  border: none;
+  padding: 0;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: normal;
+  font-size: 1.28rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.prose-article figure.ea-quote-light blockquote p {
+  margin: 0;
 }
 
 .prose-article ul, .prose-article ol {
