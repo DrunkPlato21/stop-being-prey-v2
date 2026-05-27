@@ -190,7 +190,7 @@ Look at who defends him.
 
 That's where the answer is.
 
-## Act 3. The Reveal
+## Act 3
 The answer isn't tactical... it is structural. Let's start by taking a look at who defends him…
 
 {{FIGURE: /assets/the-massie-eulogy/nyt-opinion-massie.jpg | New York Times Opinion guest essay headlined He's One of a Dying Breed in Congress. America Needs Him Now More Than Ever. Dated May 14, 2026. | The New York Times guest essay on Massie, published days before the primary.}}
