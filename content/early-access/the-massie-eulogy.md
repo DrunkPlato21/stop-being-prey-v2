@@ -1,5 +1,5 @@
 ---
-title: "The Thomas Massie Eulogy?"
+title: "The Thomas Massie Problem"
 date: "2026-05-27"
 description: "An early-access essay for members. Read it before anyone else."
 ---

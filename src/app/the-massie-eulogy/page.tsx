@@ -10,7 +10,7 @@ import { EyeDivider } from "@/components/Eyes";
 import { Comments } from "@/components/Comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 
-// Member-only EARLY ACCESS drop for "The Thomas Massie Eulogy?".
+// Member-only EARLY ACCESS drop for "The Thomas Massie Problem".
 // Prologue through Act 5 only; Act 6 is still being written and lives
 // outside content/articles so nothing auto-publishes it (no public
 // [slug] URL, no social cards, no sitemap/essays listing).
@@ -34,7 +34,7 @@ const SOURCE = path.join(
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "The Thomas Massie Eulogy?",
+  title: "The Thomas Massie Problem",
   description:
     "An early-access essay for members. Read it before anyone else.",
   // Member-only window: keep it out of search indexes entirely.
@@ -166,7 +166,7 @@ async function loadEssay(): Promise<Loaded> {
     title:
       typeof data.title === "string"
         ? data.title
-        : "The Thomas Massie Eulogy?",
+        : "The Thomas Massie Problem",
     dateStr,
     bodyHtml,
   };
@@ -352,7 +352,7 @@ function Paywall() {
             letterSpacing: "-0.022em",
           }}
         >
-          The Thomas Massie Eulogy?
+          The Thomas Massie Problem
         </h1>
         <p className="deck mb-10 max-w-md mx-auto">
           This essay is early access for members. The full piece,
