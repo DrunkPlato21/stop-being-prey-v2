@@ -249,7 +249,7 @@ Jeet Heer. National affairs correspondent at The Nation. One of the oldest, most
 
 Okay… seriously? Are all these guys just taking notes from Dave Smith now?
 
-Surely we can find some leftists who aren’t praising Massie right now… what about that horrible Turkish guy… the largest communist streamer in America. Hasan Piker. Surely HE doesn’t won’t defend a hardcore right-wing republican will he?
+Surely we can find some leftists who aren’t praising Massie right now… what about that horrible Turkish guy… the largest communist streamer in America. Hasan Piker. Surely HE won’t defend a hardcore right-wing republican will he?
 
 > *"massie's defeat proves that the republican party is a pro epstein pro israel cult led by their cult leader, epstein affiliate, servant of israel, donald trump."*
 >
