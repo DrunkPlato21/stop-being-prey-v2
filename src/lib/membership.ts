@@ -271,6 +271,17 @@ export async function createMembershipCheckoutSession(args: {
   plan: MembershipPlan;
   amountCents: number;
   email?: string;
+  /** Set true only after the server has validated a single-use founder
+      access token. Forces the founder floor + a founder-tier checkout
+      even though the public founder cap is filled. */
+  founderOverride?: boolean;
+  /** Explicit founder number to honor (e.g. 101), carried into Stripe
+      metadata so the webhook assigns it directly without touching the
+      founder counter. */
+  founderGrantSlot?: number;
+  /** The access token, carried into metadata so the webhook consumes it
+      once this checkout succeeds. */
+  accessToken?: string;
 }): Promise<{ url: string } | { error: CheckoutError; floor?: number }> {
   const stripe = client();
   if (!stripe) return { error: "stripe_not_configured" };
@@ -283,17 +294,26 @@ export async function createMembershipCheckoutSession(args: {
     return { error: "invalid_amount" };
   }
 
-  const founderEligible = await isFounderEligible();
+  // A validated private founder link gets the founder floor + a founder-
+  // tier checkout regardless of the (now-closed) public cap. Public
+  // buyers fall back to the live founder/charter/regular decision.
+  const founderOverride = args.founderOverride === true;
+  const founderEligible = founderOverride || (await isFounderEligible());
   const floor = floorCentsFor(args.plan, founderEligible);
-  // Charter only matters after Founder fills. The webhook re-checks
-  // atomically; this is just the buyer-side hint so the success page
-  // can show the right welcome.
-  const charterEligible = !founderEligible && (await isCharterEligible());
-  const tierAtCheckout: Tier = founderEligible
-    ? "founder"
-    : charterEligible
-      ? "charter"
-      : "regular";
+  let tierAtCheckout: Tier;
+  if (founderOverride) {
+    tierAtCheckout = "founder";
+  } else {
+    // Charter only matters after Founder fills. The webhook re-checks
+    // atomically; this is just the buyer-side hint so the success page
+    // can show the right welcome.
+    const charterEligible = !founderEligible && (await isCharterEligible());
+    tierAtCheckout = founderEligible
+      ? "founder"
+      : charterEligible
+        ? "charter"
+        : "regular";
+  }
 
   if (args.amountCents < floor) {
     return { error: "below_floor", floor };
@@ -341,6 +361,12 @@ export async function createMembershipCheckoutSession(args: {
       tier_at_checkout: tierAtCheckout,
       plan: args.plan,
       amount_cents: String(args.amountCents),
+      ...(founderOverride && typeof args.founderGrantSlot === "number"
+        ? { founder_slot_grant: String(args.founderGrantSlot) }
+        : {}),
+      ...(founderOverride && args.accessToken
+        ? { founder_access_token: args.accessToken }
+        : {}),
     },
     subscription_data: {
       metadata: {

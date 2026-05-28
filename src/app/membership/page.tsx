@@ -10,6 +10,7 @@ import {
   getFounderClaimed,
 } from "@/lib/members";
 import { derivePresenceState, getPresence } from "@/lib/desk";
+import { isFounderAccessValid } from "@/lib/founder-access";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -135,7 +136,7 @@ const FAQ: FAQEntry[] = [
 export default async function MembershipLandingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ preview?: string }>;
+  searchParams?: Promise<{ preview?: string; access?: string }>;
 }) {
   const [founderClaimed, charterClaimed, totalMembers, presence] =
     await Promise.all([
@@ -149,7 +150,15 @@ export default async function MembershipLandingPage({
   // (founder cap "filled", charter open at 0/100). ?preview=filled
   // forces both filled. Lets Clay see the post-cap copy locally
   // without burning real founder slots in Redis. Ignored in prod.
-  const previewArg = (await searchParams)?.preview ?? "";
+  const sp = (await searchParams) ?? {};
+  const previewArg = sp.preview ?? "";
+  // Private single-use founder link: ?access=<token>. Validated server-
+  // side here (for the UI) and again at checkout-create (the real gate).
+  // Invalid/missing token → the page renders exactly as the public one.
+  const accessParam = typeof sp.access === "string" ? sp.access : "";
+  const founderAccess = accessParam
+    ? await isFounderAccessValid(accessParam)
+    : false;
   const previewCharter =
     process.env.NODE_ENV !== "production" && previewArg === "charter";
   const previewFilled =
@@ -334,7 +343,42 @@ export default async function MembershipLandingPage({
           more directly, so the eyebrow is omitted there. */}
       <section className="border-b border-rule">
         <div className="max-w-3xl mx-auto px-6 py-8 md:py-10 text-center">
-          {founderEligible ? (
+          {founderAccess ? (
+            <>
+              <p
+                className="eyebrow mb-3"
+                style={{ fontSize: "0.72rem", letterSpacing: "0.28em" }}
+              >
+                Private founder link
+              </p>
+              <p
+                className="font-display text-ink leading-none mb-3"
+                style={{
+                  fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
+                  fontWeight: 700,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                Founder #101
+              </p>
+              <p
+                className="font-serif italic text-ink-muted"
+                style={{ fontSize: "0.98rem" }}
+              >
+                $8/mo founder rate, locked for life. Name your price above
+                the floor.
+              </p>
+              <p className="mt-6">
+                <Link
+                  href="#pricing"
+                  className="font-display uppercase tracking-[0.24em] text-eye-deep hover:text-ink no-underline transition-colors"
+                  style={{ fontSize: "0.75rem", fontWeight: 600 }}
+                >
+                  Claim your slot &rarr;
+                </Link>
+              </p>
+            </>
+          ) : founderEligible ? (
             <>
               {totalMembers > 0 && (
                 <p
@@ -590,11 +634,13 @@ export default async function MembershipLandingPage({
         </div>
 
         <MembershipPlans
-          founderEligible={founderEligible}
+          founderEligible={founderAccess || founderEligible}
           founderClaimed={effectiveFounderClaimed}
-          charterEligible={charterEligible}
+          charterEligible={founderAccess ? false : charterEligible}
           charterClaimed={effectiveCharterClaimed}
           totalMembers={totalMembers}
+          privateFounderAccess={founderAccess}
+          accessToken={founderAccess ? accessParam : undefined}
         />
 
         <p className="text-center mt-10">

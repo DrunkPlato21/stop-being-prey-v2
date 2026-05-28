@@ -3,6 +3,7 @@ import {
   createMembershipCheckoutSession,
   type MembershipPlan,
 } from "@/lib/membership";
+import { getFounderAccess } from "@/lib/founder-access";
 
 // POST /api/membership/checkout
 // Body: { plan: "monthly" | "yearly", amountCents: number, email?: string }
@@ -40,10 +41,28 @@ export async function POST(req: NextRequest) {
       ? rawEmail.trim().toLowerCase()
       : undefined;
 
+  // Private founder link. Re-validate the single-use token server-side
+  // (the client can't self-grant); a valid, unused token unlocks the $8
+  // founder floor and carries the honored founder number (e.g. 101).
+  const rawToken = (body as { accessToken?: unknown })?.accessToken;
+  const accessToken =
+    typeof rawToken === "string" && rawToken.trim().length > 0
+      ? rawToken.trim()
+      : undefined;
+  const founderAccess = accessToken
+    ? await getFounderAccess(accessToken)
+    : null;
+
   const result = await createMembershipCheckoutSession({
     plan,
     amountCents,
     email,
+    founderOverride: founderAccess !== null,
+    founderGrantSlot:
+      founderAccess && typeof founderAccess.founderNumber === "number"
+        ? founderAccess.founderNumber
+        : undefined,
+    accessToken: founderAccess ? accessToken : undefined,
   });
   if ("error" in result) {
     const status =

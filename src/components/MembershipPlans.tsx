@@ -34,6 +34,14 @@ type Props = {
       single line beneath the subscribe button — social proof at the
       moment of decision. Renders only when > 0. */
   totalMembers: number;
+  /** Single-use private founder token. When set, the page has unlocked
+      the founder floor via /membership?access=<token>; it rides along
+      in the checkout POST so the server can re-validate + grant. */
+  accessToken?: string;
+  /** True on the private founder link. Keeps the founder floor + #101
+      badge preview but swaps the public "X of 100 slots left" line for
+      a private-grant line. */
+  privateFounderAccess?: boolean;
 };
 
 const FOUNDER_MONTHLY_CENTS = 800;
@@ -101,7 +109,8 @@ function describeAmount(
   founderEligible: boolean,
   founderRemaining: number,
   charterEligible: boolean,
-  charterRemaining: number
+  charterRemaining: number,
+  privateFounderAccess: boolean
 ): string {
   const monthly = monthlyEquivalentCents(cents, plan);
   // Founder rate: only when the user is below the standard floor AND
@@ -110,6 +119,11 @@ function describeAmount(
   // (handled in the webhook) but the per-tier line is what's surfaced
   // here.
   if (founderEligible && monthly < STANDARD_MONTHLY) {
+    // Private founder link: there's no public slot counter to quote —
+    // it's an honored one-off, not the open cohort.
+    if (privateFounderAccess) {
+      return "founder rate. locked for life. name your price above $8.";
+    }
     return `founder rate. locked for life. ${founderRemaining} of 100 ${
       founderRemaining === 1 ? "slot" : "slots"
     } left.`;
@@ -161,6 +175,8 @@ export function MembershipPlans({
   charterEligible,
   charterClaimed,
   totalMembers,
+  accessToken,
+  privateFounderAccess = false,
 }: Props) {
   const [plan, setPlan] = useState<Plan>("monthly");
   const [cents, setCents] = useState<number>(() =>
@@ -227,7 +243,11 @@ export function MembershipPlans({
       const res = await fetch("/api/membership/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, amountCents: cents }),
+        body: JSON.stringify({
+          plan,
+          amountCents: cents,
+          ...(accessToken ? { accessToken } : {}),
+        }),
       });
       const data: {
         url?: string;
@@ -267,7 +287,8 @@ export function MembershipPlans({
     founderEligible,
     remaining,
     charterEligible,
-    charterRemaining
+    charterRemaining,
+    privateFounderAccess
   );
 
   const visiblePresets = PRESETS.filter(

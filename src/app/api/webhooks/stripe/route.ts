@@ -12,6 +12,7 @@ import {
 } from "@/lib/wallDonations";
 import { getWallBySlug } from "@/lib/walls";
 import { notifyNewWallDonation } from "@/lib/email";
+import { consumeFounderAccess } from "@/lib/founder-access";
 import {
   claimCharterSlot,
   claimFounderSlot,
@@ -286,10 +287,26 @@ async function handleMembershipCheckout(
         ? "charter"
         : "regular";
 
+  // Honored one-off founder grant (e.g. Founder #101) carried by a
+  // validated private access token. When present, assign the explicit
+  // number directly and DO NOT call claimFounderSlot / touch the founder
+  // counter — the public "100 of 100" cohort stays full and
+  // isFounderEligible stays false.
+  const founderGrantRaw = metadata.founder_slot_grant;
+  const founderGrant =
+    typeof founderGrantRaw === "string" ? parseInt(founderGrantRaw, 10) : NaN;
+
   let tier: Tier = "regular";
   let founderSlot: number | null = null;
   let charterSlot: number | null = null;
-  if (tierAtCheckout === "founder") {
+  if (
+    tierAtCheckout === "founder" &&
+    Number.isFinite(founderGrant) &&
+    founderGrant > 0
+  ) {
+    tier = "founder";
+    founderSlot = founderGrant;
+  } else if (tierAtCheckout === "founder") {
     const slot = await claimFounderSlot();
     if (slot !== null) {
       tier = "founder";
@@ -356,6 +373,19 @@ async function handleMembershipCheckout(
 
   await saveMember(record);
   await writeSessionIndex(session.id, email);
+
+  // Single-use founder access token: consume it now that the checkout
+  // has succeeded, so the private link can't be reused. Non-fatal.
+  if (metadata.founder_access_token) {
+    await consumeFounderAccess(metadata.founder_access_token, email).catch(
+      (err) => {
+        console.error(
+          `[membership] consumeFounderAccess failed for ${email}:`,
+          err
+        );
+      }
+    );
+  }
 
   // Default display name from Stripe customer_details.name. Disambiguates
   // against existing members: "Adam" → "Adam R." → "Adam Reynolds". The
