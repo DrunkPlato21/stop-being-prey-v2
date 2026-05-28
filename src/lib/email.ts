@@ -103,7 +103,7 @@ export function renderMagicLinkHtml(url: string): string {
             </tr>
             <tr>
               <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
-                <p style="margin:0 0 18px 0;font-style:italic;">a sign-in link, valid for 15 minutes.</p>
+                <p style="margin:0 0 18px 0;font-style:italic;">a sign-in link, valid for 24 hours.</p>
                 <p style="margin:0 0 28px 0;">click below to access the field notes.</p>
               </td>
             </tr>
@@ -138,7 +138,7 @@ export function renderMagicLinkText(url: string): string {
   return [
     "stop being prey, sign-in link",
     "",
-    "a sign-in link, valid for 15 minutes:",
+    "a sign-in link, valid for 24 hours:",
     url,
     "",
     "if you didn't request this, ignore this email.",

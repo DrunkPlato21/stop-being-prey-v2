@@ -2,12 +2,12 @@ import { SignJWT, jwtVerify } from "jose";
 import { Redis } from "@upstash/redis";
 import { randomUUID } from "crypto";
 
-// Magic-link JWT auth, no NextAuth. Single-use 15-minute tokens stored in
+// Magic-link JWT auth, no NextAuth. Single-use 24-hour tokens stored in
 // Upstash Redis (already configured for supporters). Session is a 30-day
 // JWT in an httpOnly cookie. AUTH_SECRET signs both.
 
 const SESSION_DURATION_DAYS = 30;
-const MAGIC_LINK_TTL_SECONDS = 60 * 15; // 15 minutes
+const MAGIC_LINK_TTL_SECONDS = 60 * 60 * 24; // 24 hours
 const SESSION_COOKIE_NAME = "sbp_session";
 const MAGIC_PREFIX = "magic:";
 
@@ -80,7 +80,7 @@ export type MagicLinkRecord = {
 };
 
 /**
- * Mint a single-use magic-link token. Stored in Redis with a 15-minute
+ * Mint a single-use magic-link token. Stored in Redis with a 24-hour
  * TTL and a one-shot delete on consume.
  */
 export async function createMagicLink(
