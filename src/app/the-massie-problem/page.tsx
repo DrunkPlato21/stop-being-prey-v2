@@ -256,13 +256,13 @@ export default async function MassieProblemPage() {
             style={{ fontSize: "1.05rem", lineHeight: 1.7 }}
           >
             <p className="mb-4">
-              This is a rough draft. You&apos;re getting Acts 1 through 5.
-              Act 6 is still being written.
+              This is still a rough draft, but it&apos;s all here now,
+              Prologue through Act 6.
             </p>
             <p className="mb-4">
-              I&apos;ll be updating this thing live throughout the day. If
-              you spot errors, anything that reads off, anything you&apos;d
-              push back on... send it. All feedback welcome.
+              I&apos;ll keep updating and polishing it. If you spot
+              errors, anything that reads off, anything you&apos;d push
+              back on... send it. All feedback welcome.
             </p>
             <p className="mb-4">
               And if you just want to tell me it landed... I&apos;ll take
