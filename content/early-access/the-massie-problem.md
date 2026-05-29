@@ -913,29 +913,29 @@ They listen to people like me, because they can tell I’m being honest with the
 
 Tom… man… what are you doing?
 
-And Tom, it's not just that your heart is in the wrong place... You've got the facts backwards too.
+It's not just that your heart is in the wrong place... You've got the facts backwards too.
 
-The kids you're praising? They vote at half the rate of the boomers you're trashing. And when they do show up, they just made a socialist the mayor of New York. If young people ran the country, Tom, you wouldn't get liberty. You'd get President AOC… if you’re lucky. 
+The kids you're praising? They vote at half the rate of the boomers you're trashing. And when they do show up, they just made a socialist the mayor of New York. If young people ran the country, you wouldn't get liberty. You'd get President AOC… if you’re lucky. 
 
-If you're not... well. The kids don't just vote for socialists, Tom. Some of them celebrate murder… they killed that boy who wrote to you back in 2012… and you sound like them, sometimes time. That’s the truth. That’s the painful thing I’ve been working up to this entire article. 
+If you're not... well. The kids don't just vote for socialists. Some of them celebrate murder… they killed that boy who wrote to you back in 2012… and you sound like them, sometimes. That’s the truth. That’s the painful thing I’ve been working up to this entire article. 
 
-I see them in you now… and I know it’s not the truth. I know it’s not who you are. You are performing. But why, Tom? Why are you performing like this?
+I see them in you now… and I know it’s not the truth. I know it’s not who you are. You are performing. But why? Why are you performing like this?
 
 You fought for Ross for ten years, Tom. You put his mother on your show. You cried "thank you, Donald Trump" when it finally happened. You defended that pardon against the haters and losertarians who said it couldn’t be done through Trump. And now you're performing for the people trying to destroy the man who freed him. 
 
-Why, Tom? Why would you do that? Because he’s not a perfect libertarian? Because of how he handles Middle Eastern foreign policy disputes? You’re throwing him to the wolves for that?
+Why? Why would you do that? Because he’s not a perfect libertarian? Because of how he handles Middle Eastern foreign policy disputes? You’re throwing him to the wolves for that?
 
 The guy they keep trying to murder? 
 
-I don't even care why anymore, Tom. It's not who you are. So stop. All is forgiven.
+I don't even care why anymore. It's not who you are. So stop.
 
-Join us, Tom. The MAGA Alliance needs you, it needs your supporters. It’s an imperfect alliance. Some of your enemies are in it… mine too. That’s why we need you even more!
+All is forgiven.
 
-There is no third option. The libertarian party is not going to rise from the ashes. Thomas Massie does not have the charisma to pull off something like Trump did. Sorry. It’s not happening. 
+There’s a place for you here when you’re ready, Tom. It’s an imperfect alliance, some of your enemies are in it, mine too. But it’s the one that’s winning. The one that freed Ross.
 
-Do not abandon reality for some libertarian fantasy, please. Do not channel your energy into trying to tear Trump down, I beg you. 
+There’s no third option. The Libertarian Party isn’t rising from the ashes, and Massie doesn’t have the charisma to do what Trump did. That fantasy is over. So don’t waste yourself trying to tear down the one man who actually delivered.
 
-Do you remember what that man did?
+Do you remember what he did?
 
 A year ago, Ross had two life sentences and no parole. He was destined to die in a federal prison. Now look… 
 
