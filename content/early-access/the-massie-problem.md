@@ -837,7 +837,7 @@ But here's the real tell:
 
 114k likes on that one last I checked. Win or lose, same answer. That's not a serious political analyst, that's a hype man working a crowd. It's a show. You’re a comedian. This is what you do, and you’re really good at it… the numbers speak for themselves, so does your bank account.
 
-But you’re not a serious political commentator. Not anymore, if you ever really work.
+But you’re not a serious political commentator. Not anymore, if you ever really were.
 
 Dave, like you, I consider the late great Patrice O’Neal to be one of the best comedians of all time. I can't help but think back to the way he broke down a guy like Alex Jones on Opie and Anthony. Here’s what he said:
 
