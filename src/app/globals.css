@@ -260,7 +260,7 @@ a.no-underline {
   margin: 1.25rem auto 0;
 }
 
-/* Act dividers on the early-access essays (/the-massie-eulogy). Scoped
+/* Act dividers on the early-access essays (/the-massie-problem). Scoped
    to .ea-essay so site-wide article/field-note h2 spacing is untouched.
    Only the surrounding whitespace changes here. the hairlines, caps,
    letter-spacing, font, and color all stay as the base h2 above defines
@@ -318,7 +318,7 @@ a.no-underline {
 
 /* === Early-access essay quote treatments ====================
    Two deliberate variants layered over .prose-article for member
-   early-access pieces (e.g. /the-massie-eulogy). The page post-
+   early-access pieces (e.g. /the-massie-problem). The page post-
    processes rendered <blockquote>s into these figures. Restraint is
    the rule: one typographic gesture per variant. The default
    .prose-article blockquote above is left intact for every other
@@ -373,6 +373,37 @@ a.no-underline {
 .prose-article figure.ea-pullquote:first-of-type::before,
 .prose-article figure.ea-pullquote:first-of-type::after {
   display: none;
+}
+
+/* === Closing finale ============================================
+   The essay's last two pull quotes are ONE unit. The setup keeps the
+   article's standard pull-quote treatment (full size, italic Cormorant)
+   so it reads as a real pull the reader stops on, not a caption. The
+   payoff sits in the SAME family and is lifted only ~1.35x with added
+   weight — emphasis through weight and air, not raw size. The hairline
+   BETWEEN them is removed and the gap closed so it reads photo -> quote
+   -> payoff as a single beat; the lead-in rule above the setup stays, the
+   trailing rule is dropped so it resolves into the eye divider below.
+   Position-scoped: these are the last two pulls that close the document
+   (photo figure, then setup pull, then payoff pull). */
+.prose-article figure.ea-pullquote:nth-last-child(2)::after,
+.prose-article figure.ea-pullquote:last-child::before,
+.prose-article figure.ea-pullquote:last-child::after {
+  display: none;
+}
+.prose-article figure.ea-pullquote:nth-last-child(2) {
+  margin-bottom: 0;
+}
+.prose-article figure.ea-pullquote:last-child {
+  margin-top: 1.6rem;
+}
+.prose-article figure.ea-pullquote:last-child p {
+  font-weight: 600;
+  font-size: clamp(2.8rem, 8vw, 3.75rem);
+  line-height: 1.1;
+  /* The two-line break is forced explicitly via " // " in the markdown
+     (see the PULL handler), so no width hack is needed: "Thank you," sits
+     on line one, "Donald Trump." on line two. */
 }
 
 /* Block quote — sourced receipts. Pure typography: no panel, border,

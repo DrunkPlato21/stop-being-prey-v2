@@ -15,7 +15,19 @@ const nextConfig: NextConfig = {
     // The early-access essay reads its markdown from content/early-access
     // via fs at request time. Opt the dir into the function bundle so the
     // page can't 404 on its own content in production.
-    "/the-massie-eulogy": ["content/early-access/**/*"],
+    "/the-massie-problem": ["content/early-access/**/*"],
+  },
+  // The essay's slug was renamed from /the-massie-eulogy to
+  // /the-massie-problem. Keep old links (shared URLs, the seeded desk
+  // entry, sign-in redirects) working with a permanent redirect.
+  async redirects() {
+    return [
+      {
+        source: "/the-massie-eulogy",
+        destination: "/the-massie-problem",
+        permanent: true,
+      },
+    ];
   },
 };
 

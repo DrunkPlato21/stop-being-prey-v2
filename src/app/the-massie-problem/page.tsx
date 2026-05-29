@@ -22,7 +22,14 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 // branch, not a CSS hide). Same JWT session mechanism the rest of the
 // member surfaces use (see src/lib/auth.ts).
 
-const SLUG = "the-massie-eulogy";
+// Route + content-file slug. This is the live URL (/the-massie-problem)
+// and the markdown filename under content/early-access.
+const SLUG = "the-massie-problem";
+// Comments key. Deliberately pinned to the ORIGINAL slug so the rename
+// from /the-massie-eulogy doesn't orphan member comments already stored
+// in Redis under comments:article:the-massie-eulogy. Do not "fix" this to
+// match SLUG without migrating the existing comment data first.
+const COMMENT_SLUG = "the-massie-eulogy";
 const SOURCE = path.join(
   process.cwd(),
   "content",
@@ -97,8 +104,11 @@ async function loadEssay(): Promise<Loaded> {
     /<p>\s*\{\{PULL:\s*([\s\S]*?)\}\}\s*<\/p>/g,
     (_m, inner: string) => {
       const [quote, attr] = inner.split("|").map((s) => s.trim());
+      // " // " in a pull forces a manual line break (raw <br> in markdown
+      // is stripped by remark). Used for the closing payoff line.
+      const quoteHtml = (quote ?? "").replace(/\s*\/\/\s*/g, "<br>");
       const cap = attr ? `<figcaption>${attr}</figcaption>` : "";
-      return `<figure class="ea-pullquote"><p>${quote ?? ""}</p>${cap}</figure>`;
+      return `<figure class="ea-pullquote"><p>${quoteHtml}</p>${cap}</figure>`;
     }
   );
   bodyHtml = bodyHtml.replace(
@@ -172,7 +182,7 @@ async function loadEssay(): Promise<Loaded> {
   };
 }
 
-export default async function MassieEulogyPage() {
+export default async function MassieProblemPage() {
   const cookieStore = await cookies();
   const session = await verifySession(
     cookieStore.get(SESSION_COOKIE)?.value
@@ -275,53 +285,13 @@ export default async function MassieEulogyPage() {
           className="prose-article ea-essay"
           dangerouslySetInnerHTML={{ __html: bodyHtml }}
         />
-
-        {/* === Cliffhanger: Act 6 still being written === */}
-        <div
-          className="max-w-[42rem] mx-auto mt-16 px-6 py-8 md:px-9 md:py-9"
-          style={{
-            background: "var(--paper-deep)",
-            borderLeft: "2px solid var(--eye-deep)",
-          }}
-        >
-          <p
-            className="eyebrow mb-5"
-            style={{
-              fontSize: "0.86rem",
-              letterSpacing: "0.28em",
-              fontWeight: 600,
-              color: "var(--eye-deep)",
-            }}
-          >
-            To be continued
-          </p>
-          <p
-            className="font-serif text-ink mb-4"
-            style={{ fontSize: "1.14rem", lineHeight: 1.65 }}
-          >
-            Act 6 is being written now. You&apos;ll get it first.
-          </p>
-          <p
-            className="font-serif text-ink mb-7"
-            style={{ fontSize: "1.05rem", lineHeight: 1.65 }}
-          >
-            Tell me what you make of Acts 1 through 5 in the comments
-            below. I read every one.
-          </p>
-          <p
-            className="font-display text-ink"
-            style={{ fontSize: "1rem", fontWeight: 500 }}
-          >
-            ~ Clay
-          </p>
-        </div>
       </div>
 
       <EyeDivider />
 
       {/* Members-only early access, so every viewer here is signed in;
           the Comments component renders the member form directly. */}
-      <Comments kind="article" slug={SLUG} />
+      <Comments kind="article" slug={COMMENT_SLUG} />
 
       <div className="text-center pb-16">
         <Link

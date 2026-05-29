@@ -102,7 +102,7 @@ Charlie saw it the same way. He posted this to his audience:
 
 > "Well, @RepThomasMassie was in the same SCIF as Speaker Johnson, and he's fed up with the lying. Massie says there was NOT ONE EXAMPLE spying on Americans without a warrant was able to prevent terrorism. It's all a scam. Shame on Republicans who fall for it."
 >
-> \~ Charlie Kirk
+> \~ Charlie Kirk, X, April 22, 2024
 
 Massie was right. Charlie said so out loud.
 
@@ -399,13 +399,13 @@ Stephen Miller, Trump White House aide, posted this on primary day, May 19, 2026
 
 > "Every time it truly matters Massie sides with the Democrats and the corrupt leftist media."
 >
-> \~ Stephen Miller
+> \~ Stephen Miller, May 19, 2026
 
 Within hours, Mehdi Hasan quote-tweeted it. Here's what he said:
 
 > "And when he says 'matters' he means, from the Trump perspective, protecting pedophiles and starting new wars."
 >
-> \~ Mehdi Hasan
+> \~ Mehdi Hasan, May 19, 2026
 
 Read those two tweets back to back. The Trump White House aide naming Massie's alignment with the Democrats. The leftist journalist confirming the alignment and defending it. They disagree about whether the alignment is good. They agree the alignment is real.
 
@@ -557,7 +557,7 @@ I am not proud of that anger… it’s a prey instinct. It happens when I write 
 
 You can feel my emotions in these words sometimes, can’t you?
 
-But now that I have most of it off my chest, something has shifted in me
+But now that I have most of it off my chest, something has shifted in me.
 
 There’s this voice inside my head… and it’s not mine.
 
@@ -592,21 +592,9 @@ Tom Woods doesn't just talk about politics and history. The man is lifting up pe
 
 The man is a fucking hero!
 
-He even introduced me to one of my favorite writers who has actually inspired a lot of my own writing and my writing style. A copywriter named Ben Settle.
+He even introduced me to the writer who shaped my whole style, a copywriter named Ben Settle. That one introduction became the seed of my entire new career, and Tom doesn’t even know who I am… yet.
 
-Tom introduced me to his work. That one introduction effectively became the seed of my whole new career… my life's work.
-
-Tom also taught me how to monetize my haters. If you have listened to him for any length of time, you know the move. The contempt becomes content. I run something I call The Wall where I do exactly that to fund my project. I only deploy the strategy on the haters that really deserve it.
-
-The most recent one was a guy named Marek. He came to a Charlie Kirk post on my page in May with a script smearing Trump supporters as the real political killers. I took it apart and put it on [the wall.](https://stopbeingprey.com/walls/marek-takedown)
-
-Then my readers showed up. With messages of their own. With donations attached. $413 raised. Not too bad! That’s what happens to you when you come to my page to smear the good name of Charlie Kirk. I calmly take you apart in front of my thousands of readers with Machiavellian precision, and then use you to finance the book I’m writing ‘Stop Being Prey’… I will literally turn you into money… Monetize the haters. It’s kind of genius, right?
-
-That is the operation Tom Woods taught me, and he doesn’t even know who I am… yet.
-
-I am a little over two months into doing this writing thing full time. For those who don’t know me, I’m a software engineer by trade, and a writer by necessity. Good line, right? The writing has already reached millions of people, and I have begun building a small but loyal army of paid subscribers who support my work. None of that exists without Tom Woods.
-
-How am I going to get the knives out to attack the man who gave that to me? Have I no honor?…
+How am I going to get the knives out to attack the man who gave me that? Have I no honor?…
 
 Tom already knows what it’s like when people bring out the knives for him.
 
@@ -616,15 +604,13 @@ Tom was warning people about the damage the lockdowns could do... the mandates, 
 
 Tom was right about all of it. Everyone knows that now… but at the time he was punished for it. Silenced for telling the truth.
 
-He took that experience and used it to write the defining book about the COVID era titled: Diary of a Psychosis: How Public Health Disgraced Itself During COVID Mania
-
-Seriously, how perfect of a title is that? The book is a masterpiece too. You should buy it: *(book link to come)*
+He took that experience and used it to write the defining book about the COVID era: Diary of a Psychosis: How Public Health Disgraced Itself During COVID Mania.
 
 Tom wrote it in real time. He was documenting the lies as they were being told, with receipt after receipt. It carries real weight. It almost reads like a prosecution, because that’s really what it is.
 
-That is what Tom Woods being right looks like. Tom has paid the price for it… now he’s totally vindicated. He’s a real one. One of the best. This is my case for why Tom Woods deserves massive respect from everyone within the MAGA alliance, even though he might be fucking up right now.
+That is what Tom Woods being right looks like. Tom has paid the price for it… now he’s totally vindicated. This is my case for why Tom Woods deserves massive respect from everyone within the MAGA alliance, even though he might be fucking up right now.
 
-If you’re going to criticize this GREAT man, you better show some respect to his name, and bring your receipts. So that’s what I’m going to do… in a moment.
+If you’re going to criticize this great man, you better show some respect to his name, and bring your receipts. So that’s what I’m going to do… in a moment.
 
 First, let me just say something about the other 2 generals of the losertarian army.
 
@@ -634,27 +620,21 @@ Good guys. I’ve had my interactions with both over the length of their careers
 
 I'll start with Clint.
 
-I remember the first time I ever encountered him. It was a debate he was having with a young Neocon guy named Kevin Castley, back in early 2021. Clint handled him so well I went out of my way to follow him afterwards and sent him a DM. He followed me back on twitter… We became mutuals for a while.
+I remember the first time I ever encountered him. It was a debate he was having with a young Neocon guy named Kevin Castley, back in early 2021. Clint handled him so well I went out of my way to follow him afterwards and sent him a DM. He followed me back on twitter… we became mutuals for a while. At some point he unfollowed me. No big deal. It happens.
 
-At some point he unfollowed me. No big deal. It happens. I unfollow people too.
+But the man has a real gift. Clint does a great job getting into the weeds on stuff like ESG, the Fed, the monetary system. He has financial insight that is way above me on that sort of thing. I’ve read all the great economists… but a lot of that stuff is abstract… Clint has read all that stuff PLUS he applies it to real world finance. I can’t do that, I don’t have that skill… so I listen to people like Clint to get insight on those kinds of subjects.
 
-But the man has a real gift. Clint does a great job getting into the weeds on stuff like ESG, the Fed, the monetary system. He has financial insight that is way above me on that sort of thing. I’ve read all the great economists… but a lot of that stuff is abstract… Clint has read all that stuff PLUS he applies it to real world finance. I can’t do that, I don’t have that skill… so I listen to people like Clint to get insight on those kinds of subjects. \
-\
-Clint also seems like a total bro, and by that, I mean a good friend. It’s one of the most admirable things about the relationship between Dave and Clint. They are fiercely loyal to eachother. Loyalty is a quality I place very highly in a person… and it’s central to my criticism of libertarians, actually… we’ll get to that.
+Clint also seems like a total bro, and by that, I mean a good friend. It’s one of the most admirable things about the relationship between Dave and Clint. They are fiercely loyal to each other. Loyalty is a quality I place very highly in a person… and it’s central to my criticism of libertarians, actually… we’ll get to that.
 
 But lastly… Dave Smith… genuinely, one of my heroes. I've spent an unseemly amount of time consuming Dave Smith podcasts over the years. I'm about as OG as a Dave Smith fan can be.
 
-I was there for Legion of Skanks (Dave's comedy podcast) before I even knew who Dave was, or anyone else did for that matter. From before the Cumia network era. I come from the Opie and Anthony world, the same comedy ecosystem that gave us Joe Rogan and a hundred other voices.
-
-I was on the JoeRogan.net forums long before there was ever a Joe Rogan podcast. I was on the Shit Talking 101 board when Brian Redban was running livestreams from comedy-club green rooms on Justin.tv, before The Joe Rogan Experience existed. I stuck around through the early Ustream era too.
-
-I know, I know. I spent the prime of my life on internet forums for comedy podcasts that didn't exist yet. Not exactly a brag. But it matters here, because it means I'm not throwing rocks from outside Dave's world. I'm inside it. I've lived and breathed in the world Dave's podcast career spawned out of since the very beginning.
+I come from the Opie and Anthony world, the same comedy ecosystem that gave us the Joe Rogan Experience. I was there for Legion of Skanks before I knew who Dave was, on the JoeRogan.net forums before there was ever a Joe Rogan podcast, back when Brian Redban was running livestreams from comedy-club green rooms on Justin.tv. I've lived and breathed in the world Dave's podcast career spawned out of since the very beginning.
 
 Back in 2017, I spoke to Dave's best friend and comedian Luis J Gomez on the phone for an hour or so one night. We talked all about strategies to promote Dave's first comedy special “Libertas”, which they were independently producing on this budding podcast network called Gas Digital.
 
 The reason I got his attention was because I made a fan page on Facebook for Dave at the time, and got some serious engagement on the promotional clips for that comedy special. It got their attention… Dave gave me a shout out by name on the podcast, then Luis called me.
 
-Small moments. They meant a lot to me. I never forgot it.
+It’s not much, and I doubt Dave or Luis even remember it. But it meant a lot to me. They were both genuinely cool to me, and I never forgot it.
 
 I gave Dave an entire section in [The Losertarian Problem](https://stopbeingprey.com/the-losertarian-problem), if you want to know more about all of the good he’s done… and unfortunately… some bad he’s currently doing.
 
@@ -667,3 +647,300 @@ That is the truth. Ross owes a debt to Dave, Angela, and Tom Woods for that matt
 Okay… now we get to the hard part… the knives… remember the knives?
 
 What do we do about these damn knives?!
+
+## Act 6
+
+Okay… the knives… I have to attack these great, decent men who have done nothing but add value to my own life.
+
+Did you notice I didn’t even mention Massie in Act 5?
+
+There’s still that voice inside my head telling me not to do this… but it must be done. The knives must come out… so be it. Here we go…
+
+Charlie Kirk is dead. Politically Assassinated. In front of a crowd, on camera, in high-definition, witnessed by countless millions of people on the internet. Some of them celebrated… they could barely contain their glee when they saw his neck explode. They put on some music they did a little dance. That’s a real thing, and it’s not ‘just a few’.
+
+Who do you think those people voted for in the last election? The MAGA Alliance, or the Regime Alliance? How do you think they’re going to vote in the midterms?
+
+You know the answer.
+
+And those are the people Tom Woods, Dave Smith, and Clint Russell are now spending their days helping. Not always consciously or deliberately… but effectively. This is why I have to bring out the knives… because the progressives are bringing out the guns.
+
+I’m not bringing these knives to a gun fight… no…
+
+The knives are for the men inside our own house who keep handing our enemies ammunition. Thomas Massie and his losertarian generals. The ones calling the Trump administration the ‘Epstein Class’.
+
+Every single one of these people is an asset of the Regime Alliance.
+
+The knives are to teach you the game that you’re missing. Not the libertarian vs statist game. Not liberals vs conservatives even… No. That’s not the real game... I’m talking about the base layer operating system of the animal kingdom…
+
+Predators vs Prey.
+
+You, the libertarians, of all people, should be able to see the truth of this. Politics is violence. The State is the Monopoly on Violence. That’s the defining characteristic that makes it unique. Rothbard synthesized this perfectly in “Anatomy of the State”. \
+\
+Nobody gets this better than you… well actually… that’s not true… not at all. The Progressives do. They just don’t understand it on the intellectual level that you libertarians do. They haven’t read Rothbard…
+
+They understand it on a much more base, animalistic level.
+
+To you, it’s a series of interesting arguments and ideas. It’s a hobby. A passionate and interesting hobby, I’ll grant you. But a hobby.
+
+To the Progressive, it’s an addiction. A hunger… a craving.
+
+Predators and Prey.
+
+You have the capacity for both. We all do. Even Trump, the ostensible Apex Predator can be made into someone’s prey… and Lord knows they keep trying.
+
+Charlie… sadly… became the prey of a confused, sad young man.
+
+I’m not going to relitigate the rise of left-wing violence towards members of the MAGA Alliance. At this point, if you claim not to see it, or say it’s ‘both sides’, I don’t consider you a serious person and no one else should either. I cannot imagine anyone like that getting this far in this article. That means you, dear reader, are a serious person.
+
+And so, I’m not going to mince words for you. You can handle the hard truths.
+
+You are in a civil war.
+
+There, I said it… do you believe it? Most conservatives don’t. They push back on me… tell me it hasn’t gotten that bad yet. Maybe they’re right… but do you know who does believe it?
+
+The Progressives. They literally view you as enemy combatants. That's why they shot Charlie. And celebrated… that's just what you do when you take out an enemy general in a war, isn’t it? That’s why they’re disappointed Trump turned his head at the last second in Butler…
+
+By the way... notice how they aren't shooting at the libertarians?
+
+That's because those aren't enemy combatants. Those are the Regimes pets. You don't shoot your pets.
+
+You shoot Charlie, you shoot Trump. The predators who collect real wins…
+
+Watch how progressives operate. They take territory and don't apologize for it. They name enemies and make real, calculated moves against them. They celebrate strategic wins openly, including assassinations of political opponents. They institutionalize victories so they can't be reversed. They build the architecture that lets them keep doing it. They are playing for keeps, while most conservatives and libertarians still act like politics is a debate club.
+
+The lesson of Charlie Kirks assassination is that politics is not a debate club.
+
+The debate ended with a gunshot.
+
+Now we’re in a new thing… we’re all still trying to figure out what that thing is exactly, and what the rules are.
+
+The progressive doesn’t think they're at war because someone told them they're at war. They think they're at war because they ARE at war and they can feel it. It is existential. It’s who they are. Their political views come after the instinct... not before.
+
+They don’t really have ‘views’ like you do. Contradictions don’t bother them, they don’t sit up late at night trying to work it out. They just want power and status. They want to matter. And they will align with whatever views give them that feeling in the moment. Ironically, many of them will probably come into the MAGA Alliance if it actually becomes the new Regime. That’s just how they operate.
+
+Their entire political view is a rationalization for their desire to rule over others. To show you that they are your superior in the moral hierarchy, and you need their guidance.
+
+And so, my dear libertarians, you have the intellectual framework. You don't have the killer instinct. That’s why Donald Trump was able to eat Rand Paul on the debate stage without breaking a sweat. Predator and Prey. That’s why he was able to take out Massie. Predator and Prey.
+
+Do you see?
+
+BUT ISRAEL!… AIPAC!!!! I’m going to say this as politely as I can.
+
+shut the fuck up.
+
+You sound like Hasan Piker, Mehdi Hasan and the New York Fucking Times... verbatim… Are you proud of that? Are the treats that good? Lots of hits on those videos. How’s the ad revenue?
+
+Okay… there’s the anger… I’m mad again… now about those knives…
+
+Dave Smith… you first.
+
+Look, man. I've consumed thousands of hours of your content. I've shared it with my friends. I've shared it with my own mother. You don't have a bigger fan than me.
+
+I don't share your stuff anymore. I'm too embarrassed.
+
+I'll tell you why.
+
+Years back I cut a clip of you talking Bitcoin on PBD's show, put it on Twitter, and Billionaire Michael Saylor reposted it. Remember that? That was me again. Just here in the background, doing what I do, supporting my people.
+
+And what you said in that clip was great. You sounded like a man about to get serious about Bitcoin with your audience. It was around $30,000 then. It's $73,000 as I write this.
+
+> "This to me is like the most important thing... what we need today in the United States of America more than anything is the separation of money and the state.
+>
+> ...try maintaining the war in Afghanistan if every month people had to pay for it. That thing would've been over by Christmas of 2001...
+>
+> So the Federal Reserve and the money printing is the lifeblood of the Leviathan. That's what we need to attack, and that's why Bitcoin has so much potential.”
+>
+> \~ Dave Smith on PBD, May 2022
+
+Then Bitcoin almost entirely disappeared from your narrative for years, and Israel took over. More and more. Every podcast, every panel, every argument, until Israel was the whole beat. This is when I began noticing you’re losing the plot.
+
+But then one day a notification comes up on my phone. A new Dave Smith podcast episode. Guest: Saifedean Ammous. The author of The Bitcoin Standard! Finally! You're going to get off the Israel beat for a bit and go deep on Bitcoin.
+
+I texted my buddy Brandon, who has read his book, all excited. This is going to be great... It's about time!
+
+I loaded it up. I listened, anxiously but patiently.
+
+It was all about Israel… because, of course it was… The whole fucking thing was about Israel. Bitcoin barely came up, except to tell us you weren't going to talk about it, and that maybe you’d have Saifedean back one day to have that conversation…
+
+Think about that, man. You had the author of The Bitcoin Standard right in front of you, and you used the opportunity to talk about Israel. You never had him back on to talk about Bitcoin.
+
+You know what this made me realize, Dave?
+
+**It isn't Trump who's owned by Israel, dude. It's you.**
+
+You walked away from the most fascinating libertarian technology that’s ever been created to obsess over a foreign country. Bitcoin is literally Anarcho-Capitalism synthesized into computer code, Dave. Rules for Private Property Rights without Rulers.
+
+You don't want to spend any time exploring that with your audience?\
+Is  Israel really so much more interesting than Bitcoin to them? If so, that's an indictment of the libertarians…
+
+I don’t actually believe that. I think there are a lot of good libertarians in your audience who are starting to sense the path you are on is going to lead them to failure. You know how I know? They write to me, constantly. Some even join my paid supporters group. They tell me they still love you, but your obsession with Israel is getting to be a bit much for them.
+
+Yes, Dave… your audience is growing, and it's growing fast… but it's also changing.
+
+The serious people are leaving, one at a time, because they can feel something is off with you. The crowd replacing them is a different beast than the one that built you up.
+
+You'll keep getting your millions of views. Monetize them. Get yourself another house… maybe a fancy car. Sell the Israel obsession, make your money... take care of your family with it. I encourage that, even!
+
+While you do that, I'll take the operators off your hands and do serious political analysis with them. You've shown them you're not interested in that sort of thing anymore.
+
+This really has nothing to do with Bitcoin, Dave. It’s okay if you’re not interested in Bitcoin… that’s not the point. The point is this: The obsession that made you drop Bitcoin as a topic is the same obsession that won't let you tell the truth about Massie.
+
+Days before the primary, two men looked at the same race and saw opposite futures. One was Michael Knowles from the Daily Wire. He said Massie would lose, and said exactly what it would mean: that Trump's grip on the party was ironclad.
+
+The other was you, Dave. You said Massie would win. You were so sure of it you actually mocked Knowles with a grin on your face, said you couldn't wait to watch Knowles eat his words.
+
+Here’s what Knowles said:
+
+> "If Massie goes down, this will be evidence that Trump has an ironclad grip on the Republican party."
+>
+> \~ Michael Knowles, before the primary
+
+Here's what you confidently said in response to Knowles's prediction:
+
+> "So if it proves that Trump has an iron grip when Massie falls out, what about when Thomas Massie wins and survives $20 million being pumped into his district? What would that suggest? **I wonder what Michael Knowles' reaction to that will be.**"
+>
+> \~ Dave Smith, in response to Michael Knowles
+
+As we now know, Massie lost decisively. Knowles was right. The reaction that you couldn’t wait to see on Knowles’ face was now on yours…\
+\
+How did you react?…
+
+> "Well, obviously, I didn't get that right. I said I think Thomas Massie will still win. And look, I'll be the first to admit, perhaps I was predicting with my heart a little bit more than with my head."
+>
+> \~ Dave Smith, May 26, 2026
+
+An honest concession. I respect it. However, it didn’t end here. Now, the cope begins…
+
+Your whole case rests on 2020. That’s when Trump turned on Massie, called him a third-rate grandstander, tried to run him out of the party. And Massie won his primary anyway, with 82% of the vote. That was a display of power.
+
+So you ask a fair question: if Trump's hostility couldn't sink Massie back then, what was different this time?
+
+> "Was it \[Trump\] endorsing Massie's opponent... or was it more money than's ever been poured into a race ever? I think it's the latter."
+>
+> \~ Dave Smith, May 26, 2026
+
+And there you have it. It’s the AIPAC money. The Adelson money. Israel... again. That’s the only thing that can explain why libertarians keep losing, I guess.
+
+That dastardly Israel has once again foiled your brilliant political analysis! Do you see the cope? You were completely correct the whole time… but Israel!
+
+> "I didn't claim that AIPAC always wins, they just usually do."
+>
+> \~ Dave Smith, May 28, 2026
+
+How convenient. An unfalsifiable claim, that you can weasel your way out of no matter the outcome.
+
+But here's the real tell:
+
+> "If Massie loses tonight, he should run for President. If Massie wins tonight, he should run for President."
+>
+> \~ Dave Smith, May 19, 2026
+
+114k likes on that one last I checked. Win or lose, same answer. That's not a serious political analyst, that's a hype man working a crowd. It's a show. You’re a comedian. This is what you do, and you’re really good at it… the numbers speak for themselves, so does your bank account.
+
+But you’re not a serious political commentator. Not anymore, if you ever really work.
+
+Dave, like you, I consider the late great Patrice O’Neal to be one of the best comedians of all time. I can't help but think back to the way he broke down a guy like Alex Jones on Opie and Anthony. Here’s what he said:
+
+> "If you tell me 2 + 2 is 4, and I know it is, then you shove marbles up your ass, I go 'Damn, Anthony shoves marbles in his ass?'
+>
+> But that doesn't invalidate 2 + 2 = 4."
+>
+> \~ Patrice O’Neal
+
+The crazy stuff Alex Jones does doesn’t make the truth he says false… but nobody wants to hear the math over the marbles. The marbles are all anybody remembers.
+
+Well, Dave, you also have marbles up your ass, in the Patrice O’Neal sense. The marbles are Israel. Your obsession discredits every other opinion you have, no matter how truthful and well thought out.
+
+That's my assessment of Dave Smith, as one of his original fans who's listened to more of his content than just about anyone on the planet.
+
+He could be a real force for good on our side, but he likes the treats too much.
+
+And he doesn't eat alone. His most loyal friend is right there beside him, nose in the same bowl. Clint Russell.
+
+> "Not one of the doomer-pilled libertarians that called me naive... has apologized. Not. One... Worthless mfers"
+>
+> \~ Clint Russell, Jan 29, 2025
+
+He was right. I was with him, dunking on the losertarians who fought against Angela McArdle every step of the way.
+
+She won, Ross was freed.
+
+> "If Ross Ulbricht gets to go home tomorrow it'll be the best feeling I've ever had in politics... President Trump. Thank you for doing the right thing and keeping your promise."
+
+The best feeling he’s ever had in politics… 
+
+Sixteen months later, Massie loses a primary, and the same man who thanked Trump for the best feeling he’d ever had was now ready to enthusiastically stab that same man in the back and burn it all down.
+
+> "Congrats to Israel on winning your record breaking 435th house seat... We're gonna burn down the entire GOP now."
+>
+> \~ Clint Russell, May 20, 2026
+
+And this is just who he is now. Same week, take your pick.
+
+> "Selling your souls for a few shekels. I hope you all die penniless you fkn frauds."
+>
+> \~ Clint Russell, May 17, 2026
+
+So, there you have it. Clint didn’t want Dave to keep the marbles all to himself.  Clint goes down whatever path Dave leads him. Loyal to the end, like I said.
+
+He became the exact doomer he called a worthless mfer sixteen months ago. That's all Clint is now. Dave's echo, barking back into the void he came from.
+
+That's what the generals of this movement have become.
+
+But it wasn't always this way.
+
+Okay… one knife left…
+
+This one hurts… 
+
+Tom Woods.
+
+> "My daughter was distraught over Massie today. I told her: your age group went for him nearly 80-20. I also told her: **Boomers are the most selfish and ignorant voting bloc in the history of the U.S.**
+>
+> \~ Tom Woods, May 20, 2026
+
+Tom, do you know who you just said that about? Because I do. I talk to them every day.
+
+They write to me. Long letters, the kind people don't write anymore. They tell me about their grandkids, their churches, and the country they're scared they're leaving behind. They pray for me. They are still mourning Charlie long after the rest of the world moved on to the next thing.
+
+They’re not ignorant, Tom. Massie had to go. For the same reasons Amash did. It wasn’t just AIPAC telling them this… it was me, and others like me. 
+
+They listen to people like me, because they can tell I’m being honest with them. I’m loyal to my readers, not an ideology. I don’t tell them they are brainwashed idiots…
+
+> "You are a brainwashed idiot who thinks a foreign country should have veto power over our representatives."
+>
+> \~ Tom Woods, to Juanita Broaddrick, Bill Clinton's most credible accuser, May 21, 2026
+
+Tom… man… what are you doing?
+
+And Tom, it's not just that your heart is in the wrong place... You've got the facts backwards too.
+
+The kids you're praising? They vote at half the rate of the boomers you're trashing. And when they do show up, they just made a socialist the mayor of New York. If young people ran the country, Tom, you wouldn't get liberty. You'd get President AOC… if you’re lucky. 
+
+If you're not... well. The kids don't just vote for socialists, Tom. Some of them celebrate murder… they killed that boy who wrote to you back in 2012… and you sound like them, sometimes time. That’s the truth. That’s the painful thing I’ve been working up to this entire article. 
+
+I see them in you now… and I know it’s not the truth. I know it’s not who you are. You are performing. But why, Tom? Why are you performing like this?
+
+You fought for Ross for ten years, Tom. You put his mother on your show. You cried "thank you, Donald Trump" when it finally happened. You defended that pardon against the haters and losertarians who said it couldn’t be done through Trump. And now you're performing for the people trying to destroy the man who freed him. 
+
+Why, Tom? Why would you do that? Because he’s not a perfect libertarian? Because of how he handles Middle Eastern foreign policy disputes? You’re throwing him to the wolves for that?
+
+The guy they keep trying to murder? 
+
+I don't even care why anymore, Tom. It's not who you are. So stop. All is forgiven.
+
+Join us, Tom. The MAGA Alliance needs you, it needs your supporters. It’s an imperfect alliance. Some of your enemies are in it… mine too. That’s why we need you even more!
+
+There is no third option. The libertarian party is not going to rise from the ashes. Thomas Massie does not have the charisma to pull off something like Trump did. Sorry. It’s not happening. 
+
+Do not abandon reality for some libertarian fantasy, please. Do not channel your energy into trying to tear Trump down, I beg you. 
+
+Do you remember what that man did?
+
+A year ago, Ross had two life sentences and no parole. He was destined to die in a federal prison. Now look… 
+
+{{FIGURE: /assets/the-massie-eulogy/ulbricht-family.jpg | Ross Ulbricht and his pregnant wife standing together outdoors under a tree, both smiling, his hands on her belly. | }}
+
+{{PULL: "Going from two life sentences plus 40 years without parole to this feels like a total miracle. There were times we didn't know if having a family would ever be in the cards for us."}}
+
+{{PULL: "Thank you, // Donald Trump." | the Ulbricht family, Instagram}}
