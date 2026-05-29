@@ -804,16 +804,63 @@ export async function getComment(id: string): Promise<CommentRecord | null> {
   }
 }
 
+// Top-level comments a member may keep live per piece. Default 1.
+// Overrides are keyed by `${kind}:${slug}` (the canonical COMMENT slug,
+// which can differ from the URL slug — the Massie essay's URL is
+// /the-massie-problem but its comment slug stays "the-massie-eulogy").
+const PER_PIECE_COMMENT_LIMITS: Record<string, number> = {
+  "article:the-massie-eulogy": 2,
+};
+
+export function commentLimitFor(kind: CommentKind, slug: string): number {
+  return PER_PIECE_COMMENT_LIMITS[`${kind}:${slug}`] ?? 1;
+}
+
+// The member lock value holds the member's comment id(s) for a piece.
+// Originally a single id string; now a list to support per-piece limits
+// above 1. Read-tolerant of the legacy single-id string so existing
+// locks keep working without a migration — they upgrade to the list
+// form on the member's next post or delete.
+function parseLockIds(value: unknown): string[] {
+  if (value == null) return [];
+  if (Array.isArray(value)) {
+    return value.filter((x): x is string => typeof x === "string");
+  }
+  if (typeof value === "string") {
+    const s = value.trim();
+    if (s.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((x): x is string => typeof x === "string");
+        }
+      } catch {
+        // fall through — treat as a bare single id
+      }
+    }
+    return s ? [s] : [];
+  }
+  return [String(value)];
+}
+
+export async function getMemberCommentIds(
+  email: string,
+  kind: CommentKind,
+  slug: string
+): Promise<string[]> {
+  const client = getClient();
+  if (!client) return [];
+  const value = await client.get(lockKey(email, kind, slug));
+  return parseLockIds(value);
+}
+
 export async function getMemberCommentId(
   email: string,
   kind: CommentKind,
   slug: string
 ): Promise<string | null> {
-  const client = getClient();
-  if (!client) return null;
-  const value = await client.get<string>(lockKey(email, kind, slug));
-  if (!value) return null;
-  return typeof value === "string" ? value : String(value);
+  const ids = await getMemberCommentIds(email, kind, slug);
+  return ids[0] ?? null;
 }
 
 export type CreateCommentInput = {
@@ -840,8 +887,14 @@ export async function createComment(
   const body = sanitizeBody(input.body);
   if (!body) return { ok: false, error: "empty_body" };
 
-  const existing = await getMemberCommentId(input.email, input.kind, input.slug);
-  if (existing) return { ok: false, error: "already_commented" };
+  const existingIds = await getMemberCommentIds(
+    input.email,
+    input.kind,
+    input.slug
+  );
+  if (existingIds.length >= commentLimitFor(input.kind, input.slug)) {
+    return { ok: false, error: "already_commented" };
+  }
 
   const id = randomUUID();
   const now = Date.now();
@@ -884,7 +937,10 @@ export async function createComment(
     member: id,
   });
   await client.zadd(ALL_INDEX_KEY, { score: now, member: id });
-  await client.set(lockKey(input.email, input.kind, input.slug), id);
+  await client.set(lockKey(input.email, input.kind, input.slug), [
+    ...existingIds,
+    id,
+  ]);
   await client.sadd(memberCommentsKey(input.email), id);
   if (!autoApprove) {
     await client.zadd(PENDING_INDEX_KEY, { score: now, member: id });
@@ -919,7 +975,20 @@ export async function deleteComment(
   await client.del(`${COMMENT_PREFIX}${id}`);
   await client.zrem(indexKey(comment.kind, comment.slug), id);
   await client.zrem(ALL_INDEX_KEY, id);
-  await client.del(lockKey(comment.email, comment.kind, comment.slug));
+  // Free just this comment's slot in the member lock; only clear the
+  // lock entirely when it was their last one (supports per-piece limits
+  // above 1, and stays correct for the default limit of 1).
+  const remainingLockIds = (
+    await getMemberCommentIds(comment.email, comment.kind, comment.slug)
+  ).filter((x) => x !== id);
+  if (remainingLockIds.length === 0) {
+    await client.del(lockKey(comment.email, comment.kind, comment.slug));
+  } else {
+    await client.set(
+      lockKey(comment.email, comment.kind, comment.slug),
+      remainingLockIds
+    );
+  }
   await client.srem(memberCommentsKey(comment.email), id);
   await client.zrem(PENDING_INDEX_KEY, id);
 

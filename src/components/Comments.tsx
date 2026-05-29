@@ -2,13 +2,13 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import {
+  commentLimitFor,
   getProfile,
   isAdmin,
   isApproved,
   isCommentsConfigured,
   listCommentsForSlug,
   type CommentKind,
-  type CommentRecord,
 } from "@/lib/comments";
 import {
   getCharterSlot,
@@ -60,11 +60,15 @@ export async function Comments({ kind, slug }: Props) {
     return false;
   });
 
-  // "You've already commented" check uses the unfiltered list — a
-  // pending comment still locks out a second post.
-  const myComment: CommentRecord | null = viewerEmail
-    ? allComments.find((c) => c.email === viewerEmail) ?? null
-    : null;
+  // Per-piece comment cap. Uses the unfiltered list — a pending comment
+  // still counts against the member's allowance. Default is 1; some
+  // pieces allow more (see commentLimitFor). The form shows while the
+  // member is under the cap and is replaced by a notice once they hit it.
+  const commentLimit = commentLimitFor(kind, slug);
+  const myCommentCount = viewerEmail
+    ? allComments.filter((c) => c.email === viewerEmail).length
+    : 0;
+  const atCommentLimit = myCommentCount >= commentLimit;
 
   // Featured comments float to the top as standalone cards (see card
   // styling in CommentItem). Author replies aren't eligible to be
@@ -172,13 +176,14 @@ export async function Comments({ kind, slug }: Props) {
       {/* Form / CTA */}
       <div className="mt-10 pt-10 border-t border-rule">
         {session ? (
-          myComment ? (
+          atCommentLimit ? (
             <p
               className="font-serif italic text-ink-muted text-center leading-relaxed"
               style={{ fontSize: "0.98rem" }}
             >
-              You&apos;ve added your comment. Delete it above to post a
-              different one.
+              {commentLimit > 1
+                ? `You've added your ${commentLimit} comments. Delete one above to post another.`
+                : "You've added your comment. Delete it above to post a different one."}
             </p>
           ) : (
             <CommentForm
