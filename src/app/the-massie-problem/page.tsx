@@ -326,8 +326,7 @@ function Paywall() {
         </h1>
         <p className="deck mb-10 max-w-md mx-auto">
           This essay is early access for members. The full piece,
-          Prologue through Act 5, is behind the membership. Act 6 lands
-          first for members too.
+          Prologue through Act 6, is behind the membership.
         </p>
 
         <Link href="/membership" className="btn-primary">
