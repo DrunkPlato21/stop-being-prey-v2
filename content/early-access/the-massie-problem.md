@@ -42,7 +42,7 @@ That intellect showed up in congress too.
 
 March 27, 2020. The country was paralyzed by the COVID hysteria. Congress was about to pass $2.2 trillion in monetary expansion by voice vote. If you don’t know what that is, it effectively means no recorded names, no accountability whatsoever for the largest single act of currency debasement in American history. I believe this is what they refer to as ‘fiscal responsibility’ in Washington D.C.
 
-Massie was the one guy in Washington who didn’t think this was right, and so, he stood up and said “NO!” with the support of millions of Americans. He made a big show of it. He flew back to Washington by himself and demanded a quorum call. He forced his colleagues to put their names on it. He understood what they were doing, Thomas has read his Mises and Rothbard. He knew the inflation that follows when a government prints two trillion dollars out of nothing. He was the only one in either party with the courage to make Congress own it.
+Massie was the one guy in Washington who didn’t think this was right, and so, he stood up and said “NO!” with the support of millions of Americans. He made a big show of it. He flew back to Washington by himself and demanded a quorum call. He forced his colleagues to show up and be counted in person, in the middle of a pandemic. He understood what they were doing, Thomas has read his Mises and Rothbard. He knew the inflation that follows when a government prints two trillion dollars out of nothing. He was the only one in either party with the courage to make Congress own it.
 
 Trump's response:
 
@@ -106,23 +106,7 @@ Charlie saw it the same way. He posted this to his audience:
 
 Massie was right. Charlie said so out loud.
 
-One more quick example…
-
-The CARES Act in March of 2020… two trillion dollars of emergency pandemic spending fast-tracked through a Congress that was barely physically present… Thomas Massie did something most members had stopped doing decades ago.
-
-He read the bill… crazy right? What an absurd notion!
-
-Then he flew back to Washington and demanded a recorded vote. Massie was taking control of the situation, it would seem.
-
-You have to understand what that meant in that moment… it was peak pandemic. Members had gone home to their districts... some were sheltering in place. Travel was considered a genuine risk for the older ones. The plan was to pass the bill by voice vote… voice vote meaning nobody's name goes on the record, nobody can be held accountable for a vote about to add two trillion dollars to the deficit overnight.
-
-Massie said no... He went back to the floor with a pocket Constitution in his hand and demanded a quorum. He forced every member of Congress to physically show up to DC during a pandemic or have the bill fail for lack of votes. It all was very Ron Paulian… a brilliant performance.
-
-Well… they showed up. Furious. Both parties. Members openly cursed him in the hallways. Trump tweeted that Massie was a "third-rate grandstander" and publicly called for him to be expelled from the Republican Party. The leadership was livid. The conference was livid.
-
-Massie stood there with his Constitution and took it. How can you not admire that? Anyone who draws that much ire from the entire DC political class must be doing something right!
-
-I cheered for this one too… of course I did. You probably did too, with good reason… Two trillion dollars going out the door with no accountability is disgusting, and here was one man with a pocket Constitution standing in front of it all.
+Remember Massie’s stand against the CARES Act? The pocket Constitution. The entire Congress dragged back to Washington in the middle of a pandemic. You cheered. I cheered too… two trillion dollars going out the door, and one man standing in front of it all.
 
 So, what happened?
 
@@ -148,7 +132,7 @@ Let's go back to Fauci. Massie made him sweat, and we all cheered. It was cathar
 
 The gain-of-function questions are still open. Massie made him squirm... Fauci went to dinner and never thought about Massie again. That's the reality of power vs theater. Which one is the theater kid here?
 
-Let's go back to the CARES Act. Two trillion dollars went out… The deficit ran higher, the FED printed more, the inflation came anyway. Massie's principled performance did not stop a single dollar.
+Let's go back to the CARES Act. Massie's principled performance did not stop a single dollar.
 
 The libertarian movement got the principled stand… they got their clips… then they got swamped with inflation, like the rest of us.
 
@@ -935,7 +919,7 @@ There’s a place for you here when you’re ready, Tom. It’s an imperfect all
 
 There’s no third option. The Libertarian Party isn’t rising from the ashes, and Massie doesn’t have the charisma to do what Trump did. That fantasy is over. So don’t waste yourself trying to tear down the one man who actually delivered.
 
-For over ten years, the Regime Alliance let Ross rot in a cell. The libertarians made him their cause and couldn’t free him. The MAGA Alliance did it in a day.
+For over ten years, the Regime Alliance let Ross rot in a cell. The libertarians made him their cause and couldn’t free him. Trump did it in a day.
 
 Do you remember what he did?
 
