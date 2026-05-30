@@ -935,9 +935,11 @@ There’s a place for you here when you’re ready, Tom. It’s an imperfect all
 
 There’s no third option. The Libertarian Party isn’t rising from the ashes, and Massie doesn’t have the charisma to do what Trump did. That fantasy is over. So don’t waste yourself trying to tear down the one man who actually delivered.
 
+For eleven years, the Regime Alliance let Ross rot in a cell. The libertarians made him their cause and couldn’t free him. The MAGA Alliance did it in a day.
+
 Do you remember what he did?
 
-Less than two years ago, Ross had two life sentences and no parole. He was destined to die in a federal prison. Now look… 
+Until Trump signed his name, Ross had two life sentences and no parole. He was destined to die in a federal prison. Now look… 
 
 {{FIGURE: /assets/the-massie-eulogy/ulbricht-family.jpg | Ross Ulbricht and his pregnant wife standing together outdoors under a tree, both smiling, his hands on her belly. | }}
 
