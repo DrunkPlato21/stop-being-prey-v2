@@ -937,7 +937,7 @@ There’s no third option. The Libertarian Party isn’t rising from the ashes, 
 
 Do you remember what he did?
 
-A year ago, Ross had two life sentences and no parole. He was destined to die in a federal prison. Now look… 
+Less than two years ago, Ross had two life sentences and no parole. He was destined to die in a federal prison. Now look… 
 
 {{FIGURE: /assets/the-massie-eulogy/ulbricht-family.jpg | Ross Ulbricht and his pregnant wife standing together outdoors under a tree, both smiling, his hands on her belly. | }}
 
