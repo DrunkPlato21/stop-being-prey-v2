@@ -281,7 +281,7 @@ Maybe Thomas Massie really is the most principled conservative in Congress. I’
 
 Kentucky's Fourth District voters saw the same thing you just saw and they voted accordingly. If I was a Kentuckian, I would’ve voted the same way and I have been a Massie defender since the beginning.
 
-Massie lost by ten points while the MAGA alliance got stronger.
+Massie lost by ten points while the MAGA Alliance got stronger.
 
 Hasan Piker and Dave Smith can cry about it together.
 
@@ -523,7 +523,7 @@ Then the MAGA Alliance asked Massie simply not to actively organize against the 
 
 Massie did it anyway.  Okay fine… he picked this fight… so what happens next?
 
-Then the MAGA alliance took him out. That's what actually happened here. Isn’t it obvious? That’s the real story.
+Then the MAGA Alliance took him out. That's what actually happened here. Isn’t it obvious? That’s the real story.
 
 It wasn't just AIPAC… it was the entire MAGA Alliance. It was the Kentucky voters that are loyal to Trump, not Thomas Massie, not libertarians, not Israel, not even Ed Gallrein… Trump.
 
@@ -608,7 +608,7 @@ He took that experience and used it to write the defining book about the COVID e
 
 Tom wrote it in real time. He was documenting the lies as they were being told, with receipt after receipt. It carries real weight. It almost reads like a prosecution, because that’s really what it is.
 
-That is what Tom Woods being right looks like. Tom has paid the price for it… now he’s totally vindicated. This is my case for why Tom Woods deserves massive respect from everyone within the MAGA alliance, even though he might be fucking up right now.
+That is what Tom Woods being right looks like. Tom has paid the price for it… now he’s totally vindicated. This is my case for why Tom Woods deserves massive respect from everyone within the MAGA Alliance, even though he might be fucking up right now.
 
 If you’re going to criticize this great man, you better show some respect to his name, and bring your receipts. So that’s what I’m going to do… in a moment.
 
