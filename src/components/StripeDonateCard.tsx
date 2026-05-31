@@ -51,15 +51,28 @@ function formatAmount(n: number): string {
   return Number.isInteger(n) ? n.toString() : n.toFixed(2);
 }
 
-export function StripeDonateCard() {
+type StripeDonateCardProps = {
+  /** Opt-in pre-fill for a signed-in member (used on /wall). When a
+      name is provided we seed the name field with the account display
+      name, default the public-wall toggle ON, and default attribution
+      to "full" so the name shows on the wall as given. Omitted on
+      /tip => name empty, wall toggle off, attribution "first": the
+      original behavior, unchanged. */
+  autoFillName?: string | null;
+};
+
+export function StripeDonateCard({ autoFillName }: StripeDonateCardProps = {}) {
+  const seededName = (autoFillName ?? "").trim();
+  const hasSeed = seededName.length > 0;
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState<string>("");
-  const [name, setName] = useState<string>("");
+  const [name, setName] = useState<string>(seededName);
   const [message, setMessage] = useState<string>("");
   const [city, setCity] = useState<string>("");
-  const [displayPublicly, setDisplayPublicly] = useState(false);
-  const [attribution, setAttribution] =
-    useState<AttributionPreference>("first");
+  const [displayPublicly, setDisplayPublicly] = useState(hasSeed);
+  const [attribution, setAttribution] = useState<AttributionPreference>(
+    hasSeed ? "full" : "first"
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

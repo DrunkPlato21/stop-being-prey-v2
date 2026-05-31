@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AdminDeskDarkToggle } from "@/components/AdminDeskDarkToggle";
 import { AdminPersistentNav } from "@/components/AdminPersistentNav";
 import { getAdminNavBadges } from "@/lib/admin-nav-badges";
@@ -33,13 +33,18 @@ export const metadata: Metadata = {
     template: "%s · SBP Admin",
   },
   manifest: "/admin-manifest.webmanifest",
-  themeColor: "#8a7d20",
   // Don't index admin under any circumstance — robots stay out even
   // though the surface 404s in production anyway.
   robots: {
     index: false,
     follow: false,
   },
+};
+
+// themeColor lives in the viewport export (Next moved it out of
+// metadata). Admin gets the olive accent on the installed PWA title bar.
+export const viewport: Viewport = {
+  themeColor: "#8a7d20",
 };
 
 const NO_FLASH_THEME_SCRIPT = `

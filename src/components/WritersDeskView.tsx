@@ -518,6 +518,7 @@ export function WritersDeskView({
           <NotePaperPanel
             memberNotes={memberNotes}
             onSubmitted={handleNoteSubmitted}
+            lastVisitedAt={frozenLastVisitedAt}
           />
         )}
 

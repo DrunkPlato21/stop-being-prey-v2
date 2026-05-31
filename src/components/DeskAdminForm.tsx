@@ -198,25 +198,44 @@ export function PresenceToggle({
   const [awayNote, setAwayNote] = useState<string>(initialAwayNote);
   const [pending, setPending] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isActive = state === "active";
 
   async function startSession() {
     if (pending) return;
     setPending(true);
+    setError(null);
     try {
       const res = await fetch("/api/admin/desk/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "start" }),
       });
-      const data: { ok?: boolean; state?: PresenceState; presence?: { awayNote?: string } } =
-        await res.json().catch(() => ({}));
+      const data: {
+        ok?: boolean;
+        state?: PresenceState;
+        presence?: { awayNote?: string };
+        error?: string;
+      } = await res.json().catch(() => ({}));
       if (res.ok && data.ok && data.state) {
         setState(data.state);
         setAwayNote(data.presence?.awayNote ?? "");
         router.refresh();
+      } else {
+        // Don't fail mute. A stale/wedged dev server returns Next's HTML
+        // 404 here (not JSON), so data is empty — surface the status so
+        // it's obvious the request never reached the handler.
+        setError(
+          `Couldn't go on the desk (HTTP ${res.status}${
+            data.error ? `: ${data.error}` : ""
+          }). If this is local, the dev server is probably stale — restart it.`
+        );
       }
+    } catch {
+      setError(
+        "Couldn't reach the desk server — no response. Check the dev server is up on this port."
+      );
     } finally {
       setPending(false);
     }
@@ -225,20 +244,37 @@ export function PresenceToggle({
   async function endSessionWithNote(note: string) {
     if (pending) return;
     setPending(true);
+    setError(null);
     try {
       const res = await fetch("/api/admin/desk/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "end", awayNote: note }),
       });
-      const data: { ok?: boolean; state?: PresenceState; presence?: { awayNote?: string } } =
-        await res.json().catch(() => ({}));
+      const data: {
+        ok?: boolean;
+        state?: PresenceState;
+        presence?: { awayNote?: string };
+        error?: string;
+      } = await res.json().catch(() => ({}));
       if (res.ok && data.ok && data.state) {
         setState(data.state);
         setAwayNote(data.presence?.awayNote ?? "");
         setModalOpen(false);
         router.refresh();
+      } else {
+        setModalOpen(false);
+        setError(
+          `Couldn't end the session (HTTP ${res.status}${
+            data.error ? `: ${data.error}` : ""
+          }). If this is local, restart the dev server and try again.`
+        );
       }
+    } catch {
+      setModalOpen(false);
+      setError(
+        "Couldn't reach the desk server — no response. Check the dev server is up on this port."
+      );
     } finally {
       setPending(false);
     }
@@ -293,6 +329,15 @@ export function PresenceToggle({
       >
         {pending ? "…" : isActive ? "End session" : "I'm at the desk"}
       </button>
+
+      {error && (
+        <p
+          className="font-serif italic mt-3"
+          style={{ fontSize: "0.85rem", color: "#7a3a2e" }}
+        >
+          {error}
+        </p>
+      )}
 
       {/* Away-note editor — only relevant while offline. Members see
           this note on the widget for 24h. */}

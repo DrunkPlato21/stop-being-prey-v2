@@ -8,9 +8,17 @@ type Tab = "fiat" | "lightning";
 
 type TabbedTipCardProps = {
   lightningAddress: string;
+  /** Opt-in pre-fill for the fiat card's wall attribution. The caller
+      resolves the signed-in member's account display name server-side
+      and threads it down. Undefined on /tip, so /tip renders exactly
+      as it did before this prop existed. */
+  autoFillName?: string | null;
 };
 
-export function TabbedTipCard({ lightningAddress }: TabbedTipCardProps) {
+export function TabbedTipCard({
+  lightningAddress,
+  autoFillName,
+}: TabbedTipCardProps) {
   const [active, setActive] = useState<Tab>("fiat");
 
   return (
@@ -57,7 +65,7 @@ export function TabbedTipCard({ lightningAddress }: TabbedTipCardProps) {
           aria-labelledby="tip-tab-fiat"
           hidden={active !== "fiat"}
         >
-          {active === "fiat" && <StripeDonateCard />}
+          {active === "fiat" && <StripeDonateCard autoFillName={autoFillName} />}
         </div>
         <div
           role="tabpanel"
