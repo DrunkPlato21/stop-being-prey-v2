@@ -107,6 +107,12 @@ export function AdminReplyControls({
         className="font-serif text-ink bg-paper border border-border px-3 py-2 outline-none focus:border-ink resize-y"
         style={{ fontSize: "0.98rem", lineHeight: 1.55 }}
       />
+      <span
+        className="font-serif italic text-ink-faint self-end"
+        style={{ fontSize: "0.78rem" }}
+      >
+        {body.length} / 2000
+      </span>
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"

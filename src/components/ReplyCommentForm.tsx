@@ -118,6 +118,12 @@ export function ReplyCommentForm({ commentId, disabledReason }: Props) {
         className="font-serif text-ink bg-paper border border-border px-3 py-2 outline-none focus:border-ink"
         style={{ fontSize: "1rem", lineHeight: 1.55 }}
       />
+      <span
+        className="font-serif italic text-ink-faint self-end"
+        style={{ fontSize: "0.78rem" }}
+      >
+        {value.length} / 1500
+      </span>
       <div className="flex flex-wrap items-center gap-4">
         <button
           type="submit"
