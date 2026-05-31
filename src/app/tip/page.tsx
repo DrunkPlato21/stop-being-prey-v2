@@ -22,7 +22,6 @@ const trustLines: string[] = [
   "tips go straight to me. they pay for the writing, the podcast, and the hours this takes.",
   "but really, they buy one thing: independence.",
   "no ads. no sponsors. no donor class. nobody i have to keep happy, and nothing i can't say. when readers fund the work, the work answers to readers. that's the whole point.",
-  "this isn't a charity. it's a tip jar. not tax-deductible. nothing is gated, and nothing ever will be.",
   "if you tip, you can leave your name and a note on the supporters wall. that's the only perk. it's just gratitude, going both ways.",
 ];
 
