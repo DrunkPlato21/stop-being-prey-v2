@@ -26,11 +26,30 @@ import { getComment, getProfile, type CommentKind } from "./comments";
 //
 // Identity is the normalized member email, same as comments/notifications.
 
-const SPENT_PREFIX = "coins:spent:";
-const GIVERS_PREFIX = "coins:comment:";
-const SCORE_PREFIX = "coins:score:";
-const RECEIVED_PREFIX = "coins:received:";
-const RECEIPT_PREFIX = "coin-receipt:";
+// SAFETY: dev sandbox namespace. Local dev shares ONE production Redis
+// (there's no separate dev instance in .env.local), so without this
+// every coin given on localhost would write a permanent, non-reversible
+// coin to a REAL comment and the live site would read it. This prefix
+// pushes all coin keys written outside production into a separate `dev:`
+// keyspace that the live site never reads. Production (NODE_ENV=production
+// on Vercel) uses no prefix. An explicit COINS_KEY_PREFIX overrides both
+// if you ever want a custom namespace. Note: this keys off NODE_ENV, so
+// test with `npm run dev` (development) — NOT `npm run build && start`,
+// which sets NODE_ENV=production and would hit the real keyspace.
+const KEY_PREFIX =
+  process.env.COINS_KEY_PREFIX ??
+  (process.env.NODE_ENV === "production" ? "" : "dev:");
+
+const SPENT_PREFIX = `${KEY_PREFIX}coins:spent:`;
+const GIVERS_PREFIX = `${KEY_PREFIX}coins:comment:`;
+const SCORE_PREFIX = `${KEY_PREFIX}coins:score:`;
+const RECEIVED_PREFIX = `${KEY_PREFIX}coins:received:`;
+const RECEIPT_PREFIX = `${KEY_PREFIX}coin-receipt:`;
+
+/** True when coin writes are landing in the production keyspace. */
+export function isCoinsProduction(): boolean {
+  return KEY_PREFIX === "";
+}
 
 const MAX_EXCERPT = 140;
 

@@ -134,9 +134,18 @@ export function CoinButton({ commentId, count, topGivers, state }: Props) {
       setLocalState("spent-here");
       setArmed(false);
       setJustGave(true);
-      setTimeout(() => {
-        router.refresh();
-      }, 1100);
+      // Let the ceremony play before the server re-sort, but don't make
+      // reduced-motion readers sit through a delay they can't see — they
+      // get an immediate refresh (just the count change).
+      const reduceMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      setTimeout(
+        () => {
+          router.refresh();
+        },
+        reduceMotion ? 150 : 1100
+      );
     } catch {
       setError("Couldn't give your coin. Try again.");
       setPending(false);
@@ -164,6 +173,13 @@ export function CoinButton({ commentId, count, topGivers, state }: Props) {
         position: absolute; left: 0; top: 0;
         animation: sbpCoinRise 1s ease-out forwards;
         pointer-events: none;
+      }
+      /* Older / motion-sensitive readers: no pop, no rising coin — the
+         coin simply appears and the count updates. Matches the site-wide
+         prefers-reduced-motion handling. */
+      @media (prefers-reduced-motion: reduce) {
+        .sbp-coin-pop { animation: none; }
+        .sbp-coin-rise { animation: none; display: none; }
       }
     `}</style>
   );

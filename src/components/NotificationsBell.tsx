@@ -38,7 +38,8 @@ type Notification = {
     | "payment_failed"
     | "founder_confirmed"
     | "lounge_reply"
-    | "lounge_reaction";
+    | "lounge_reaction"
+    | "coin_received";
   title: string;
   body: string;
   linkUrl: string;
@@ -144,6 +145,15 @@ function TypeGlyph({ type }: { type: Notification["type"] }) {
       return (
         <svg {...common} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
+        </svg>
+      );
+    case "coin_received":
+      // Struck coin: filled disc + inner ring so it reads as metal even
+      // at 14px, matching the gold coin used on comments.
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="9" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="5.5" fill="none" stroke="var(--paper)" strokeWidth={1.5} />
         </svg>
       );
   }

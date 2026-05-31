@@ -80,22 +80,37 @@ export async function POST(req: NextRequest) {
   // committed; a notification miss is a degraded outcome, not a failure.
   // (Email notifications are intentionally out of scope for v1; this
   // route is the single seam where they'd be added later.)
+  //
+  // SAFETY: notifications are NOT namespaced (shared system), so in dev
+  // a coin notification would land in a real member's production
+  // notification feed and show on their bell on the LIVE site. So we
+  // skip the real send outside production and just log it. This makes
+  // local testing against real comments incapable of pinging real
+  // members. (To exercise notification DELIVERY end-to-end, use a
+  // separate dev Redis — see the testing notes.)
   const recipient = result.recipientEmail;
   const giverFirst = firstWord(giverDisplayName) || "A member";
+  const isProd = process.env.NODE_ENV === "production";
   if (recipient && recipient !== session.email.toLowerCase().trim()) {
-    await createNotification({
-      memberEmail: recipient,
-      type: "coin_received",
-      title: `${giverFirst} gave your comment a coin`,
-      body: result.comment.body.slice(0, 120),
-      linkUrl: commentPath(
-        result.comment.kind,
-        result.comment.slug,
-        result.comment.id
-      ),
-    }).catch((err) => {
-      console.error(`[coins] notification failed for ${recipient}:`, err);
-    });
+    if (!isProd) {
+      console.log(
+        `[coins] (dev) would notify ${recipient}: ${giverFirst} gave a coin (notification suppressed outside production)`
+      );
+    } else {
+      await createNotification({
+        memberEmail: recipient,
+        type: "coin_received",
+        title: `${giverFirst} gave your comment a coin`,
+        body: result.comment.body.slice(0, 120),
+        linkUrl: commentPath(
+          result.comment.kind,
+          result.comment.slug,
+          result.comment.id
+        ),
+      }).catch((err) => {
+        console.error(`[coins] notification failed for ${recipient}:`, err);
+      });
+    }
   }
 
   return NextResponse.json({ ok: true, count: result.count });
