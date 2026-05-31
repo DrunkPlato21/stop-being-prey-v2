@@ -46,11 +46,11 @@ Massie was the one guy in Washington who didn’t think this was right, and so, 
 
 Trump's response:
 
-> "Looks like a third rate Grandstander."
+> "Looks like a third rate Grandstander." ([source](https://thehill.com/homenews/administration/489825-trump-blasts-conservative-lawmaker-over-opposition-to-relief-package/))
 
 then:
 
-> "Throw Massie out of Republican Party!"
+> "Throw Massie out of Republican Party!" ([source](https://www.newsweek.com/trump-calls-rep-thomas-massie-kicked-out-gop-wanting-block-coronavirus-stimulus-vote-1494690))
 
 Five years later, the inflation has eaten more of the working class than any policy in living memory. Massie was completely vindicated. The Austrian economists who taught him were right. The third rate Grandstander could see what was coming better than anyone in congress.
 
@@ -102,7 +102,7 @@ Charlie saw it the same way. He posted this to his audience:
 
 > "Well, @RepThomasMassie was in the same SCIF as Speaker Johnson, and he's fed up with the lying. Massie says there was NOT ONE EXAMPLE spying on Americans without a warrant was able to prevent terrorism. It's all a scam. Shame on Republicans who fall for it."
 >
-> \~ Charlie Kirk, X, April 22, 2024
+> \~ [Charlie Kirk, X, April 22, 2024](https://x.com/charliekirk11/status/1782495660631310424)
 
 Massie was right. Charlie said so out loud.
 
@@ -203,7 +203,7 @@ THAT guy went out of his way to defend Massie after his primary loss:
 
 > "Pretending like there was an organic tens of millions of dollars dumped on Massie is why no one under 55 believe fuck all about politics (and they are right)."
 >
-> \~ Ben Rhodes
+> \~ [Ben Rhodes](https://x.com/brhodes/status/2056925158426984719)
 
 Indistinguishable from what I see from all of the losertarians I follow right now. Probably just a coincidence…
 
@@ -211,7 +211,7 @@ What about everyone’s favorite crusty old communist… Senator Bernard Sanders
 
 > "AIPAC spent $9 million to take out Rep. Thomas Massie. Trump megadonors spent another $7 million... NO, billionaire super PACs should not buy our elections."
 >
-> \~ Bernie Sanders
+> \~ [Bernie Sanders](https://x.com/BernieSanders/status/2057088413770076331)
 
 Oh… another Libertarian tweet… wait no… that’s Bernie Sanders… sorry, it’s so easy to confuse them these days. But Bernie’s a bit of a wild card… he can be reasonable on rare occasions and defect from the regime. Maybe this is one of those times.
 
@@ -219,7 +219,7 @@ Maybe the more establishment democrats are really against Thomas Massie. Surely 
 
 > "If you take a stand against war, AIPAC, & the Epstein class, you have no place in the Trump coalition."
 >
-> \~ Ro Khanna
+> \~ [Ro Khanna](https://x.com/RoKhanna/status/2056933769509003602)
 
 Oh… it’s literally just another Dave Smith tweet. Weird! So many coincidences!
 
@@ -229,7 +229,7 @@ Jeet Heer. National affairs correspondent at The Nation. One of the oldest, most
 
 > "Massie lost with his honor intact. Trump won't be around forever, and if there is a future for the Republican Party, Massie is in a better position to shape it than his colleagues who have disgraced themselves in replacing principles with a personality cult."
 >
-> \~ Jeet Heer
+> \~ [Jeet Heer](https://www.thenation.com/article/politics/thomas-massie-primary-loss-trump-aipac/)
 
 Okay… seriously? Are all these guys just taking notes from Dave Smith now?
 
@@ -237,7 +237,7 @@ Surely we can find some leftists who aren’t praising Massie right now… what 
 
 > *"massie's defeat proves that the republican party is a pro epstein pro israel cult led by their cult leader, epstein affiliate, servant of israel, donald trump."*
 >
-> \~ Hasan Piker
+> \~ [Hasan Piker](https://x.com/hasanthehun/status/2056884871663104474)
 
 Oh, him too… okay fine… should I keep trying?
 
@@ -247,7 +247,7 @@ I’ll drop the stupid act now… \
 \
 Yes… OF COURSE Mehdi Hasan sounded just like Dave Smith too:
 
-> *"A reminder that Trump is primarily mad at Thomas Massie not because of politics or ideology but because Massie embarrassed him over his ties to Jeffrey Epstein and his ongoing cover-up of the Epstein files."*
+> *"A reminder that Trump is primarily mad at Thomas Massie not because of politics or ideology but because Massie embarrassed him over his ties to Jeffrey Epstein and his ongoing cover-up of the Epstein files."* ([source](https://x.com/mehdirhasan/status/2056143144979210618))
 
 Have you seen enough yet? Do i need to keep going?
 
@@ -285,7 +285,7 @@ He wrote this on April 7, 2025. Five months before he was assassinated:
 >
 > The cowardice of local prosecutors and school officials have turned the left into a ticking time bomb.
 >
-> \~ Charlie Kirk, X, April 7, 2025
+> \~ [Charlie Kirk, X, April 7, 2025](https://x.com/charliekirk11/status/1909391943802703899)
 
 Five months later... the bomb went off right in his face.
 
@@ -331,7 +331,7 @@ Tom Woods, if you don’t know, is one of the most influential libertarian voice
 
 He celebrated the Ulbricht pardon too. On January 22, 2025, he wrote this on his own account, in his own voice:
 
-> "Ross is free! Thank you, Donald Trump, for doing what no Bush, McCain, Romney, Obama, or Biden would ever have done."
+> "Ross is free! Thank you, Donald Trump, for doing what no Bush, McCain, Romney, Obama, or Biden would ever have done." ([source](https://x.com/ThomasEWoods/status/1881864145303413129))
 
 Thank you, Donald Trump.
 
@@ -373,7 +373,7 @@ The libertarian commentariat will not tell you this. Because telling you this wo
 
 > "I think the biggest crime I committed against the swamp was showing the American people that somebody on the right could join somebody on the left and get something done... It was written by me and Ro Khanna."
 >
-> \~ Thomas Massie, NBC, May 24, 2026
+> \~ [Thomas Massie, NBC, May 24, 2026](https://www.nbcnews.com/meet-the-press/transcripts/meet-press-may-24-2026-rcna346705)
 
 He's not hiding the alliance. He's proud of it. He calls working with the left his "biggest crime against the swamp."
 
@@ -383,13 +383,13 @@ Stephen Miller, Trump White House aide, posted this on primary day, May 19, 2026
 
 > "Every time it truly matters Massie sides with the Democrats and the corrupt leftist media."
 >
-> \~ Stephen Miller, May 19, 2026
+> \~ [Stephen Miller, May 19, 2026](https://x.com/StephenM/status/2056776448665407908)
 
 Within hours, Mehdi Hasan quote-tweeted it. Here's what he said:
 
 > "And when he says 'matters' he means, from the Trump perspective, protecting pedophiles and starting new wars."
 >
-> \~ Mehdi Hasan, May 19, 2026
+> \~ [Mehdi Hasan, May 19, 2026](https://x.com/mehdirhasan/status/2056905364013023690)
 
 Read those two tweets back to back. The Trump White House aide naming Massie's alignment with the Democrats. The leftist journalist confirming the alignment and defending it. They disagree about whether the alignment is good. They agree the alignment is real.
 
@@ -475,7 +475,7 @@ Here's another chihuahua barking:
 
 > "I'll be exposing the swamp for 7 more months before you get to unwrap your present from the globalist billionaires."
 >
-> \~ Thomas Massie, X
+> \~ [Thomas Massie, X](https://x.com/RepThomasMassie/status/2059237585742954644)
 
 Why did he wait 14 years to start doing this? Why only after he lost his election? Could it be… just another show?
 
@@ -499,7 +499,7 @@ He was also diagnosing the libertarian failure mode in real time. Years before i
 >
 > You will lose
 >
-> \~ Charlie Kirk, May 18, 2019
+> \~ [Charlie Kirk, May 18, 2019](https://x.com/charliekirk11/status/1129933094105100288)
 
 Charlie was right. Amash got primaried. Left the party. Faded from relevance... seven years ago.
 
@@ -734,7 +734,7 @@ And what you said in that clip was great. You sounded like a man about to get se
 >
 > So the Federal Reserve and the money printing is the lifeblood of the Leviathan. That's what we need to attack, and that's why Bitcoin has so much potential.”
 >
-> \~ Dave Smith on PBD, May 2022
+> \~ [Dave Smith on PBD, May 2022](https://www.youtube.com/watch?v=tKF3BAk2HiI&t=2047s)
 
 Then Bitcoin almost entirely disappeared from your narrative for years, and Israel took over. More and more. Every podcast, every panel, every argument, until Israel was the whole beat. This is when I began noticing you’re losing the plot.
 
@@ -777,13 +777,13 @@ Here’s what Knowles said:
 
 > "If Massie goes down, this will be evidence that Trump has an ironclad grip on the Republican party."
 >
-> \~ Michael Knowles, before the primary
+> \~ [Michael Knowles, before the primary](https://www.youtube.com/watch?v=mOF7FNLQAZE&t=217s)
 
 Here's what you confidently said in response to Knowles's prediction:
 
 > "So if it proves that Trump has an iron grip when Massie falls out, what about when Thomas Massie wins and survives $20 million being pumped into his district? What would that suggest? **I wonder what Michael Knowles' reaction to that will be.**"
 >
-> \~ Dave Smith, in response to Michael Knowles
+> \~ [Dave Smith, in response to Michael Knowles](https://www.youtube.com/watch?v=mOF7FNLQAZE&t=68s)
 
 As we now know, Massie lost decisively. Knowles was right. The reaction that you couldn’t wait to see on Knowles’ face was now on yours…\
 \
@@ -791,7 +791,7 @@ How did you react?…
 
 > "Well, obviously, I didn't get that right. I said I think Thomas Massie will still win. And look, I'll be the first to admit, perhaps I was predicting with my heart a little bit more than with my head."
 >
-> \~ Dave Smith, May 26, 2026
+> \~ [Dave Smith, May 26, 2026](https://podscripts.co/podcasts/part-of-the-problem/a-response-to-michael-knowles)
 
 An honest concession. I respect it. However, it didn’t end here. Now, the cope begins…
 
@@ -801,7 +801,7 @@ So you ask a fair question: if Trump's hostility couldn't sink Massie back then,
 
 > "Was it \[Trump\] endorsing Massie's opponent... or was it more money than's ever been poured into a race ever? I think it's the latter."
 >
-> \~ Dave Smith, May 26, 2026
+> \~ [Dave Smith, May 26, 2026](https://podscripts.co/podcasts/part-of-the-problem/a-response-to-michael-knowles)
 
 And there you have it. It’s the AIPAC money. The Adelson money. Israel... again. That’s the only thing that can explain why libertarians keep losing, I guess.
 
@@ -809,7 +809,7 @@ That dastardly Israel has once again foiled your brilliant political analysis! D
 
 > "I didn't claim that AIPAC always wins, they just usually do."
 >
-> \~ Dave Smith, May 28, 2026
+> \~ [Dave Smith, May 28, 2026](https://x.com/ComicDaveSmith/status/2060028089720017381)
 
 How convenient. An unfalsifiable claim, that you can weasel your way out of no matter the outcome.
 
@@ -817,7 +817,7 @@ But here's the real tell:
 
 > "If Massie loses tonight, he should run for President. If Massie wins tonight, he should run for President."
 >
-> \~ Dave Smith, May 19, 2026
+> \~ [Dave Smith, May 19, 2026](https://x.com/ComicDaveSmith/status/2056873869563097210)
 
 114k likes on that one last I checked. Win or lose, same answer. That's not a serious political analyst, that's a hype man working a crowd. It's a show. You’re a comedian. This is what you do, and you’re really good at it… the numbers speak for themselves, so does your bank account.
 
@@ -829,7 +829,7 @@ Dave, like you, I consider the late great Patrice O’Neal to be one of the best
 >
 > But that doesn't invalidate 2 + 2 = 4."
 >
-> \~ Patrice O’Neal
+> \~ [Patrice O’Neal](https://www.youtube.com/watch?v=smGlBX8mHgE&t=1116s)
 
 The crazy stuff Alex Jones does doesn’t make the truth he says false… but nobody wants to hear the math over the marbles. The marbles are all anybody remembers.
 
@@ -843,13 +843,13 @@ And he doesn't eat alone. His most loyal friend is right there beside him, nose 
 
 > "Not one of the doomer-pilled libertarians that called me naive... has apologized. Not. One... Worthless mfers"
 >
-> \~ Clint Russell, Jan 29, 2025
+> \~ [Clint Russell, Jan 29, 2025](https://x.com/LibertyLockPod/status/1884393908643172836)
 
 He was right. I was with him, dunking on the losertarians who fought against Angela McArdle every step of the way.
 
 She won, Ross was freed.
 
-> "If Ross Ulbricht gets to go home tomorrow it'll be the best feeling I've ever had in politics... President Trump. Thank you for doing the right thing and keeping your promise."
+> "If Ross Ulbricht gets to go home tomorrow it'll be the best feeling I've ever had in politics... President Trump. Thank you for doing the right thing and keeping your promise." ([source](https://x.com/LibertyLockPod/status/1881202204553683114))
 
 The best feeling he’s ever had in politics… 
 
@@ -857,13 +857,13 @@ Sixteen months later, Massie loses a primary, and the same man who thanked Trump
 
 > "Congrats to Israel on winning your record breaking 435th house seat... We're gonna burn down the entire GOP now."
 >
-> \~ Clint Russell, May 20, 2026
+> \~ [Clint Russell, May 20, 2026](https://x.com/LibertyLockPod/status/2056900237357158531)
 
 And this is just who he is now. Same week, take your pick.
 
 > "Selling your souls for a few shekels. I hope you all die penniless you fkn frauds."
 >
-> \~ Clint Russell, May 17, 2026
+> \~ [Clint Russell, May 17, 2026](https://x.com/LibertyLockPod/status/2056161983834018272)
 
 So, there you have it. Clint didn’t want Dave to keep the marbles all to himself.  Clint goes down whatever path Dave leads him. Loyal to the end, like I said.
 
@@ -881,7 +881,7 @@ Tom Woods.
 
 > "My daughter was distraught over Massie today. I told her: your age group went for him nearly 80-20. I also told her: **Boomers are the most selfish and ignorant voting bloc in the history of the U.S.**
 >
-> \~ Tom Woods, May 20, 2026
+> \~ [Tom Woods, May 20, 2026](https://x.com/ThomasEWoods/status/2057091366555914260)
 
 Tom, do you know who you just said that about? Because I do. I talk to them every day.
 
@@ -893,7 +893,7 @@ They listen to people like me, because they can tell I’m being honest with the
 
 > "You are a brainwashed idiot who thinks a foreign country should have veto power over our representatives."
 >
-> \~ Tom Woods, to Juanita Broaddrick, Bill Clinton's most credible accuser, May 21, 2026
+> \~ [Tom Woods, to Juanita Broaddrick, Bill Clinton's most credible accuser, May 21, 2026](https://x.com/ThomasEWoods/status/2057307037797617898)
 
 Tom… man… what are you doing?
 

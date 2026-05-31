@@ -30,9 +30,9 @@ const PRIMARY: NavItem[] = [
   { href: "/admin/channels", label: "Elsewhere" },
   { href: "/admin/desk/voice", label: "Voice memos" },
   { href: "/admin/field-notes", label: "Field notes" },
+  { href: "/admin/early-access", label: "Early access" },
   { href: "/admin/lounge", label: "Lounge", badgeSection: "lounge" },
   { href: "/admin/comments", label: "Comments", badgeSection: "comments" },
-  { href: "/admin/presence", label: "Presence" },
 ];
 
 const SECONDARY: NavItem[] = [
