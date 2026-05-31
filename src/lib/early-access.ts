@@ -198,7 +198,21 @@ export type LoadedEssay = {
   title: string;
   dateStr: string;
   bodyHtml: string;
+  wordCount: number;
 };
+
+/** Word count from the raw markdown body. Strips the custom {{...}}
+    tokens and markdown link URLs so the count reflects prose the reader
+    actually reads, matching how article wordCount is presented. */
+export function countWords(content: string): number {
+  const text = content
+    .replace(/\{\{[\s\S]*?\}\}/g, " ") // PULL/FIGURE/IMAGE tokens
+    .replace(/\]\([^)]*\)/g, "]") // markdown link URLs, keep link text
+    .replace(/[#>*_`~\\[\]]/g, " ") // markdown punctuation
+    .trim();
+  const words = text.match(/\S+/g);
+  return words ? words.length : 0;
+}
 
 /** Parse + render a full essay file (frontmatter + body) from disk.
     Used by the live route. Throws if the file is missing. */
@@ -213,6 +227,7 @@ export async function loadEssay(slug: string): Promise<LoadedEssay> {
     title: essayTitle(data as Record<string, unknown>),
     dateStr: formatEssayDate((data as Record<string, unknown>).date),
     bodyHtml,
+    wordCount: countWords(content),
   };
 }
 

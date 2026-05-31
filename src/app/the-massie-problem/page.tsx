@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import { EyeDivider } from "@/components/Eyes";
 import { Comments } from "@/components/Comments";
+import { ShareButtons } from "@/components/ShareButtons";
+import { AuthorBio } from "@/components/AuthorBio";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { loadEssay } from "@/lib/early-access";
 
@@ -53,7 +55,7 @@ export default async function MassieProblemPage() {
     return <Paywall />;
   }
 
-  const { title, dateStr, bodyHtml } = await loadEssay(SLUG);
+  const { title, dateStr, bodyHtml, wordCount } = await loadEssay(SLUG);
 
   return (
     <article className="relative">
@@ -85,66 +87,28 @@ export default async function MassieProblemPage() {
                 <time>{dateStr}</time>
               </>
             )}
+            {wordCount > 0 && (
+              <>
+                <span className="text-rule">&middot;</span>
+                <span>{wordCount.toLocaleString("en-US")} words</span>
+              </>
+            )}
           </div>
         </div>
       </header>
 
       {/* === Body === */}
       <div className="max-w-4xl mx-auto px-6 pt-12 md:pt-16">
-        {/* Author's draft note. Same paper-deep + olive register as the
-            "To be continued" card at the foot, so they bookend the piece. */}
-        <aside
-          className="max-w-[42rem] mx-auto mb-14 md:mb-16 px-6 py-7 md:px-9 md:py-8"
-          style={{
-            background: "var(--paper-deep)",
-            borderLeft: "2px solid var(--eye-deep)",
-          }}
-        >
-          <p
-            className="eyebrow mb-5"
-            style={{
-              fontSize: "0.86rem",
-              letterSpacing: "0.28em",
-              fontWeight: 600,
-              color: "var(--eye-deep)",
-            }}
-          >
-            Quick note before you start
-          </p>
-          <div
-            className="font-serif text-ink"
-            style={{ fontSize: "1.05rem", lineHeight: 1.7 }}
-          >
-            <p className="mb-4">
-              This is still a rough draft, but it&apos;s all here now,
-              Prologue through Act 6.
-            </p>
-            <p className="mb-4">
-              I&apos;ll keep updating and polishing it. If you spot
-              errors, anything that reads off, anything you&apos;d push
-              back on... send it. All feedback welcome.
-            </p>
-            <p className="mb-4">
-              And if you just want to tell me it landed... I&apos;ll take
-              that too. Honestly, I need it. Been through hell writing this
-              one.
-            </p>
-            <p className="mb-6">
-              I hope you find something worth your time in here.
-            </p>
-            <p
-              className="font-display text-ink"
-              style={{ fontSize: "1rem", fontWeight: 500 }}
-            >
-              ~ Clay
-            </p>
-          </div>
-        </aside>
-
         <div
           className="prose-article ea-essay"
           dangerouslySetInnerHTML={{ __html: bodyHtml }}
         />
+      </div>
+
+      {/* === Share row, right under the work, where the "pass it on"
+          impulse is strongest — matches the standard issue layout. === */}
+      <div className="max-w-2xl mx-auto px-6 mt-12">
+        <ShareButtons url={`/${SLUG}`} title={title} />
       </div>
 
       <EyeDivider />
@@ -153,7 +117,13 @@ export default async function MassieProblemPage() {
           the Comments component renders the member form directly. */}
       <Comments kind="article" slug={COMMENT_SLUG} />
 
-      <div className="text-center pb-16">
+      {/* === Author bio, after the conversation — same placement and
+          component as the standard issue pages. === */}
+      <div className="max-w-3xl mx-auto px-6 mt-16">
+        <AuthorBio />
+      </div>
+
+      <div className="text-center pt-16 pb-16">
         <Link
           href="/desk"
           className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
