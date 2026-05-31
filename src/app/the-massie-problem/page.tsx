@@ -1,14 +1,10 @@
-import fs from "fs";
-import path from "path";
-import matter from "gray-matter";
-import { remark } from "remark";
-import html from "remark-html";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import { EyeDivider } from "@/components/Eyes";
 import { Comments } from "@/components/Comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { loadEssay } from "@/lib/early-access";
 
 // Member-only EARLY ACCESS drop for "The Thomas Massie Problem".
 // Prologue through Act 5 only; Act 6 is still being written and lives
@@ -30,12 +26,6 @@ const SLUG = "the-massie-problem";
 // in Redis under comments:article:the-massie-eulogy. Do not "fix" this to
 // match SLUG without migrating the existing comment data first.
 const COMMENT_SLUG = "the-massie-eulogy";
-const SOURCE = path.join(
-  process.cwd(),
-  "content",
-  "early-access",
-  `${SLUG}.md`
-);
 
 // Reads cookies → opt into dynamic rendering explicitly.
 export const dynamic = "force-dynamic";
@@ -48,139 +38,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type Loaded = { title: string; dateStr: string; bodyHtml: string };
-
-async function loadEssay(): Promise<Loaded> {
-  const file = fs.readFileSync(SOURCE, "utf8");
-  const { data, content } = matter(file);
-
-  const processed = await remark().use(html).process(content);
-  let bodyHtml = processed.toString();
-
-  // Turn {{FIGURE: src | alt | caption}} tokens into a real captioned
-  // figure — olive border + paper bg + italic caption, matching the
-  // case-file image treatment. Width-capped to the column so a large
-  // photo never overflows. Done on the rendered HTML string (same
-  // reason as the IMAGE placeholders below).
-  bodyHtml = bodyHtml.replace(
-    /<p>\s*\{\{FIGURE:\s*([\s\S]*?)\}\}\s*<\/p>/g,
-    (_m, inner: string) => {
-      const [src, alt, caption] = inner.split("|").map((s) => s.trim());
-      const fig =
-        `<img src="${src}" alt="${alt ?? ""}" loading="lazy" ` +
-        `style="display:block;width:100%;height:auto;` +
-        `border:1px solid var(--eye-deep);background:var(--paper);" />`;
-      const cap = caption
-        ? `<figcaption style="margin-top:0.6rem;text-align:center;` +
-          `font-style:italic;color:var(--ink-muted);font-size:0.92rem;">` +
-          `${caption}</figcaption>`
-        : "";
-      return `<figure style="margin:2.75rem 0;">${fig}${cap}</figure>`;
-    }
-  );
-
-  // Turn {{IMAGE: caption}} tokens (remark wraps them in <p>…</p>) into
-  // clearly-styled "image to add" placeholders for Clay. Done on the
-  // rendered HTML string so it doesn't depend on raw-HTML passthrough in
-  // the markdown pipeline. Inline styles reference the theme tokens so
-  // no globals.css change is needed.
-  bodyHtml = bodyHtml.replace(
-    /<p>\s*\{\{IMAGE:\s*([\s\S]*?)\}\}\s*<\/p>/g,
-    (_m, caption: string) =>
-      `<aside role="note" style="margin:2.75rem 0;padding:0.9rem 1.2rem;` +
-      `border:1px dashed var(--eye-deep);background:var(--paper-deep);` +
-      `font-family:var(--font-display),sans-serif;font-size:0.72rem;` +
-      `letter-spacing:0.18em;text-transform:uppercase;font-weight:600;` +
-      `color:var(--eye-deep);">Image to add &middot; ${caption.trim()}</aside>`
-  );
-
-  // Quote treatments. {{PULL: text | attribution}} tokens become
-  // centered kill-shot pull quotes (attribution optional). Then every
-  // remaining <blockquote> becomes a sourced-receipt block quote, with
-  // its attribution lifted OUT of the quote into a right-aligned
-  // figcaption. Attributions are normalized in the markdown to a
-  // trailing "~ …" line/paragraph so this extraction stays reliable.
-  bodyHtml = bodyHtml.replace(
-    /<p>\s*\{\{PULL:\s*([\s\S]*?)\}\}\s*<\/p>/g,
-    (_m, inner: string) => {
-      const [quote, attr] = inner.split("|").map((s) => s.trim());
-      // " // " in a pull forces a manual line break (raw <br> in markdown
-      // is stripped by remark). Used for the closing payoff line.
-      const quoteHtml = (quote ?? "").replace(/\s*\/\/\s*/g, "<br>");
-      const cap = attr ? `<figcaption>${attr}</figcaption>` : "";
-      return `<figure class="ea-pullquote"><p>${quoteHtml}</p>${cap}</figure>`;
-    }
-  );
-  bodyHtml = bodyHtml.replace(
-    /<blockquote>([\s\S]*?)<\/blockquote>/g,
-    (_m, body: string) => {
-      const paras = body.match(/<p>[\s\S]*?<\/p>/g) ?? [];
-      let quoteInner = body;
-      let attr = "";
-      if (paras.length > 0) {
-        const last = paras[paras.length - 1];
-        const lastText = last.replace(/<[^>]+>/g, "").trim();
-        // A trailing paragraph that starts with the author's "~" credit
-        // marker is the attribution — pull it out of the quote body.
-        if (/^~/.test(lastText)) {
-          attr = lastText.replace(/^~\s*/, "").trim();
-          quoteInner = body.slice(0, body.lastIndexOf(last)).trimEnd();
-        }
-      }
-      // A short single-line quote with no attribution (a punchy one-
-      // liner like Trump's "Looks like a third rate Grandstander.") gets
-      // the light treatment, not the evidence-card panel: centered,
-      // slightly larger upright serif, no panel, no rules. The panel is
-      // reserved for quotes that run longer than ~2 lines OR carry a
-      // citation. ~90 chars is a touch under two lines in the prose
-      // column, which cleanly separates the one-liners from everything
-      // else here.
-      if (!attr) {
-        const remaining = quoteInner.match(/<p>[\s\S]*?<\/p>/g) ?? [];
-        const plain = quoteInner
-          .replace(/<[^>]+>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
-        if (remaining.length <= 1 && plain.length <= 90) {
-          return `<figure class="ea-quote-light"><blockquote>${quoteInner}</blockquote></figure>`;
-        }
-      }
-      // Strip the quote's own surrounding double quotes (straight or
-      // curly) so the decorative oversized glyph is the only opening
-      // quote mark. No-op for quotes that weren't quote-wrapped.
-      const stripped = quoteInner
-        .replace(/^(\s*<p>\s*(?:<em>\s*)?)["“]/, "$1")
-        .replace(/["”](\s*(?:<\/em>\s*)?<\/p>\s*)$/, "$1");
-      // Attribution: comma-separated pieces become bullet-separated
-      // (Name • Source • Date). A comma right before a 4-digit year is
-      // kept so a "Month D, YYYY" date isn't split.
-      const attrFormatted = attr.replace(/,\s+(?!\d{4}\b)/g, " • ");
-      const cap = attr
-        ? `<figcaption>${attrFormatted}</figcaption>`
-        : "";
-      return `<figure class="ea-blockquote"><blockquote>${stripped}</blockquote>${cap}</figure>`;
-    }
-  );
-
-  const date = typeof data.date === "string" ? data.date : "";
-  const dateStr = date
-    ? new Date(date).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        timeZone: "UTC",
-      })
-    : "";
-
-  return {
-    title:
-      typeof data.title === "string"
-        ? data.title
-        : "The Thomas Massie Problem",
-    dateStr,
-    bodyHtml,
-  };
-}
+// Essay loading + the {{PULL}}/{{FIGURE}}/{{IMAGE}} + blockquote token
+// rendering now live in @/lib/early-access so the localhost authoring
+// editor (/admin/early-access) previews with the exact same pipeline.
 
 export default async function MassieProblemPage() {
   const cookieStore = await cookies();
@@ -193,7 +53,7 @@ export default async function MassieProblemPage() {
     return <Paywall />;
   }
 
-  const { title, dateStr, bodyHtml } = await loadEssay();
+  const { title, dateStr, bodyHtml } = await loadEssay(SLUG);
 
   return (
     <article className="relative">
