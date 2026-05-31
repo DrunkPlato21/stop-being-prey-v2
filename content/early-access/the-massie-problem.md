@@ -47,14 +47,10 @@ Massie was the one guy in Washington who didn’t think this was right, and so, 
 Trump's response:
 
 > "Looks like a third rate Grandstander."
->
-> \~ [Donald Trump, March 2020](https://thehill.com/homenews/administration/489825-trump-blasts-conservative-lawmaker-over-opposition-to-relief-package/)
 
 then:
 
 > "Throw Massie out of Republican Party!"
->
-> \~ [Donald Trump, March 2020](https://www.newsweek.com/trump-calls-rep-thomas-massie-kicked-out-gop-wanting-block-coronavirus-stimulus-vote-1494690)
 
 Five years later, the inflation has eaten more of the working class than any policy in living memory. Massie was completely vindicated. The Austrian economists who taught him were right. The third rate Grandstander could see what was coming better than anyone in congress.
 
@@ -451,11 +447,15 @@ If you are trying to do both, you are not principled. You are not even confused.
 
 The libertarian commentariat is now openly making its next move.
 
-An account called "Libertarians for Massie" posted, two days after Massie's defeat:
+An account called "Libertarians for Massie" [posted this](https://x.com/jeffersonation1/status/2056888921427001555) on the night of his defeat:
 
 {{PULL: "Vote democrat in the midterms. Destroy MAGA." | Libertarians for Massie}}
 
-Vote Democrat. Destroy MAGA. From people calling themselves Libertarians. Tell me how these people aren’t part of the Regime Alliance, again?
+Vote Democrat. Destroy MAGA. From people calling themselves Libertarians.
+
+That account has since renamed itself "Libertarians against Trump."
+
+Tell me how these people aren’t part of the Regime Alliance, again?
 
 Dave Smith, on Brad Polumbo’s show just the other day said this
 
