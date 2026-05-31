@@ -20,6 +20,12 @@ import {
 import { CommentForm } from "@/components/CommentForm";
 import { CommentItem } from "@/components/CommentItem";
 import { PaidCommentForm } from "@/components/PaidCommentForm";
+import {
+  getCoinDataForComments,
+  getSpentCommentId,
+  isCoinsConfigured,
+} from "@/lib/coins";
+import type { CoinViewerState } from "@/components/CoinButton";
 
 // Comments section. Server component — fetches data on every request.
 // Renders the list, then either the comment form (signed-in members),
@@ -120,11 +126,76 @@ export async function Comments({ kind, slug }: Props) {
     }
   >(badgeEntries);
 
+  // === Coins =================================================
+  const coinsEnabled = isCoinsConfigured();
+  const visibleIds = comments.map((c) => c.id);
+  const coinData = coinsEnabled
+    ? await getCoinDataForComments(visibleIds)
+    : new Map<string, { count: number; topGivers: string[] }>();
+  // The comment this viewer already funded on THIS piece (null = coin
+  // unspent here). One read; drives the dead-obvious spent/unspent UI.
+  const spentCommentId =
+    coinsEnabled && viewerEmail
+      ? await getSpentCommentId(viewerEmail, kind, slug)
+      : null;
+  const spentComment = spentCommentId
+    ? comments.find((c) => c.id === spentCommentId) ?? null
+    : null;
+
+  const coinCountFor = (id: string): number => coinData.get(id)?.count ?? 0;
+  const coinGiversFor = (id: string): string[] =>
+    coinData.get(id)?.topGivers ?? [];
+  const coinStateFor = (c: (typeof comments)[number]): CoinViewerState => {
+    if (!session) return "guest";
+    if (viewerEmail && c.email === viewerEmail) return "own";
+    if (spentCommentId && c.id === spentCommentId) return "spent-here";
+    if (spentCommentId) return "spent-elsewhere";
+    return "unspent";
+  };
+
+  // Coin-rank the regular list: highest coins first, newest as the
+  // tiebreaker. Featured (admin-pinned) keeps its own lane above.
+  const rankedRegular = [...regularComments].sort((a, b) => {
+    const diff = coinCountFor(b.id) - coinCountFor(a.id);
+    if (diff !== 0) return diff;
+    return b.createdAt - a.createdAt;
+  });
+
   return (
     <section className="max-w-2xl mx-auto px-6 mt-16">
       <div className="text-center mb-10">
         <p className="eyebrow">Comments</p>
       </div>
+
+      {coinsEnabled && (
+        <div className="mb-8 text-center">
+          {session ? (
+            <p
+              className="font-serif italic text-ink-muted leading-relaxed"
+              style={{ fontSize: "0.9rem" }}
+            >
+              {spentComment
+                ? `You gave your coin to ${spentComment.displayName}.`
+                : "Members get one coin per article to highlight the best comment."}
+            </p>
+          ) : (
+            <p
+              className="font-serif italic text-ink-muted leading-relaxed"
+              style={{ fontSize: "0.9rem" }}
+            >
+              Coins are how inner circle members highlight the best
+              comments.{" "}
+              <a
+                href="/membership"
+                className="text-eye-deep"
+                style={{ textDecoration: "underline" }}
+              >
+                Join and you get yours.
+              </a>
+            </p>
+          )}
+        </div>
+      )}
 
       {comments.length === 0 ? (
         <p
@@ -145,6 +216,10 @@ export async function Comments({ kind, slug }: Props) {
                     viewerIsAdmin={viewerIsAdmin}
                     memberBadgeByEmail={memberBadgeByEmail}
                     viewerCanReply={!!profile?.displayName}
+                    coinsEnabled={coinsEnabled}
+                    coinCount={coinCountFor(c.id)}
+                    coinGivers={coinGiversFor(c.id)}
+                    coinState={coinStateFor(c)}
                   />
                 </li>
               ))}
@@ -152,7 +227,7 @@ export async function Comments({ kind, slug }: Props) {
           )}
           {regularComments.length > 0 && (
             <ul className="flex flex-col">
-              {regularComments.map((c, idx) => (
+              {rankedRegular.map((c, idx) => (
                 <li
                   key={c.id}
                   className={
@@ -165,6 +240,10 @@ export async function Comments({ kind, slug }: Props) {
                     viewerIsAdmin={viewerIsAdmin}
                     memberBadgeByEmail={memberBadgeByEmail}
                     viewerCanReply={!!profile?.displayName}
+                    coinsEnabled={coinsEnabled}
+                    coinCount={coinCountFor(c.id)}
+                    coinGivers={coinGiversFor(c.id)}
+                    coinState={coinStateFor(c)}
                   />
                 </li>
               ))}

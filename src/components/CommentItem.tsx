@@ -16,6 +16,7 @@ import { CommentPermalinkButton } from "@/components/CommentPermalinkButton";
 import { FeatureCommentButton } from "@/components/FeatureCommentButton";
 import { DeleteThreadReplyButton } from "@/components/DeleteThreadReplyButton";
 import { MemberBadge } from "@/components/MemberBadge";
+import { CoinButton, type CoinViewerState } from "@/components/CoinButton";
 import type { TierBadge } from "@/lib/members";
 
 export type MemberBadgeInfo = {
@@ -95,6 +96,11 @@ type Props = {
       file — gates the "Reply" CTA so we don't surface it to people who
       would just hit display_name_required at submit time. */
   viewerCanReply?: boolean;
+  /** Coins (top-level comments only). Rendered when coinsEnabled. */
+  coinsEnabled?: boolean;
+  coinCount?: number;
+  coinGivers?: string[];
+  coinState?: CoinViewerState;
 };
 
 export function CommentItem({
@@ -103,6 +109,10 @@ export function CommentItem({
   viewerIsAdmin,
   memberBadgeByEmail,
   viewerCanReply = false,
+  coinsEnabled = false,
+  coinCount = 0,
+  coinGivers = [],
+  coinState = "guest",
 }: Props) {
   const viewerWroteThis =
     !!viewerEmail && viewerEmail.toLowerCase().trim() === comment.email;
@@ -236,6 +246,20 @@ export function CommentItem({
 
           {/* Body */}
           <div>{renderBody(comment.body)}</div>
+
+          {/* Coins — scarce endorsement (top-level only). Always shown
+              when enabled so counts are visible to everyone; the button
+              is interactive only in the giveable state. */}
+          {coinsEnabled && (
+            <div className="mt-3">
+              <CoinButton
+                commentId={comment.id}
+                count={coinCount}
+                topGivers={coinGivers}
+                state={coinState}
+              />
+            </div>
+          )}
 
           {/* Actions row: Reply / Edit / Delete / Approve (pending +
               admin) / Feature (admin). Spaced out, italic-olive for
