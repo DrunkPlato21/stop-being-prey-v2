@@ -101,7 +101,7 @@ export function AdminReplyControls({
         value={body}
         onChange={(e) => setBody(e.target.value)}
         rows={3}
-        maxLength={2000}
+        maxLength={8000}
         placeholder="Reply as Clay…"
         disabled={pending}
         className="font-serif text-ink bg-paper border border-border px-3 py-2 outline-none focus:border-ink resize-y"
@@ -111,7 +111,7 @@ export function AdminReplyControls({
         className="font-serif italic text-ink-faint self-end"
         style={{ fontSize: "0.78rem" }}
       >
-        {body.length} / 2000
+        {body.length} / 8000
       </span>
       <div className="flex flex-wrap items-center gap-3">
         <button

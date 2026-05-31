@@ -730,6 +730,10 @@ export { DISPLAY_NAME_COOLDOWN_MS };
 // + API route; the library cap stays at the member ceiling.
 const MAX_BODY = 1500;
 const MAX_NAME = 30;
+// Clay's own author replies get more room than member bodies — he uses
+// them for long, considered responses. Keep this in sync with the cap
+// in the reply API route and the AdminReplyControls textarea/counter.
+export const MAX_REPLY_BODY = 8000;
 
 // Match C0 control chars (0x00-0x1F) and DEL (0x7F). Newlines are
 // inside the range — we strip them in display-name sanitation, but
@@ -749,7 +753,7 @@ export function sanitizeDisplayName(input: string): string {
   return oneLine.slice(0, MAX_NAME);
 }
 
-export function sanitizeBody(input: string): string {
+export function sanitizeBody(input: string, maxLen: number = MAX_BODY): string {
   // Preserve newlines (we render them as <br />), strip HTML brackets
   // and other C0 control chars so it's safe to display as text.
   const noControl = input
@@ -757,7 +761,7 @@ export function sanitizeBody(input: string): string {
     .replace(new RegExp("[" + C0_RANGE_KEEP_LF + "]", "g"), "");
   // Collapse 3+ newlines to 2 so spacing stays readable.
   const collapsed = noControl.replace(/\n{3,}/g, "\n\n").trim();
-  return collapsed.slice(0, MAX_BODY);
+  return collapsed.slice(0, maxLen);
 }
 
 /* === Comments CRUD ========================================= */
@@ -1119,7 +1123,7 @@ export async function setReply(
   const comment = await getComment(commentId);
   if (!comment) return { ok: false, error: "not_found" };
 
-  const cleaned = sanitizeBody(body);
+  const cleaned = sanitizeBody(body, MAX_REPLY_BODY);
   if (!cleaned) return { ok: false, error: "empty_body" };
 
   const next: CommentRecord = {

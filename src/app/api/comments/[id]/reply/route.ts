@@ -46,7 +46,7 @@ function lookupPiece(
   };
 }
 
-const MAX_BODY_LENGTH = 4000;
+const MAX_BODY_LENGTH = 8000;
 
 export async function POST(
   req: NextRequest,
