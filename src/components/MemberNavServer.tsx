@@ -25,6 +25,7 @@ export async function MemberNavServer() {
     "/lounge": state.lounge,
     "/case-files": state.caseFiles,
     "/notes/field-notes": state.fieldNotes,
+    "/notes/coins": state.coins,
   };
 
   return <MemberNav dots={dots} />;

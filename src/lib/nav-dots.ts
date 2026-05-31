@@ -2,6 +2,7 @@ import { Redis } from "@upstash/redis";
 import { getAllCaseFiles } from "@/lib/case-files";
 import { getAllFieldNotesWithActivity } from "@/lib/field-notes";
 import { getLastViewed as getLoungeLastViewed } from "@/lib/lounge";
+import { latestReceivedCoinAt } from "@/lib/coins";
 
 // Per-section "new content since you were last here" indicators for the
 // members-area left nav. Three sections carry a dot today:
@@ -23,18 +24,23 @@ import { getLastViewed as getLoungeLastViewed } from "@/lib/lounge";
 
 const NAV_VIEWED_PREFIX = "nav:viewed:";
 
-type DottedSection = "case-files" | "field-notes";
+export type DottedSection = "case-files" | "field-notes" | "coins";
 
 export type NavDotState = {
   caseFiles: boolean;
   fieldNotes: boolean;
   lounge: boolean;
+  // Per-member: fires when this member has received a coin newer than
+  // their last visit to /notes/coins. Unlike the others, "newness" is
+  // personal, not shared content.
+  coins: boolean;
 };
 
 const EMPTY: NavDotState = {
   caseFiles: false,
   fieldNotes: false,
   lounge: false,
+  coins: false,
 };
 
 let cachedClient: Redis | null = null;
@@ -119,22 +125,27 @@ export async function getNavDots(
     caseFilesAt,
     fieldNotesAt,
     loungeAt,
+    coinsAt,
     viewedCaseFiles,
     viewedFieldNotes,
     viewedLounge,
+    viewedCoins,
   ] = await Promise.all([
     getCaseFilesLatestAt(),
     getFieldNotesLatestAt(),
     getLoungeLatestActivityAt(),
+    latestReceivedCoinAt(e).catch(() => 0),
     getNavViewed(e, "case-files"),
     getNavViewed(e, "field-notes"),
     getLoungeLastViewed(e).catch(() => null),
+    getNavViewed(e, "coins"),
   ]);
 
   return {
     caseFiles: caseFilesAt > viewedCaseFiles,
     fieldNotes: fieldNotesAt > viewedFieldNotes,
     lounge: loungeAt > (viewedLounge ?? 0),
+    coins: coinsAt > viewedCoins,
   };
 }
 

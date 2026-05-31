@@ -1,0 +1,106 @@
+import { type NextRequest, NextResponse } from "next/server";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { getProfile } from "@/lib/comments";
+import { giveCoin } from "@/lib/coins";
+import { createNotification } from "@/lib/notifications";
+
+// POST /api/coins/give   body: { commentId: string }
+//
+// Gives the caller's one coin for this piece to a top-level comment.
+// Session-gated (non-members can't give). Self-coin, reply-coin, and
+// double-spend are all rejected by giveCoin(); this route just wires
+// auth, resolves the giver's display name, and fires the recipient's
+// in-site notification on success.
+
+export const runtime = "nodejs";
+
+function firstWord(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const space = trimmed.search(/\s/);
+  return space === -1 ? trimmed : trimmed.slice(0, space);
+}
+
+export async function POST(req: NextRequest) {
+  const token = req.cookies.get(SESSION_COOKIE)?.value;
+  const session = await verifySession(token);
+  if (!session) {
+    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  }
+
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
+  const commentId = (payload as { commentId?: unknown })?.commentId;
+  if (typeof commentId !== "string" || commentId.length === 0) {
+    return NextResponse.json({ error: "invalid_comment_id" }, { status: 400 });
+  }
+
+  const profile = await getProfile(session.email);
+  const giverDisplayName =
+    profile?.displayName?.trim() ||
+    session.email.split("@")[0] ||
+    "A member";
+
+  const result = await giveCoin({
+    giverEmail: session.email,
+    giverDisplayName,
+    commentId,
+  });
+
+  if (!result.ok) {
+    const status =
+      result.error === "not_found"
+        ? 404
+        : result.error === "self_coin"
+          ? 403
+          : result.error === "already_spent"
+            ? 409
+            : 503;
+    return NextResponse.json(
+      { error: result.error, spentOn: result.spentOn },
+      { status }
+    );
+  }
+
+  // Recognition: notify the recipient. Best-effort — the coin is already
+  // committed; a notification miss is a degraded outcome, not a failure.
+  // (Email notifications are intentionally out of scope for v1; this
+  // route is the single seam where they'd be added later.)
+  //
+  // SAFETY: notifications are NOT namespaced (shared system), so in dev
+  // a coin notification would land in a real member's production
+  // notification feed and show on their bell on the LIVE site. So we
+  // skip the real send outside production and just log it. This makes
+  // local testing against real comments incapable of pinging real
+  // members. (To exercise notification DELIVERY end-to-end, use a
+  // separate dev Redis — see the testing notes.)
+  const recipient = result.recipientEmail;
+  const giverFirst = firstWord(giverDisplayName) || "A member";
+  const isProd = process.env.NODE_ENV === "production";
+  if (recipient && recipient !== session.email.toLowerCase().trim()) {
+    if (!isProd) {
+      console.log(
+        `[coins] (dev) would notify ${recipient}: ${giverFirst} gave a coin (notification suppressed outside production)`
+      );
+    } else {
+      await createNotification({
+        memberEmail: recipient,
+        type: "coin_received",
+        title: `${giverFirst} gave your comment a coin`,
+        // Link to their collection, not the comment: receiving a coin is
+        // the moment to make them aware "Your Coins" exists. The page
+        // shows who gave it + the comment, with a link back to context.
+        body: result.comment.body.slice(0, 120),
+        linkUrl: "/notes/coins",
+      }).catch((err) => {
+        console.error(`[coins] notification failed for ${recipient}:`, err);
+      });
+    }
+  }
+
+  return NextResponse.json({ ok: true, count: result.count });
+}

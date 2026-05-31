@@ -45,6 +45,7 @@ const ITEMS: NavItem[] = [
   { href: "/case-files", label: "Case Files" },
   { href: "/book", label: "Book" },
   { href: "/notes/account", label: "Account", clusterBreak: true },
+  { href: "/notes/coins", label: "Your Coins" },
 ];
 
 function isActive(pathname: string, href: string): boolean {

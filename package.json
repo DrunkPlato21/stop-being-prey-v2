@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "coins:reset-dev": "node scripts/coins-reset-dev.mjs"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.4",
