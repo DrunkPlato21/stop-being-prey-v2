@@ -46,11 +46,15 @@ Massie was the one guy in Washington who didn’t think this was right, and so, 
 
 Trump's response:
 
-> "Looks like a third rate Grandstander." ([source](https://thehill.com/homenews/administration/489825-trump-blasts-conservative-lawmaker-over-opposition-to-relief-package/))
+> "Looks like a third rate Grandstander."
+>
+> \~ [Donald Trump, March 2020](https://thehill.com/homenews/administration/489825-trump-blasts-conservative-lawmaker-over-opposition-to-relief-package/)
 
 then:
 
-> "Throw Massie out of Republican Party!" ([source](https://www.newsweek.com/trump-calls-rep-thomas-massie-kicked-out-gop-wanting-block-coronavirus-stimulus-vote-1494690))
+> "Throw Massie out of Republican Party!"
+>
+> \~ [Donald Trump, March 2020](https://www.newsweek.com/trump-calls-rep-thomas-massie-kicked-out-gop-wanting-block-coronavirus-stimulus-vote-1494690)
 
 Five years later, the inflation has eaten more of the working class than any policy in living memory. Massie was completely vindicated. The Austrian economists who taught him were right. The third rate Grandstander could see what was coming better than anyone in congress.
 
@@ -247,7 +251,9 @@ I’ll drop the stupid act now… \
 \
 Yes… OF COURSE Mehdi Hasan sounded just like Dave Smith too:
 
-> *"A reminder that Trump is primarily mad at Thomas Massie not because of politics or ideology but because Massie embarrassed him over his ties to Jeffrey Epstein and his ongoing cover-up of the Epstein files."* ([source](https://x.com/mehdirhasan/status/2056143144979210618))
+> *"A reminder that Trump is primarily mad at Thomas Massie not because of politics or ideology but because Massie embarrassed him over his ties to Jeffrey Epstein and his ongoing cover-up of the Epstein files."*
+>
+> \~ [Mehdi Hasan](https://x.com/mehdirhasan/status/2056143144979210618)
 
 Have you seen enough yet? Do i need to keep going?
 
@@ -331,7 +337,9 @@ Tom Woods, if you don’t know, is one of the most influential libertarian voice
 
 He celebrated the Ulbricht pardon too. On January 22, 2025, he wrote this on his own account, in his own voice:
 
-> "Ross is free! Thank you, Donald Trump, for doing what no Bush, McCain, Romney, Obama, or Biden would ever have done." ([source](https://x.com/ThomasEWoods/status/1881864145303413129))
+> "Ross is free! Thank you, Donald Trump, for doing what no Bush, McCain, Romney, Obama, or Biden would ever have done."
+>
+> \~ [Tom Woods, January 22, 2025](https://x.com/ThomasEWoods/status/1881864145303413129)
 
 Thank you, Donald Trump.
 
@@ -849,7 +857,9 @@ He was right. I was with him, dunking on the losertarians who fought against Ang
 
 She won, Ross was freed.
 
-> "If Ross Ulbricht gets to go home tomorrow it'll be the best feeling I've ever had in politics... President Trump. Thank you for doing the right thing and keeping your promise." ([source](https://x.com/LibertyLockPod/status/1881202204553683114))
+> "If Ross Ulbricht gets to go home tomorrow it'll be the best feeling I've ever had in politics... President Trump. Thank you for doing the right thing and keeping your promise."
+>
+> \~ [Clint Russell, January 2025](https://x.com/LibertyLockPod/status/1881202204553683114)
 
 The best feeling he’s ever had in politics… 
 
