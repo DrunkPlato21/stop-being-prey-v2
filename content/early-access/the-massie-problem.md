@@ -201,7 +201,7 @@ To say it plain… he’s a progressive who hates everything MAGA fights for.
 
 THAT guy went out of his way to defend Massie after his primary loss:
 
-> "Pretending like there was an organic tens of millions of dollars dumped on Massie is why no one under 55 believe fuck all about politics."
+> "Pretending like there was an organic tens of millions of dollars dumped on Massie is why no one under 55 believe fuck all about politics (and they are right)."
 >
 > \~ Ben Rhodes
 
@@ -471,7 +471,7 @@ They're the Progressive Alliance's pets, firmly on a leash, and they don't see i
 
 “Trump is the Epstein Class!”… Good Boy! Here’s a treat.
 
-Here's a chihuahua barking just yesterday:
+Here's another chihuahua barking:
 
 > "I'll be exposing the swamp for 7 more months before you get to unwrap your present from the globalist billionaires."
 >
@@ -692,7 +692,7 @@ You shoot Charlie, you shoot Trump. The predators who collect real wins…
 
 Watch how progressives operate. They take territory and don't apologize for it. They name enemies and make real, calculated moves against them. They celebrate strategic wins openly, including assassinations of political opponents. They institutionalize victories so they can't be reversed. They build the architecture that lets them keep doing it. They are playing for keeps, while most conservatives and libertarians still act like politics is a debate club.
 
-The lesson of Charlie Kirks assassination is that politics is not a debate club.
+The lesson of Charlie Kirk's assassination is that politics is not a debate club.
 
 The debate ended with a gunshot.
 
@@ -710,7 +710,7 @@ Do you see?
 
 BUT ISRAEL!… AIPAC!!!! I’m going to say this as politely as I can.
 
-shut the fuck up.
+Shut the fuck up.
 
 You sound like Hasan Piker, Mehdi Hasan and the New York Fucking Times... verbatim… Are you proud of that? Are the treats that good? Lots of hits on those videos. How’s the ad revenue?
 
