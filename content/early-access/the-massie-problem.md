@@ -10,7 +10,7 @@ description: "An early-access essay for members. Read it before anyone else."
 
 That was Thomas Massie's concession line on the night of May 19, 2026.
 
-He had just lost the Kentucky Fourth Congressional District Republican primary to Ed Gallrein. The most expensive U.S. House primary in history, it would appear. $32 million spent. Nine million of it from AIPAC against him. Seven million from Trump-aligned donors. He lost by ten points. It was decisive.
+He had just lost the Kentucky Fourth Congressional District Republican primary to Ed Gallrein. The most expensive U.S. House primary in history. $32 million spent. Nine million of it from AIPAC against him. Seven million from Trump-aligned donors. He lost by ten points. It was decisive.
 
 I'd been writing this piece as a diagnosis. Then mid-draft, reality made its verdict. I don't have to speculate about what will happen anymore. The alliance that took him out has a name worth knowing.
 
