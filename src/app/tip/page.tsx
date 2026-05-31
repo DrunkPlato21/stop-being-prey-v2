@@ -19,9 +19,11 @@ const LIGHTNING_ADDRESS = "stopbeingprey@walletofsatoshi.com";
 const ANONYMOUS_LABEL = "a reader writes";
 
 const trustLines: string[] = [
-  "tips go directly to me. they support the writing, the podcast, and the time the project takes.",
-  "not tax-deductible. this isn't a charity. it's a tip jar.",
-  "tipping is gratitude. if you want, you can leave a public message on the supporters wall. that's the perk. nothing else is gated.",
+  "tips go straight to me. they pay for the writing, the podcast, and the hours this takes.",
+  "but really, they buy one thing: independence.",
+  "no ads. no sponsors. no donor class. nobody i have to keep happy, and nothing i can't say. when readers fund the work, the work answers to readers. that's the whole point.",
+  "this isn't a charity. it's a tip jar. not tax-deductible. nothing is gated, and nothing ever will be.",
+  "if you tip, you can leave your name and a note on the supporters wall. that's the only perk. it's just gratitude, going both ways.",
 ];
 
 export default async function TipPage() {
