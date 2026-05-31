@@ -280,6 +280,24 @@ export async function getCoinDataForComments(
   return out;
 }
 
+/**
+ * Timestamp (epoch ms) of the most recent coin this member RECEIVED, or
+ * 0 if none. Cheap one-entry ZSET read — powers the "Your Coins" nav dot
+ * without loading the whole ledger.
+ */
+export async function latestReceivedCoinAt(email: string): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const norm = normEmail(email);
+  if (!norm) return 0;
+  const raw = await client
+    .zrange(receivedKey(norm), 0, 0, { rev: true, withScores: true })
+    .catch(() => [] as unknown[]);
+  if (!Array.isArray(raw) || raw.length < 2) return 0;
+  const score = Number(raw[1]);
+  return Number.isFinite(score) ? score : 0;
+}
+
 function parseReceipt(raw: unknown): CoinReceipt | null {
   if (raw === null || raw === undefined) return null;
   try {

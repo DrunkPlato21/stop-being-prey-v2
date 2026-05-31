@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { listReceivedCoins, type CoinReceipt } from "@/lib/coins";
+import { markNavViewed } from "@/lib/nav-dots";
 
 export const metadata: Metadata = {
   title: "Your Coins",
@@ -40,6 +41,10 @@ export default async function YourCoinsPage() {
 
   const received = await listReceivedCoins(session.email).catch(() => []);
 
+  // Stamp this visit so the "Your Coins" nav dot clears. Best-effort;
+  // a failed write just leaves the dot for next render.
+  await markNavViewed("coins", session.email).catch(() => {});
+
   return (
     <div>
       <section className="border-b border-rule">
@@ -58,6 +63,7 @@ export default async function YourCoinsPage() {
           <p className="deck max-w-xl mx-auto fade-up stagger-3">
             Coins other members gave your comments. Each one is a member
             choosing to spend their single coin on something you wrote.
+            This is your permanent collection. It stays here for good.
           </p>
         </div>
       </section>

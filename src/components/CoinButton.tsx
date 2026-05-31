@@ -303,7 +303,9 @@ export function CoinButton({ commentId, count, topGivers, isOwn }: Props) {
             setArmed(true);
             setError(null);
             // Auto-disarm so an accidental tap doesn't sit primed.
-            setTimeout(() => setArmed(false), 6000);
+            // 12s gives an unhurried reader time to read the warning and
+            // decide; an accidental tap still clears itself.
+            setTimeout(() => setArmed(false), 12000);
           }}
           className="font-display uppercase tracking-[0.18em] bg-transparent border-0 cursor-pointer p-0 transition-colors"
           style={{ fontSize: "0.7rem", fontWeight: 700, color: GOLD }}

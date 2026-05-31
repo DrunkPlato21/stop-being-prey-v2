@@ -21,16 +21,6 @@ function firstWord(value: string): string {
   return space === -1 ? trimmed : trimmed.slice(0, space);
 }
 
-function commentPath(
-  kind: "article" | "note" | "case-file",
-  slug: string,
-  commentId: string
-): string {
-  if (kind === "article") return `/${slug}#c-${commentId}`;
-  if (kind === "case-file") return `/case-files/${slug}#c-${commentId}`;
-  return `/notes/field-notes/${slug}#c-${commentId}`;
-}
-
 export async function POST(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const session = await verifySession(token);
@@ -101,12 +91,11 @@ export async function POST(req: NextRequest) {
         memberEmail: recipient,
         type: "coin_received",
         title: `${giverFirst} gave your comment a coin`,
+        // Link to their collection, not the comment: receiving a coin is
+        // the moment to make them aware "Your Coins" exists. The page
+        // shows who gave it + the comment, with a link back to context.
         body: result.comment.body.slice(0, 120),
-        linkUrl: commentPath(
-          result.comment.kind,
-          result.comment.slug,
-          result.comment.id
-        ),
+        linkUrl: "/notes/coins",
       }).catch((err) => {
         console.error(`[coins] notification failed for ${recipient}:`, err);
       });

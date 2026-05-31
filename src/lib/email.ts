@@ -40,6 +40,15 @@ export async function sendMagicLink(args: {
     return { ok: false, error: "email_not_configured" };
   }
 
+  // Dev convenience: even when Resend IS configured, print the sign-in
+  // link to the server console so a developer can sign in as any test
+  // account locally without a real inbox. Never runs in production.
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `\n[email] (dev) sign-in link for ${args.to}:\n${args.url}\n`
+    );
+  }
+
   const subject = "your sign-in link, stop being prey";
   const html = renderMagicLinkHtml(args.url);
   const text = renderMagicLinkText(args.url);

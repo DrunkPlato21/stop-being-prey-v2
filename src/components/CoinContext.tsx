@@ -96,13 +96,31 @@ export function CoinMemberNotice() {
   const { signedIn, spentCommentId } = useCoinContext();
   if (!signedIn) return null;
   return (
-    <p
-      className="font-serif italic text-ink-muted leading-relaxed"
-      style={{ fontSize: "0.9rem" }}
-    >
-      {spentCommentId
-        ? "You've used your coin on this article."
-        : "Members get one coin per article to highlight the best comment."}
-    </p>
+    <>
+      <p
+        className="font-serif italic text-ink-muted leading-relaxed"
+        style={{ fontSize: "0.9rem" }}
+      >
+        {spentCommentId
+          ? "You've used your coin on this article."
+          : "Members get one coin per article to highlight the best comment."}
+      </p>
+      {/* Quiet pointer so members learn their received-coins collection
+          exists. Reaches givers here too, not just on receipt. */}
+      <p
+        className="font-serif italic text-ink-faint leading-relaxed mt-1"
+        style={{ fontSize: "0.8rem" }}
+      >
+        Coins you receive are saved to{" "}
+        <a
+          href="/notes/coins"
+          className="text-eye-deep"
+          style={{ textDecoration: "underline" }}
+        >
+          Your Coins
+        </a>
+        .
+      </p>
+    </>
   );
 }
