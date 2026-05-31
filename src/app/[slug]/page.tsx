@@ -200,6 +200,13 @@ export default async function ArticlePage({
         </div>
       )}
 
+      {/* === Share row, right after the work (under the P.S.), where the
+          "pass it on" impulse is strongest — not buried below the
+          comments and bio. === */}
+      <div className="max-w-2xl mx-auto px-6 mt-12">
+        <ShareButtons url={`/${article.slug}`} title={article.title} />
+      </div>
+
       <EyeDivider />
 
       {/* === Comments. Members-only input; visible to all readers,
@@ -211,11 +218,6 @@ export default async function ArticlePage({
       {/* === Author bio === */}
       <div className="max-w-3xl mx-auto px-6 mt-16">
         <AuthorBio />
-      </div>
-
-      {/* === Share row, catches the just-finished impulse === */}
-      <div className="max-w-2xl mx-auto px-6 mt-16">
-        <ShareButtons url={`/${article.slug}`} title={article.title} />
       </div>
 
       {/* === Audio Edition: full embed for readers who want to queue
