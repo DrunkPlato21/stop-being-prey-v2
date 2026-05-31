@@ -25,7 +25,7 @@ import {
   getSpentCommentId,
   isCoinsConfigured,
 } from "@/lib/coins";
-import type { CoinViewerState } from "@/components/CoinButton";
+import { CoinProvider, CoinMemberNotice } from "@/components/CoinContext";
 
 // Comments section. Server component — fetches data on every request.
 // Renders the list, then either the comment form (signed-in members),
@@ -138,20 +138,14 @@ export async function Comments({ kind, slug }: Props) {
     coinsEnabled && viewerEmail
       ? await getSpentCommentId(viewerEmail, kind, slug)
       : null;
-  const spentComment = spentCommentId
-    ? comments.find((c) => c.id === spentCommentId) ?? null
-    : null;
-
   const coinCountFor = (id: string): number => coinData.get(id)?.count ?? 0;
   const coinGiversFor = (id: string): string[] =>
     coinData.get(id)?.topGivers ?? [];
-  const coinStateFor = (c: (typeof comments)[number]): CoinViewerState => {
-    if (!session) return "guest";
-    if (viewerEmail && c.email === viewerEmail) return "own";
-    if (spentCommentId && c.id === spentCommentId) return "spent-here";
-    if (spentCommentId) return "spent-elsewhere";
-    return "unspent";
-  };
+  // Server only needs to tell each comment whether the viewer authored
+  // it (can't self-coin). All spent/unspent logic is derived client-side
+  // from CoinProvider so a give updates every comment without a refresh.
+  const isOwnFor = (c: (typeof comments)[number]): boolean =>
+    !!viewerEmail && c.email === viewerEmail;
 
   // Coin-rank the regular list: highest coins first, newest as the
   // tiebreaker. Featured (admin-pinned) keeps its own lane above.
@@ -162,6 +156,11 @@ export async function Comments({ kind, slug }: Props) {
   });
 
   return (
+    <CoinProvider
+      signedIn={!!session && coinsEnabled}
+      viewerEmail={viewerEmail}
+      initialSpentCommentId={spentCommentId}
+    >
     <section className="max-w-2xl mx-auto px-6 mt-16">
       <div className="text-center mb-10">
         <p className="eyebrow">Comments</p>
@@ -170,14 +169,9 @@ export async function Comments({ kind, slug }: Props) {
       {coinsEnabled && (
         <div className="mb-8 text-center">
           {session ? (
-            <p
-              className="font-serif italic text-ink-muted leading-relaxed"
-              style={{ fontSize: "0.9rem" }}
-            >
-              {spentComment
-                ? `You gave your coin to ${spentComment.displayName}.`
-                : "Members get one coin per article to highlight the best comment."}
-            </p>
+            // Reactive: flips to "You've used your coin on this article."
+            // the instant a give succeeds, no refresh.
+            <CoinMemberNotice />
           ) : (
             <p
               className="font-serif italic text-ink-muted leading-relaxed"
@@ -243,7 +237,7 @@ export async function Comments({ kind, slug }: Props) {
                     coinsEnabled={coinsEnabled}
                     coinCount={coinCountFor(c.id)}
                     coinGivers={coinGiversFor(c.id)}
-                    coinState={coinStateFor(c)}
+                    coinIsOwn={isOwnFor(c)}
                   />
                 </li>
               ))}
@@ -317,5 +311,6 @@ export async function Comments({ kind, slug }: Props) {
         )}
       </div>
     </section>
+    </CoinProvider>
   );
 }

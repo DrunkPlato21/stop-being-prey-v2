@@ -16,7 +16,7 @@ import { CommentPermalinkButton } from "@/components/CommentPermalinkButton";
 import { FeatureCommentButton } from "@/components/FeatureCommentButton";
 import { DeleteThreadReplyButton } from "@/components/DeleteThreadReplyButton";
 import { MemberBadge } from "@/components/MemberBadge";
-import { CoinButton, type CoinViewerState } from "@/components/CoinButton";
+import { CoinButton } from "@/components/CoinButton";
 import type { TierBadge } from "@/lib/members";
 
 export type MemberBadgeInfo = {
@@ -100,7 +100,8 @@ type Props = {
   coinsEnabled?: boolean;
   coinCount?: number;
   coinGivers?: string[];
-  coinState?: CoinViewerState;
+  /** True when the viewer authored this comment (can't self-coin). */
+  coinIsOwn?: boolean;
 };
 
 export function CommentItem({
@@ -112,7 +113,7 @@ export function CommentItem({
   coinsEnabled = false,
   coinCount = 0,
   coinGivers = [],
-  coinState = "guest",
+  coinIsOwn = false,
 }: Props) {
   const viewerWroteThis =
     !!viewerEmail && viewerEmail.toLowerCase().trim() === comment.email;
@@ -256,7 +257,7 @@ export function CommentItem({
                 commentId={comment.id}
                 count={coinCount}
                 topGivers={coinGivers}
-                state={coinState}
+                isOwn={coinIsOwn}
               />
             </div>
           )}

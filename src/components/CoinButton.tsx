@@ -2,25 +2,31 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useCoinContext } from "@/components/CoinContext";
 
 // Coins — the scarce endorsement control on a single top-level comment.
 //
-// One component renders every state so the member's situation is
-// dead-obvious at a glance (the top UX requirement, audience skews older
-// / non-technical):
+// State is DERIVED from the shared CoinContext on every render, not
+// frozen at mount. That's the whole point: "have I spent my coin on this
+// article?" is one shared fact, so the instant a give succeeds anywhere,
+// markSpent() flips the context and EVERY CoinButton re-derives in place
+// — the funded comment shows its marker, every other give button
+// disappears (replaced by the plain read-only count), and the section
+// notice updates. No manual refresh, and no click-then-reject: a spent
+// member never sees a give button to click.
 //
-//   "unspent"        bright gold coin + "Give your coin" — the only
-//                    clickable state. Click arms a confirm step, then a
-//                    second click commits and plays a short coin animation.
-//   "spent-here"     this is the comment they funded — solid gold pill,
-//                    "Your coin", unmistakable.
-//   "spent-elsewhere" coin already given to a different comment — dim,
-//                    not clickable. (The section header says to whom.)
-//   "own"            the member's own comment — count only, no give.
-//   "guest"          signed-out / non-member — count only; the section
-//                    explainer carries the join nudge.
+// Derived states (dead-obvious at a glance, audience skews older):
+//   "spent-here"     this comment is the one they funded — gold "Your
+//                    coin" marker.
+//   "spent-elsewhere" coin already spent on another comment — read-only
+//                    count, NO button (looks like information, not an
+//                    action, so it never invites a failed click).
+//   "own"            the member's own comment — count only.
+//   "guest"          signed-out / non-member — count only.
+//   "unspent"        the one giveable state: gold coin + "Give your coin".
 //
-// Count + giver names always show, in every state, for everyone.
+// Counts + giver names always show, in every state, for everyone — so a
+// spent member can still watch which comment is winning.
 
 export type CoinViewerState =
   | "unspent"
@@ -33,7 +39,8 @@ type Props = {
   commentId: string;
   count: number;
   topGivers: string[];
-  state: CoinViewerState;
+  /** True when this comment was authored by the viewer (can't self-coin). */
+  isOwn: boolean;
 };
 
 const GOLD = "#b8860b"; // var(--eye-deep) family; explicit so the coin reads as metal
@@ -89,16 +96,33 @@ function giversSummary(count: number, names: string[]): string {
   } gave coins`;
 }
 
-export function CoinButton({ commentId, count, topGivers, state }: Props) {
+export function CoinButton({ commentId, count, topGivers, isOwn }: Props) {
   const router = useRouter();
+  const { signedIn, spentCommentId, markSpent } = useCoinContext();
   const [armed, setArmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [justGave, setJustGave] = useState(false);
-  const [localCount, setLocalCount] = useState(count);
-  const [localState, setLocalState] = useState<CoinViewerState>(state);
+  // Optimistic count bump for the comment THIS member just funded. Other
+  // comments' counts come straight from the server prop (they don't
+  // change when you coin a different comment). A non-null override only
+  // ever applies to the funded comment.
+  const [countOverride, setCountOverride] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const localCount = countOverride ?? count;
   const summary = giversSummary(localCount, topGivers);
+
+  // Derive the viewer state from shared context every render — this is
+  // what makes a give propagate to every button instantly.
+  const localState: CoinViewerState = !signedIn
+    ? "guest"
+    : spentCommentId === commentId
+      ? "spent-here"
+      : isOwn
+        ? "own"
+        : spentCommentId
+          ? "spent-elsewhere"
+          : "unspent";
 
   async function commit() {
     if (pending) return;
@@ -127,16 +151,19 @@ export function CoinButton({ commentId, count, topGivers, state }: Props) {
         setArmed(false);
         return;
       }
-      // Ceremony: bump the count, light the coin, run the animation, then
-      // refresh so the server re-sorts and every other comment's button
-      // flips to "spent-elsewhere".
-      setLocalCount(typeof data.count === "number" ? data.count : localCount + 1);
-      setLocalState("spent-here");
+      // Optimistic, instant, everywhere: bump this comment's count and
+      // flip the SHARED spent state. markSpent() re-renders every other
+      // CoinButton — their give buttons vanish, the notice updates — with
+      // no page refresh. We then fire a background router.refresh() purely
+      // to re-sort the list by the new counts server-side; the visible
+      // state is already correct before it lands, so even if it's slow
+      // nothing looks broken.
+      setCountOverride(
+        typeof data.count === "number" ? data.count : localCount + 1
+      );
+      markSpent(commentId);
       setArmed(false);
       setJustGave(true);
-      // Let the ceremony play before the server re-sort, but don't make
-      // reduced-motion readers sit through a delay they can't see — they
-      // get an immediate refresh (just the count change).
       const reduceMotion =
         typeof window !== "undefined" &&
         window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -249,7 +276,7 @@ export function CoinButton({ commentId, count, topGivers, state }: Props) {
             padding: "0.1rem 0.5rem",
           }}
         >
-          Your coin
+          ✓ You gave your coin
         </span>
       </span>
     );
