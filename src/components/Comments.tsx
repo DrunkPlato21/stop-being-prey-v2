@@ -213,7 +213,7 @@ export async function Comments({ kind, slug }: Props) {
                     coinsEnabled={coinsEnabled}
                     coinCount={coinCountFor(c.id)}
                     coinGivers={coinGiversFor(c.id)}
-                    coinState={coinStateFor(c)}
+                    coinIsOwn={isOwnFor(c)}
                   />
                 </li>
               ))}
