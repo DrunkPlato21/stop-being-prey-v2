@@ -174,10 +174,6 @@ export function NotificationsBell() {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
-  // Snapshot of unread ids at the moment the panel opened — the
-  // delayed mark-read uses this so notifications that arrive mid-
-  // session via the polling badge don't get auto-marked.
-  const pendingMarkRef = useRef<string[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -305,9 +301,6 @@ export function NotificationsBell() {
         setItems([]);
       } else {
         setItems(data.notifications);
-        pendingMarkRef.current = data.notifications
-          .filter((n) => !n.read)
-          .map((n) => n.id);
       }
     } catch {
       setError("Couldn't load notifications.");
@@ -317,34 +310,30 @@ export function NotificationsBell() {
     }
   }
 
-  // Delayed mark-read after panel open. 1s lets the member glance
-  // at the bold unread items before they fade.
+  // Delayed mark-ALL-read after panel open. 1s lets the member glance at
+  // the bold unread items before they fade. We mark everything read, not
+  // just the visible window: unread items below the fetched 10 used to
+  // strand the badge above zero with no way to clear them from the bell.
+  // Opening the panel is the "I've seen my notifications" signal, so the
+  // count goes to 0 (mark-all-read force-zeroes the counter server-side).
   useEffect(() => {
     if (!open) return;
-    const ids = pendingMarkRef.current;
-    if (ids.length === 0) return;
     const t = window.setTimeout(async () => {
       try {
-        await fetch("/api/notifications/mark-read", {
+        await fetch("/api/notifications/mark-all-read", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ ids }),
         });
-        // Update local state so the rows fade without a refetch.
         setItems((prev) =>
-          prev.map((n) =>
-            ids.includes(n.id) ? { ...n, read: true, readAt: Date.now() } : n
-          )
+          prev.map((n) => ({ ...n, read: true, readAt: n.readAt ?? Date.now() }))
         );
-        setCount((prev) => Math.max(0, prev - ids.length));
-        pendingMarkRef.current = [];
+        setCount(0);
       } catch {
         // Best-effort; next poll will reconcile.
       }
     }, READ_DELAY_MS);
     return () => window.clearTimeout(t);
-  }, [open, items]);
+  }, [open]);
 
   const badge =
     count > MAX_BADGE_DISPLAY ? `${MAX_BADGE_DISPLAY}+` : String(count);

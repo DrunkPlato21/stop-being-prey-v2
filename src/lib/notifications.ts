@@ -286,10 +286,20 @@ export async function unreadCount(email: string): Promise<number> {
   if (!client) return 0;
   const norm = normEmail(email);
   if (!norm) return 0;
-  // pruneExpired recomputes the true unread total from live records and
-  // resets the counter, so its return value is authoritative.
-  const { unread } = await pruneExpired(norm);
-  return Math.max(0, unread);
+  // Cheap single read — this runs on the bell's 30s poll, so it must NOT
+  // scan every record (a member with hundreds of notifications would cost
+  // hundreds of Redis commands per poll). The counter is reconciled to
+  // truth on panel open (listForMember -> pruneExpired) and forced to 0
+  // by markAllRead, so the cheap read stays honest.
+  const raw = await client.get<number | string>(
+    `${UNREAD_COUNTER_PREFIX}${norm}`
+  );
+  if (typeof raw === "number" && Number.isFinite(raw)) return Math.max(0, raw);
+  if (typeof raw === "string") {
+    const n = Number.parseInt(raw, 10);
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  }
+  return 0;
 }
 
 /**
@@ -338,5 +348,10 @@ export async function markAllRead(email: string): Promise<number> {
     await client.set(`${UNREAD_COUNTER_PREFIX}${norm}`, 0);
     return 0;
   }
-  return markRead(norm, ids);
+  const flipped = await markRead(norm, ids);
+  // Force the badge to zero. markRead only decrements for records it can
+  // find and that were unread, so orphans/drift could otherwise strand
+  // the counter above 0. "Mark all read" means unread is definitively 0.
+  await client.set(`${UNREAD_COUNTER_PREFIX}${norm}`, 0);
+  return flipped;
 }
