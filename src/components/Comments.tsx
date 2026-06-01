@@ -13,7 +13,7 @@ import {
 import {
   getCharterSlot,
   getFounderSlot,
-  getMember,
+  getMembersByEmails,
   getTierBadge,
   type TierBadge,
 } from "@/lib/members";
@@ -104,19 +104,11 @@ export async function Comments({ kind, slug }: Props) {
         .filter(Boolean)
     )
   );
-  const badgeEntries = await Promise.all(
-    uniqueEmails.map(async (email) => {
-      const m = await getMember(email).catch(() => null);
-      return [
-        email,
-        {
-          founderSlot: getFounderSlot(m),
-          charterSlot: getCharterSlot(m),
-          tierBadge: getTierBadge(m),
-        },
-      ] as const;
-    })
-  );
+  // One MGET for every participant's member record instead of a GET per
+  // unique email. On a comment-heavy public piece this is the difference
+  // between ~1 Redis command and N per pageview — and this block runs on
+  // every anonymous view, so it dominated the article-traffic Redis bill.
+  const memberRecords = await getMembersByEmails(uniqueEmails);
   const memberBadgeByEmail = new Map<
     string,
     {
@@ -124,7 +116,17 @@ export async function Comments({ kind, slug }: Props) {
       charterSlot: number | null;
       tierBadge: TierBadge | null;
     }
-  >(badgeEntries);
+  >();
+  for (const email of uniqueEmails) {
+    // getMembersByEmails keys by normalized email; comment emails are
+    // already stored normalized, but normalize the lookup to be safe.
+    const m = memberRecords.get(email.toLowerCase().trim()) ?? null;
+    memberBadgeByEmail.set(email, {
+      founderSlot: getFounderSlot(m),
+      charterSlot: getCharterSlot(m),
+      tierBadge: getTierBadge(m),
+    });
+  }
 
   // === Coins =================================================
   const coinsEnabled = isCoinsConfigured();
