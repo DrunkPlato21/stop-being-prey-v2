@@ -170,25 +170,44 @@ export async function createForMembers(
 }
 
 /**
- * Drop notifications older than their retention window. Called from
- * the read paths (list + count) so the cleanup runs naturally as
- * members visit the site. Returns the number pruned.
+ * Drop notifications older than their retention window AND reconcile the
+ * unread badge counter to reality. Called from the read paths (list +
+ * count) so both run naturally as members visit the site.
+ *
+ * The unread counter (`notifications:unread:<email>`) is a denormalized
+ * cache maintained by separate incr/decr ops, so it can drift ABOVE the
+ * true unread count — e.g. an unread record is evicted or orphaned and
+ * never gets its decrement, and mark-read can't clear what it can't find.
+ * Once that happens nothing pulls the badge back down and it sticks at a
+ * phantom number. Since we already load every record here, we recount the
+ * genuinely-unread live records and reset the counter to that exact value,
+ * so the badge self-heals on the next read. Returns the pruned count and
+ * the reconciled unread total.
  */
-async function pruneExpired(email: string): Promise<number> {
+async function pruneExpired(
+  email: string
+): Promise<{ pruned: number; unread: number }> {
   const client = getClient();
-  if (!client) return 0;
+  if (!client) return { pruned: 0, unread: 0 };
   const now = Date.now();
   const ids = (await client
     .zrange(`${MEMBER_SET_PREFIX}${email}`, 0, -1)
     .catch(() => [] as unknown[])) as string[];
-  if (!Array.isArray(ids) || ids.length === 0) return 0;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    // No live entries means there is nothing unread. Reset so a drifted
+    // counter can't keep the badge lit with nothing behind it.
+    await client.set(`${UNREAD_COUNTER_PREFIX}${email}`, 0);
+    return { pruned: 0, unread: 0 };
+  }
   let pruned = 0;
+  let unread = 0;
   for (const id of ids) {
     if (typeof id !== "string") continue;
     const raw = await client.get<string>(`${RECORD_PREFIX}${id}`);
     const record = parseRecord(raw);
     if (!record) {
-      // Orphaned set entry — drop it.
+      // Orphaned set entry — drop it. Not counted toward unread (which is
+      // precisely the drift that used to strand the counter).
       await client.zrem(`${MEMBER_SET_PREFIX}${email}`, id);
       pruned += 1;
       continue;
@@ -199,13 +218,15 @@ async function pruneExpired(email: string): Promise<number> {
     if (expired) {
       await client.zrem(`${MEMBER_SET_PREFIX}${email}`, id);
       await client.del(`${RECORD_PREFIX}${id}`);
-      if (!record.read) {
-        await client.decr(`${UNREAD_COUNTER_PREFIX}${email}`);
-      }
       pruned += 1;
+      continue;
     }
+    if (!record.read) unread += 1;
   }
-  return pruned;
+  // Authoritative reconcile: the badge now reflects the records, not the
+  // drift-prone running counter.
+  await client.set(`${UNREAD_COUNTER_PREFIX}${email}`, unread);
+  return { pruned, unread };
 }
 
 /**
@@ -265,16 +286,10 @@ export async function unreadCount(email: string): Promise<number> {
   if (!client) return 0;
   const norm = normEmail(email);
   if (!norm) return 0;
-  await pruneExpired(norm);
-  const raw = await client.get<number | string>(
-    `${UNREAD_COUNTER_PREFIX}${norm}`
-  );
-  if (typeof raw === "number" && Number.isFinite(raw)) return Math.max(0, raw);
-  if (typeof raw === "string") {
-    const n = Number.parseInt(raw, 10);
-    return Number.isFinite(n) ? Math.max(0, n) : 0;
-  }
-  return 0;
+  // pruneExpired recomputes the true unread total from live records and
+  // resets the counter, so its return value is authoritative.
+  const { unread } = await pruneExpired(norm);
+  return Math.max(0, unread);
 }
 
 /**
