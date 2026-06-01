@@ -201,6 +201,36 @@ export default async function ArticlePage({
           dangerouslySetInnerHTML={{ __html: article.contentHtml }}
         />
 
+        {/* Essay-style pieces (e.g. the Massie issue) close on a pull-
+            quote meant to land on silence. Give that ending a big gap to
+            breathe, then a light email-capture beat — a line + a link to
+            /join, deliberately not a form — before the share P.S. below.
+            Scoped to essayStyle so ordinary essays keep their tighter
+            ending. */}
+        {article.essayStyle && (
+          <div className="max-w-2xl mx-auto mt-32 md:mt-48 text-center">
+            <p
+              className="font-serif italic text-ink-muted leading-relaxed"
+              style={{ fontSize: "1.05rem" }}
+            >
+              stay close. the next one goes out by email first.
+            </p>
+            <p className="mt-4">
+              <Link
+                href="/join"
+                className="font-display text-eye-deep hover:text-ink no-underline transition-colors"
+                style={{
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
+                }}
+              >
+                get on the list &rarr;
+              </Link>
+            </p>
+          </div>
+        )}
+
         {/* === P.S. directly under the article body, no drop cap.
              If the article frontmatter carries a `postscript` field,
              that custom markdown wins. Otherwise fall back to the
