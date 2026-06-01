@@ -24,10 +24,15 @@ const psLinkStyle: React.CSSProperties = {
 };
 
 function PSLabel() {
+  // Trailing {" "} is explicit: JSX trims the whitespace between this tag
+  // and the text that follows it in each variant, so without it the label
+  // renders flush against the sentence ("p.s.if this work...").
   return (
-    <span className="text-ink not-italic" style={{ fontWeight: 600 }}>
-      p.s.
-    </span>
+    <>
+      <span className="text-ink not-italic" style={{ fontWeight: 600 }}>
+        p.s.
+      </span>{" "}
+    </>
   );
 }
 

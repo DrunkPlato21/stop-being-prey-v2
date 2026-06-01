@@ -12,10 +12,12 @@ const nextConfig: NextConfig = {
   // won't be copied into the Vercel function bundle.
   outputFileTracingIncludes: {
     "/api/admin/voice-memos": ["node_modules/ffmpeg-static/**/*"],
-    // The early-access essay reads its markdown from content/early-access
-    // via fs at request time. Opt the dir into the function bundle so the
-    // page can't 404 on its own content in production.
-    "/the-massie-problem": ["content/early-access/**/*"],
+    // The [slug] article route reads markdown from content/articles via fs.
+    // Published issues are prerendered at build, but an unpublished draft
+    // renders on demand (the member/preview gate needs request-time
+    // cookies), so its markdown must be in the serverless bundle or the
+    // page 404s on its own content in production. Opt the dir in.
+    "/[slug]": ["content/articles/**/*"],
   },
   // The essay's slug was renamed from /the-massie-eulogy to
   // /the-massie-problem. Keep old links (shared URLs, the seeded desk

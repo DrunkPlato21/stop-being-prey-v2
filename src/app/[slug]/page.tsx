@@ -1,9 +1,12 @@
 import { notFound, redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import {
-  getAllArticleSlugs,
+  getAllArticles,
   getArticleBySlug,
+  type Article,
 } from "@/lib/articles";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { AudioPill } from "@/components/AudioPill";
 import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
@@ -17,7 +20,11 @@ import type { Metadata } from "next";
 type PageParams = { slug: string };
 
 export async function generateStaticParams() {
-  return getAllArticleSlugs().map((slug) => ({ slug }));
+  // Published articles only. Drafts (published: false) are intentionally
+  // left out of static generation so they aren't prerendered or listed;
+  // their URL still resolves on demand (dynamicParams defaults to true)
+  // where the gate below decides who may see them.
+  return getAllArticles().map((a) => ({ slug: a.slug }));
 }
 
 export async function generateMetadata({
@@ -31,6 +38,11 @@ export async function generateMetadata({
   return {
     title: article.title,
     description: article.description,
+    // While unpublished, keep the draft out of search indexes. Flipping
+    // `published: true` removes this and the page indexes normally.
+    ...(article.published === false
+      ? { robots: { index: false, follow: false } }
+      : {}),
     openGraph: {
       title: article.title,
       description: article.description,
@@ -66,6 +78,25 @@ export default async function ArticlePage({
   const article = await getArticleBySlug(slug);
 
   if (!article) notFound();
+
+  // Draft gate. An unpublished issue stays at its real URL but is not
+  // public yet: signed-in members read it (the early-access window keeps
+  // running), non-members get the join prompt instead of the body. On
+  // localhost the dev server bypasses the gate so the author can preview
+  // freely. Published articles never reach this branch — so they never
+  // touch cookies() and stay fully static. Flip `published: true` to
+  // launch: the gate disappears and everyone reads it.
+  if (article.published === false) {
+    const isDev = process.env.NODE_ENV !== "production";
+    if (!isDev) {
+      const session = await verifySession(
+        (await cookies()).get(SESSION_COOKIE)?.value
+      );
+      if (!session?.email) {
+        return <DraftGate article={article} />;
+      }
+    }
+  }
 
   const dateStr = new Date(article.date).toLocaleDateString("en-US", {
     year: "numeric",
@@ -166,7 +197,7 @@ export default async function ArticlePage({
         }`}
       >
         <div
-          className="prose-article"
+          className={`prose-article${article.essayStyle ? " ea-essay" : ""}`}
           dangerouslySetInnerHTML={{ __html: article.contentHtml }}
         />
 
@@ -213,7 +244,7 @@ export default async function ArticlePage({
           with a soft join CTA underneath for anonymous visitors.
           Moved up so the conversation sits right after the work,
           before the chrome (bio, share, audio, tip jar). === */}
-      <Comments kind="article" slug={article.slug} />
+      <Comments kind="article" slug={article.commentSlug ?? article.slug} />
 
       {/* === Author bio === */}
       <div className="max-w-3xl mx-auto px-6 mt-16">
@@ -265,7 +296,29 @@ export default async function ArticlePage({
           that fits where they are right now. === */}
       <section className="max-w-3xl mx-auto px-6 py-10 md:py-14">
         <p className="eyebrow mb-8 text-center">More like this</p>
+        {/* Tailored membership ask in the piece's own voice, when set
+            (frontmatter `closingCta`). Sits at the conversion surface,
+            above the generic dual block. */}
+        {article.closingCtaHtml && (
+          <div
+            className="max-w-2xl mx-auto mb-10 text-center font-serif text-ink leading-relaxed [&_a]:text-eye-deep [&_a:hover]:text-ink"
+            style={{ fontSize: "1.15rem" }}
+            dangerouslySetInnerHTML={{ __html: article.closingCtaHtml }}
+          />
+        )}
         <DualSubscribeBlock />
+        {/* "The argument starts here" — pull engaged readers deeper into
+            the series instead of bouncing (frontmatter `prequelSlug`). */}
+        {article.prequelSlug && article.prequelLabel && (
+          <div className="mt-10 text-center">
+            <Link
+              href={`/${article.prequelSlug}`}
+              className="eyebrow no-underline hover:text-ink transition-colors"
+            >
+              Start here: {article.prequelLabel} &rarr;
+            </Link>
+          </div>
+        )}
       </section>
 
       <div className="text-center pb-16">
@@ -278,5 +331,51 @@ export default async function ArticlePage({
         </Link>
       </div>
     </article>
+  );
+}
+
+// Shown to non-members who hit an unpublished issue at its real URL. A
+// quiet prompt in place of the body — same register as the old standalone
+// early-access page: a path to join and a path to sign in. The essay text
+// is never sent down this branch. Disappears entirely once the issue is
+// published (the gate above stops running).
+function DraftGate({ article }: { article: Article }) {
+  return (
+    <div>
+      <section className="max-w-2xl mx-auto px-6 pt-16 md:pt-24 pb-14 text-center">
+        <p className="eyebrow mb-6">Members &middot; Early access</p>
+        <h1
+          className="font-display text-ink leading-[1.02] tracking-tight mb-6"
+          style={{
+            fontSize: "clamp(2.4rem, 5.5vw, 4.5rem)",
+            fontWeight: 700,
+            letterSpacing: "-0.022em",
+          }}
+        >
+          {article.title}
+        </h1>
+        <p className="deck mb-10 max-w-md mx-auto">{article.description}</p>
+
+        <Link href="/membership" className="btn-primary">
+          <span>See what&apos;s inside</span>
+        </Link>
+
+        <p className="mt-12 text-sm italic text-ink-muted leading-relaxed max-w-md mx-auto">
+          Already a member?{" "}
+          <Link
+            href={`/notes/sign-in?next=/${article.slug}`}
+            className="text-eye-deep hover:text-ink"
+            style={{
+              textDecoration: "underline",
+              textDecorationColor: "var(--eye)",
+              textDecorationThickness: "1px",
+              textUnderlineOffset: "3px",
+            }}
+          >
+            Sign in.
+          </Link>
+        </p>
+      </section>
+    </div>
   );
 }

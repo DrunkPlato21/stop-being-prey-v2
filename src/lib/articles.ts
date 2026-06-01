@@ -4,6 +4,7 @@ import matter from "gray-matter";
 import { remark } from "remark";
 import html from "remark-html";
 import { applyLeadIncipit } from "./lead-incipit";
+import { applyEssayTokens, countWords } from "./early-access";
 
 const articlesDirectory = path.join(process.cwd(), "content", "articles");
 
@@ -23,6 +24,22 @@ export type ArticleMeta = {
   featured?: boolean;
   /** Curator's one-line note shown on the featured podcast card. */
   featuredNote?: string;
+  /** Publish gate. Absent or true = live. `published: false` hides the
+      article from every public catalog (homepage, /issues, /podcast, issue
+      numbering) and from static generation, while leaving its own URL
+      reachable for a member/preview gate on the detail page. Flip this one
+      field to true (or delete the line) to launch. */
+  published?: boolean;
+  /** Opt into the early-access render pipeline + typography: the
+      {{PULL}}/{{FIGURE}}/{{IMAGE}} tokens and sourced-receipt blockquotes,
+      plus the `.ea-essay` Act-divider spacing. Off by default so a stray
+      blockquote in a normal article keeps the standard treatment. */
+  essayStyle?: boolean;
+  /** Override the Redis comments key. Used when a slug was renamed but the
+      existing comment thread must stay attached to the original key (the
+      Massie issue keeps `the-massie-eulogy` so member comments aren't
+      orphaned). Falls back to the article slug when absent. */
+  commentSlug?: string;
 };
 
 export type Article = ArticleMeta & {
@@ -36,6 +53,16 @@ export type Article = ArticleMeta & {
       `postscript` frontmatter field, run through the same markdown
       pipeline as the body so links and emphasis work. */
   postscriptHtml?: string | null;
+  /** Optional tailored line rendered above the end-of-essay subscribe
+      block, from the `closingCta` frontmatter field (markdown). Lets a
+      piece make its membership ask in its own voice instead of the
+      generic "More like this". Null when absent. */
+  closingCtaHtml?: string | null;
+  /** Optional "the argument starts here" link to an earlier issue this
+      one builds on. Both fields come from frontmatter (`prequelSlug` /
+      `prequelLabel`); label is stored so no extra file read is needed. */
+  prequelSlug?: string;
+  prequelLabel?: string;
 };
 
 /**
@@ -96,15 +123,29 @@ export function getAllArticles(): ArticleMeta[] {
       issue: data.issue,
       spotifyEpisodeId: data.spotifyEpisodeId,
       chapter: data.chapter,
-      wordCount: countBodyWords(content),
+      // essayStyle pieces carry {{tokens}} and inline citation URLs that
+      // aren't prose; count them the way the early-access view did so the
+      // displayed total reflects what's actually read.
+      wordCount:
+        data.essayStyle === true
+          ? countWords(content)
+          : countBodyWords(content),
       featured: data.featured === true,
       featuredNote:
         typeof data.featuredNote === "string" ? data.featuredNote : undefined,
+      published: data.published !== false,
+      essayStyle: data.essayStyle === true,
+      commentSlug:
+        typeof data.commentSlug === "string" ? data.commentSlug : undefined,
     } as ArticleMeta;
   });
-  return articles.sort((a, b) =>
-    a.date < b.date ? 1 : -1
-  );
+  // Drop unpublished drafts from the public catalog. This single filter
+  // removes a draft from the homepage lead, /issues, /podcast, and the
+  // issue-number identity in one place; the detail page reads the file
+  // directly via getArticleBySlug, so its URL still resolves for previews.
+  return articles
+    .filter((a) => a.published !== false)
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
@@ -114,19 +155,31 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   const fileContents = fs.readFileSync(fullPath, "utf8");
   const { data, content } = matter(fileContents);
 
+  const essayStyle = data.essayStyle === true;
+
   const processedContent = await remark().use(html).process(content);
   const fullHtml = processedContent.toString();
   const { contentHtml: rawContentHtml, referencesHtml } =
     splitReferences(fullHtml);
-  // Wrap the first sentence of the article body in a small-caps
-  // run-in lead — the publication's opening-text register. Not
-  // applied to references (the references list isn't prose).
-  const contentHtml = applyLeadIncipit(rawContentHtml);
+  // `essayStyle` pieces run the early-access token pipeline
+  // ({{PULL}}/{{FIGURE}}/{{IMAGE}} + sourced-receipt blockquotes) and
+  // skip the lead-incipit: their opening is an epigraph pull quote, and
+  // the incipit would target the wrong paragraph (and break the token).
+  // Everyone else gets the standard small-caps run-in lead.
+  const contentHtml = essayStyle
+    ? applyEssayTokens(rawContentHtml)
+    : applyLeadIncipit(rawContentHtml);
 
   let postscriptHtml: string | null = null;
   if (typeof data.postscript === "string" && data.postscript.trim().length > 0) {
     const ps = await remark().use(html).process(data.postscript);
     postscriptHtml = ps.toString().trim();
+  }
+
+  let closingCtaHtml: string | null = null;
+  if (typeof data.closingCta === "string" && data.closingCta.trim().length > 0) {
+    const c = await remark().use(html).process(data.closingCta);
+    closingCtaHtml = c.toString().trim();
   }
 
   return {
@@ -138,9 +191,18 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     issue: data.issue,
     spotifyEpisodeId: data.spotifyEpisodeId,
     chapter: data.chapter,
-    wordCount: countBodyWords(content),
+    wordCount: essayStyle ? countWords(content) : countBodyWords(content),
+    published: data.published !== false,
+    essayStyle,
+    commentSlug:
+      typeof data.commentSlug === "string" ? data.commentSlug : undefined,
     contentHtml,
     referencesHtml,
     postscriptHtml,
+    closingCtaHtml,
+    prequelSlug:
+      typeof data.prequelSlug === "string" ? data.prequelSlug : undefined,
+    prequelLabel:
+      typeof data.prequelLabel === "string" ? data.prequelLabel : undefined,
   };
 }

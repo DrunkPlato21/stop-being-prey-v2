@@ -77,7 +77,23 @@ export function writeEssayRaw(slug: string, raw: string): boolean {
  */
 export async function renderEssayBody(content: string): Promise<string> {
   const processed = await remark().use(html).process(content);
-  let bodyHtml = processed.toString();
+  return applyEssayTokens(processed.toString());
+}
+
+/**
+ * Apply the custom token + blockquote treatments to already-rendered
+ * markdown HTML. Split out from renderEssayBody so the standard article
+ * pipeline (src/lib/articles.ts) can reuse the EXACT same transforms for
+ * essays that opt in via `essayStyle: true` in their frontmatter — one
+ * source of truth, no drift between the early-access route, the editor
+ * preview, and a migrated public issue.
+ *
+ * NOTE: this rewrites EVERY <blockquote> into a sourced-receipt figure, so
+ * only call it on bodies that intend that treatment. The article pipeline
+ * gates it behind the `essayStyle` flag for exactly this reason.
+ */
+export function applyEssayTokens(input: string): string {
+  let bodyHtml = input;
 
   // {{FIGURE: src | alt | caption}} -> captioned figure (olive border +
   // paper bg + italic caption). Width-capped to the column.
