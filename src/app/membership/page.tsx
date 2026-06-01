@@ -17,7 +17,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Membership",
   description:
-    "Inside Stop Being Prey. Commenting access, the Field Notes archive, early access to issues, first in line for the book. Founder rate locked for life on the first 100. Charter badge on the next 100.",
+    "Inside Stop Being Prey. Commenting access, the Field Notes archive, early access to every issue, and first in line for the book. Charter membership is open: your rate locked for life on the next 100.",
 };
 
 // Counter is rendered fresh on each request (no caching) so the
@@ -182,6 +182,34 @@ export default async function MembershipLandingPage({
     0,
     CHARTER_CAP - effectiveCharterClaimed
   );
+
+  // Front-loaded offer strings for the hero block under the headline.
+  // Mirrors the scarcity-strip branches so price + CTA stay in sync with
+  // the live founder/charter/filled state.
+  let heroPrice: string;
+  let heroScarcity: string;
+  let heroCta: string;
+  if (founderAccess) {
+    heroPrice = "$8/mo founder rate, locked for life.";
+    heroScarcity = "Name your price above the floor.";
+    heroCta = "Claim Founder #101";
+  } else if (founderEligible) {
+    heroPrice = "$8/mo, locked for life.";
+    heroScarcity = `${remaining} of 100 founder ${
+      remaining === 1 ? "slot" : "slots"
+    } left.`;
+    heroCta = "Claim your slot";
+  } else if (charterEligible) {
+    heroPrice = "$13/mo. Name your price above.";
+    heroScarcity = `${charterRemaining} charter ${
+      charterRemaining === 1 ? "seat remains" : "seats remain"
+    }.`;
+    heroCta = "Claim your seat";
+  } else {
+    heroPrice = "$13/mo. Name your price above.";
+    heroScarcity = "Full access. Cancel anytime.";
+    heroCta = "Join";
+  }
   // Live presence on the sales page: the Writer's Desk beat carries
   // a pulsing pill that reflects Clay's actual current state, so the
   // abstract promise ("a green light pulses next to my name") is
@@ -225,7 +253,7 @@ export default async function MembershipLandingPage({
 
       {/* Masthead */}
       <section className="border-b border-rule">
-        <div className="max-w-3xl mx-auto px-6 pt-16 md:pt-24 pb-14 text-center">
+        <div className="max-w-3xl mx-auto px-6 pt-4 md:pt-6 pb-14 text-center">
           <p className="eyebrow mb-6 fade-up stagger-1">
             For readers who want more
           </p>
@@ -239,6 +267,47 @@ export default async function MembershipLandingPage({
           >
             In the room with me.
           </h1>
+
+          {/* Front-loaded offer. Price + scarcity + a primary CTA sit
+              directly under the headline so an intent-driven visitor can
+              act before the long letter below. The button jumps to the
+              live pricing widget (#pricing) rather than duplicating it,
+              so there's one source of truth for the form. */}
+          <div className="max-w-md mx-auto mb-12 fade-up stagger-3">
+            <p
+              className="font-serif text-ink-muted leading-relaxed mb-5"
+              style={{ fontSize: "1.08rem" }}
+            >
+              A direct line to me while I write, and a room of people
+              learning to see power clearly and stop being prey. Comments,
+              the desk, the lounge, the book.
+            </p>
+            <p
+              className="font-display text-ink leading-none mb-1"
+              style={{ fontSize: "1.25rem", fontWeight: 700 }}
+            >
+              {heroPrice}
+            </p>
+            <p
+              className="font-serif italic text-ink-muted mb-6"
+              style={{ fontSize: "0.95rem" }}
+            >
+              {heroScarcity}
+            </p>
+            <Link href="#pricing" className="btn-primary">
+              <span>{heroCta}</span>
+            </Link>
+            {totalMembers > 0 && (
+              <p
+                className="font-serif italic text-ink-faint mt-4"
+                style={{ fontSize: "0.85rem" }}
+              >
+                join {totalMembers}{" "}
+                {totalMembers === 1 ? "reader" : "readers"} in the room.
+              </p>
+            )}
+          </div>
+
           {/* Leader / doctrine block. Body serif left-aligned inside
               the centered masthead column so multi-paragraph prose
               reads naturally; centered prose at this length fights
