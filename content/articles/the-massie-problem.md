@@ -1,7 +1,7 @@
 ---
 title: "The Thomas Massie Problem"
 slug: "the-massie-problem"
-date: "2026-05-27"
+date: "2026-06-01"
 description: "The libertarians say AIPAC took Massie out. The truth is harder, and it's why they always lose."
 subtitle: "the libertarians say aipac took massie out. the truth is harder, and it's why they always lose"
 issue: 3
