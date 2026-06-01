@@ -18,6 +18,8 @@ prequelLabel: "The Losertarian Problem"
 # /podcast and adds the masthead audio pill + Audio Edition embed to the
 # issue, exactly like The Losertarian Problem.
 spotifyEpisodeId: "7hLcBAoMoYKwjv4BjoiRXY"
+# Real episode runtime (1 hr 22 min); overrides the word-count estimate.
+audioMinutes: 82
 # Published 2026-06-01: live as public Issue No. 3.
 published: true
 ---

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
 import { EyeDivider } from "@/components/Eyes";
 import { AudioPill } from "@/components/AudioPill";
-import { getAllArticles } from "@/lib/articles";
+import { getAllArticles, audioRuntimeMinutes } from "@/lib/articles";
 import { getCurrentIssue } from "@/lib/issue";
 
 export default function Home() {
@@ -93,9 +93,7 @@ export default function Home() {
 
       {/* === Featured Lead Article === */}
       {featured && (() => {
-        const featuredAudioMin = featured.wordCount
-          ? Math.round(featured.wordCount / 150)
-          : null;
+        const featuredAudioMin = audioRuntimeMinutes(featured);
         // The masthead above already carries the volume / issue / date
         // line, so the lead card's eyebrow names the *role* of this slot
         // (it's the featured essay of the current issue) rather than

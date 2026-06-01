@@ -44,7 +44,24 @@ export type ArticleMeta = {
       article is the lead. From the `leadQuote` frontmatter field. The
       homepage falls back to a house line when the lead has none. */
   leadQuote?: string;
+  /** Real audio runtime in minutes, from the `audioMinutes` frontmatter
+      field. Overrides the word-count estimate everywhere the runtime is
+      shown (issue masthead pill, homepage lead pill, /podcast feed). */
+  audioMinutes?: number;
 };
+
+/**
+ * Minutes shown for an episode's audio. Prefers the real runtime
+ * (`audioMinutes` frontmatter) when set; otherwise estimates from word
+ * count at ~150 wpm. Null when there's nothing to base it on. Single
+ * source so the issue page, homepage lead, and /podcast all agree.
+ */
+export function audioRuntimeMinutes(a: ArticleMeta): number | null {
+  if (typeof a.audioMinutes === "number" && a.audioMinutes > 0) {
+    return a.audioMinutes;
+  }
+  return a.wordCount ? Math.round(a.wordCount / 150) : null;
+}
 
 export type Article = ArticleMeta & {
   contentHtml: string;
@@ -143,6 +160,8 @@ export function getAllArticles(): ArticleMeta[] {
         typeof data.commentSlug === "string" ? data.commentSlug : undefined,
       leadQuote:
         typeof data.leadQuote === "string" ? data.leadQuote : undefined,
+      audioMinutes:
+        typeof data.audioMinutes === "number" ? data.audioMinutes : undefined,
     } as ArticleMeta;
   });
   // Drop unpublished drafts from the public catalog. This single filter
@@ -202,6 +221,10 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     essayStyle,
     commentSlug:
       typeof data.commentSlug === "string" ? data.commentSlug : undefined,
+    leadQuote:
+      typeof data.leadQuote === "string" ? data.leadQuote : undefined,
+    audioMinutes:
+      typeof data.audioMinutes === "number" ? data.audioMinutes : undefined,
     contentHtml,
     referencesHtml,
     postscriptHtml,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   getAllArticles,
   getArticleBySlug,
+  audioRuntimeMinutes,
   type Article,
 } from "@/lib/articles";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
@@ -105,10 +106,9 @@ export default async function ArticlePage({
     timeZone: "UTC",
   });
 
-  // Audio runtime estimate (~150 wpm spoken), used in the audio pill.
-  const audioMinutes = article.wordCount
-    ? Math.round(article.wordCount / 150)
-    : null;
+  // Audio runtime for the pill: real `audioMinutes` when set, else the
+  // ~150 wpm word-count estimate.
+  const audioMinutes = audioRuntimeMinutes(article);
 
   // "Podcast-only" pieces — articles that exist primarily as
   // episodes, not numbered issues. Detected by: has a spotify

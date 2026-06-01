@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { EyeDivider } from "@/components/Eyes";
-import { getAllArticles, type ArticleMeta } from "@/lib/articles";
+import {
+  getAllArticles,
+  audioRuntimeMinutes,
+  type ArticleMeta,
+} from "@/lib/articles";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -18,8 +22,6 @@ const formatDate = (date: string) =>
     timeZone: "UTC",
   });
 
-const estimateMinutes = (wordCount?: number) =>
-  wordCount ? Math.round(wordCount / 150) : null;
 
 export default function PodcastPage() {
   const episodes = getAllArticles().filter((a) => a.spotifyEpisodeId);
@@ -106,7 +108,7 @@ export default function PodcastPage() {
         </p>
         <div className="space-y-20">
           {feed.map((episode) => {
-            const minutes = estimateMinutes(episode.wordCount);
+            const minutes = audioRuntimeMinutes(episode);
             const isIssue = typeof episode.issue === "number";
             // Margin numeral is the canonical sequential episode number
             // (newest-first across the full archive), so hoisting the
@@ -223,7 +225,7 @@ export default function PodcastPage() {
 }
 
 function FeaturedEpisodeCard({ episode }: { episode: ArticleMeta }) {
-  const minutes = estimateMinutes(episode.wordCount);
+  const minutes = audioRuntimeMinutes(episode);
   const isIssue = typeof episode.issue === "number";
 
   return (
