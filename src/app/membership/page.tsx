@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MembershipPlans } from "@/components/MembershipPlans";
+import { EmailSignup } from "@/components/EmailSignup";
 import { EyeDivider } from "@/components/Eyes";
 import { DeskPresenceIndicator } from "@/components/DeskPresenceIndicator";
 import {
@@ -730,6 +731,29 @@ export default async function MembershipLandingPage({
             </div>
           ))}
         </dl>
+      </section>
+
+      <EyeDivider />
+
+      {/* Non-buyer safety net. Sits after the FAQ, the last beat before
+          someone leaves, so it only catches readers who already passed
+          the paid offer and didn't take it. The free list is the soft
+          landing: keep the relationship, nurture toward membership later,
+          instead of losing the visit entirely. Quiet register so it never
+          competes with the paid CTA above. */}
+      <section className="max-w-2xl mx-auto px-6 py-14 md:py-20 text-center">
+        <p className="eyebrow mb-4">Not ready to join?</p>
+        <p
+          className="font-serif text-ink leading-relaxed mb-7 max-w-md mx-auto"
+          style={{ fontSize: "1.05rem" }}
+        >
+          The essays are free. Get them in your inbox and step closer when
+          you&apos;re ready. Algorithms don&apos;t deliver this writing. It
+          only arrives if you ask.
+        </p>
+        <div className="flex justify-center">
+          <EmailSignup />
+        </div>
       </section>
 
       <div className="text-center pb-16">
