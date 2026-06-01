@@ -200,13 +200,13 @@ export default async function MembershipLandingPage({
     } left.`;
     heroCta = "Claim your slot";
   } else if (charterEligible) {
-    heroPrice = "$13/mo. Name your price above.";
+    heroPrice = "$13/mo, or pay what it's worth.";
     heroScarcity = `${charterRemaining} charter ${
       charterRemaining === 1 ? "seat remains" : "seats remain"
     }.`;
     heroCta = "Claim your seat";
   } else {
-    heroPrice = "$13/mo. Name your price above.";
+    heroPrice = "$13/mo, or pay what it's worth.";
     heroScarcity = "Full access. Cancel anytime.";
     heroCta = "Join";
   }
