@@ -252,14 +252,26 @@ export async function Comments({ kind, slug }: Props) {
       <div className="mt-10 pt-10 border-t border-rule">
         {session ? (
           atCommentLimit ? (
-            <p
-              className="font-serif italic text-ink-muted text-center leading-relaxed"
-              style={{ fontSize: "0.98rem" }}
-            >
-              {commentLimit > 1
-                ? `You've added your ${commentLimit} comments. Delete one above to post another.`
-                : "You've added your comment. Delete it above to post a different one."}
-            </p>
+            <div className="text-center">
+              <p
+                className="font-serif italic text-ink-muted leading-relaxed"
+                style={{ fontSize: "0.98rem" }}
+              >
+                {commentLimit > 1
+                  ? `You've used your ${commentLimit} comments on this piece.`
+                  : "That's your comment on this piece."}{" "}
+                Keep the conversation going in the replies. You can reply to
+                anyone below, as often as you like.
+              </p>
+              <p
+                className="font-serif italic text-ink-faint mt-2"
+                style={{ fontSize: "0.82rem" }}
+              >
+                {commentLimit > 1
+                  ? "Want to swap one out? Delete it above."
+                  : "Want a different comment? Delete it above."}
+              </p>
+            </div>
           ) : (
             <CommentForm
               kind={kind}

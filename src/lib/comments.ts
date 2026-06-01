@@ -808,16 +808,17 @@ export async function getComment(id: string): Promise<CommentRecord | null> {
   }
 }
 
-// Top-level comments a member may keep live per piece. Default 1.
-// Overrides are keyed by `${kind}:${slug}` (the canonical COMMENT slug,
-// which can differ from the URL slug — the Massie essay's URL is
-// /the-massie-problem but its comment slug stays "the-massie-eulogy").
-const PER_PIECE_COMMENT_LIMITS: Record<string, number> = {
-  "article:the-massie-eulogy": 2,
-};
+// Top-level comments a member may keep live per piece. Default 2: one
+// considered take plus room for a follow-up. The conversation past that
+// happens in unlimited member-to-member replies, which don't count
+// against this. Per-piece overrides are keyed by `${kind}:${slug}` (the
+// canonical COMMENT slug, which can differ from the URL slug, e.g. the
+// Massie essay's URL is /the-massie-problem but its comment slug stays
+// "the-massie-eulogy"). None are needed now that the default is 2.
+const PER_PIECE_COMMENT_LIMITS: Record<string, number> = {};
 
 export function commentLimitFor(kind: CommentKind, slug: string): number {
-  return PER_PIECE_COMMENT_LIMITS[`${kind}:${slug}`] ?? 1;
+  return PER_PIECE_COMMENT_LIMITS[`${kind}:${slug}`] ?? 2;
 }
 
 // The member lock value holds the member's comment id(s) for a piece.
