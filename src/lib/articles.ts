@@ -40,6 +40,10 @@ export type ArticleMeta = {
       Massie issue keeps `the-massie-eulogy` so member comments aren't
       orphaned). Falls back to the article slug when absent. */
   commentSlug?: string;
+  /** Pull quote shown in the homepage "From the essay" aside when this
+      article is the lead. From the `leadQuote` frontmatter field. The
+      homepage falls back to a house line when the lead has none. */
+  leadQuote?: string;
 };
 
 export type Article = ArticleMeta & {
@@ -137,6 +141,8 @@ export function getAllArticles(): ArticleMeta[] {
       essayStyle: data.essayStyle === true,
       commentSlug:
         typeof data.commentSlug === "string" ? data.commentSlug : undefined,
+      leadQuote:
+        typeof data.leadQuote === "string" ? data.leadQuote : undefined,
     } as ArticleMeta;
   });
   // Drop unpublished drafts from the public catalog. This single filter

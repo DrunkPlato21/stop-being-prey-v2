@@ -159,7 +159,12 @@ export default function Home() {
                       fontWeight: 400,
                     }}
                   >
-                    &ldquo;We can model them. They can&apos;t model us.&rdquo;
+                    {/* Pull quote follows the lead. Falls back to the house
+                        line when the featured issue sets no leadQuote. */}
+                    &ldquo;
+                    {featured.leadQuote ??
+                      "We can model them. They can't model us."}
+                    &rdquo;
                   </blockquote>
                   {featured.spotifyEpisodeId && (
                     <div className="mt-6 text-right">

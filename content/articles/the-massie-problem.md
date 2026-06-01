@@ -7,6 +7,8 @@ subtitle: "the libertarians say aipac took massie out. the truth is harder, and 
 issue: 3
 essayStyle: true
 commentSlug: "the-massie-eulogy"
+# Homepage "From the essay" pull quote shown when this is the lead issue.
+leadQuote: "The voters took him out. The libertarians just can't say it out loud."
 # Tailored membership ask, shown above the end-of-essay subscribe block.
 closingCta: "If this put words to something you already felt, you're who I write for. The room behind the work is where the next issue lands first, and where the operators who write to me actually talk."
 # "The argument starts here" link into the series.
