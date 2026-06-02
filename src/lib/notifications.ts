@@ -29,6 +29,7 @@ export type NotificationType =
   | "reaction"
   | "reply"
   | "comment_thread_reply"
+  | "comment_mention"
   | "case_published"
   | "voice_memo"
   | "essay"

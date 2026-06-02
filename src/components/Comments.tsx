@@ -211,7 +211,7 @@ export async function Comments({ kind, slug }: Props) {
                     viewerEmail={session?.email ?? null}
                     viewerIsAdmin={viewerIsAdmin}
                     memberBadgeByEmail={memberBadgeByEmail}
-                    viewerCanReply={!!profile?.displayName}
+                    viewerCanReply={viewerIsAdmin || !!profile?.displayName}
                     coinsEnabled={coinsEnabled}
                     coinCount={coinCountFor(c.id)}
                     coinGivers={coinGiversFor(c.id)}
@@ -235,7 +235,7 @@ export async function Comments({ kind, slug }: Props) {
                     viewerEmail={session?.email ?? null}
                     viewerIsAdmin={viewerIsAdmin}
                     memberBadgeByEmail={memberBadgeByEmail}
-                    viewerCanReply={!!profile?.displayName}
+                    viewerCanReply={viewerIsAdmin || !!profile?.displayName}
                     coinsEnabled={coinsEnabled}
                     coinCount={coinCountFor(c.id)}
                     coinGivers={coinGiversFor(c.id)}

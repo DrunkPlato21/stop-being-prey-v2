@@ -37,8 +37,11 @@ type Notification = {
     | "wall_opened"
     | "payment_failed"
     | "founder_confirmed"
+    | "comment_thread_reply"
+    | "comment_mention"
     | "lounge_reply"
     | "lounge_reaction"
+    | "lounge_mention"
     | "coin_received";
   title: string;
   body: string;
@@ -154,6 +157,15 @@ function TypeGlyph({ type }: { type: Notification["type"] }) {
         <svg {...common} fill="none" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="9" fill="currentColor" stroke="none" />
           <circle cx="12" cy="12" r="5.5" fill="none" stroke="var(--paper)" strokeWidth={1.5} />
+        </svg>
+      );
+    case "lounge_mention":
+    case "comment_mention":
+      // At-sign — someone tagged you, in the lounge or a comment thread.
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" />
         </svg>
       );
   }

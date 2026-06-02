@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
+import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
 
 // Member-to-member reply on a top-level comment. Renders as a small
 // italic olive "Reply" link in the actions row; click expands an
@@ -11,6 +11,11 @@ import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 //
 // Auto-approves on the server (the parent's author was already
 // vetted), so the reply renders immediately after refresh.
+//
+// The textarea is the same @-mention composer the lounge uses: type
+// `@` to pick a member from the directory, or click "Reply" on someone
+// else's reply to seed their token (initialValue). Mentions resolve to
+// a member email server-side and fire a comment_mention notification.
 
 const ERRORS: Record<string, string> = {
   empty_body: "Reply can't be empty.",
@@ -27,21 +32,24 @@ type Props = {
   // Hides the trigger when the viewer can't post (signed out / no
   // profile). Comments.tsx is the source of truth for visibility.
   disabledReason?: string | null;
+  // Pre-fills the textarea when the box opens. Used by thread replies
+  // to seed an "@token " mention (via mentionTokenFor) so replying to
+  // someone deeper in a flat thread reads as directed at them and
+  // resolves to their email server-side. Replies still land in the
+  // parent comment's single flat list (no nesting).
+  initialValue?: string;
 };
 
-export function ReplyCommentForm({ commentId, disabledReason }: Props) {
+export function ReplyCommentForm({
+  commentId,
+  disabledReason,
+  initialValue = "",
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialValue);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(() => {
-    if (open && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [open]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -72,7 +80,7 @@ export function ReplyCommentForm({ commentId, disabledReason }: Props) {
         setPending(false);
         return;
       }
-      setValue("");
+      setValue(initialValue);
       setOpen(false);
       setPending(false);
       router.refresh();
@@ -107,15 +115,15 @@ export function ReplyCommentForm({ commentId, disabledReason }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="w-full mt-3 flex flex-col gap-2">
-      <AutoResizingTextarea
-        ref={textareaRef}
+      <MentionAutoResizingTextarea
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onValueChange={setValue}
+        autoFocus
         minRows={3}
         maxLength={1500}
         placeholder="Reply…"
         disabled={pending}
-        className="font-serif text-ink bg-paper border border-border px-3 py-2 outline-none focus:border-ink"
+        className="w-full font-serif text-ink bg-paper border border-border px-3 py-2 outline-none focus:border-ink"
         style={{ fontSize: "1rem", lineHeight: 1.55 }}
       />
       <span
@@ -142,7 +150,7 @@ export function ReplyCommentForm({ commentId, disabledReason }: Props) {
           onClick={() => {
             setOpen(false);
             setError(null);
-            setValue("");
+            setValue(initialValue);
           }}
           className="font-display uppercase tracking-[0.2em] text-ink-faint hover:text-ink bg-transparent border-0 cursor-pointer p-0 transition-colors"
           style={{ fontSize: "0.7rem", fontWeight: 500 }}

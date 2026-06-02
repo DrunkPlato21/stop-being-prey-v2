@@ -3,9 +3,11 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import {
   createThreadReply,
   getProfile,
+  isAdmin,
   notifyOnReply,
 } from "@/lib/comments";
 import { createNotification } from "@/lib/notifications";
+import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
 import { sendCommentThreadReplyNotification } from "@/lib/email";
 import { getAllArticles } from "@/lib/articles";
 import { getAllFieldNotes } from "@/lib/field-notes";
@@ -73,8 +75,16 @@ export async function POST(
     return NextResponse.json({ error: "empty_body" }, { status: 400 });
   }
 
+  // Admin (Clay) posts thread replies under the "Clay" author name even
+  // though he has no member profile — same fallback the lounge uses. A
+  // regular member still needs a display name on file (the picker / form
+  // is gated on it, but guard the API too).
+  const viewerIsAdmin = isAdmin(session.email);
   const profile = await getProfile(session.email);
-  if (!profile?.displayName) {
+  const displayName = viewerIsAdmin
+    ? profile?.displayName?.trim() || "Clay"
+    : profile?.displayName;
+  if (!displayName) {
     return NextResponse.json(
       { error: "display_name_required" },
       { status: 400 }
@@ -84,7 +94,7 @@ export async function POST(
   const result = await createThreadReply({
     parentId: id,
     email: session.email,
-    displayName: profile.displayName,
+    displayName,
     body,
   });
   if (!result.ok) {
@@ -105,14 +115,15 @@ export async function POST(
   // — admin moderation/queue already covers it).
   const parent = result.comment;
   const replierNormalized = session.email.toLowerCase().trim();
-  if (parent.email && parent.email !== replierNormalized) {
-    const piece = pieceMeta(parent.kind, parent.slug, parent.id);
+  const piece = pieceMeta(parent.kind, parent.slug, parent.id);
+  const parentGetsReplyPing = !!parent.email && parent.email !== replierNormalized;
+  if (parentGetsReplyPing) {
     const parentProfile = await getProfile(parent.email).catch(() => null);
 
     await createNotification({
       memberEmail: parent.email,
       type: "comment_thread_reply",
-      title: `${profile.displayName} replied to your comment`,
+      title: `${displayName} replied to your comment`,
       body: result.reply.body.slice(0, 120),
       linkUrl: piece.path,
     }).catch((err) => {
@@ -127,7 +138,7 @@ export async function POST(
         to: parent.email,
         recipientDisplayName:
           parent.displayName || parent.email.split("@")[0] || "Hey",
-        replyAuthorDisplayName: profile.displayName,
+        replyAuthorDisplayName: displayName,
         pieceTitle: piece.title,
         pieceUrl: piece.absoluteUrl,
         replyBody: result.reply.body,
@@ -139,6 +150,38 @@ export async function POST(
       });
     }
   }
+
+  // Fan out comment_mention notifications to anyone @-tagged in the
+  // reply. Mirrors the lounge: self-mentions are skipped, and the
+  // parent author isn't double-tapped when they're already getting the
+  // thread-reply ping above. Fire-and-forget so the slow first-word
+  // resolution scan (resolveMentionToEmail) doesn't delay the response.
+  void (async () => {
+    try {
+      const tokens = parseMentions(result.reply.body);
+      if (tokens.length === 0) return;
+      const excerpt = result.reply.body.slice(0, 120);
+      const notified = new Set<string>();
+      for (const token of tokens) {
+        const targetRaw = await resolveMentionToEmail(token);
+        if (!targetRaw) continue;
+        const target = targetRaw.toLowerCase().trim();
+        if (target === replierNormalized) continue;
+        if (parentGetsReplyPing && target === parent.email) continue;
+        if (notified.has(target)) continue;
+        notified.add(target);
+        await createNotification({
+          memberEmail: target,
+          type: "comment_mention",
+          title: `${displayName} mentioned you in a comment`,
+          body: excerpt,
+          linkUrl: piece.path,
+        });
+      }
+    } catch (err) {
+      console.error(`[notifications] comment_mention write failed:`, err);
+    }
+  })();
 
   return NextResponse.json({ ok: true, reply: result.reply });
 }

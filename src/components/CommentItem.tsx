@@ -17,6 +17,8 @@ import { FeatureCommentButton } from "@/components/FeatureCommentButton";
 import { DeleteThreadReplyButton } from "@/components/DeleteThreadReplyButton";
 import { MemberBadge } from "@/components/MemberBadge";
 import { CoinButton } from "@/components/CoinButton";
+import { Linkified } from "@/components/Linkified";
+import { mentionTokenFor } from "@/lib/display-name";
 import type { TierBadge } from "@/lib/members";
 
 export type MemberBadgeInfo = {
@@ -53,7 +55,7 @@ function renderBody(body: string): React.ReactNode {
     >
       {para.split("\n").map((line, li, arr) => (
         <span key={li}>
-          {line}
+          <Linkified text={line} highlightMentions />
           {li < arr.length - 1 && <br />}
         </span>
       ))}
@@ -355,6 +357,7 @@ export function CommentItem({
                   reply={reply}
                   viewerEmail={viewerEmail}
                   viewerIsAdmin={viewerIsAdmin}
+                  viewerCanReply={viewerCanReply}
                   memberBadgeByEmail={memberBadgeByEmail}
                 />
               ))}
@@ -381,12 +384,14 @@ function ThreadReplyView({
   reply,
   viewerEmail,
   viewerIsAdmin,
+  viewerCanReply,
   memberBadgeByEmail,
 }: {
   parent: CommentRecord;
   reply: ThreadReply;
   viewerEmail: string | null;
   viewerIsAdmin: boolean;
+  viewerCanReply?: boolean;
   memberBadgeByEmail?: Map<string, MemberBadgeInfo>;
 }) {
   const viewerWroteThis =
@@ -468,8 +473,18 @@ function ThreadReplyView({
             )}
           </div>
           <div>{renderBody(reply.body)}</div>
-          {(canDelete || canEdit) && (
+          {(canDelete || canEdit || viewerCanReply) && (
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+              {viewerCanReply && (
+                <ReplyCommentForm
+                  commentId={parent.id}
+                  initialValue={
+                    mentionTokenFor(reply.displayName)
+                      ? `@${mentionTokenFor(reply.displayName)} `
+                      : ""
+                  }
+                />
+              )}
               {canEdit && (
                 <EditCommentControls
                   endpoint={`/api/comments/${parent.id}/thread-reply/${reply.id}`}

@@ -7,6 +7,8 @@ import {
   setProfile,
   type CommentKind,
 } from "@/lib/comments";
+import { createNotification } from "@/lib/notifications";
+import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
 import { sendPendingCommentNotification } from "@/lib/email";
 import { getAllArticles } from "@/lib/articles";
 import { getAllFieldNotes } from "@/lib/field-notes";
@@ -27,6 +29,16 @@ const MAX_BODY_LENGTH = 4000; // raw input cap before sanitize trim
 
 function isCommentKind(value: unknown): value is CommentKind {
   return value === "article" || value === "note" || value === "case-file";
+}
+
+function commentPath(
+  kind: CommentKind,
+  slug: string,
+  id: string
+): string {
+  if (kind === "article") return `/${slug}#c-${id}`;
+  if (kind === "case-file") return `/case-files/${slug}#c-${id}`;
+  return `/notes/field-notes/${slug}#c-${id}`;
 }
 
 function isSlug(value: unknown): value is string {
@@ -171,6 +183,45 @@ export async function POST(req: NextRequest) {
         `[comment] Admin notification failed for ${result.comment.id}: ${sendResult.error}`
       );
     }
+  }
+
+  // Fan out comment_mention notifications to anyone @-tagged in the
+  // body — but only when the comment is already live. Public-article
+  // comments sit in the pending queue, so pinging a mentioned member at
+  // a link they can't see yet would be wrong; auto-approved surfaces
+  // (member-only Field Notes / case files, admin) notify immediately.
+  // The thread-reply path is where most member-to-member tagging
+  // happens and notifies regardless. Fire-and-forget so the first-word
+  // resolution scan doesn't delay the response.
+  if (isApproved(result.comment)) {
+    const comment = result.comment;
+    const authorNormalized = session.email.toLowerCase().trim();
+    void (async () => {
+      try {
+        const tokens = parseMentions(comment.body);
+        if (tokens.length === 0) return;
+        const path = commentPath(comment.kind, comment.slug, comment.id);
+        const excerpt = comment.body.slice(0, 120);
+        const notified = new Set<string>();
+        for (const token of tokens) {
+          const targetRaw = await resolveMentionToEmail(token);
+          if (!targetRaw) continue;
+          const target = targetRaw.toLowerCase().trim();
+          if (target === authorNormalized) continue;
+          if (notified.has(target)) continue;
+          notified.add(target);
+          await createNotification({
+            memberEmail: target,
+            type: "comment_mention",
+            title: `${comment.displayName} mentioned you in a comment`,
+            body: excerpt,
+            linkUrl: path,
+          });
+        }
+      } catch (err) {
+        console.error(`[notifications] comment_mention write failed:`, err);
+      }
+    })();
   }
 
   return NextResponse.json({ comment: result.comment });
