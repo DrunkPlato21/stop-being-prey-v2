@@ -200,34 +200,72 @@ async function pruneExpired(
     await client.set(`${UNREAD_COUNTER_PREFIX}${email}`, 0);
     return { pruned: 0, unread: 0 };
   }
-  let pruned = 0;
+  // Fetch every record in ONE round trip. The old code awaited a separate
+  // GET per id inside the loop, so a member with N notifications paid N
+  // sequential HTTP round trips to Upstash on every panel open — that's
+  // what made the bell take seconds to open. mget collapses it to one.
+  const stringIds = ids.filter((id): id is string => typeof id === "string");
+  if (stringIds.length === 0) {
+    await client.set(`${UNREAD_COUNTER_PREFIX}${email}`, 0);
+    return { pruned: 0, unread: 0 };
+  }
+  let records: (string | null)[];
+  try {
+    records =
+      (await client.mget<(string | null)[]>(
+        ...stringIds.map((id) => `${RECORD_PREFIX}${id}`)
+      )) ?? [];
+  } catch {
+    // Couldn't load the records. Bail WITHOUT any destructive writes:
+    // treating an unreadable batch as "all orphaned" would zrem the whole
+    // index and strand the records forever. Leave everything intact and
+    // let the next read retry.
+    return { pruned: 0, unread: 0 };
+  }
+  // Same fail-safe if the batch came back the wrong shape.
+  if (!Array.isArray(records) || records.length !== stringIds.length) {
+    return { pruned: 0, unread: 0 };
+  }
+
+  // Set entries to drop entirely, and record keys to delete. Orphans only
+  // leave the member set (there's no record to delete); expired entries
+  // drop both. Neither counts toward unread — that drift is exactly what
+  // used to strand the counter.
+  const setMembersToRemove: string[] = [];
+  const recordKeysToDelete: string[] = [];
   let unread = 0;
-  for (const id of ids) {
-    if (typeof id !== "string") continue;
-    const raw = await client.get<string>(`${RECORD_PREFIX}${id}`);
-    const record = parseRecord(raw);
+  for (let i = 0; i < stringIds.length; i += 1) {
+    const id = stringIds[i];
+    const record = parseRecord(records[i]);
     if (!record) {
-      // Orphaned set entry — drop it. Not counted toward unread (which is
-      // precisely the drift that used to strand the counter).
-      await client.zrem(`${MEMBER_SET_PREFIX}${email}`, id);
-      pruned += 1;
+      setMembersToRemove.push(id);
       continue;
     }
     const expired = record.read
       ? record.readAt !== null && now - record.readAt > READ_RETENTION_MS
       : now - record.createdAt > UNREAD_RETENTION_MS;
     if (expired) {
-      await client.zrem(`${MEMBER_SET_PREFIX}${email}`, id);
-      await client.del(`${RECORD_PREFIX}${id}`);
-      pruned += 1;
+      setMembersToRemove.push(id);
+      recordKeysToDelete.push(`${RECORD_PREFIX}${id}`);
       continue;
     }
     if (!record.read) unread += 1;
   }
-  // Authoritative reconcile: the badge now reflects the records, not the
-  // drift-prone running counter.
-  await client.set(`${UNREAD_COUNTER_PREFIX}${email}`, unread);
-  return { pruned, unread };
+
+  // Batch all writes into a single pipelined round trip: the set removals,
+  // the record deletes, and the authoritative counter reset (the badge now
+  // reflects the live records, not the drift-prone running counter).
+  const pipe = client.pipeline();
+  if (setMembersToRemove.length > 0) {
+    pipe.zrem(`${MEMBER_SET_PREFIX}${email}`, ...setMembersToRemove);
+  }
+  if (recordKeysToDelete.length > 0) {
+    pipe.del(...recordKeysToDelete);
+  }
+  pipe.set(`${UNREAD_COUNTER_PREFIX}${email}`, unread);
+  await pipe.exec().catch(() => []);
+
+  return { pruned: setMembersToRemove.length, unread };
 }
 
 /**
