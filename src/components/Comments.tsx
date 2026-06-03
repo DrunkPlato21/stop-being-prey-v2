@@ -19,6 +19,7 @@ import {
 } from "@/lib/members";
 import { CommentForm } from "@/components/CommentForm";
 import { CommentItem } from "@/components/CommentItem";
+import { CommentsLiveRefresh } from "@/components/CommentsLiveRefresh";
 import { PaidCommentForm } from "@/components/PaidCommentForm";
 import {
   getCoinDataForComments,
@@ -164,6 +165,10 @@ export async function Comments({ kind, slug }: Props) {
       initialSpentCommentId={spentCommentId}
     >
     <section className="max-w-2xl mx-auto px-6 mt-16">
+      {/* Self-refresh so replies posted by others appear without a manual
+          reload — comments are server-rendered, so without this only the
+          poster ever saw new activity. */}
+      <CommentsLiveRefresh />
       <div className="text-center mb-10">
         <p className="eyebrow">Comments</p>
       </div>
