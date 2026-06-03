@@ -44,6 +44,7 @@ const SECONDARY: NavItem[] = [
   { href: "/admin/lounge/moderation", label: "Lounge log" },
   { href: "/admin/book", label: "Book" },
   { href: "/admin/members", label: "Members" },
+  { href: "/admin/sign-in-links", label: "Sign-in links" },
 ];
 
 const ALL_ITEMS: NavItem[] = [...PRIMARY, ...SECONDARY];
