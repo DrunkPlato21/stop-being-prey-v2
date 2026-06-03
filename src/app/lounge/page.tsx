@@ -174,6 +174,7 @@ export default async function LoungePage() {
       initialReadByClayPostIds={readByClayPostIds}
       initialReadByClayReplyIds={readByClayReplyIds}
       adminEmail={adminEmailNormalized}
+      viewerEmail={session.email}
       lastVisitedAt={lastVisitedAt}
       isAdmin={adminUser}
       activeNow={activeNow}

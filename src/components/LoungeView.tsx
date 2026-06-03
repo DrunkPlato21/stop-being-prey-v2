@@ -85,6 +85,10 @@ type Props = {
       server doesn't expose ADMIN_EMAIL — admin styling will simply
       not fire. */
   adminEmail: string | null;
+  /** Normalized email of the signed-in viewer, so a member's own posts
+      and replies can surface the edit/delete affordances (gated to the
+      15-minute window client-side; the server is the real authority). */
+  viewerEmail: string;
   lastVisitedAt: number | null;
   isAdmin: boolean;
   activeNow: ActiveNowSnapshot;
@@ -186,6 +190,11 @@ const IDLE_POLL_MS = 20_000;
 const REPLY_MERGE_GRACE_MS = 10_000;
 
 const LIVE_WINDOW_MS = 10 * 60 * 1000;
+// Window during which a member may edit or delete their own post/reply.
+// Keep in sync with EDIT_WINDOW_MS in src/lib/lounge.ts — the server
+// enforces it authoritatively; this only drives whether the UI offers
+// the affordance.
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
 function isPostLive(
   post: LoungePost,
   now: number
@@ -277,6 +286,20 @@ export function LoungeView(props: Props) {
 
   // Load-more state
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // Own-content edit state. `editingTarget` is the post/reply currently
+  // open in the inline editor (null = none). The draft, in-flight flag,
+  // and error drive the EditBox. Delete reuses the same removal path as
+  // the admin delete, just hitting the member endpoint.
+  const [editingTarget, setEditingTarget] = useState<{
+    kind: "post" | "reply";
+    id: string;
+  } | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const viewerEmail = props.viewerEmail.toLowerCase().trim();
 
   // "Who's in the room" indicator. Seeded from the server snapshot,
   // then refreshed on every poll so the count + names track the event
@@ -777,6 +800,35 @@ export function LoungeView(props: Props) {
     }
   }
 
+  // Drop a deleted post/reply from local state. Shared by the admin
+  // moderation delete and a member's self-delete so both keep the feed
+  // consistent without a reload.
+  function removeTargetFromState(kind: "post" | "reply", id: string) {
+    if (kind === "post") {
+      setPosts((prev) => prev.filter((p) => p.id !== id));
+      if (pinned && pinned.id === id) setPinned(null);
+      setReplies((prev) => {
+        const out = { ...prev };
+        delete out[id];
+        return out;
+      });
+    } else {
+      setReplies((prev) => {
+        const out: Record<string, LoungeReply[]> = {};
+        for (const pid of Object.keys(prev)) {
+          out[pid] = prev[pid].filter((r) => r.id !== id);
+        }
+        return out;
+      });
+      setPosts((prev) =>
+        prev.map((p) => ({
+          ...p,
+          replyCount: Math.max(0, p.replyCount - 1),
+        }))
+      );
+    }
+  }
+
   async function deleteTarget(kind: "post" | "reply", id: string) {
     if (!props.isAdmin) return;
     if (!confirm(`Delete this ${kind}?`)) return;
@@ -788,33 +840,118 @@ export function LoungeView(props: Props) {
       });
       const data: { ok?: boolean } = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) return;
-      if (kind === "post") {
-        setPosts((prev) => prev.filter((p) => p.id !== id));
-        if (pinned && pinned.id === id) setPinned(null);
-        setReplies((prev) => {
-          const out = { ...prev };
-          delete out[id];
-          return out;
-        });
-      } else {
-        setReplies((prev) => {
-          const out: Record<string, LoungeReply[]> = {};
-          for (const pid of Object.keys(prev)) {
-            out[pid] = prev[pid].filter((r) => r.id !== id);
-          }
-          return out;
-        });
-        setPosts((prev) =>
-          prev.map((p) => ({
-            ...p,
-            replyCount: Math.max(0, p.replyCount - 1),
-          }))
-        );
-      }
+      removeTargetFromState(kind, id);
     } catch {
       // No-op
     }
   }
+
+  // --- Own-content edit / delete ---
+
+  function startEdit(kind: "post" | "reply", id: string, body: string) {
+    setEditingTarget({ kind, id });
+    setEditDraft(body);
+    setEditError(null);
+    setEditSaving(false);
+  }
+
+  function cancelEdit() {
+    setEditingTarget(null);
+    setEditDraft("");
+    setEditError(null);
+    setEditSaving(false);
+  }
+
+  async function submitEdit() {
+    if (!editingTarget) return;
+    const { kind, id } = editingTarget;
+    if (editDraft.trim().length === 0) {
+      setEditError("Add something first.");
+      return;
+    }
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const res = await fetch("/api/lounge/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, id, body: editDraft }),
+      });
+      const data: { ok?: boolean; error?: string; body?: string; editedAt?: number } =
+        await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setEditError(
+          data.error === "window_closed"
+            ? "The edit window has closed."
+            : data.error === "forbidden"
+              ? "You can only edit your own posts."
+              : data.error === "empty_body"
+                ? "Add something first."
+                : "Couldn't save. Try again."
+        );
+        setEditSaving(false);
+        return;
+      }
+      const newBody = typeof data.body === "string" ? data.body : editDraft;
+      const editedAt =
+        typeof data.editedAt === "number" ? data.editedAt : Date.now();
+      if (kind === "post") {
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === id ? { ...p, body: newBody, editedAt } : p
+          )
+        );
+        setPinned((prev) =>
+          prev && prev.id === id ? { ...prev, body: newBody, editedAt } : prev
+        );
+      } else {
+        setReplies((prev) => {
+          const out: Record<string, LoungeReply[]> = {};
+          for (const pid of Object.keys(prev)) {
+            out[pid] = prev[pid].map((r) =>
+              r.id === id ? { ...r, body: newBody, editedAt } : r
+            );
+          }
+          return out;
+        });
+      }
+      cancelEdit();
+    } catch {
+      setEditError("Couldn't save. Try again.");
+      setEditSaving(false);
+    }
+  }
+
+  async function selfDelete(kind: "post" | "reply", id: string) {
+    if (!confirm(`Delete this ${kind}? This can't be undone.`)) return;
+    try {
+      const res = await fetch("/api/lounge/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, id }),
+      });
+      const data: { ok?: boolean } = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) return;
+      if (editingTarget?.id === id) cancelEdit();
+      removeTargetFromState(kind, id);
+    } catch {
+      // No-op
+    }
+  }
+
+  const editController: EditController = {
+    viewerEmail,
+    isAdmin: props.isAdmin,
+    editingId: editingTarget?.id ?? null,
+    draft: editDraft,
+    saving: editSaving,
+    error: editError,
+    setDraft: setEditDraft,
+    start: startEdit,
+    cancel: cancelEdit,
+    submit: submitEdit,
+    selfDelete,
+  };
 
   // One-way "mark as read" helper. Used when admin reacts to a post
   // or reply — the reaction implies the read, no point also clicking
@@ -1135,6 +1272,7 @@ export function LoungeView(props: Props) {
               onReplyBlur={() => {
                 replyFocusedRef.current = false;
               }}
+              edit={editController}
             />
           </div>
         )}
@@ -1191,6 +1329,7 @@ export function LoungeView(props: Props) {
                 onReplyBlur={() => {
                   replyFocusedRef.current = false;
                 }}
+                edit={editController}
               />
             ))}
           </div>
@@ -1559,6 +1698,134 @@ function ReactionControl({
   );
 }
 
+/* === Own-content edit / delete ============================
+   One controller object threaded down to PostCard and ReplyRow so a
+   member can edit or delete their own post/reply within the window.
+   `editingId` is the id currently in edit mode (post and reply ids are
+   both UUIDs, so a single id is unambiguous). */
+
+type EditController = {
+  /** Normalized viewer email — compared against a record's author. */
+  viewerEmail: string;
+  isAdmin: boolean;
+  editingId: string | null;
+  draft: string;
+  saving: boolean;
+  error: string | null;
+  setDraft: (s: string) => void;
+  start: (kind: "post" | "reply", id: string, body: string) => void;
+  cancel: () => void;
+  submit: () => void;
+  selfDelete: (kind: "post" | "reply", id: string) => void;
+};
+
+// Inline editor that replaces a post/reply body while it's being
+// edited. Mirrors the reply composer's look so the room feels of a
+// piece. `cap` is the member/admin length cap.
+function EditBox({ edit, cap }: { edit: EditController; cap: number }) {
+  const over = cap === MAX_BODY_ADMIN && edit.draft.length > MAX_BODY;
+  return (
+    <div className="mt-1">
+      <textarea
+        value={edit.draft}
+        onChange={(e) => edit.setDraft(e.target.value.slice(0, cap))}
+        rows={3}
+        maxLength={cap}
+        disabled={edit.saving}
+        className={`font-serif text-ink bg-paper border px-4 py-3 outline-none w-full ${
+          over ? "" : "border-border focus:border-ink"
+        }`}
+        style={{
+          fontSize: "0.95rem",
+          lineHeight: 1.5,
+          ...(over
+            ? {
+                borderColor: WARN_INK,
+                borderWidth: "2px",
+                boxShadow: `0 0 0 1px ${WARN_INK}33`,
+              }
+            : {}),
+        }}
+        autoFocus
+        aria-label="Edit your message"
+      />
+      <div className="flex items-center justify-between gap-3 mt-2">
+        <span
+          className={`font-serif italic ${over ? "" : "text-ink-faint"}`}
+          style={{
+            fontSize: "0.76rem",
+            ...(over ? { color: WARN_INK, fontWeight: 600 } : {}),
+          }}
+        >
+          {edit.draft.length} / {MAX_BODY}
+          {over && " over recommended"}
+        </span>
+        <div className="flex items-center gap-3">
+          {edit.error && (
+            <span
+              className="font-serif italic"
+              style={{ fontSize: "0.76rem", color: WARN_INK, fontWeight: 600 }}
+            >
+              {edit.error}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={edit.cancel}
+            disabled={edit.saving}
+            className="font-display uppercase tracking-[0.22em] text-ink-faint hover:text-ink transition-colors"
+            style={{
+              fontSize: "0.66rem",
+              fontWeight: 600,
+              background: "transparent",
+              border: 0,
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={edit.submit}
+            disabled={edit.saving || edit.draft.trim().length === 0}
+            className="font-display uppercase tracking-[0.22em] transition-colors"
+            style={{
+              fontSize: "0.66rem",
+              fontWeight: 700,
+              color: "var(--eye-deep)",
+              background: "transparent",
+              border: 0,
+              cursor:
+                edit.saving || edit.draft.trim().length === 0
+                  ? "default"
+                  : "pointer",
+              opacity: edit.draft.trim().length === 0 ? 0.5 : 1,
+              padding: 0,
+            }}
+          >
+            {edit.saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Small italic "edited" marker shown next to a timestamp once a record
+// has been edited. Title carries the relative edit time on hover.
+function EditedMarker({ at, now }: { at: number; now: number }) {
+  return (
+    <span
+      className="font-serif italic text-ink-faint"
+      style={{ fontSize: "0.72rem" }}
+      title={`Edited ${formatRelative(at, now)}`}
+    >
+      · edited
+    </span>
+  );
+}
+
 /* === Post card ============================================ */
 
 type CardProps = {
@@ -1595,6 +1862,7 @@ type CardProps = {
   onToggleReadByClay: (kind: "post" | "reply", id: string) => void;
   onReplyFocus: () => void;
   onReplyBlur: () => void;
+  edit: EditController;
 };
 
 function PostCard(props: CardProps) {
@@ -1639,6 +1907,19 @@ function PostCard(props: CardProps) {
     post.memberEmail.toLowerCase().trim() === adminEmail;
 
   const isFresh = isNew(post.createdAt);
+
+  // Own-content edit/delete. A member may edit or delete their own post
+  // for EDIT_WINDOW_MS; admin can edit own posts anytime (and still uses
+  // the admin delete control for everyone's content, so self-delete is
+  // member-only here to avoid two delete buttons on his own card).
+  const edit = props.edit;
+  const isMine =
+    edit.viewerEmail.length > 0 &&
+    post.memberEmail.toLowerCase().trim() === edit.viewerEmail;
+  const withinEditWindow = now - post.createdAt < EDIT_WINDOW_MS;
+  const canEditOwn = isMine && (edit.isAdmin || withinEditWindow);
+  const canSelfDelete = isMine && !edit.isAdmin && withinEditWindow;
+  const isEditing = edit.editingId === post.id;
 
   // Show the last few replies inline; collapse anything older behind a
   // "Show N more replies" button. Threshold tuned so short threads
@@ -1851,15 +2132,20 @@ function PostCard(props: CardProps) {
           >
             {formatRelative(post.createdAt, now)}
           </span>
+          {post.editedAt && <EditedMarker at={post.editedAt} now={now} />}
         </div>
       </header>
 
-      <p
-        className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
-        style={{ fontSize: "1rem" }}
-      >
-        <Linkified text={post.body} highlightMentions />
-      </p>
+      {isEditing ? (
+        <EditBox edit={edit} cap={isAdmin ? MAX_BODY_ADMIN : MAX_BODY} />
+      ) : (
+        <p
+          className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
+          style={{ fontSize: "1rem" }}
+        >
+          <Linkified text={post.body} highlightMentions />
+        </p>
+      )}
 
       {/* Read-by-Clay mark lives below the body, as a quiet editor's
           stamp on the post itself. Out of the header so it can't be
@@ -1937,6 +2223,51 @@ function PostCard(props: CardProps) {
             </button>
           );
         })()}
+        {canEditOwn && !isEditing && (
+          <>
+            <span
+              className="text-ink-faint"
+              style={{ fontSize: "0.62rem" }}
+              aria-hidden="true"
+            >
+              |
+            </span>
+            <button
+              type="button"
+              onClick={() => edit.start("post", post.id, post.body)}
+              className="font-display uppercase tracking-[0.22em] hover:text-eye-deep transition-colors"
+              style={{
+                fontSize: "0.62rem",
+                fontWeight: 600,
+                background: "transparent",
+                border: 0,
+                color: "var(--ink-faint)",
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              edit
+            </button>
+          </>
+        )}
+        {canSelfDelete && !isEditing && (
+          <button
+            type="button"
+            onClick={() => edit.selfDelete("post", post.id)}
+            className="font-display uppercase tracking-[0.22em] hover:text-eye-deep transition-colors"
+            style={{
+              fontSize: "0.62rem",
+              fontWeight: 600,
+              background: "transparent",
+              border: 0,
+              color: "var(--ink-faint)",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            delete
+          </button>
+        )}
         {isAdmin && (
           <>
             <span
@@ -2041,6 +2372,7 @@ function PostCard(props: CardProps) {
                 <ReplyRow
                   reply={r}
                   isAdmin={isAdmin}
+                  edit={edit}
                   snapshot={reactions[r.id] ?? emptySnapshot()}
                   badge={memberBadges[r.memberEmail]}
                   isReadByClay={readByClayReplyIds.has(r.id)}
@@ -2104,6 +2436,7 @@ function PostCard(props: CardProps) {
 function ReplyRow({
   reply,
   isAdmin,
+  edit,
   snapshot,
   badge,
   isReadByClay,
@@ -2119,6 +2452,7 @@ function ReplyRow({
 }: {
   reply: LoungeReply;
   isAdmin: boolean;
+  edit: EditController;
   snapshot: ReactionSnapshot;
   badge: MemberBadgeInfo | undefined;
   isReadByClay: boolean;
@@ -2140,6 +2474,13 @@ function ReplyRow({
       tagged member when sent). */
   onMentionReply: () => void;
 }) {
+  const isMine =
+    edit.viewerEmail.length > 0 &&
+    reply.memberEmail.toLowerCase().trim() === edit.viewerEmail;
+  const withinEditWindow = now - reply.createdAt < EDIT_WINDOW_MS;
+  const canEditOwn = isMine && (edit.isAdmin || withinEditWindow);
+  const canSelfDelete = isMine && !edit.isAdmin && withinEditWindow;
+  const isEditing = edit.editingId === reply.id;
   return (
     <li
       id={`reply-${reply.id}`}
@@ -2202,19 +2543,26 @@ function ReplyRow({
             </span>
           )}
         </div>
-        <span
-          className="font-serif italic text-ink-faint"
-          style={{ fontSize: "0.74rem" }}
-        >
-          {formatRelative(reply.createdAt, now)}
+        <span className="flex items-center gap-1.5">
+          <span
+            className="font-serif italic text-ink-faint"
+            style={{ fontSize: "0.74rem" }}
+          >
+            {formatRelative(reply.createdAt, now)}
+          </span>
+          {reply.editedAt && <EditedMarker at={reply.editedAt} now={now} />}
         </span>
       </header>
-      <p
-        className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
-        style={{ fontSize: "0.95rem" }}
-      >
-        <Linkified text={reply.body} highlightMentions />
-      </p>
+      {isEditing ? (
+        <EditBox edit={edit} cap={isAdmin ? MAX_BODY_ADMIN : MAX_BODY} />
+      ) : (
+        <p
+          className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
+          style={{ fontSize: "0.95rem" }}
+        >
+          <Linkified text={reply.body} highlightMentions />
+        </p>
+      )}
       {/* Editor's stamp below the reply body. Out of the header so it
           isn't misread as a timestamp for the read event. */}
       {isReadByClay && <ReadByClayMark />}
@@ -2263,6 +2611,42 @@ function ReplyRow({
           </svg>
           <span>reply</span>
         </button>
+        {canEditOwn && !isEditing && (
+          <button
+            type="button"
+            onClick={() => edit.start("reply", reply.id, reply.body)}
+            className="font-display uppercase tracking-[0.22em] hover:text-eye-deep transition-colors"
+            style={{
+              fontSize: "0.58rem",
+              fontWeight: 600,
+              background: "transparent",
+              border: 0,
+              color: "var(--ink-faint)",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            edit
+          </button>
+        )}
+        {canSelfDelete && !isEditing && (
+          <button
+            type="button"
+            onClick={() => edit.selfDelete("reply", reply.id)}
+            className="font-display uppercase tracking-[0.22em] hover:text-eye-deep transition-colors"
+            style={{
+              fontSize: "0.58rem",
+              fontWeight: 600,
+              background: "transparent",
+              border: 0,
+              color: "var(--ink-faint)",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            delete
+          </button>
+        )}
         {isAdmin && (
           <>
             <button

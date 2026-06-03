@@ -166,6 +166,7 @@ export default async function AdminLoungePage() {
         initialReadByClayPostIds={readByClayPostIds}
         initialReadByClayReplyIds={readByClayReplyIds}
         adminEmail={adminEmailNormalized}
+        viewerEmail={session.email}
         lastVisitedAt={lastVisitedAt}
         isAdmin={true}
         activeNow={activeNow}

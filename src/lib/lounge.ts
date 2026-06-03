@@ -72,6 +72,11 @@ export const MAX_BODY_ADMIN = 1500;
 // scripts. No daily caps — trust the membership.
 export const POST_COOLDOWN_MS = 60_000;
 export const REPLY_COOLDOWN_MS = 30_000;
+// How long after posting a member may edit or delete their own post or
+// reply. Flat window from createdAt; admin bypasses it. The client uses
+// the same value to show/hide the affordances, but the server is the
+// authority — every edit/delete re-checks this here.
+export const EDIT_WINDOW_MS = 15 * 60 * 1000;
 // Used by the rate-limit ZSET prune so it doesn't grow unbounded.
 const RATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const MODERATION_LOG_TRIM = 500;
@@ -139,6 +144,10 @@ export type LoungePost = {
       rendering; per-key breakdown derived from the reactions hash. */
   reactionCount: number;
   replyCount: number;
+  /** When the author last edited the body, or null if never edited.
+      Drives the "edited" marker in the UI. Editing intentionally does
+      NOT bump lastActivityAt — a typo fix shouldn't re-float the post. */
+  editedAt: number | null;
 };
 
 export type LoungeReply = {
@@ -151,6 +160,8 @@ export type LoungeReply = {
   createdAt: number;
   deleted: boolean;
   reactionCount: number;
+  /** See LoungePost.editedAt. */
+  editedAt: number | null;
 };
 
 export type ModerationEntry = {
@@ -211,7 +222,11 @@ function parsePost(raw: unknown): LoungePost | null {
       typeof parsed.lastActivityAt === "number"
         ? parsed.lastActivityAt
         : parsed.createdAt;
-    return { ...(parsed as LoungePost), lastActivityAt };
+    // Backfill editedAt on records written before the edit-window
+    // feature — they were never edited, so null is correct.
+    const editedAt =
+      typeof parsed.editedAt === "number" ? parsed.editedAt : null;
+    return { ...(parsed as LoungePost), lastActivityAt, editedAt };
   } catch {
     return null;
   }
@@ -220,9 +235,15 @@ function parsePost(raw: unknown): LoungePost | null {
 function parseReply(raw: unknown): LoungeReply | null {
   if (raw === null || raw === undefined) return null;
   try {
-    return typeof raw === "string"
-      ? (JSON.parse(raw) as LoungeReply)
-      : (raw as LoungeReply);
+    const parsed =
+      typeof raw === "string"
+        ? (JSON.parse(raw) as Partial<LoungeReply>)
+        : (raw as Partial<LoungeReply>);
+    if (typeof parsed.id !== "string") return null;
+    // Backfill editedAt for pre-edit-window records (see parsePost).
+    const editedAt =
+      typeof parsed.editedAt === "number" ? parsed.editedAt : null;
+    return { ...(parsed as LoungeReply), editedAt };
   } catch {
     return null;
   }
@@ -344,6 +365,7 @@ export async function createPost(
     deleted: false,
     reactionCount: 0,
     replyCount: 0,
+    editedAt: null,
   };
 
   await client.set(`${POST_PREFIX}${id}`, JSON.stringify(post));
@@ -513,6 +535,7 @@ export async function createReply(
     createdAt: now,
     deleted: false,
     reactionCount: 0,
+    editedAt: null,
   };
 
   await client.set(`${REPLY_PREFIX}${id}`, JSON.stringify(reply));
@@ -876,6 +899,174 @@ export async function deleteReply(
     bodySnapshot: reply.body,
   });
   return { ok: true };
+}
+
+/* === Member self-service: edit + delete own ================
+   Members may edit or delete their OWN post/reply for EDIT_WINDOW_MS
+   after posting. Admin bypasses both the ownership check and the
+   window (he can already moderate anything). The window is enforced
+   here, server-side, regardless of what the client shows. Editing
+   updates the body + stamps editedAt; it does NOT touch
+   lastActivityAt or the feed index, so a fix never re-floats a post. */
+
+type ModifyGuard =
+  | { ok: true }
+  | { ok: false; error: "not_found" | "forbidden" | "window_closed" };
+
+function checkMemberModify(opts: {
+  recordEmail: string;
+  createdAt: number;
+  deleted: boolean;
+  actorEmail: string;
+  isAdmin: boolean;
+  now: number;
+}): ModifyGuard {
+  if (opts.deleted) return { ok: false, error: "not_found" };
+  if (opts.isAdmin) return { ok: true };
+  if (normEmail(opts.recordEmail) !== normEmail(opts.actorEmail)) {
+    return { ok: false, error: "forbidden" };
+  }
+  if (opts.now - opts.createdAt > EDIT_WINDOW_MS) {
+    return { ok: false, error: "window_closed" };
+  }
+  return { ok: true };
+}
+
+export type EditResult =
+  | { ok: true; body: string; editedAt: number }
+  | {
+      ok: false;
+      error:
+        | "storage_unavailable"
+        | "not_found"
+        | "forbidden"
+        | "window_closed"
+        | "empty_body";
+    };
+
+export async function editPost(
+  postId: string,
+  actor: { email: string; isAdmin: boolean },
+  newBody: string
+): Promise<EditResult> {
+  const client = getClient();
+  if (!client) return { ok: false, error: "storage_unavailable" };
+  const post = await getPost(postId);
+  if (!post) return { ok: false, error: "not_found" };
+  const now = Date.now();
+  const guard = checkMemberModify({
+    recordEmail: post.memberEmail,
+    createdAt: post.createdAt,
+    deleted: post.deleted,
+    actorEmail: actor.email,
+    isAdmin: actor.isAdmin,
+    now,
+  });
+  if (!guard.ok) return guard;
+
+  const body = sanitizeBody(newBody, actor.isAdmin ? MAX_BODY_ADMIN : MAX_BODY);
+  if (!body) return { ok: false, error: "empty_body" };
+
+  post.body = body;
+  post.editedAt = now;
+  await writePost(post);
+  return { ok: true, body, editedAt: now };
+}
+
+export async function editReply(
+  replyId: string,
+  actor: { email: string; isAdmin: boolean },
+  newBody: string
+): Promise<EditResult> {
+  const client = getClient();
+  if (!client) return { ok: false, error: "storage_unavailable" };
+  const reply = await getReply(replyId);
+  if (!reply) return { ok: false, error: "not_found" };
+  const now = Date.now();
+  const guard = checkMemberModify({
+    recordEmail: reply.memberEmail,
+    createdAt: reply.createdAt,
+    deleted: reply.deleted,
+    actorEmail: actor.email,
+    isAdmin: actor.isAdmin,
+    now,
+  });
+  if (!guard.ok) return guard;
+
+  const body = sanitizeBody(newBody, actor.isAdmin ? MAX_BODY_ADMIN : MAX_BODY);
+  if (!body) return { ok: false, error: "empty_body" };
+
+  reply.body = body;
+  reply.editedAt = now;
+  await writeReply(reply);
+  return { ok: true, body, editedAt: now };
+}
+
+export type MemberDeleteResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error:
+        | "storage_unavailable"
+        | "not_found"
+        | "forbidden"
+        | "window_closed";
+    };
+
+/**
+ * Member-initiated delete of their own post/reply. Guards ownership +
+ * the edit window, then reuses the same soft-delete path the admin
+ * uses (index removal, pin clearing, moderation-log entry). The actor
+ * recorded in the moderation log is the member themselves.
+ */
+export async function memberDeletePost(
+  postId: string,
+  actor: { email: string; firstName: string; isAdmin: boolean }
+): Promise<MemberDeleteResult> {
+  const client = getClient();
+  if (!client) return { ok: false, error: "storage_unavailable" };
+  const post = await getPost(postId);
+  if (!post) return { ok: false, error: "not_found" };
+  if (post.deleted) return { ok: true };
+  const guard = checkMemberModify({
+    recordEmail: post.memberEmail,
+    createdAt: post.createdAt,
+    deleted: post.deleted,
+    actorEmail: actor.email,
+    isAdmin: actor.isAdmin,
+    now: Date.now(),
+  });
+  if (!guard.ok) return guard;
+  const res = await deletePost(postId, {
+    email: actor.email,
+    firstName: actor.firstName,
+  });
+  return res.ok ? { ok: true } : { ok: false, error: "storage_unavailable" };
+}
+
+export async function memberDeleteReply(
+  replyId: string,
+  actor: { email: string; firstName: string; isAdmin: boolean }
+): Promise<MemberDeleteResult> {
+  const client = getClient();
+  if (!client) return { ok: false, error: "storage_unavailable" };
+  const reply = await getReply(replyId);
+  if (!reply) return { ok: false, error: "not_found" };
+  if (reply.deleted) return { ok: true };
+  const guard = checkMemberModify({
+    recordEmail: reply.memberEmail,
+    createdAt: reply.createdAt,
+    deleted: reply.deleted,
+    actorEmail: actor.email,
+    isAdmin: actor.isAdmin,
+    now: Date.now(),
+  });
+  if (!guard.ok) return guard;
+  const res = await deleteReply(replyId, {
+    email: actor.email,
+    firstName: actor.firstName,
+  });
+  return res.ok ? { ok: true } : { ok: false, error: "storage_unavailable" };
 }
 
 /* === Active-now presence ===================================
