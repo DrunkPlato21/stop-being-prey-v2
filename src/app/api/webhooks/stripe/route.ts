@@ -53,9 +53,17 @@ import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2026-04-22.dahlia",
-});
+// Lazy init: constructing Stripe at module load throws when the key is
+// absent (e.g. during the build's page-data collection), so defer it.
+let stripeClient: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!stripeClient) {
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+      apiVersion: "2026-04-22.dahlia",
+    });
+  }
+  return stripeClient;
+}
 
 const allowedAttribution = new Set<AttributionPreference>([
   "full",
@@ -86,7 +94,7 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(payload, signature, secret);
+    event = getStripe().webhooks.constructEvent(payload, signature, secret);
   } catch (err) {
     const message = err instanceof Error ? err.message : "invalid signature";
     return new Response(`Webhook signature verification failed: ${message}`, {
@@ -339,7 +347,7 @@ async function handleMembershipCheckout(
   let amountCents = session.amount_total ?? 0;
 
   try {
-    const sub = await stripe.subscriptions.retrieve(subscriptionId);
+    const sub = await getStripe().subscriptions.retrieve(subscriptionId);
     status = sub.status as MemberSubscriptionStatus;
     const item = sub.items.data[0];
     if (item?.price.recurring?.interval === "month" || item?.price.recurring?.interval === "year") {

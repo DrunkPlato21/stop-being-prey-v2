@@ -1,9 +1,17 @@
 import Stripe from "stripe";
 import type { NextRequest } from "next/server";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2026-04-22.dahlia",
-});
+// Lazy init: constructing Stripe at module load throws when the key is
+// absent (e.g. during the build's page-data collection), so defer it.
+let stripeClient: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!stripeClient) {
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+      apiVersion: "2026-04-22.dahlia",
+    });
+  }
+  return stripeClient;
+}
 
 const baseUrl = (
   process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"
@@ -87,7 +95,7 @@ export async function POST(request: NextRequest) {
   const unitAmount = Math.round(amount * 100);
 
   try {
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       submit_type: "donate",
