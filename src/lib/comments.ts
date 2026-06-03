@@ -903,26 +903,18 @@ export async function createComment(
 
   const id = randomUUID();
   const now = Date.now();
-  // Auto-approve when:
-  //   - Admin (Clay) — the publisher shouldn't moderate himself, and
-  //     a delay between him posting and the comment going live would
-  //     be jarring for readers refreshing the page after his reply.
-  //   - kind === "note" — Field Notes live behind the member paywall;
-  //     everyone reaching the comment box has already passed the
-  //     membership trust filter, so a pre-publish hold adds latency
-  //     without value. Public articles (kind="article") still moderate
-  //     because they accept paid non-member comments where the trust
-  //     filter is just "had a dollar."
-  //   - kind === "case-file" — same logic as "note." Case files are
-  //     behind the member paywall except for explicit public-preview
-  //     slugs, and even there the $1 paid form is the only path for
-  //     non-members. The marketing surfaces are narrow enough that
-  //     auto-approval here is fine; post-publish admin moderation
-  //     stays available via /admin/comments.
-  const isAuthor = isAdmin(input.email);
-  const isMemberOnlySurface =
-    input.kind === "note" || input.kind === "case-file";
-  const autoApprove = isAuthor || isMemberOnlySurface;
+  // No pre-publish hold for members. Every comment reaching
+  // createComment comes from an authenticated member (the POST
+  // /api/comments route is session-gated) or from admin, and paying
+  // members are trusted. The old hold on public articles meant a
+  // member's comment, and every reply threaded under it, stayed
+  // invisible to other members until manually approved — which silently
+  // broke conversations and fired reply notifications for content no one
+  // could see. The ONLY comments still moderated are $1 NON-member
+  // comments, which take the separate paid-comments path
+  // (createPaidCommentDraft) and keep approved:false there. Post-publish
+  // moderation (delete/feature) stays available via /admin/comments.
+  const autoApprove = true;
   const record: CommentRecord = {
     id,
     kind: input.kind,
