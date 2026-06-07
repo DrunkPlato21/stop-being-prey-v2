@@ -35,8 +35,9 @@ export function InlineSubscribe({
           className="font-serif text-ink-muted leading-relaxed mb-6"
           style={{ fontSize: "1.05rem" }}
         >
-          Algorithms don&apos;t deliver this writing. It only arrives if you
-          ask. The next piece goes out by email first.
+          I&apos;d rather not lose you after this one. Email&apos;s the only
+          way I can make sure the next piece actually reaches you. Leave
+          yours if you want it.
         </p>
         <SubscriberCount className="mb-4" />
         <div className="flex justify-center">
