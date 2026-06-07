@@ -133,8 +133,43 @@ export default async function ArticlePage({
     ? null
     : splitForInlineCta(article.contentHtml);
 
+  // Article structured data (JSON-LD) for rich search results: headline,
+  // author, dates, publisher. Emitted only for published essays.
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.title,
+    description: article.description,
+    datePublished: article.date,
+    dateModified: article.date,
+    author: {
+      "@type": "Person",
+      name: "Clay",
+      url: "https://stopbeingprey.com/about",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Stop Being Prey",
+      url: "https://stopbeingprey.com",
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `https://stopbeingprey.com/${article.slug}`,
+    },
+    image: "https://stopbeingprey.com/opengraph-image.jpg",
+    ...(article.wordCount ? { wordCount: article.wordCount } : {}),
+  };
+
   return (
     <article className="relative">
+      {article.published !== false && (
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+
       {/* Funnel analytics: fires `view` on mount and scroll-depth
           milestones as the reader moves through #reading-region below.
           Renders nothing. */}

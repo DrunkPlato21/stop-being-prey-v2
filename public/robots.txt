@@ -21,3 +21,5 @@ Disallow: /supporters/admin
 
 # Auth + payment endpoints have no value to index.
 Disallow: /api/
+
+Sitemap: https://stopbeingprey.com/sitemap.xml
