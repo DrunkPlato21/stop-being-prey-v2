@@ -18,9 +18,11 @@ type Status = "idle" | "loading" | "success" | "error";
 export function EmailSignup({
   source = "unknown",
   slug,
+  submitLabel = "Subscribe",
 }: {
   source?: TrackSource;
   slug?: string;
+  submitLabel?: string;
 } = {}) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -84,7 +86,7 @@ export function EmailSignup({
           className="bg-ink text-paper hover:bg-eye-deep px-6 py-4 font-display transition-colors whitespace-nowrap text-sm uppercase tracking-widest disabled:opacity-60 disabled:cursor-not-allowed border-0 shrink-0"
           style={{ fontWeight: 600 }}
         >
-          {status === "loading" ? "Subscribing…" : "Subscribe"}
+          {status === "loading" ? "Subscribing…" : submitLabel}
         </button>
       </form>
       {status === "error" && errorMessage && (
