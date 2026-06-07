@@ -55,9 +55,12 @@ export function ReadingProgressBar({
         top: 0,
         left: 0,
         right: 0,
-        height: 3,
+        height: 4,
         zIndex: 70,
         pointerEvents: "none",
+        // Faint always-on track so the bar's location reads even at 0%;
+        // the gold fill rides on top of it.
+        backgroundColor: "rgba(184, 168, 44, 0.16)",
       }}
     >
       <div
