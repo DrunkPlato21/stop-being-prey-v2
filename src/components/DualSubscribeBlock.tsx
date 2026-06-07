@@ -32,29 +32,28 @@ export function DualSubscribeBlock({
     >
       {/* BY EMAIL — free path */}
       <div className="flex flex-col">
-        <p className="eyebrow mb-3">By email</p>
+        <p className="eyebrow mb-3">Free · by email</p>
         <p
           className="font-serif text-ink-muted leading-relaxed mb-5 flex-1"
           style={{ fontSize: "1rem" }}
         >
-          Algorithms don&apos;t deliver this writing. It only arrives if
-          you ask.
+          The writing, straight to your inbox. Free. Start here.
         </p>
         <SubscriberCount className="mb-3" />
-        <EmailSignup source="dual" />
+        <EmailSignup source="dual" submitLabel="I'm in" />
       </div>
 
       {/* BY MEMBERSHIP — paid path. Vertical olive rule on desktop
           separates the two columns; on mobile they stack with no
           rule (the gap-10 carries the separation). */}
       <div className="md:border-l md:border-rule md:pl-12 flex flex-col">
-        <p className="eyebrow mb-3">By membership</p>
+        <p className="eyebrow mb-3">Members · from $13/mo</p>
         <p
           className="font-serif text-ink-muted leading-relaxed mb-5 flex-1"
           style={{ fontSize: "1rem" }}
         >
-          The room behind the work. Comments, the desk, the lounge, the
-          book.
+          The room behind the work, where I actually talk back and the
+          book gets built in the open.
         </p>
         <div>
           <Link href="/membership" className="btn-primary">

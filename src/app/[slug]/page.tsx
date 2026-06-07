@@ -358,7 +358,7 @@ export default async function ArticlePage({
           dual paths so the reader picks the level of commitment
           that fits where they are right now. === */}
       <section className="max-w-3xl mx-auto px-6 py-10 md:py-14">
-        <p className="eyebrow mb-8 text-center">More like this</p>
+        <p className="eyebrow mb-8 text-center">Two ways in</p>
         {/* Tailored membership ask in the piece's own voice, when set
             (frontmatter `closingCta`). Sits at the conversion surface,
             above the generic dual block. */}
