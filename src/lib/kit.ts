@@ -117,3 +117,34 @@ export async function applyBookNotifyTag(
   if (!tagId) return { ok: false, reason: "not_configured" };
   return applyTagInternal(email, tagId);
 }
+
+/**
+ * Live count of active subscribers, for the "Joining N readers" social
+ * proof. Kit v4 exposes the total only via include_total_count on the
+ * subscribers list endpoint (pagination.total_count); per_page=1 keeps the
+ * payload tiny since we only want the number. Cached an hour at the data
+ * layer so render traffic never hammers Kit. Returns null when
+ * unconfigured or on any failure, so callers can fall back to a static
+ * floor rather than render a broken line.
+ */
+export async function getSubscriberCount(): Promise<number | null> {
+  const apiKey = process.env.KIT_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `${KIT_API_BASE}/subscribers?status=active&per_page=1&include_total_count=true`,
+      {
+        headers: { "X-Kit-Api-Key": apiKey, Accept: "application/json" },
+        next: { revalidate: 3600 },
+      }
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      pagination?: { total_count?: number };
+    };
+    const count = data.pagination?.total_count;
+    return typeof count === "number" && count > 0 ? count : null;
+  } catch {
+    return null;
+  }
+}
