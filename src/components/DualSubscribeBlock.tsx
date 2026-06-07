@@ -41,7 +41,7 @@ export function DualSubscribeBlock({
           you ask.
         </p>
         <SubscriberCount className="mb-3" />
-        <EmailSignup />
+        <EmailSignup source="dual" />
       </div>
 
       {/* BY MEMBERSHIP — paid path. Vertical olive rule on desktop

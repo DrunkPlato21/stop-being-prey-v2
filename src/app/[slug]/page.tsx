@@ -16,6 +16,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
 import { InlineSubscribe } from "@/components/InlineSubscribe";
+import { ReadingTracker } from "@/components/ReadingTracker";
 import { splitForInlineCta } from "@/lib/inline-cta";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
@@ -134,6 +135,11 @@ export default async function ArticlePage({
 
   return (
     <article className="relative">
+      {/* Funnel analytics: fires `view` on mount and scroll-depth
+          milestones as the reader moves through #reading-region below.
+          Renders nothing. */}
+      <ReadingTracker slug={article.slug} />
+
       {/* === Article masthead === */}
       <header className="border-b border-rule">
         <div className="max-w-4xl mx-auto px-6 pt-16 md:pt-24 pb-12 text-center">
@@ -204,6 +210,7 @@ export default async function ArticlePage({
            drops when the podcast-only embed is already breathing
            above us. */}
       <div
+        id="reading-region"
         className={`max-w-4xl mx-auto px-6 ${
           isPodcastOnly ? "pt-8 md:pt-10" : "pt-12 md:pt-16"
         }`}
@@ -214,7 +221,7 @@ export default async function ArticlePage({
               className="prose-article"
               dangerouslySetInnerHTML={{ __html: inlineSplit.before }}
             />
-            <InlineSubscribe />
+            <InlineSubscribe slug={article.slug} />
             <div
               className="prose-article"
               dangerouslySetInnerHTML={{ __html: inlineSplit.after }}

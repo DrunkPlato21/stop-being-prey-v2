@@ -1,5 +1,6 @@
 import { EmailSignup } from "@/components/EmailSignup";
 import { SubscriberCount } from "@/components/SubscriberCount";
+import { TrackOnView } from "@/components/TrackOnView";
 
 // Inline mid-article email capture. Dropped into the body around the
 // ~58% mark (see splitForInlineCta) so the ask reaches readers while
@@ -10,16 +11,24 @@ import { SubscriberCount } from "@/components/SubscriberCount";
 // social proof, and nothing that breaks the reading rhythm. Rendered as
 // a sibling between the two prose halves, so .prose-article styles do
 // not reach it.
+//
+// `slug` threads through to the analytics: TrackOnView fires `form_seen`
+// when the block scrolls into view, and the form reports sub_submit /
+// sub_success under source "inline" — so the per-article funnel reads
+// view -> form_seen -> sub_submit -> sub_success.
 
 export function InlineSubscribe({
+  slug,
   className = "",
 }: {
+  slug?: string;
   className?: string;
 }) {
   return (
     <aside
       className={`border-y border-rule py-10 md:py-12 my-10 md:my-14 ${className}`}
     >
+      <TrackOnView event="form_seen" slug={slug} />
       <div className="max-w-xl mx-auto text-center">
         <p className="eyebrow mb-4">Keep this coming</p>
         <p
@@ -31,7 +40,7 @@ export function InlineSubscribe({
         </p>
         <SubscriberCount className="mb-4" />
         <div className="flex justify-center">
-          <EmailSignup />
+          <EmailSignup source="inline" slug={slug} />
         </div>
       </div>
     </aside>

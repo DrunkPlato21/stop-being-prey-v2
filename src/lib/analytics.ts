@@ -1,0 +1,138 @@
+import { Redis } from "@upstash/redis";
+
+// First-party, cookieless funnel analytics. Counts a small set of events
+// per article (and per subscribe source) as plain Redis hash counters.
+// One HINCRBY per event keeps the command cost trivial (see /api/track).
+//
+// Namespacing — important because dev shares the LIVE Upstash instance:
+//   - Production writes      -> "analytics:"      (real visitor data)
+//   - Dev / localhost writes -> "analytics:dev:"  (kept out of prod)
+// The admin dashboard runs only on localhost (proxy.ts 404s /admin in
+// prod), so it reads the PROD namespace explicitly via getArticleCounts
+// to show real visitor data — not the dev events from local browsing.
+
+export const TRACK_EVENTS = [
+  "view",
+  "scroll_25",
+  "scroll_50",
+  "scroll_75",
+  "scroll_100",
+  "form_seen",
+  "sub_submit",
+  "sub_success",
+] as const;
+export type TrackEvent = (typeof TRACK_EVENTS)[number];
+
+export const TRACK_SOURCES = [
+  "inline",
+  "sticky",
+  "dual",
+  "join",
+  "footer",
+  "unknown",
+] as const;
+export type TrackSource = (typeof TRACK_SOURCES)[number];
+
+export type EventCounts = Partial<Record<TrackEvent, number>>;
+
+let cachedClient: Redis | null = null;
+function getClient(): Redis | null {
+  if (cachedClient) return cachedClient;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  cachedClient = new Redis({ url, token });
+  return cachedClient;
+}
+
+function prefix(dev: boolean): string {
+  return dev ? "analytics:dev:" : "analytics:";
+}
+
+function isDevWrite(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
+/**
+ * Record one event. At most two HINCRBYs (article counter, plus a source
+ * counter for subscribe events). Never throws — analytics must never be
+ * able to break a request.
+ */
+export async function recordEvent(
+  event: TrackEvent,
+  opts: { slug?: string; source?: TrackSource } = {}
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  const ns = prefix(isDevWrite());
+
+  const tasks: Promise<unknown>[] = [];
+  if (opts.slug) {
+    tasks.push(client.hincrby(`${ns}article:${opts.slug}`, event, 1));
+  }
+  if (event === "sub_submit" || event === "sub_success") {
+    const source = opts.source ?? "unknown";
+    tasks.push(client.hincrby(`${ns}source:${source}`, event, 1));
+  }
+  if (tasks.length === 0) return;
+
+  try {
+    await Promise.all(tasks);
+  } catch {
+    /* swallow: a failed counter must not surface to the caller */
+  }
+}
+
+function coerceCounts(raw: Record<string, unknown> | null): EventCounts {
+  const counts: EventCounts = {};
+  if (!raw) return counts;
+  for (const key of Object.keys(raw)) {
+    if ((TRACK_EVENTS as readonly string[]).includes(key)) {
+      counts[key as TrackEvent] = Number(raw[key]) || 0;
+    }
+  }
+  return counts;
+}
+
+/**
+ * Read per-article counters for the given slugs. `dev` selects the
+ * namespace: the admin passes false (prod) to see real visitor data, or
+ * true to inspect local dev events. One pipelined HGETALL per slug.
+ */
+export async function getArticleCounts(
+  slugs: string[],
+  dev = false
+): Promise<Map<string, EventCounts>> {
+  const out = new Map<string, EventCounts>();
+  const client = getClient();
+  if (!client || slugs.length === 0) {
+    slugs.forEach((s) => out.set(s, {}));
+    return out;
+  }
+  const ns = prefix(dev);
+  const pipe = client.pipeline();
+  slugs.forEach((s) => pipe.hgetall(`${ns}article:${s}`));
+  const results = (await pipe.exec()) as (Record<string, unknown> | null)[];
+  slugs.forEach((s, i) => out.set(s, coerceCounts(results[i] ?? null)));
+  return out;
+}
+
+/**
+ * Read the subscribe-by-source counters (sub_submit / sub_success).
+ */
+export async function getSourceCounts(
+  dev = false
+): Promise<Map<TrackSource, EventCounts>> {
+  const out = new Map<TrackSource, EventCounts>();
+  const client = getClient();
+  if (!client) {
+    TRACK_SOURCES.forEach((s) => out.set(s, {}));
+    return out;
+  }
+  const ns = prefix(dev);
+  const pipe = client.pipeline();
+  TRACK_SOURCES.forEach((s) => pipe.hgetall(`${ns}source:${s}`));
+  const results = (await pipe.exec()) as (Record<string, unknown> | null)[];
+  TRACK_SOURCES.forEach((s, i) => out.set(s, coerceCounts(results[i] ?? null)));
+  return out;
+}

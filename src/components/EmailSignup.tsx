@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { track } from "@/lib/track";
+import type { TrackSource } from "@/lib/analytics";
 
 // Posts to a same-origin Next.js route handler that forwards to Kit
 // server-side (Kit's endpoint blocks browser fetch via CORS). The Kit form
@@ -9,7 +11,17 @@ const SUBSCRIBE_ENDPOINT = "/api/subscribe";
 
 type Status = "idle" | "loading" | "success" | "error";
 
-export function EmailSignup() {
+// `source`/`slug` are optional funnel attribution: which surface the
+// signup came from (inline form, dual block, /join …) and, on an article,
+// which piece. They feed sub_submit / sub_success into the analytics so
+// each placement's conversion can be read independently.
+export function EmailSignup({
+  source = "unknown",
+  slug,
+}: {
+  source?: TrackSource;
+  slug?: string;
+} = {}) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -19,6 +31,7 @@ export function EmailSignup() {
     if (status === "loading") return;
     setStatus("loading");
     setErrorMessage(null);
+    track("sub_submit", { source, slug });
     try {
       const response = await fetch(SUBSCRIBE_ENDPOINT, {
         method: "POST",
@@ -32,6 +45,7 @@ export function EmailSignup() {
         throw new Error(data?.error ?? "Subscription failed. Please try again.");
       }
       setStatus("success");
+      track("sub_success", { source, slug });
     } catch (err) {
       setStatus("error");
       setErrorMessage(

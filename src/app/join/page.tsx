@@ -52,7 +52,7 @@ export default function JoinPage() {
       <section className="max-w-2xl mx-auto px-6 py-16 text-center">
         <SubscriberCount className="mb-5" />
         <div className="flex justify-center mb-6">
-          <EmailSignup />
+          <EmailSignup source="join" />
         </div>
         <p className="text-xs italic text-ink-faint">
           Unsubscribe anytime. We never share your email.
