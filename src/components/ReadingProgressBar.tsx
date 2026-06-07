@@ -94,16 +94,16 @@ export function ReadingProgressBar({
         height: 4,
         zIndex: 80,
         pointerEvents: "none",
-        // Faint always-on track so the bar reads even at 0%; gold fill
+        // Faint always-on track so the bar reads even at 0%; oxblood fill
         // rides on top.
-        backgroundColor: "rgba(184, 168, 44, 0.16)",
+        backgroundColor: "rgba(122, 46, 46, 0.16)",
       }}
     >
       <div
         style={{
           height: "100%",
           width: "100%",
-          backgroundColor: "var(--eye, #b8a82c)",
+          backgroundColor: "var(--blood, #7a2e2e)",
           transform: `scaleX(${progress})`,
           transformOrigin: "left center",
           transition: "transform 80ms linear",

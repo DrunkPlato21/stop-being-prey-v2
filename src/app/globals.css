@@ -18,6 +18,10 @@
   --eye-deep: #8a7d20;
   --eye-glow: rgba(184, 168, 44, 0.35);
 
+  /* Oxblood --the reading-progress bar. Deep, warm, on-theme for the
+     predator/prey brand without reading as an error/alarm color. */
+  --blood: #7a2e2e;
+
   --vignette: inset 0 0 220px rgba(26, 23, 20, 0.06);
 }
 
