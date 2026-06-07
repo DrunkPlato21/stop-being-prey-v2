@@ -1,22 +1,22 @@
-// Splits rendered article HTML at a paragraph boundary near the reading
-// midpoint so one inline call-to-action (the email form) can sit where
-// attention is still high, instead of only at the very bottom where most
-// readers never land.
+// Splits rendered article HTML so one inline call-to-action (the email
+// form) can sit at an *opportune* mid-body break, instead of only at the
+// very bottom where most readers never land.
 //
-// Conservative by design:
-//   - Only cuts between two adjacent top-level <p> paragraphs, so the
-//     form never lands next to a heading, list, blockquote, or figure.
-//   - Targets ~58% through the *visible* text (tags stripped), clamped to
-//     the 42-72% band so it's never crowding the masthead or the footer
-//     asks.
-//   - Returns null for short pieces (the masthead + footer asks already
-//     cover those) and for anything with too few paragraphs to split
-//     cleanly.
+// Placement priority, nearest the ~58% reading mark and clamped to the
+// 42-72% band so it never crowds the masthead or footer asks:
+//   1. A thematic break (<hr>, from a `---` scene break). The form takes
+//      that rule's place, so there's no redundant divider-then-form.
+//   2. A section heading (<h2>/<h3>). The form sits just before it, so the
+//      reader returns to a fresh section right after.
+//   3. Fallback: a clean paragraph-to-paragraph seam, so the form is never
+//      jammed into the middle of a thought.
+//
+// Returns null for short pieces (the masthead + footer asks already cover
+// those) and for anything with too few paragraphs to split cleanly.
 //
 // Eligibility lives with the caller. Standard articles opt in; essayStyle
-// pieces opt out, because their positional pull-quote CSS
-// (figure.ea-pullquote:first-of-type / :last-child / :nth-last-child(2))
-// is evaluated per container and a split would disturb the ornaments.
+// pieces opt out, because their positional pull-quote CSS is evaluated per
+// container and a split would disturb the ornaments.
 
 const MIN_PARAGRAPHS = 6;
 const MIN_VISIBLE_CHARS = 1800; // ~300+ words of body
@@ -31,6 +31,24 @@ function visibleLength(html: string): number {
     .trim().length;
 }
 
+// A candidate cut: `cut` is where `before` ends; `afterStart` is where
+// `after` begins (they differ only when an element between them — an <hr>
+// — is consumed). `ratio` is how far through the visible text the cut sits.
+type Candidate = { cut: number; afterStart: number; ratio: number };
+
+function nearestToTarget(cands: Candidate[]): Candidate | null {
+  let best: Candidate | null = null;
+  for (const c of cands) {
+    if (
+      !best ||
+      Math.abs(c.ratio - TARGET_RATIO) < Math.abs(best.ratio - TARGET_RATIO)
+    ) {
+      best = c;
+    }
+  }
+  return best;
+}
+
 export function splitForInlineCta(
   html: string
 ): { before: string; after: string } | null {
@@ -40,24 +58,51 @@ export function splitForInlineCta(
   const total = visibleLength(html);
   if (total < MIN_VISIBLE_CHARS) return null;
 
-  // Candidate cut points: the start of a <p> that immediately follows a
-  // </p> (a clean paragraph-to-paragraph seam). The trailing \s* is
-  // consumed; the lookahead leaves the next <p> in place, so the match
-  // end is exactly the index of that <p>.
-  const seam = /<\/p>\s*(?=<p[\s>])/gi;
-  let best: { index: number; dist: number } | null = null;
-  let m: RegExpExecArray | null;
-  while ((m = seam.exec(html)) !== null) {
-    const index = m.index + m[0].length;
-    const ratio = visibleLength(html.slice(0, index)) / total;
-    if (ratio < MIN_RATIO || ratio > MAX_RATIO) continue;
-    const dist = Math.abs(ratio - TARGET_RATIO);
-    if (!best || dist < best.dist) best = { index, dist };
+  const ratioAt = (index: number) =>
+    visibleLength(html.slice(0, index)) / total;
+  const inBand = (r: number) => r >= MIN_RATIO && r <= MAX_RATIO;
+
+  // 1 + 2: structural breaks (thematic rules and section headings).
+  const structural: Candidate[] = [];
+
+  // <hr>: the form replaces the rule, so afterStart skips past it.
+  for (const m of html.matchAll(/<hr\b[^>]*>/gi)) {
+    if (m.index === undefined) continue;
+    const ratio = ratioAt(m.index);
+    if (inBand(ratio)) {
+      structural.push({
+        cut: m.index,
+        afterStart: m.index + m[0].length,
+        ratio,
+      });
+    }
+  }
+  // <h2>/<h3>: the form sits before the heading, which is kept intact.
+  for (const m of html.matchAll(/<h[23]\b[^>]*>/gi)) {
+    if (m.index === undefined) continue;
+    const ratio = ratioAt(m.index);
+    if (inBand(ratio)) {
+      structural.push({ cut: m.index, afterStart: m.index, ratio });
+    }
   }
 
-  if (!best) return null;
+  let chosen = nearestToTarget(structural);
+
+  // 3: fallback — nearest clean paragraph-to-paragraph seam.
+  if (!chosen) {
+    const seams: Candidate[] = [];
+    for (const m of html.matchAll(/<\/p>\s*(?=<p[\s>])/gi)) {
+      if (m.index === undefined) continue;
+      const cut = m.index + m[0].length;
+      const ratio = ratioAt(cut);
+      if (inBand(ratio)) seams.push({ cut, afterStart: cut, ratio });
+    }
+    chosen = nearestToTarget(seams);
+  }
+
+  if (!chosen) return null;
   return {
-    before: html.slice(0, best.index),
-    after: html.slice(best.index),
+    before: html.slice(0, chosen.cut).trimEnd(),
+    after: html.slice(chosen.afterStart).trimStart(),
   };
 }
