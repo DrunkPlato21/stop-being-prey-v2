@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
     // cookies), so its markdown must be in the serverless bundle or the
     // page 404s on its own content in production. Opt the dir in.
     "/[slug]": ["content/articles/**/*"],
+    // OG/Twitter card routes read the bundled brand fonts from /assets via
+    // src/lib/og-image.tsx. Opt the dir into each function bundle so the
+    // cards always render in the right type (never a sans-serif fallback).
+    "/[slug]/opengraph-image": ["assets/**/*"],
+    "/[slug]/twitter-image": ["assets/**/*"],
+    "/join/opengraph-image": ["assets/**/*"],
+    "/join/twitter-image": ["assets/**/*"],
   },
   // The essay's slug was renamed from /the-massie-eulogy to
   // /the-massie-problem. Keep old links (shared URLs, the seeded desk

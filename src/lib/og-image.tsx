@@ -1,37 +1,20 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { getArticleBySlug } from "@/lib/articles";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
 
-async function loadGoogleFont(
-  family: string,
-  weight: number,
-  style: "normal" | "italic"
-): Promise<ArrayBuffer | null> {
-  const styleParam =
-    style === "italic" ? `ital,wght@1,${weight}` : `wght@${weight}`;
-  const cssUrl = `https://fonts.googleapis.com/css2?family=${family.replace(
-    / /g,
-    "+"
-  )}:${styleParam}`;
+// Brand fonts are bundled in /assets and read from disk, so OG cards never
+// depend on a render-time Google Fonts fetch (which could time out and
+// silently fall back to an off-brand sans-serif). The assets dir is opted
+// into the OG routes' function bundle via outputFileTracingIncludes in
+// next.config.ts. Returns null on any read failure so the card still
+// renders (Satori's default font) rather than erroring.
+async function loadFont(file: string): Promise<Buffer | null> {
   try {
-    const css = await fetch(cssUrl, {
-      // Old-IE UA → Google Fonts serves TTF, which Satori can decode.
-      // Modern UAs get WOFF2, which @vercel/og doesn't decompress.
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)",
-      },
-      signal: AbortSignal.timeout(5000),
-    }).then((r) => r.text());
-    const match = css.match(/src:\s*url\((https:[^)]+)\)\s*format/);
-    if (!match) return null;
-    const fontRes = await fetch(match[1], {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!fontRes.ok) return null;
-    return await fontRes.arrayBuffer();
+    return await readFile(join(process.cwd(), "assets", file));
   } catch {
     return null;
   }
@@ -49,8 +32,8 @@ export async function generateJoinOG(): Promise<ImageResponse> {
     "Original writing on politics, power, and the apex class. Algorithms don't deliver this writing. It only arrives if you ask.";
 
   const [cormorant700, sourceSerifItalic] = await Promise.all([
-    loadGoogleFont("Cormorant Garamond", 700, "normal"),
-    loadGoogleFont("Source Serif 4", 400, "italic"),
+    loadFont("cormorant-garamond-700.ttf"),
+    loadFont("source-serif-4-italic.ttf"),
   ]);
 
   const fonts: NonNullable<
@@ -182,8 +165,8 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
     : "Stop Being Prey";
 
   const [cormorant700, sourceSerifItalic] = await Promise.all([
-    loadGoogleFont("Cormorant Garamond", 700, "normal"),
-    loadGoogleFont("Source Serif 4", 400, "italic"),
+    loadFont("cormorant-garamond-700.ttf"),
+    loadFont("source-serif-4-italic.ttf"),
   ]);
 
   const fonts: NonNullable<
