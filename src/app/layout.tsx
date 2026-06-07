@@ -5,6 +5,7 @@ import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { StickyNavServer } from "@/components/StickyNavServer";
+import { ReadingProgressBar } from "@/components/ReadingProgressBar";
 import { PresenceBeacon } from "@/components/PresenceBeacon";
 
 const cormorant = Cormorant_Garamond({
@@ -68,6 +69,10 @@ export default function RootLayout({
             position:fixed scroll bar isn't trapped in Header's stacking
             context. Self-suppresses on member routes via pathname. */}
         <StickyNavServer />
+        {/* Reading-progress line. Rendered at root (beside StickyNav) so
+            its position:fixed isn't trapped in a page-level stacking
+            context. Self-hides on any route without an article body. */}
+        <ReadingProgressBar />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
