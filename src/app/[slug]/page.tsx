@@ -17,6 +17,7 @@ import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
 import { InlineSubscribe } from "@/components/InlineSubscribe";
 import { ReadingTracker } from "@/components/ReadingTracker";
+import { ReadingProgressBar } from "@/components/ReadingProgressBar";
 import { splitForInlineCta } from "@/lib/inline-cta";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
@@ -135,6 +136,10 @@ export default async function ArticlePage({
 
   return (
     <article className="relative">
+      {/* Reading-progress line at the very top edge of the viewport,
+          filling as the reader moves through #reading-region. */}
+      <ReadingProgressBar />
+
       {/* Funnel analytics: fires `view` on mount and scroll-depth
           milestones as the reader moves through #reading-region below.
           Renders nothing. */}
