@@ -15,6 +15,8 @@ import { EyeDivider } from "@/components/Eyes";
 import { ShareButtons } from "@/components/ShareButtons";
 import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
+import { InlineSubscribe } from "@/components/InlineSubscribe";
+import { splitForInlineCta } from "@/lib/inline-cta";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
 
@@ -120,6 +122,16 @@ export default async function ArticlePage({
   const isPodcastOnly =
     !!article.spotifyEpisodeId && typeof article.issue !== "number";
 
+  // Inline mid-article email capture. Standard articles get the form
+  // injected around the ~58% mark (where readers are still engaged);
+  // essayStyle pieces opt out — their positional pull-quote CSS would be
+  // disturbed by a split container, and they carry their own end beat.
+  // splitForInlineCta returns null for short pieces, leaving them with
+  // just the masthead + footer asks.
+  const inlineSplit = article.essayStyle
+    ? null
+    : splitForInlineCta(article.contentHtml);
+
   return (
     <article className="relative">
       {/* === Article masthead === */}
@@ -196,10 +208,24 @@ export default async function ArticlePage({
           isPodcastOnly ? "pt-8 md:pt-10" : "pt-12 md:pt-16"
         }`}
       >
-        <div
-          className={`prose-article${article.essayStyle ? " ea-essay" : ""}`}
-          dangerouslySetInnerHTML={{ __html: article.contentHtml }}
-        />
+        {inlineSplit ? (
+          <>
+            <div
+              className="prose-article"
+              dangerouslySetInnerHTML={{ __html: inlineSplit.before }}
+            />
+            <InlineSubscribe />
+            <div
+              className="prose-article"
+              dangerouslySetInnerHTML={{ __html: inlineSplit.after }}
+            />
+          </>
+        ) : (
+          <div
+            className={`prose-article${article.essayStyle ? " ea-essay" : ""}`}
+            dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+          />
+        )}
 
         {/* Essay-style pieces (e.g. the Massie issue) close on a pull-
             quote meant to land on silence. Give that ending a big gap to
