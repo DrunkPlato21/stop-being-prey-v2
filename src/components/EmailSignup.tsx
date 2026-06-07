@@ -18,7 +18,7 @@ type Status = "idle" | "loading" | "success" | "error";
 export function EmailSignup({
   source = "unknown",
   slug,
-  submitLabel = "Subscribe",
+  submitLabel = "I'm in",
 }: {
   source?: TrackSource;
   slug?: string;

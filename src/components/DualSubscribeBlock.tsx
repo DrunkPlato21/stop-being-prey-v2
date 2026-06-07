@@ -40,7 +40,7 @@ export function DualSubscribeBlock({
           The writing, straight to your inbox. Free. Start here.
         </p>
         <SubscriberCount className="mb-3" />
-        <EmailSignup source="dual" submitLabel="I'm in" />
+        <EmailSignup source="dual" />
       </div>
 
       {/* BY MEMBERSHIP — paid path. Vertical olive rule on desktop

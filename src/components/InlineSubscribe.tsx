@@ -41,7 +41,7 @@ export function InlineSubscribe({
         </p>
         <SubscriberCount className="mb-4" />
         <div className="flex justify-center">
-          <EmailSignup source="inline" slug={slug} submitLabel="I'm in" />
+          <EmailSignup source="inline" slug={slug} />
         </div>
       </div>
     </aside>
