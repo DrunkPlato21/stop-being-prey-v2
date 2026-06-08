@@ -190,6 +190,29 @@ export default async function ArticlePage({
     ...(article.wordCount ? { wordCount: article.wordCount } : {}),
   };
 
+  // Podcast schema for pieces with a Spotify episode, so search engines and
+  // podcast directories read them as episodes of the show, not just essays.
+  const podcastJsonLd = article.spotifyEpisodeId
+    ? {
+        "@context": "https://schema.org",
+        "@type": "PodcastEpisode",
+        name: article.title,
+        description: article.description,
+        datePublished: article.date,
+        url: `https://stopbeingprey.com/${article.slug}`,
+        associatedMedia: {
+          "@type": "MediaObject",
+          contentUrl: `https://open.spotify.com/episode/${article.spotifyEpisodeId}`,
+        },
+        partOfSeries: {
+          "@type": "PodcastSeries",
+          name: "Stop Being Prey",
+          url: "https://stopbeingprey.com/podcast",
+        },
+        author: { "@type": "Person", name: "Clay" },
+      }
+    : null;
+
   return (
     <article className="relative">
       {article.published !== false && (
@@ -197,6 +220,13 @@ export default async function ArticlePage({
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      {article.published !== false && podcastJsonLd && (
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(podcastJsonLd) }}
         />
       )}
 

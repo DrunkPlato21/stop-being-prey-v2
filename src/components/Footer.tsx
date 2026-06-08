@@ -136,6 +136,11 @@ export function Footer() {
                     Facebook
                   </a>
                 </li>
+                <li>
+                  <a href="/feed.xml" className={navLinkClass}>
+                    RSS
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

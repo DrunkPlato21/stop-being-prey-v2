@@ -69,6 +69,14 @@ export default function RootLayout({
       className={`${cormorant.variable} ${sourceSerif.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {/* Skip link for keyboard / screen-reader users: hidden until
+            focused, then jumps past the nav to the main content. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-ink focus:text-paper focus:px-4 focus:py-2 focus:font-display focus:text-sm focus:no-underline"
+        >
+          Skip to content
+        </a>
         {/* StickyNavServer renders at root (not inside Header) so its
             position:fixed scroll bar isn't trapped in Header's stacking
             context. Self-suppresses on member routes via pathname. */}
@@ -78,7 +86,9 @@ export default function RootLayout({
             context. Self-hides on any route without an article body. */}
         <ReadingProgressBar />
         <Header />
-        <main className="flex-1">{children}</main>
+        <main id="main-content" className="flex-1">
+          {children}
+        </main>
         <Footer />
         {/* Site-wide presence beacon. Renders nothing; pings the
             ping endpoint from every member route change so the

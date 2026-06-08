@@ -36,6 +36,37 @@ const nextConfig: NextConfig = {
     // The RSS feed reads the essays from content/articles via fs.
     "/feed.xml": ["content/articles/**/*"],
   },
+  // Conservative security headers on every route. Deliberately NO
+  // Content-Security-Policy — that's powerful but fragile and would risk
+  // breaking the Spotify embeds / Stripe. These are all safe:
+  //   - HSTS: force HTTPS (site is HTTPS-only on Vercel).
+  //   - nosniff: stop MIME-type sniffing.
+  //   - SAMEORIGIN: block other sites from framing us (clickjacking). Does
+  //     not affect our own outbound embeds (Spotify iframes).
+  //   - Referrer-Policy: don't leak full URLs cross-origin.
+  //   - Permissions-Policy: restrict only clearly-unused features
+  //     (geolocation, camera). Microphone is left at the default so the
+  //     admin voice-memo recorder keeps working.
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains",
+          },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          { key: "Permissions-Policy", value: "geolocation=(), camera=()" },
+        ],
+      },
+    ];
+  },
   // The essay's slug was renamed from /the-massie-eulogy to
   // /the-massie-problem. Keep old links (shared URLs, the seeded desk
   // entry, sign-in redirects) working with a permanent redirect.
