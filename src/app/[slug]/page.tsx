@@ -20,6 +20,7 @@ import { InlineSubscribe } from "@/components/InlineSubscribe";
 import { ReadingTracker } from "@/components/ReadingTracker";
 import { ReadThisNext } from "@/components/ReadThisNext";
 import { splitForInlineCta } from "@/lib/inline-cta";
+import { isPaidViewer } from "@/lib/viewer";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
 
@@ -138,13 +139,22 @@ export default async function ArticlePage({
   const isPodcastOnly =
     !!article.spotifyEpisodeId && typeof article.issue !== "number";
 
+  // Paying members (and the admin/author) are already on the list and in
+  // the room, so suppress the email-capture surfaces for them — the inline
+  // form and the end-of-piece "Two ways in" block. Everything else (read
+  // time, comments, recirculation, tip) stays. Cheap: the page is already
+  // dynamic via the layout's auth.
+  const hideCaptures = await isPaidViewer();
+
   // Inline mid-article email capture, on every article (essayStyle pieces
   // split at an Act heading; both halves keep the ea-essay class so the
   // Act-divider + pull-quote styling is preserved). A {{CTA}} marker in the
   // body pins the exact spot; `inlineCta: false` in frontmatter opts the
   // piece out entirely. splitForInlineCta returns null for short pieces.
   const inlineSplit =
-    article.inlineCta === false ? null : splitForInlineCta(article.contentHtml);
+    hideCaptures || article.inlineCta === false
+      ? null
+      : splitForInlineCta(article.contentHtml);
 
   // Article structured data (JSON-LD) for rich search results: headline,
   // author, dates, publisher. Emitted only for published essays.
@@ -402,9 +412,11 @@ export default async function ArticlePage({
 
       <EyeDivider />
 
-      {/* === More like this. End-of-article conversion surface —
-          dual paths so the reader picks the level of commitment
-          that fits where they are right now. === */}
+      {/* === "Two ways in" conversion surface — dual paths so the reader
+          picks the level of commitment that fits. Suppressed for paying
+          members (they're already in); they still get the recirculation
+          block below. === */}
+      {!hideCaptures && (
       <section className="max-w-3xl mx-auto px-6 py-10 md:py-14">
         <p className="eyebrow mb-8 text-center">Two ways in</p>
         {/* Tailored membership ask in the piece's own voice, when set
@@ -431,6 +443,7 @@ export default async function ArticlePage({
           </div>
         )}
       </section>
+      )}
 
       {/* === Read this next. Exit-point recirculation, below the
           conversion CTA so it never competes with it. === */}
