@@ -45,6 +45,13 @@ export async function generateMetadata({
   return {
     title: article.title,
     description: article.description,
+    // Self-referencing canonical so query params (?fbclid=…), trailing
+    // slashes, and the like don't split ranking signal across duplicate
+    // URLs. Resolved against metadataBase (https://stopbeingprey.com).
+    alternates: {
+      canonical: `/${slug}`,
+      types: { "application/rss+xml": "/feed.xml" },
+    },
     // While unpublished, keep the draft out of search indexes. Flipping
     // `published: true` removes this and the page indexes normally.
     ...(article.published === false

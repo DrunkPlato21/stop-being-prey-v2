@@ -24,8 +24,38 @@ export default function Home() {
       timeZone: "UTC",
     });
 
+  // Site-level structured data: helps Google show the site name correctly
+  // and understand the publisher behind the essays' Article schema.
+  const siteJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://stopbeingprey.com/#website",
+        url: "https://stopbeingprey.com",
+        name: "Stop Being Prey",
+        description:
+          "Original writing on power, politics, and the apex class.",
+        publisher: { "@id": "https://stopbeingprey.com/#org" },
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://stopbeingprey.com/#org",
+        name: "Stop Being Prey",
+        url: "https://stopbeingprey.com",
+        logo: "https://stopbeingprey.com/opengraph-image.jpg",
+        founder: { "@type": "Person", name: "Clay" },
+      },
+    ],
+  };
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+      />
       {/* === Start Here hero ============================================
            On-ramp for first-time visitors. Two equal-weight cards point
            to the founding texts of the publication — the on-ramp into

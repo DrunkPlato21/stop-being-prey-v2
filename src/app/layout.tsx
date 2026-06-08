@@ -34,6 +34,10 @@ export const metadata: Metadata = {
     "Politics, power, and predator/prey dynamics in 2026. Original writing and audio by Clay. Recovering libertarian. Unapologetic right-wing realpolitik.",
   authors: [{ name: "Clay" }],
   creator: "Clay",
+  // Auto-discovery for RSS readers (<link rel="alternate" ...>).
+  alternates: {
+    types: { "application/rss+xml": "/feed.xml" },
+  },
   openGraph: {
     title: "Stop Being Prey",
     description:

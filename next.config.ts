@@ -27,10 +27,14 @@ const nextConfig: NextConfig = {
     "/join/twitter-image": ["assets/**/*"],
     "/membership/opengraph-image": ["assets/**/*"],
     "/membership/twitter-image": ["assets/**/*"],
+    "/about/opengraph-image": ["assets/**/*"],
+    "/about/twitter-image": ["assets/**/*"],
     // The 404 page suggests a few essays, read from content/articles via
     // fs. Opt the dir into the not-found bundle so the suggestions render
     // in production (degrades to no suggestions if absent, never crashes).
     "/_not-found": ["content/articles/**/*"],
+    // The RSS feed reads the essays from content/articles via fs.
+    "/feed.xml": ["content/articles/**/*"],
   },
   // The essay's slug was renamed from /the-massie-eulogy to
   // /the-massie-problem. Keep old links (shared URLs, the seeded desk
