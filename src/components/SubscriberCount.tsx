@@ -21,7 +21,7 @@ export async function SubscriberCount({
   const count = live ?? FALLBACK_COUNT;
   return (
     <p className={`eyebrow ${className}`} aria-live="polite">
-      Joining {formatCount(count)} readers.
+      Join {formatCount(count)} readers.
     </p>
   );
 }

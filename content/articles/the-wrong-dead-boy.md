@@ -107,6 +107,8 @@ Everything was the same. Everything... except one thing.
 
 Henry was white.
 
+{{CTA}}
+
 So what's the lesson I want you to walk away with here?
 
 Here it is:

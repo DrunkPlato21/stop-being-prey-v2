@@ -123,12 +123,13 @@ export default async function ArticlePage({
   const isPodcastOnly =
     !!article.spotifyEpisodeId && typeof article.issue !== "number";
 
-  // Inline mid-article email capture, on every article — including the
-  // essayStyle pieces, which split at an Act heading near the ~58% mark.
-  // Both halves keep the ea-essay class so Act-divider + pull-quote styling
-  // is preserved. splitForInlineCta returns null for short pieces, leaving
-  // them with just the masthead + footer asks.
-  const inlineSplit = splitForInlineCta(article.contentHtml);
+  // Inline mid-article email capture, on every article (essayStyle pieces
+  // split at an Act heading; both halves keep the ea-essay class so the
+  // Act-divider + pull-quote styling is preserved). A {{CTA}} marker in the
+  // body pins the exact spot; `inlineCta: false` in frontmatter opts the
+  // piece out entirely. splitForInlineCta returns null for short pieces.
+  const inlineSplit =
+    article.inlineCta === false ? null : splitForInlineCta(article.contentHtml);
 
   // Article structured data (JSON-LD) for rich search results: headline,
   // author, dates, publisher. Emitted only for published essays.

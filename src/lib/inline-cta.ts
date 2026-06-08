@@ -52,6 +52,19 @@ function nearestToTarget(cands: Candidate[]): Candidate | null {
 export function splitForInlineCta(
   html: string
 ): { before: string; after: string } | null {
+  // Author override: a {{CTA}} marker placed in the markdown wins over
+  // auto-placement and bypasses the length guards. It renders as
+  // <p>{{CTA}}</p>; split exactly there and drop the marker. Use this on
+  // pieces where the auto-placer lands badly (e.g. mid-exchange in a
+  // dialogue) — you know where the real breath is, the algorithm doesn't.
+  const marker = html.match(/<p>\s*\{\{\s*CTA\s*\}\}\s*<\/p>/i);
+  if (marker && marker.index !== undefined) {
+    return {
+      before: html.slice(0, marker.index).trimEnd(),
+      after: html.slice(marker.index + marker[0].length).trimStart(),
+    };
+  }
+
   const paragraphCount = (html.match(/<p[\s>]/gi) || []).length;
   if (paragraphCount < MIN_PARAGRAPHS) return null;
 

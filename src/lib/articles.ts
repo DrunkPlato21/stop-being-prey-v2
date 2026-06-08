@@ -48,6 +48,11 @@ export type ArticleMeta = {
       field. Overrides the word-count estimate everywhere the runtime is
       shown (issue masthead pill, homepage lead pill, /podcast feed). */
   audioMinutes?: number;
+  /** Set `inlineCta: false` in frontmatter to suppress the inline
+      mid-article email form on this piece (for essays with no natural
+      mid-point break). Defaults to on. A {{CTA}} marker in the body
+      overrides placement; this kills it entirely. */
+  inlineCta?: boolean;
 };
 
 /**
@@ -233,5 +238,6 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
       typeof data.prequelSlug === "string" ? data.prequelSlug : undefined,
     prequelLabel:
       typeof data.prequelLabel === "string" ? data.prequelLabel : undefined,
+    inlineCta: data.inlineCta === false ? false : undefined,
   };
 }
