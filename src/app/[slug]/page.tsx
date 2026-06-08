@@ -5,6 +5,7 @@ import {
   getAllArticles,
   getArticleBySlug,
   audioRuntimeMinutes,
+  readingMinutes,
   type Article,
 } from "@/lib/articles";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
@@ -17,6 +18,7 @@ import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
 import { InlineSubscribe } from "@/components/InlineSubscribe";
 import { ReadingTracker } from "@/components/ReadingTracker";
+import { ReadThisNext } from "@/components/ReadThisNext";
 import { splitForInlineCta } from "@/lib/inline-cta";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
@@ -112,6 +114,19 @@ export default async function ArticlePage({
   // Audio runtime for the pill: real `audioMinutes` when set, else the
   // ~150 wpm word-count estimate.
   const audioMinutes = audioRuntimeMinutes(article);
+  // Silent reading time for the byline (faster ~225 wpm pace).
+  const readMin = readingMinutes(article);
+
+  // End-of-essay recirculation: the 2 newest other published essays
+  // (excluding this one and its prequel, which already gets its own link).
+  const readNext = getAllArticles()
+    .filter((a) => a.slug !== article.slug && a.slug !== article.prequelSlug)
+    .slice(0, 2)
+    .map((a) => ({
+      slug: a.slug,
+      title: a.title,
+      description: a.description,
+    }));
 
   // "Podcast-only" pieces — articles that exist primarily as
   // episodes, not numbered issues. Detected by: has a spotify
@@ -201,10 +216,10 @@ export default async function ArticlePage({
             <span>By Clay</span>
             <span className="text-rule">·</span>
             <time dateTime={article.date}>{dateStr}</time>
-            {article.wordCount && (
+            {readMin && (
               <>
                 <span className="text-rule">·</span>
-                <span>{article.wordCount.toLocaleString("en-US")} words</span>
+                <span>{readMin} min read</span>
               </>
             )}
           </div>
@@ -416,6 +431,10 @@ export default async function ArticlePage({
           </div>
         )}
       </section>
+
+      {/* === Read this next. Exit-point recirculation, below the
+          conversion CTA so it never competes with it. === */}
+      <ReadThisNext items={readNext} />
 
       <div className="text-center pb-16">
         <Link

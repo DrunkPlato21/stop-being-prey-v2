@@ -68,6 +68,16 @@ export function audioRuntimeMinutes(a: ArticleMeta): number | null {
   return a.wordCount ? Math.round(a.wordCount / 150) : null;
 }
 
+/**
+ * Estimated silent reading time in minutes at ~225 wpm (a typical adult
+ * reading pace — faster than the ~150 wpm spoken pace audioRuntimeMinutes
+ * uses). Floors at 1. Null when there's no word count to base it on.
+ */
+export function readingMinutes(a: ArticleMeta): number | null {
+  if (!a.wordCount) return null;
+  return Math.max(1, Math.round(a.wordCount / 225));
+}
+
 export type Article = ArticleMeta & {
   contentHtml: string;
   /** Optional citation block, populated when the markdown ends with a
