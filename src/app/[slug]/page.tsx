@@ -19,7 +19,7 @@ import { ArticlePostscript } from "@/components/ArticlePostscript";
 import { InlineSubscribe } from "@/components/InlineSubscribe";
 import { ReadingTracker } from "@/components/ReadingTracker";
 import { ReadThisNext } from "@/components/ReadThisNext";
-import { splitForInlineCta } from "@/lib/inline-cta";
+import { splitForInlineCta, stripCtaMarker } from "@/lib/inline-cta";
 import { isPaidViewer } from "@/lib/viewer";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
@@ -325,7 +325,11 @@ export default async function ArticlePage({
         ) : (
           <div
             className={`prose-article${article.essayStyle ? " ea-essay" : ""}`}
-            dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+            // No form here (captures hidden, opted out, or too short to
+            // split). Strip any {{CTA}} marker so it never shows as raw text.
+            dangerouslySetInnerHTML={{
+              __html: stripCtaMarker(article.contentHtml),
+            }}
           />
         )}
 
@@ -334,8 +338,10 @@ export default async function ArticlePage({
             breathe, then a light email-capture beat — a line + a link to
             /join, deliberately not a form — before the share P.S. below.
             Scoped to essayStyle so ordinary essays keep their tighter
-            ending. */}
-        {article.essayStyle && (
+            ending. Suppressed when the piece carries a custom postscript:
+            that P.S. ladder already opens with the "get on the list" ask,
+            so this beat (and its big top gap) would just be redundant. */}
+        {article.essayStyle && !article.postscriptHtml && (
           <div className="max-w-2xl mx-auto mt-32 md:mt-48 text-center">
             <p
               className="font-serif italic text-ink-muted leading-relaxed"
