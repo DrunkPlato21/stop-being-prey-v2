@@ -2,16 +2,18 @@
 title: "Some Random Kid"
 slug: "some-random-kid"
 date: "2026-06-11T15:00:00Z"
-description: "Austin Metcalf was a 17-year-old honor student, stabbed to death at a track meet. Then a sitting congresswoman called him 'some random kid,' and five thousand strangers funded his killer. Here's what that really tells you."
-subtitle: "what they did to austin metcalf after they buried him."
+description: "What they did to Austin Metcalf after they buried him."
+subtitle: "What they did to Austin Metcalf after they buried him."
 spotifyEpisodeId: "1VtQ7rZ9q8huTBA4nISito"
+essayStyle: true
+uniformQuotes: true
 postscript: |
   **p.s.** [get on the list](/join). Free. Almost daily. The writing that doesn't fit on Facebook. Unsubscribe in three clicks if you change your mind.
 
-  **p.p.s.** this writing is reader-funded. The reason this piece exists is that other readers backed the last one. If you want more like it, [here's how](/tip).
-
-  **p.p.p.s.** membership is the room behind the work, where you learn to see these moves before someone runs them on you. [here's the door](/membership).
+  **p.p.s.** membership is the room behind the work, where you learn to see these moves before someone runs them on you. [here's the door](/membership).
 ---
+
+{{FIGURE: /assets/some-random-kid/austin-metcalf.jpg | Austin Metcalf in a black shirt, holding two football trophies in front of his Memorial Warriors number 25 banner. | Austin Metcalf. Seventeen years old.}}
 
 Do you remember going to track meets as a kid? I do. I always enjoyed the events because it was an excuse to get out of school, and there's nothing I loved more than that. My memory of them is pretty bland. Track meets, to me, were like the safest, dullest place in the world. The idea of seeing violence at them is foreign to me.
 
@@ -27,13 +29,13 @@ And you know what the worst part is? You can't hate him for it like the popular 
 
 He would show up to his friends' games just to support them when he had no other reason to be there. His coach, Chris Jackson, called him a natural leader who lifted everyone around him up. At the memorial, Chris shared with us that Austin would regularly tell his teammates this line verbatim:
 
-> I love you, boys. Let's go to work every day.
+> "I love you, boys. Let's go to work every day."
 
 And it doesn't stop there. Even his laugh was infectious. He was fiercely loyal and an outspoken believer in Christ. His student pastor said "Austin was a true warrior".
 
 When Austin's father, Jeff, was describing how he lived his life, these are the words he chose:
 
-> Integrity is doing the right thing when no one is looking.
+> "Integrity is doing the right thing when no one is looking."
 
 And that was Austin... that's how he lived his life... right up until the morning of April 2nd, 2025.
 
@@ -49,7 +51,7 @@ Then he reached into his backpack. Austin shoved him. The kid pulled out a knife
 
 Hunter, Austin's identical twin, was right there. He dropped down and tried to stop the bleeding. He held him... here's how Hunter describes it in his own words:
 
-> I grabbed his hand and looked in his eyes. I just saw his soul leave, and it took mine too.
+> "I grabbed his hand and looked in his eyes. I just saw his soul leave, and it took mine too."
 
 An identical twin. The same face... Hunter watched a mirror of himself bleed out in his arms, and by his own words, something in him went into the ground too. God bless him.
 
@@ -85,7 +87,7 @@ And Crockett wasn't unusual. That's the problem. The same reaction was pouring o
 
 Cardi B, one of the most famous rappers in the world posted this immediately after the verdict was read out:
 
-> DISGUSTING... This is not justice, this is trying to make an example.
+> "DISGUSTING... This is not justice, this is trying to make an example."
 
 Bree Newsome... the activist who got famous in 2015 climbing the pole to tear the Confederate flag off the South Carolina statehouse said the legal system would've treated him "totally different" if he were white. And then she doubled down: "Stop pretending there's anything Black people can do in our behavior to prevent racism."
 
@@ -124,6 +126,8 @@ David Dorn's story couldn't be spun that way. He wasn't killed by a cop or a whi
 And now Pierre Johnson. This one is really going to sting.
 
 Fourteen years old. You've probably never heard his name, and by now you understand why.
+
+{{FIGURE: /assets/some-random-kid/pierre-johnson.jpg | Pierre Johnson, a teenage boy in a blue t-shirt and patterned cap, seated at a restaurant table holding a lemonade. | Pierre Johnson, 14.}}
 
 He was a baseball kid. Loved the game. The boys on his team were more like brothers than just teammates. Everyone who knew him said the same thing, he had a smile that could light up a room, and a heart to match.
 
