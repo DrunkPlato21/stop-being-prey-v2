@@ -32,20 +32,13 @@ function memberLine(count: number): string {
   return count > 1 ? `Another one down. ${count} finished.` : "Another one down.";
 }
 
-// The ask sharpens as the finish-count climbs: a reader who keeps reaching
-// the end without joining is the warmest prospect there is.
-function askCopy(count: number): { line: string; cta: string } {
-  if (count >= 4) {
-    return {
-      line: "You keep reaching the end. Members get the next one first, and a seat in the room where the work gets built in the open.",
-      cta: "Take a seat",
-    };
-  }
-  return {
-    line: "No pitch, just a fact: members get the next one the moment it drops, plus the room behind the work.",
-    cta: "See the room",
-  };
-}
+// Finalized non-member ask (Clay's voice). One ask line now; the cadence
+// cap in lib/finisher still governs how OFTEN it shows, and the stored
+// finish-count stays available for a future escalation/streak layer.
+// (Em dash from the source copy swapped to periods per the no-em-dash rule.)
+const ASK_LINE =
+  "You read to the end. So does everyone in the room. The members-only conversation you won't find anywhere else. You just proved you belong in it. Take your seat, and you keep the whole thing alive while you're at it.";
+const ASK_CTA = "Take a seat";
 
 type Resolved = { count: number; showAsk: boolean };
 
@@ -96,11 +89,10 @@ function AchievementToast({ onDone }: { onDone: () => void }) {
   );
 }
 
-function FinisherAsk({ count, slug }: { count: number; slug: string }) {
-  const { line, cta } = askCopy(count);
+function FinisherAsk({ slug }: { slug: string }) {
   return (
     <div className="finisher-ask">
-      <p className="finisher-ask-line">{line}</p>
+      <p className="finisher-ask-line">{ASK_LINE}</p>
       <Link
         href="/membership?src=finisher"
         className="btn-primary finisher-ask-cta"
@@ -108,7 +100,7 @@ function FinisherAsk({ count, slug }: { count: number; slug: string }) {
           track("checkout_started", { slug, source: "finisher" })
         }
       >
-        <span>{cta}</span>
+        <span>{ASK_CTA}</span>
       </Link>
     </div>
   );
@@ -131,7 +123,7 @@ function FinisherInline({
       {isMember ? (
         <p className="finisher-inline-member">{memberLine(resolved.count)}</p>
       ) : resolved.showAsk ? (
-        <FinisherAsk count={resolved.count} slug={slug} />
+        <FinisherAsk slug={slug} />
       ) : null}
     </aside>
   );
