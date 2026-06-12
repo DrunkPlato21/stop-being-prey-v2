@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 // Admin surface for the Writer's Desk "Elsewhere" feed. Clay pastes a
-// Facebook or X post URL + the first-line preview + timestamp; the
-// entry surfaces on the widget in the Elsewhere section, separate
-// from the Recent Work lane that holds site content.
+// Facebook, X, or YouTube post URL + the first-line preview +
+// timestamp; the entry surfaces on the widget in the Elsewhere
+// section, separate from the Recent Work lane that holds site content.
 
 export default async function ChannelsAdminPage() {
   const posts = await listChannelPosts({ limit: 100 });
@@ -42,9 +42,9 @@ export default async function ChannelsAdminPage() {
         className="font-serif italic text-ink-muted mb-10 leading-relaxed"
         style={{ fontSize: "1rem" }}
       >
-        Paste a Facebook or X post here to surface it in the Writer&apos;s
-        Desk &ldquo;Elsewhere&rdquo; section, sitting below Recent Work.
-        Newest first.
+        Paste a Facebook, X, or YouTube post here to surface it in the
+        Writer&apos;s Desk &ldquo;Elsewhere&rdquo; section, sitting below
+        Recent Work. Newest first.
       </p>
 
       <ChannelsAdmin initialPosts={posts} />

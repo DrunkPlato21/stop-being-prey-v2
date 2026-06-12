@@ -13,7 +13,8 @@ import {
 //                       Surfaces under the "At home" header on the
 //                       widget and on /notes/activity in full.
 //   Out in the world — social-only output. Admin-curated entries from
-//                       the channels:x and channels:fb Upstash lists.
+//                       the channels:x, channels:fb, and channels:youtube
+//                       Upstash lists.
 //                       Surfaces under the "Out in the world" header
 //                       on the widget and on /notes/elsewhere in full.
 //
@@ -32,7 +33,8 @@ export type PulseSource =
   | "field-note"
   | "case-file"
   | "facebook"
-  | "x";
+  | "x"
+  | "youtube";
 
 export type PulseEvent = {
   source: PulseSource;
@@ -174,11 +176,21 @@ const PINNED_EVENTS: PulseEvent[] = [
 
 /* === Social sources (admin-curated, Upstash) ====================== */
 
+const CHANNEL_SOURCE: Record<
+  ChannelPost["source"],
+  { source: PulseSource; label: string }
+> = {
+  fb: { source: "facebook", label: "On Facebook" },
+  x: { source: "x", label: "On X" },
+  youtube: { source: "youtube", label: "On YouTube" },
+};
+
 function channelPostToEvent(post: ChannelPost): PulseEvent {
+  const mapped = CHANNEL_SOURCE[post.source];
   return {
-    source: post.source === "fb" ? "facebook" : "x",
+    source: mapped.source,
     at: post.postedAt,
-    label: post.source === "fb" ? "On Facebook" : "On X",
+    label: mapped.label,
     body: post.text,
     link: post.url,
   };
@@ -209,22 +221,25 @@ export async function getRecentWorkEvents({
 
 /**
  * Social-channel pulse stream for the widget's "Elsewhere" section.
- * Reads admin-curated entries from channels:fb and channels:x in
- * Upstash, merges newest-first, slices to `limit` (default 3).
+ * Reads admin-curated entries from channels:fb, channels:x, and
+ * channels:youtube in Upstash, merges newest-first, slices to `limit`
+ * (default 3).
  */
 export async function getElsewhereEvents({
   limit = ELSEWHERE_DEFAULT_LIMIT,
 }: { limit?: number } = {}): Promise<PulseEvent[]> {
   const perLane = Math.max(2, Math.ceil(limit * 0.75));
 
-  const [fbPosts, xPosts] = await Promise.all([
+  const [fbPosts, xPosts, youtubePosts] = await Promise.all([
     listChannelPosts({ source: "fb", limit: perLane }),
     listChannelPosts({ source: "x", limit: perLane }),
+    listChannelPosts({ source: "youtube", limit: perLane }),
   ]);
 
   const events: PulseEvent[] = [
     ...fbPosts.map(channelPostToEvent),
     ...xPosts.map(channelPostToEvent),
+    ...youtubePosts.map(channelPostToEvent),
   ];
   events.sort((a, b) => b.at - a.at);
   return events.slice(0, limit);

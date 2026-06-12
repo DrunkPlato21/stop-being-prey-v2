@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChannelPost, ChannelSource } from "@/lib/channel-posts";
 
-// Combined Facebook + X social-post admin. Single form, source picked
-// from a dropdown. Past entries listed below, deletable.
+// Combined Facebook + X + YouTube social-post admin. Single form,
+// source picked from a radio group. Past entries listed below,
+// deletable.
 //
 // AI assist: Clay paste-uploads (Ctrl+V), drag-drops, or clicks to
 // pick a screenshot of a post. The image is sent to
@@ -20,7 +21,7 @@ const MAX_TEXT = 100;
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 type AnalyzeSuggestion = {
-  suggested_source: "X" | "Facebook" | "unknown";
+  suggested_source: "X" | "Facebook" | "YouTube" | "unknown";
   suggested_preview: string;
   extracted_text: string;
   extracted_timestamp: string | null;
@@ -94,11 +95,13 @@ function sourceFromSuggestion(s: AnalyzeSuggestion["suggested_source"]):
   | null {
   if (s === "X") return "x";
   if (s === "Facebook") return "fb";
+  if (s === "YouTube") return "youtube";
   return null;
 }
 
 const FB_HOST_HINT = /(?:^|\.)(facebook\.com|fb\.com|fb\.watch)$/i;
 const X_HOST_HINT = /(?:^|\.)(x\.com|twitter\.com)$/i;
+const YT_HOST_HINT = /(?:^|\.)(youtube\.com|youtu\.be)$/i;
 
 // Detect platform from a pasted URL so the toggle flips itself.
 // Tolerant of missing protocols (e.g. "x.com/foo/status/123").
@@ -113,6 +116,7 @@ function detectSourceFromUrl(input: string): ChannelSource | null {
       const host = new URL(candidate).hostname.toLowerCase();
       if (FB_HOST_HINT.test(host)) return "fb";
       if (X_HOST_HINT.test(host)) return "x";
+      if (YT_HOST_HINT.test(host)) return "youtube";
     } catch {
       // try next candidate
     }
@@ -159,7 +163,9 @@ function formatDisplay(ms: number): string {
 }
 
 function sourceLabel(s: ChannelSource): string {
-  return s === "fb" ? "On Facebook" : "On X";
+  if (s === "fb") return "On Facebook";
+  if (s === "youtube") return "On YouTube";
+  return "On X";
 }
 
 function errorMessage(code: string): string {
@@ -167,7 +173,7 @@ function errorMessage(code: string): string {
     case "storage_unavailable":
       return "Storage backend is unavailable.";
     case "invalid_source":
-      return "Pick Facebook or X for the source.";
+      return "Pick Facebook, X, or YouTube for the source.";
     case "invalid_url":
       return "URL host doesn't match the chosen source.";
     case "empty_text":
@@ -387,11 +393,15 @@ export function ChannelsAdmin({
   const urlPlaceholder =
     source === "fb"
       ? "https://www.facebook.com/ThomasSowellQuotes/posts/..."
-      : "https://x.com/yourhandle/status/...";
+      : source === "youtube"
+        ? "https://www.youtube.com/watch?v=..."
+        : "https://x.com/yourhandle/status/...";
   const urlHint =
     source === "fb"
       ? "Must be a facebook.com / fb.com URL."
-      : "Must be an x.com or twitter.com URL.";
+      : source === "youtube"
+        ? "Must be a youtube.com or youtu.be URL."
+        : "Must be an x.com or twitter.com URL.";
 
   return (
     <div className="flex flex-col gap-12">
@@ -539,12 +549,13 @@ export function ChannelsAdmin({
           <div
             role="radiogroup"
             aria-label="Source"
-            className="grid grid-cols-2 border border-border"
+            className="grid grid-cols-3 border border-border"
           >
             {(
               [
                 { value: "fb", label: "Facebook" },
                 { value: "x", label: "X" },
+                { value: "youtube", label: "YouTube" },
               ] as const
             ).map((opt, idx) => {
               const active = source === opt.value;
@@ -732,7 +743,13 @@ export function ChannelsAdmin({
                   className="font-display uppercase tracking-[0.22em] text-eye-deep hover:text-ink no-underline transition-colors break-all"
                   style={{ fontSize: "0.62rem", fontWeight: 600 }}
                 >
-                  open {p.source === "fb" ? "on facebook" : "on x"} &rarr;
+                  open{" "}
+                  {p.source === "fb"
+                    ? "on facebook"
+                    : p.source === "youtube"
+                      ? "on youtube"
+                      : "on x"}{" "}
+                  &rarr;
                 </a>
               </li>
             ))}

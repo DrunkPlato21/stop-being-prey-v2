@@ -2,23 +2,28 @@ import { Redis } from "@upstash/redis";
 import { randomUUID } from "crypto";
 
 // Unified store for admin-curated social posts that surface in the
-// Writer's Desk "Elsewhere" section. Two source lanes (Facebook and X)
-// live in parallel zsets so the aggregator can pull each lane
-// independently and merge them by recency.
+// Writer's Desk "Elsewhere" section. Each source lives in its own
+// parallel zset so the aggregator can pull each lane independently and
+// merge them by recency.
 //
 // Redis schema:
 //   channels:fb            ZSET, score=postedAt, member=id  (FB lane)
 //   channels:x             ZSET, score=postedAt, member=id  (X lane)
+//   channels:youtube       ZSET, score=postedAt, member=id  (YouTube lane)
 //   channel-post:<id>      JSON ChannelPost
 
 const RECORD_PREFIX = "channel-post:";
 
-export type ChannelSource = "fb" | "x";
+export type ChannelSource = "fb" | "x" | "youtube";
+
+// Every lane the store knows about. Used to iterate sources in the
+// combined list/delete paths so adding a source is a one-line change.
+const ALL_SOURCES: ChannelSource[] = ["fb", "x", "youtube"];
 
 export type ChannelPost = {
   id: string;
   source: ChannelSource;
-  /** Direct link to the post on facebook.com / x.com / twitter.com. */
+  /** Direct link to the post on facebook.com / x.com / youtube.com. */
   url: string;
   /** First-line preview shown in the feed (≤ 100 chars). */
   text: string;
@@ -33,7 +38,7 @@ const MAX_TEXT = 100;
 const MAX_URL = 500;
 
 function indexKey(source: ChannelSource): string {
-  return source === "fb" ? "channels:fb" : "channels:x";
+  return `channels:${source}`;
 }
 
 let cachedClient: Redis | null = null;
@@ -80,6 +85,19 @@ const X_HOSTS = new Set([
   "www.twitter.com",
   "mobile.twitter.com",
 ]);
+const YOUTUBE_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+  "music.youtube.com",
+  "youtu.be",
+]);
+
+const HOSTS_BY_SOURCE: Record<ChannelSource, Set<string>> = {
+  fb: FB_HOSTS,
+  x: X_HOSTS,
+  youtube: YOUTUBE_HOSTS,
+};
 
 function sanitizeUrl(input: string, source: ChannelSource): string | null {
   const trimmed = input.trim().slice(0, MAX_URL);
@@ -92,13 +110,13 @@ function sanitizeUrl(input: string, source: ChannelSource): string | null {
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
   const host = parsed.hostname.toLowerCase();
-  const allow = source === "fb" ? FB_HOSTS : X_HOSTS;
+  const allow = HOSTS_BY_SOURCE[source];
   if (!allow.has(host)) return null;
   return parsed.toString();
 }
 
 function isSource(v: unknown): v is ChannelSource {
-  return v === "fb" || v === "x";
+  return v === "fb" || v === "x" || v === "youtube";
 }
 
 function parsePost(raw: unknown): ChannelPost | null {
@@ -225,16 +243,16 @@ export async function listChannelPosts(
     return posts.sort((a, b) => b.postedAt - a.postedAt);
   }
 
-  // Combined: pull both lanes in parallel, merge, slice.
-  const [fbIds, xIds] = await Promise.all([
-    client.zrange(indexKey("fb"), 0, limit - 1, { rev: true }) as Promise<
-      string[]
-    >,
-    client.zrange(indexKey("x"), 0, limit - 1, { rev: true }) as Promise<
-      string[]
-    >,
-  ]);
-  const all = await bulkFetch([...fbIds, ...xIds]);
+  // Combined: pull every lane in parallel, merge, slice.
+  const perLane = await Promise.all(
+    ALL_SOURCES.map(
+      (s) =>
+        client.zrange(indexKey(s), 0, limit - 1, { rev: true }) as Promise<
+          string[]
+        >
+    )
+  );
+  const all = await bulkFetch(perLane.flat());
   return all.sort((a, b) => b.postedAt - a.postedAt).slice(0, limit);
 }
 
@@ -246,11 +264,10 @@ export async function deleteChannelPost(
 > {
   const client = getClient();
   if (!client) return { ok: false, error: "storage_unavailable" };
-  // Idempotent: remove from both lane indexes and the record key. If
+  // Idempotent: remove from every lane index and the record key. If
   // the record's already gone the end state still matches the admin's
   // intent.
-  await client.zrem(indexKey("fb"), id);
-  await client.zrem(indexKey("x"), id);
+  await Promise.all(ALL_SOURCES.map((s) => client.zrem(indexKey(s), id)));
   await client.del(`${RECORD_PREFIX}${id}`);
   return { ok: true };
 }
