@@ -13,6 +13,7 @@ import { InitialAvatar } from "@/components/InitialAvatar";
 import { EditCommentControls } from "@/components/EditCommentControls";
 import { ReplyCommentForm } from "@/components/ReplyCommentForm";
 import { CommentPermalinkButton } from "@/components/CommentPermalinkButton";
+import { CommentTime } from "@/components/CommentTime";
 import { FeatureCommentButton } from "@/components/FeatureCommentButton";
 import { DeleteThreadReplyButton } from "@/components/DeleteThreadReplyButton";
 import { MemberBadge } from "@/components/MemberBadge";
@@ -216,7 +217,7 @@ export function CommentItem({
               className="font-serif italic text-ink-faint"
               style={{ fontSize: "0.82rem" }}
             >
-              {formatTimestamp(comment.createdAt)}
+              <CommentTime ms={comment.createdAt} />
             </span>
             <CommentPermalinkButton pathWithHash={permalinkPath(comment)} />
             {comment.editedAt && (
@@ -337,7 +338,7 @@ export function CommentItem({
                       className="font-serif italic text-ink-faint"
                       style={{ fontSize: "0.82rem" }}
                     >
-                      {formatTimestamp(comment.replyAt)}
+                      <CommentTime ms={comment.replyAt} />
                     </span>
                   </div>
                   <div>{renderBody(comment.replyBody)}</div>
@@ -457,7 +458,7 @@ function ThreadReplyView({
               className="font-serif italic text-ink-faint"
               style={{ fontSize: "0.78rem" }}
             >
-              {formatTimestamp(reply.createdAt)}
+              <CommentTime ms={reply.createdAt} />
             </span>
             <CommentPermalinkButton
               pathWithHash={threadReplyPermalinkPath(parent, reply.id)}
