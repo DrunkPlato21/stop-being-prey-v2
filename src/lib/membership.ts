@@ -282,6 +282,10 @@ export async function createMembershipCheckoutSession(args: {
   /** The access token, carried into metadata so the webhook consumes it
       once this checkout succeeds. */
   accessToken?: string;
+  /** Attribution source (a TrackSource like "finisher" / "tip"), carried
+      into metadata so the webhook can fire became_member attributed to the
+      surface that sent the buyer. Validated by the caller. */
+  source?: string;
 }): Promise<{ url: string } | { error: CheckoutError; floor?: number }> {
   const stripe = client();
   if (!stripe) return { error: "stripe_not_configured" };
@@ -361,6 +365,7 @@ export async function createMembershipCheckoutSession(args: {
       tier_at_checkout: tierAtCheckout,
       plan: args.plan,
       amount_cents: String(args.amountCents),
+      ...(args.source ? { source: args.source } : {}),
       ...(founderOverride && typeof args.founderGrantSlot === "number"
         ? { founder_slot_grant: String(args.founderGrantSlot) }
         : {}),
@@ -373,6 +378,7 @@ export async function createMembershipCheckoutSession(args: {
         lane: "membership",
         tier_at_checkout: tierAtCheckout,
         plan: args.plan,
+        ...(args.source ? { source: args.source } : {}),
       },
     },
   });

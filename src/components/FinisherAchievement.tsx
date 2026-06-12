@@ -89,16 +89,16 @@ function AchievementToast({ onDone }: { onDone: () => void }) {
   );
 }
 
-function FinisherAsk({ slug }: { slug: string }) {
+function FinisherAsk() {
+  // The CTA carries ?src=finisher to /membership; checkout_started and
+  // became_member are recorded server-side (checkout route + webhook),
+  // attributed to this source, so there's no client double-count.
   return (
     <div className="finisher-ask">
       <p className="finisher-ask-line">{ASK_LINE}</p>
       <Link
         href="/membership?src=finisher"
         className="btn-primary finisher-ask-cta"
-        onClick={() =>
-          track("checkout_started", { slug, source: "finisher" })
-        }
       >
         <span>{ASK_CTA}</span>
       </Link>
@@ -109,11 +109,9 @@ function FinisherAsk({ slug }: { slug: string }) {
 function FinisherInline({
   isMember,
   resolved,
-  slug,
 }: {
   isMember: boolean;
   resolved: Resolved;
-  slug: string;
 }) {
   return (
     <aside className="finisher-inline" aria-label="Reading achievement">
@@ -123,7 +121,7 @@ function FinisherInline({
       {isMember ? (
         <p className="finisher-inline-member">{memberLine(resolved.count)}</p>
       ) : resolved.showAsk ? (
-        <FinisherAsk slug={slug} />
+        <FinisherAsk />
       ) : null}
     </aside>
   );
@@ -190,7 +188,7 @@ export function FinisherAchievement({
   return (
     <>
       {toastOpen && <AchievementToast onDone={() => setToastOpen(false)} />}
-      <FinisherInline isMember={isMember} resolved={resolved} slug={slug} />
+      <FinisherInline isMember={isMember} resolved={resolved} />
     </>
   );
 }

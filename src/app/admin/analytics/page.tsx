@@ -167,15 +167,19 @@ export default async function AnalyticsAdminPage({
         </table>
       </div>
 
-      {/* Subscribe attribution by surface */}
-      <h2 className="eyebrow mt-12 mb-3">Subscribes by source</h2>
-      <div className="overflow-x-auto border border-rule max-w-md">
+      {/* Conversion attribution by surface — free email signups AND the
+          paid funnel (checkout started -> became member), so you can see
+          which surface actually earns paying members, not just clicks. */}
+      <h2 className="eyebrow mt-12 mb-3">Conversions by source</h2>
+      <div className="overflow-x-auto border border-rule max-w-xl">
         <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr className="text-left text-ink-faint uppercase tracking-wider">
               <Th className="text-left">Source</Th>
-              <Th>Submitted</Th>
-              <Th>Confirmed</Th>
+              <Th>Email sub</Th>
+              <Th>Email conf.</Th>
+              <Th>Checkout</Th>
+              <Th>Member</Th>
             </tr>
           </thead>
           <tbody>
@@ -186,6 +190,8 @@ export default async function AnalyticsAdminPage({
                   <Td className="text-left">{s}</Td>
                   <Td>{n(c, "sub_submit").toLocaleString()}</Td>
                   <Td>{n(c, "sub_success").toLocaleString()}</Td>
+                  <Td>{n(c, "checkout_started").toLocaleString()}</Td>
+                  <Td>{n(c, "became_member").toLocaleString()}</Td>
                 </tr>
               );
             })}

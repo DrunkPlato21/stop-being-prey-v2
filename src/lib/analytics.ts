@@ -53,6 +53,18 @@ const SOURCE_TRACKED_EVENTS: ReadonlySet<string> = new Set([
   "became_member",
 ]);
 
+/**
+ * Narrow an arbitrary value to a known TrackSource (or undefined). Used
+ * server-side where a source arrives from a request body or Stripe
+ * metadata and must be validated before it's counted.
+ */
+export function asTrackSource(v: unknown): TrackSource | undefined {
+  return typeof v === "string" &&
+    (TRACK_SOURCES as readonly string[]).includes(v)
+    ? (v as TrackSource)
+    : undefined;
+}
+
 export type EventCounts = Partial<Record<TrackEvent, number>>;
 
 let cachedClient: Redis | null = null;

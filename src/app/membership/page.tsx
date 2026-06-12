@@ -137,7 +137,7 @@ const FAQ: FAQEntry[] = [
 export default async function MembershipLandingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ preview?: string; access?: string }>;
+  searchParams?: Promise<{ preview?: string; access?: string; src?: string }>;
 }) {
   const [founderClaimed, charterClaimed, totalMembers, presence] =
     await Promise.all([
@@ -157,6 +157,10 @@ export default async function MembershipLandingPage({
   // side here (for the UI) and again at checkout-create (the real gate).
   // Invalid/missing token → the page renders exactly as the public one.
   const accessParam = typeof sp.access === "string" ? sp.access : "";
+  // Attribution source from the entry link (e.g. /membership?src=finisher
+  // or ?src=tip). Carried into the checkout POST so the webhook credits the
+  // surface that sent the buyer when they convert.
+  const srcParam = typeof sp.src === "string" ? sp.src : undefined;
   const founderAccess = accessParam
     ? await isFounderAccessValid(accessParam)
     : false;
@@ -711,6 +715,7 @@ export default async function MembershipLandingPage({
           totalMembers={totalMembers}
           privateFounderAccess={founderAccess}
           accessToken={founderAccess ? accessParam : undefined}
+          source={srcParam}
         />
 
         <p className="text-center mt-10">

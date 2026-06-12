@@ -50,6 +50,7 @@ import {
   sendPaymentFailedEmail,
 } from "@/lib/email";
 import { createNotification } from "@/lib/notifications";
+import { asTrackSource, recordEvent } from "@/lib/analytics";
 
 export const runtime = "nodejs";
 
@@ -381,6 +382,13 @@ async function handleMembershipCheckout(
 
   await saveMember(record);
   await writeSessionIndex(session.id, email);
+
+  // Funnel close: a new paying member. Credit the surface that sent them
+  // (metadata.source, set at checkout-create — e.g. "finisher", "tip"), so
+  // the per-source counter shows real paid conversions, not just clicks.
+  // Idempotent: the getMemberBySessionId guard above returns early on
+  // webhook retries, so this fires once per member. recordEvent never throws.
+  await recordEvent("became_member", { source: asTrackSource(metadata.source) });
 
   // Single-use founder access token: consume it now that the checkout
   // has succeeded, so the private link can't be reused. Non-fatal.
