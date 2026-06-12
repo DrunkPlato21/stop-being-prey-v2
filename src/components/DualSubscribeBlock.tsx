@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EmailSignup } from "@/components/EmailSignup";
 import { SubscriberCount } from "@/components/SubscriberCount";
+import { MemberCount } from "@/components/MemberCount";
 
 // Site-wide conversion surface. Replaces the older email-only
 // subscribe blocks: every "ask the reader to stay" moment now
@@ -55,6 +56,7 @@ export function DualSubscribeBlock({
           The room behind the work, where I actually talk back and the
           book gets built in the open.
         </p>
+        <MemberCount className="mb-3" />
         <div>
           <Link href="/membership" className="btn-primary">
             <span>Join Stop Being Prey</span>
