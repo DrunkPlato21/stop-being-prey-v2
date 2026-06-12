@@ -12,6 +12,11 @@ import type { PresenceState } from "@/lib/desk";
 
 const AWAY_NOTE_MAX = 200;
 
+// Keepalive cadence for an open desk. Well under the server's 4h
+// active-session window, so a desk left open and focused never ages out;
+// pings pause while the tab is hidden and fire once on return.
+const KEEPALIVE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 // Client islands for the Writer's Desk admin page:
 //   - DeskAdminForm: new-update composer
 //   - DeleteDeskUpdateButton: per-row delete
@@ -200,6 +205,51 @@ export function PresenceToggle({
   const [modalOpen, setModalOpen] = useState(false);
 
   const isActive = state === "active";
+
+  // Keepalive: while the session is active AND this tab is visible, ping
+  // the presence endpoint so simply having the desk open keeps the "at
+  // the desk" status from aging out at the 4h mark. Fires once on mount
+  // and whenever the tab is refocused, then on an interval. The server
+  // only extends a still-active session — if it reports the session has
+  // aged out (e.g. the tab was hidden past 4h), reflect that and let the
+  // effect tear down via the isActive dependency.
+  useEffect(() => {
+    if (!isActive) return;
+    let cancelled = false;
+
+    async function ping() {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const res = await fetch("/api/admin/desk/presence", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "ping" }),
+        });
+        const data: { ok?: boolean; state?: PresenceState } = await res
+          .json()
+          .catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && data.ok && data.state && data.state !== "active") {
+          setState(data.state);
+          router.refresh();
+        }
+      } catch {
+        // Network blip — the next tick retries.
+      }
+    }
+
+    void ping();
+    const id = window.setInterval(ping, KEEPALIVE_INTERVAL_MS);
+    function onVisibility() {
+      if (document.visibilityState === "visible") void ping();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [isActive, router]);
 
   async function startSession() {
     if (pending) return;
