@@ -16,16 +16,20 @@ export const ASK_BACKOFF_AFTER = 5;
 const STORAGE_KEY = "sbp.finisher.v1";
 
 export type FinisherState = {
-  /** Total pieces finished (drives the ask cadence + streak copy). */
+  /** Distinct pieces finished (drives the ask cadence + streak copy). A
+      re-finish of the same slug — e.g. a refresh — does NOT advance this. */
   count: number;
-  /** Distinct finished slugs — foundation for a future "collection"/streak
-      surface ("read every piece this month"). */
+  /** Distinct finished slugs — also the dedupe key, so reloading a piece
+      can't inflate the count or burn the cadence. Foundation for a future
+      "collection"/streak surface ("read every piece this month"). */
   slugs: string[];
-  /** Membership asks surfaced so far (drives the back-off). */
-  asksShown: number;
+  /** Slugs where the membership ask was shown. Drives the back-off, and
+      lets a re-finish of the same piece reproduce the same ask state so the
+      block is stable on refresh. */
+  asked: string[];
 };
 
-const EMPTY: FinisherState = { count: 0, slugs: [], asksShown: 0 };
+const EMPTY: FinisherState = { count: 0, slugs: [], asked: [] };
 
 export function readFinisher(): FinisherState {
   if (typeof window === "undefined") return { ...EMPTY };
@@ -38,8 +42,9 @@ export function readFinisher(): FinisherState {
       slugs: Array.isArray(p.slugs)
         ? p.slugs.filter((s): s is string => typeof s === "string")
         : [],
-      asksShown:
-        typeof p.asksShown === "number" && p.asksShown >= 0 ? p.asksShown : 0,
+      asked: Array.isArray(p.asked)
+        ? p.asked.filter((s): s is string => typeof s === "string")
+        : [],
     };
   } catch {
     return { ...EMPTY };
@@ -72,15 +77,30 @@ export function shouldShowAsk(count: number, asksShown: number): boolean {
 export function registerFinish(
   slug: string,
   isMember: boolean
-): { count: number; showAsk: boolean } {
+): { count: number; showAsk: boolean; firstFinish: boolean } {
   const prev = readFinisher();
+
+  // Re-finish of a piece already finished in this browser (typically a
+  // refresh). Don't advance the count or burn the cadence; reproduce the
+  // SAME ask state this piece had the first time, so the block doesn't
+  // flicker on/off across reloads. Recognition still shows — the caller
+  // renders it on every finish.
+  if (prev.slugs.includes(slug)) {
+    return {
+      count: prev.count,
+      showAsk: !isMember && prev.asked.includes(slug),
+      firstFinish: false,
+    };
+  }
+
+  // First time finishing this piece: advance the distinct-piece count and
+  // run the ask cadence.
   const count = prev.count + 1;
-  const slugs = prev.slugs.includes(slug) ? prev.slugs : [...prev.slugs, slug];
-  let asksShown = prev.asksShown;
+  const slugs = [...prev.slugs, slug];
+  let asked = prev.asked;
+  const showAsk = !isMember && shouldShowAsk(count, asked.length);
+  if (showAsk) asked = [...asked, slug];
 
-  const showAsk = !isMember && shouldShowAsk(count, asksShown);
-  if (showAsk) asksShown += 1;
-
-  write({ count, slugs, asksShown });
-  return { count, showAsk };
+  write({ count, slugs, asked });
+  return { count, showAsk, firstFinish: true };
 }

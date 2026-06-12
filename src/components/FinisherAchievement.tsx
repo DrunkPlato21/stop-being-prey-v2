@@ -156,8 +156,12 @@ export function FinisherAchievement({
       if (firedRef.current) return;
       firedRef.current = true;
       const r = registerFinish(slug, isMember);
-      track("achievement_shown", { slug });
-      if (r.showAsk) track("ask_shown", { slug, source: "finisher" });
+      // Count each distinct piece once: a refresh re-finish still shows the
+      // recognition (rewarding), but shouldn't inflate the funnel.
+      if (r.firstFinish) {
+        track("achievement_shown", { slug });
+        if (r.showAsk) track("ask_shown", { slug, source: "finisher" });
+      }
       setResolved(r);
       setToastOpen(true);
       cleanup();
