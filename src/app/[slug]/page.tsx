@@ -18,6 +18,7 @@ import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
 import { InlineSubscribe } from "@/components/InlineSubscribe";
 import { ReadingTracker } from "@/components/ReadingTracker";
+import { FinisherAchievement } from "@/components/FinisherAchievement";
 import { ReadThisNext } from "@/components/ReadThisNext";
 import { splitForInlineCta, stripCtaMarker } from "@/lib/inline-cta";
 import { isPaidViewer } from "@/lib/viewer";
@@ -380,6 +381,12 @@ export default async function ArticlePage({
           )}
         </div>
       </div>
+
+      {/* Finisher Achievement. Mounts nothing until the reader reaches the
+          end of #reading-region; then a non-blocking toast + this inline
+          block materialize. Members get recognition only; non-members get
+          a cadence-capped membership ask. */}
+      <FinisherAchievement slug={article.slug} isMember={hideCaptures} />
 
       {/* === References (opt-in, populated when markdown ends with
           `## References` followed by a list). Sits with the article

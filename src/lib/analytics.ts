@@ -20,6 +20,15 @@ export const TRACK_EVENTS = [
   "form_seen",
   "sub_submit",
   "sub_success",
+  // Finisher achievement + membership funnel. achievement_shown fires on
+  // every finish (member or not); ask_shown only when a non-member is
+  // actually shown the membership ask (after the cadence cap);
+  // checkout_started when they click through toward membership;
+  // became_member on the Stripe webhook (server-side, source-attributed).
+  "achievement_shown",
+  "ask_shown",
+  "checkout_started",
+  "became_member",
 ] as const;
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
 
@@ -29,9 +38,19 @@ export const TRACK_SOURCES = [
   "dual",
   "join",
   "footer",
+  "finisher",
   "unknown",
 ] as const;
 export type TrackSource = (typeof TRACK_SOURCES)[number];
+
+// Events that also roll up into a per-source counter (analytics:source:*)
+// so a conversion surface can be measured on its own, not just per article.
+const SOURCE_TRACKED_EVENTS: ReadonlySet<string> = new Set([
+  "sub_submit",
+  "sub_success",
+  "checkout_started",
+  "became_member",
+]);
 
 export type EventCounts = Partial<Record<TrackEvent, number>>;
 
@@ -70,7 +89,7 @@ export async function recordEvent(
   if (opts.slug) {
     tasks.push(client.hincrby(`${ns}article:${opts.slug}`, event, 1));
   }
-  if (event === "sub_submit" || event === "sub_success") {
+  if (SOURCE_TRACKED_EVENTS.has(event)) {
     const source = opts.source ?? "unknown";
     tasks.push(client.hincrby(`${ns}source:${source}`, event, 1));
   }

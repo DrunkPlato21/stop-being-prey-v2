@@ -1,0 +1,200 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import Link from "next/link";
+import { computeReadingProgress } from "@/lib/reading-progress";
+import { registerFinish } from "@/lib/finisher";
+import { track } from "@/lib/track";
+
+// Finisher Achievement. Mounts NOTHING until the reader genuinely reaches
+// the end of #reading-region (the same scroll_100 signal ReadingTracker
+// uses). On finish it materializes two things, so arriving IS the reward:
+//   1. a non-blocking achievement toast (portal, auto-dismisses, never
+//      traps the reader — no modal, ever)
+//   2. an inline end-of-article block that animates into the content flow
+//
+// Recognition recurs on every finish. The membership ask is non-members
+// only and cadence-capped (see lib/finisher). Members are celebrated and
+// never pitched something they already own.
+//
+// All copy here is PLACEHOLDER for Clay to finalize in his voice.
+
+const TOAST_ENTER_MS = 520;
+const TOAST_HOLD_MS = 5200;
+const TOAST_EXIT_MS = 460;
+
+const TOAST_LINE = "You read the whole thing. In this economy.";
+const RECOGNITION =
+  "Only about half who start a piece this long finish it. You did.";
+
+function memberLine(count: number): string {
+  return count > 1 ? `Another one down. ${count} finished.` : "Another one down.";
+}
+
+// The ask sharpens as the finish-count climbs: a reader who keeps reaching
+// the end without joining is the warmest prospect there is.
+function askCopy(count: number): { line: string; cta: string } {
+  if (count >= 4) {
+    return {
+      line: "You keep reaching the end. Members get the next one first, and a seat in the room where the work gets built in the open.",
+      cta: "Take a seat",
+    };
+  }
+  return {
+    line: "No pitch, just a fact: members get the next one the moment it drops, plus the room behind the work.",
+    cta: "See the room",
+  };
+}
+
+type Resolved = { count: number; showAsk: boolean };
+
+function Badge() {
+  return (
+    <span className="finisher-badge" aria-hidden="true">
+      <span className="finisher-badge-mark">&#10038;</span>
+      <span className="finisher-shimmer" />
+    </span>
+  );
+}
+
+function AchievementToast({ onDone }: { onDone: () => void }) {
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setShown(true));
+    const t1 = window.setTimeout(
+      () => setShown(false),
+      TOAST_ENTER_MS + TOAST_HOLD_MS
+    );
+    const t2 = window.setTimeout(
+      onDone,
+      TOAST_ENTER_MS + TOAST_HOLD_MS + TOAST_EXIT_MS
+    );
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [onDone]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className={`finisher-toast${shown ? " finisher-toast--show" : ""}`}
+      role="status"
+      aria-live="polite"
+    >
+      <Badge />
+      <span className="finisher-toast-text">
+        <span className="finisher-toast-eyebrow">Achievement unlocked</span>
+        <span className="finisher-toast-line">{TOAST_LINE}</span>
+      </span>
+    </div>,
+    document.body
+  );
+}
+
+function FinisherAsk({ count, slug }: { count: number; slug: string }) {
+  const { line, cta } = askCopy(count);
+  return (
+    <div className="finisher-ask">
+      <p className="finisher-ask-line">{line}</p>
+      <Link
+        href="/membership?src=finisher"
+        className="btn-primary finisher-ask-cta"
+        onClick={() =>
+          track("checkout_started", { slug, source: "finisher" })
+        }
+      >
+        <span>{cta}</span>
+      </Link>
+    </div>
+  );
+}
+
+function FinisherInline({
+  isMember,
+  resolved,
+  slug,
+}: {
+  isMember: boolean;
+  resolved: Resolved;
+  slug: string;
+}) {
+  return (
+    <aside className="finisher-inline" aria-label="Reading achievement">
+      <Badge />
+      <p className="finisher-inline-eyebrow">Achievement unlocked</p>
+      <p className="finisher-inline-recognition">{RECOGNITION}</p>
+      {isMember ? (
+        <p className="finisher-inline-member">{memberLine(resolved.count)}</p>
+      ) : resolved.showAsk ? (
+        <FinisherAsk count={resolved.count} slug={slug} />
+      ) : null}
+    </aside>
+  );
+}
+
+export function FinisherAchievement({
+  slug,
+  isMember,
+  regionId = "reading-region",
+}: {
+  slug: string;
+  isMember: boolean;
+  regionId?: string;
+}) {
+  const [resolved, setResolved] = useState<Resolved | null>(null);
+  const [toastOpen, setToastOpen] = useState(false);
+  const firedRef = useRef(false);
+
+  useEffect(() => {
+    const region = document.getElementById(regionId);
+    if (!region) return;
+
+    let ticking = false;
+    const cleanup = () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+
+    const finish = () => {
+      if (firedRef.current) return;
+      firedRef.current = true;
+      const r = registerFinish(slug, isMember);
+      track("achievement_shown", { slug });
+      if (r.showAsk) track("ask_shown", { slug, source: "finisher" });
+      setResolved(r);
+      setToastOpen(true);
+      cleanup();
+    };
+
+    const evaluate = () => {
+      ticking = false;
+      if (computeReadingProgress(region) >= 1) finish();
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(evaluate);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    // Evaluate once: a very short piece may already be fully read.
+    evaluate();
+
+    return cleanup;
+  }, [slug, isMember, regionId]);
+
+  if (!resolved) return null;
+
+  return (
+    <>
+      {toastOpen && <AchievementToast onDone={() => setToastOpen(false)} />}
+      <FinisherInline isMember={isMember} resolved={resolved} slug={slug} />
+    </>
+  );
+}
