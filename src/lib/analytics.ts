@@ -39,6 +39,7 @@ export const TRACK_SOURCES = [
   "join",
   "footer",
   "finisher",
+  "tip",
   "unknown",
 ] as const;
 export type TrackSource = (typeof TRACK_SOURCES)[number];

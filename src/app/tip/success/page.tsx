@@ -144,6 +144,23 @@ export default async function TipSuccessPage({
 
       <EyeDivider />
 
+      {/* Membership upsell. A tipper just paid once, so the honest next
+          step is the recurring path. Sits below the share (which matters
+          most) and reads as an invitation, not a hard sell. */}
+      <section className="max-w-2xl mx-auto px-6 pb-4 text-center">
+        <p className="eyebrow mb-3">If you want to do this every month</p>
+        <p className="deck mb-6 max-w-md mx-auto">
+          You backed this once. Members back it every month, and get the
+          room behind the work. The comments, the desk, the book built in
+          the open.
+        </p>
+        <Link href="/membership?src=tip" className="btn-primary">
+          <span>Join the room</span>
+        </Link>
+      </section>
+
+      <EyeDivider />
+
       {/* Email signup, in case the contributor isn't on the list yet. */}
       <section className="max-w-2xl mx-auto px-6 pb-16 text-center">
         <p className="eyebrow mb-3">If you&apos;re not on the list</p>
