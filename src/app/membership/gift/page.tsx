@@ -50,9 +50,16 @@ export default function GiftPage() {
             >
               Buy them a seat. One charge, a fixed term, full membership.
               The comments, the Writer&apos;s Desk, the lounge, the Case
-              Files, all of it. They get an email saying you put them in
-              the room, and a link to take their seat. No card asked of
-              them, nothing recurring on yours.
+              Files, all of it. No card asked of them, nothing recurring
+              on yours.
+            </p>
+            <p
+              className="font-serif text-ink leading-relaxed"
+              style={{ fontSize: "1.08rem" }}
+            >
+              That friend who can&apos;t name the moves yet? A season in
+              the room and they start naming them. That&apos;s what
+              you&apos;re really giving. Not a login. Sight.
             </p>
             <p
               className="font-serif text-ink leading-relaxed"
