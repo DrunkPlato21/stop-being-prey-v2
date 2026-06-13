@@ -10,20 +10,15 @@ import {
   getMember,
   hasActiveGiftSeat,
   saveMember,
-  type MemberRecord,
 } from "@/lib/members";
-import {
-  REGULAR_MONTHLY_FLOOR_CENTS,
-  baseUrl,
-  emailHasActiveMembership,
-} from "@/lib/membership";
+import { baseUrl, emailHasActiveMembership } from "@/lib/membership";
+import { grantPrepaidSeat } from "@/lib/seat-grants";
 import { createMagicLink } from "@/lib/auth";
 import {
   sendGiftAlreadyMemberEmail,
   sendGiftClaimedEmail,
   sendMagicLink,
 } from "@/lib/email";
-import { applyMembersTag } from "@/lib/kit";
 import { isAdmin } from "@/lib/comments";
 import { createNotification } from "@/lib/notifications";
 import { recordEvent } from "@/lib/analytics";
@@ -153,52 +148,22 @@ export async function POST(req: NextRequest) {
     return Response.json({ state: "already_member", email });
   }
 
-  // Grant: a regular prepaid seat. amountCents is pinned to the $13
-  // regular monthly floor so the derived tier badges (hunter/operator/
-  // apex read amount + interval) never trigger off a one-time gift
-  // charge; the true payment lives on the gift record. A returning
-  // lapsed member keeps their createdAt + avatar.
-  const now = Date.now();
-  const expiresAt = addMonths(now, term.months);
-  const record: MemberRecord = {
+  // Grant a regular prepaid seat via the shared lane helper (same path
+  // the community pool uses). A returning lapsed member keeps their
+  // createdAt + avatar.
+  const { record, expiresAt } = await grantPrepaidSeat({
     email,
-    stripeCustomerId: `gift_${gift.id}`,
-    stripeSubscriptionId: `gift_${gift.id}`,
-    tier: "regular",
-    founderSlot: null,
-    charterSlot: null,
-    status: "active",
-    interval: "month",
-    amountCents: REGULAR_MONTHLY_FLOOR_CENTS,
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
-    customAvatarUrl: existing?.customAvatarUrl ?? null,
-    giftExpiresAt: expiresAt,
-    viaGiftId: gift.id,
-  };
-  await saveMember(record);
+    termMonths: term.months,
+    source: { kind: "gift", giftId: gift.id },
+    existing,
+    notification: {
+      title: "Welcome to Stop Being Prey.",
+      body: "Someone put you in the room. Click for your member home.",
+      linkUrl: "/desk",
+    },
+  });
   await markGiftRedeemed(gift.id, expiresAt);
   await recordEvent("gift_redeemed", { source: "gift" });
-
-  // Kit "Members" tag, same non-fatal posture as the membership webhook.
-  const kit = await applyMembersTag(email);
-  if (!kit.ok) {
-    console.warn(
-      `[gift] kit tag failed for ${email}: ${kit.reason}${
-        kit.status ? ` (${kit.status})` : ""
-      }`
-    );
-  }
-
-  await createNotification({
-    memberEmail: email,
-    type: "founder_confirmed",
-    title: "Welcome to Stop Being Prey.",
-    body: "Someone put you in the room. Click for your member home.",
-    linkUrl: "/desk",
-  }).catch((err) => {
-    console.error(`[gift] welcome notification failed for ${email}:`, err);
-  });
 
   // First sign-in link, dispatched automatically so the recipient
   // lands inside without a second form (mirrors /membership/success).

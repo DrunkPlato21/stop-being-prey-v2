@@ -1295,6 +1295,129 @@ export async function sendGiftExpiryReminderEmail(args: {
   });
 }
 
+/* === Community Seat Pool ============================================
+   The anonymous pay-it-forward lane. Reuses the gift shell + button.
+   Givers and claimers never see each other, so neither email names the
+   other side. Chain framing throughout: "someone covered you, pay it
+   forward when you can" — never donation/charity.
+
+   ALL COPY BELOW IS DRAFT. Clay finalizes the voice. (No em dashes.)
+
+   sendPoolFundThankYouEmail  -> giver: you funded a seat for someone
+   sendPoolClaimConfirmEmail  -> claimer: confirm to claim your seat
+   sendPoolWelcomeEmail       -> claimer: someone covered you, you're in */
+
+export async function sendPoolFundThankYouEmail(args: {
+  to: string;
+  termLabel: string;
+}): Promise<SendResult> {
+  // DRAFT copy — Clay finalizes.
+  const subject = "you funded a seat";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:24px;">
+                <p style="margin:0 0 18px 0;">you just funded a seat for someone who couldn't swing it. ${escapeHtml(args.termLabel)} in the room, no questions asked of them, no names on either side.</p>
+                <p style="margin:0;">they may claim it today or it may wait in the pool until the right person finds it. either way, you put someone in here who wouldn't be otherwise. thank you.</p>
+              </td>
+            </tr>`);
+  const text = [
+    `you just funded a seat for someone who couldn't swing it. ${args.termLabel} in the room, no questions asked of them, no names on either side.`,
+    "",
+    "they may claim it today or it may wait in the pool until the right person finds it. either way, you put someone in here who wouldn't be otherwise. thank you.",
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "pool fund thank-you",
+  });
+}
+
+export async function sendPoolClaimConfirmEmail(args: {
+  to: string;
+  confirmUrl: string;
+}): Promise<SendResult> {
+  // Dev convenience, same as the magic link: print the confirm link so
+  // a developer can walk the flow without a real inbox.
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `\n[email] (dev) pool claim confirm link for ${args.to}:\n${args.confirmUrl}\n`
+    );
+  }
+
+  // DRAFT copy — Clay finalizes.
+  const subject = "confirm your seat";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;">you asked for a way into Stop Being Prey. confirm it's you and your seat is claimed, if one's open, or your place in line is held until the next one is funded.</p>
+                <p style="margin:0 0 18px 0;">no proof, no explaining yourself. one tap below.</p>
+              </td>
+            </tr>
+            ${giftButtonRow(args.confirmUrl, "Confirm my seat")}`);
+  const text = [
+    "you asked for a way into Stop Being Prey. confirm it's you and your seat is claimed, if one's open, or your place in line is held until the next one is funded.",
+    "",
+    "no proof, no explaining yourself. one tap below.",
+    "",
+    `Confirm my seat: ${args.confirmUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "pool claim confirm",
+  });
+}
+
+export async function sendPoolWelcomeEmail(args: {
+  to: string;
+  termLabel: string;
+  signInUrl: string;
+}): Promise<SendResult> {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `\n[email] (dev) pool welcome sign-in link for ${args.to}:\n${args.signInUrl}\n`
+    );
+  }
+
+  // DRAFT copy — Clay finalizes.
+  const subject = "someone covered your seat";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;">a reader covered your seat. you're in for ${escapeHtml(args.termLabel)}. the comments, the Writer's Desk, the lounge, all of it. no card, no charge.</p>
+                <p style="margin:0 0 18px 0;">you don't owe anyone anything. but when you're able, put the next person in. that's the whole idea. nobody's a charity case here, everybody's a link.</p>
+              </td>
+            </tr>
+            ${giftButtonRow(args.signInUrl, "Step inside")}`);
+  const text = [
+    `a reader covered your seat. you're in for ${args.termLabel}. the comments, the Writer's Desk, the lounge, all of it. no card, no charge.`,
+    "",
+    "you don't owe anyone anything. but when you're able, put the next person in. that's the whole idea. nobody's a charity case here, everybody's a link.",
+    "",
+    `Step inside: ${args.signInUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "pool welcome",
+  });
+}
+
 /* === Payment failed (membership renewal) ============================
    Sent to the member when Stripe reports invoice.payment_failed.
    Too important for in-site only — a churning card needs a real

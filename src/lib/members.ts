@@ -60,6 +60,11 @@ export type MemberRecord = {
   giftExpiresAt?: number | null;
   /** The gift that granted this seat (see lib/gifts.ts). */
   viaGiftId?: string | null;
+  /** The community-pool seat that granted this membership (see
+      lib/pool.ts). Mutually exclusive with viaGiftId in practice: both
+      mint a prepaid seat via grantPrepaidSeat, only one source set.
+      Backward compatible: legacy records read as undefined. */
+  viaPoolFundId?: string | null;
 };
 
 /**

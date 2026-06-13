@@ -39,6 +39,19 @@ export const TRACK_EVENTS = [
   "gift_purchased",
   "gift_redeemed",
   "gift_converted",
+  // Community seat pool funnel (anonymous pay-it-forward). All recorded
+  // server-side with source "pool": pool_fund_started on the give-side
+  // checkout create, pool_funded on the Stripe webhook (lane "pool"),
+  // pool_requested when a claimer submits the form, pool_confirmed when
+  // they click the email confirm link, pool_claimed when a seat is
+  // granted (immediately or to a waitlisted claimer when a seat funds),
+  // pool_waitlisted when no seat was free and they joined the line.
+  "pool_fund_started",
+  "pool_funded",
+  "pool_requested",
+  "pool_confirmed",
+  "pool_claimed",
+  "pool_waitlisted",
 ] as const;
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
 
@@ -51,6 +64,7 @@ export const TRACK_SOURCES = [
   "finisher",
   "tip",
   "gift",
+  "pool",
   "unknown",
 ] as const;
 export type TrackSource = (typeof TRACK_SOURCES)[number];
@@ -65,6 +79,12 @@ const SOURCE_TRACKED_EVENTS: ReadonlySet<string> = new Set([
   "gift_purchased",
   "gift_redeemed",
   "gift_converted",
+  "pool_fund_started",
+  "pool_funded",
+  "pool_requested",
+  "pool_confirmed",
+  "pool_claimed",
+  "pool_waitlisted",
 ]);
 
 /**

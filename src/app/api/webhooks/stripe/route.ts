@@ -19,6 +19,7 @@ import {
   getMember,
   getMemberByCustomerId,
   getMemberBySessionId,
+  hasActiveGiftSeat,
   saveMember,
   updateMemberStatus,
   updateMemberSubscription,
@@ -60,8 +61,19 @@ import {
   updateGift,
 } from "@/lib/gifts";
 import {
+  getPoolFund,
+  getPoolFundBySession,
+  getPoolRequest,
+  markPoolFunded,
+  placeFundedSeat,
+  releaseFundedSeat,
+} from "@/lib/pool";
+import { finalizePoolGrant } from "@/lib/seat-grants";
+import { emailHasActiveMembership } from "@/lib/membership";
+import {
   sendGiftEmail,
   sendGiftSelfRefundEmail,
+  sendPoolFundThankYouEmail,
 } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -140,6 +152,9 @@ export async function POST(request: NextRequest) {
       }
       if (metadata.lane === "gift") {
         return handleGiftCheckout(session, metadata);
+      }
+      if (metadata.lane === "pool") {
+        return handlePoolFunding(session, metadata);
       }
       return handleTipDonation(session, metadata);
     }
@@ -718,6 +733,130 @@ async function handleGiftCheckout(
   }
 
   return new Response("ok", { status: 200 });
+}
+
+/* === Community seat pool (anonymous pay it forward) ========= */
+
+async function handlePoolFunding(
+  session: Stripe.Checkout.Session,
+  metadata: Record<string, string>
+): Promise<Response> {
+  // Resolve the fund: metadata first, by-session reverse index as the
+  // fallback (the checkout route writes both).
+  const fundId =
+    metadata.fund_id && metadata.fund_id.length > 0
+      ? metadata.fund_id
+      : (await getPoolFundBySession(session.id))?.id ?? null;
+  if (!fundId) {
+    console.error(
+      `[pool] webhook fired without fund_id on session ${session.id}`
+    );
+    return new Response("missing fund_id", { status: 500 });
+  }
+
+  const fund = await getPoolFund(fundId);
+  if (!fund) {
+    console.error(`[pool] no fund record for ${fundId}`);
+    return new Response("no fund record", { status: 500 });
+  }
+
+  // Idempotency: anything past pending means this session was processed.
+  if (fund.status !== "pending") {
+    return new Response("ok", { status: 200 });
+  }
+
+  const buyerEmail = (
+    session.customer_details?.email ??
+    session.customer_email ??
+    ""
+  )
+    .toLowerCase()
+    .trim();
+  const buyerName =
+    fund.buyerName || session.customer_details?.name || "A reader";
+  const paymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null;
+
+  const funded = await markPoolFunded(fund.id, {
+    buyerEmail: buyerEmail || null,
+    buyerName,
+    stripePaymentIntentId: paymentIntentId,
+  });
+  if (!funded) {
+    console.error(`[pool] markPoolFunded failed for ${fund.id}`);
+    // 5xx so Stripe retries; status is still pending so retry re-enters.
+    return new Response("funded flip failed", { status: 500 });
+  }
+
+  await recordEvent("pool_funded", { source: "pool" });
+
+  const termLabel = funded.termMonths === 3 ? "3 months" : "1 year";
+
+  // Atomically hand the seat to the front waiter, or park it as
+  // available. A matched waiter has already confirmed their email, so
+  // it's safe to grant directly here.
+  const placement = await placeFundedSeat(fund.id);
+  if (placement.kind === "matched") {
+    await grantPoolSeatToWaiter(placement.requestId, funded.id, funded.termMonths);
+  }
+
+  // Always thank the giver (when Stripe captured an email).
+  if (buyerEmail) {
+    await sendPoolFundThankYouEmail({ to: buyerEmail, termLabel }).catch(
+      (err) => {
+        console.error(
+          `[pool] fund thank-you email failed for ${buyerEmail}:`,
+          err
+        );
+      }
+    );
+  }
+
+  return new Response("ok", { status: 200 });
+}
+
+/**
+ * Grant a just-funded seat to the waitlisted claimer the match script
+ * popped. Re-checks eligibility (they may have become a paying member
+ * since confirming) and releases the seat back to the pool if so, so a
+ * seat is never burned on someone who no longer needs it.
+ */
+async function grantPoolSeatToWaiter(
+  requestId: string,
+  fundId: string,
+  termMonths: 3 | 12
+): Promise<void> {
+  const request = await getPoolRequest(requestId);
+  if (!request) {
+    console.error(`[pool] matched waiter ${requestId} vanished; releasing seat`);
+    await releaseFundedSeat(fundId);
+    return;
+  }
+
+  const existing = await getMember(request.email).catch(() => null);
+  const membership = await emailHasActiveMembership(request.email).catch(
+    () => ({ active: false, customerId: null })
+  );
+  if (membership.active || hasActiveGiftSeat(existing) || isAdmin(request.email)) {
+    // No longer needs the seat. Put it back in the pool for someone else.
+    await releaseFundedSeat(fundId);
+    return;
+  }
+
+  await finalizePoolGrant({
+    request,
+    fundId,
+    termMonths,
+    existing,
+    notification: {
+      // DRAFT copy — Clay finalizes.
+      title: "A seat opened for you.",
+      body: "Someone funded your seat. Click for your member home.",
+      linkUrl: "/desk",
+    },
+  });
 }
 
 /* === Tip (existing) ======================================== */

@@ -878,6 +878,22 @@ export default async function MembershipLandingPage({
         <div className="flex justify-center">
           <EmailSignup />
         </div>
+
+        {/* Quiet door to the community pool. Money, not readiness, is the
+            barrier here, so it sits apart from the free-list nudge above
+            and stays understated by design. DRAFT copy — Clay finalizes. */}
+        <p
+          className="font-serif text-ink-muted leading-relaxed mt-10"
+          style={{ fontSize: "0.95rem" }}
+        >
+          Can&apos;t afford it right now?{" "}
+          <Link
+            href="/membership/pool"
+            className="text-eye-deep hover:text-ink"
+          >
+            There&apos;s another way in.
+          </Link>
+        </p>
       </section>
 
       <div className="text-center pb-16">

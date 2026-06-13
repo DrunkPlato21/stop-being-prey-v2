@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { GiftForm } from "@/components/GiftForm";
+import { GiveModeToggle } from "@/components/GiveModeToggle";
+import { PoolCounter } from "@/components/PoolCounter";
 import { EyeDivider } from "@/components/Eyes";
 
 // Pay-it-forward gift membership: buy someone else a seat. One-time
@@ -17,6 +18,10 @@ export const metadata: Metadata = {
   description:
     "Pay it forward. Buy a seat inside Stop Being Prey for someone who needs to be in the room. One charge, no recurring billing.",
 };
+
+// Reads the live community-pool counter (PoolCounter), so render per
+// request rather than baking the count at build time.
+export const dynamic = "force-dynamic";
 
 export default function GiftPage() {
   return (
@@ -77,6 +82,7 @@ export default function GiftPage() {
       <section className="max-w-3xl mx-auto px-6 py-14 md:py-20">
         <div className="text-center mb-10">
           <p className="eyebrow mb-3">The seat</p>
+          {/* DRAFT copy — Clay finalizes. */}
           <h2
             className="font-display text-ink leading-tight tracking-tight"
             style={{
@@ -85,10 +91,13 @@ export default function GiftPage() {
               letterSpacing: "-0.02em",
             }}
           >
-            Pick a term. Name the person.
+            Two ways to put someone in the room.
           </h2>
         </div>
-        <GiftForm />
+        <GiveModeToggle />
+        <div className="max-w-md mx-auto mt-10 pt-8 border-t border-rule">
+          <PoolCounter />
+        </div>
       </section>
 
       <EyeDivider />
