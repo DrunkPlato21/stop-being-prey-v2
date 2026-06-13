@@ -16,6 +16,7 @@ import { consumeFounderAccess } from "@/lib/founder-access";
 import {
   claimCharterSlot,
   claimFounderSlot,
+  getMember,
   getMemberByCustomerId,
   getMemberBySessionId,
   saveMember,
@@ -51,6 +52,17 @@ import {
 } from "@/lib/email";
 import { createNotification } from "@/lib/notifications";
 import { asTrackSource, recordEvent } from "@/lib/analytics";
+import {
+  getGift,
+  getGiftByRecipient,
+  getGiftBySessionId,
+  markGiftPaid,
+  updateGift,
+} from "@/lib/gifts";
+import {
+  sendGiftEmail,
+  sendGiftSelfRefundEmail,
+} from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -125,6 +137,9 @@ export async function POST(request: NextRequest) {
       }
       if (metadata.lane === "paid_comment") {
         return handlePaidCommentCheckout(session, metadata);
+      }
+      if (metadata.lane === "gift") {
+        return handleGiftCheckout(session, metadata);
       }
       return handleTipDonation(session, metadata);
     }
@@ -364,6 +379,12 @@ async function handleMembershipCheckout(
     );
   }
 
+  // A prior record exists when a gifted recipient converts (or a
+  // lapsed member re-subscribes). Preserve their join date + avatar;
+  // the gift fields are intentionally dropped — the subscription is
+  // now the source of access.
+  const prior = await getMember(email).catch(() => null);
+
   const now = Date.now();
   const record: MemberRecord = {
     email,
@@ -375,9 +396,9 @@ async function handleMembershipCheckout(
     status,
     interval,
     amountCents,
-    createdAt: now,
+    createdAt: prior?.createdAt ?? now,
     updatedAt: now,
-    customAvatarUrl: null,
+    customAvatarUrl: prior?.customAvatarUrl ?? null,
   };
 
   await saveMember(record);
@@ -389,6 +410,21 @@ async function handleMembershipCheckout(
   // Idempotent: the getMemberBySessionId guard above returns early on
   // webhook retries, so this fires once per member. recordEvent never throws.
   await recordEvent("became_member", { source: asTrackSource(metadata.source) });
+
+  // Gift funnel close: if this email ever redeemed a gifted seat, the
+  // recipient just converted to paying on their own card. Stamp the
+  // gift once (convertedAt guards webhook retries reaching this point
+  // and repeat subscriptions) so gift_purchased -> gift_redeemed ->
+  // gift_converted reads true end to end.
+  const redeemedGift = await getGiftByRecipient(email).catch(() => null);
+  if (
+    redeemedGift &&
+    redeemedGift.status === "redeemed" &&
+    !redeemedGift.convertedAt
+  ) {
+    await updateGift(redeemedGift.id, { convertedAt: now });
+    await recordEvent("gift_converted", { source: "gift" });
+  }
 
   // Single-use founder access token: consume it now that the checkout
   // has succeeded, so the private link can't be reused. Non-fatal.
@@ -555,6 +591,130 @@ async function handlePaidCommentCheckout(
         );
       });
     }
+  }
+
+  return new Response("ok", { status: 200 });
+}
+
+/* === Gift membership (pay it forward) ====================== */
+
+async function handleGiftCheckout(
+  session: Stripe.Checkout.Session,
+  metadata: Record<string, string>
+): Promise<Response> {
+  // Resolve the gift: metadata first, by-session reverse index as the
+  // fallback (the checkout route writes both).
+  const giftId =
+    metadata.gift_id && metadata.gift_id.length > 0
+      ? metadata.gift_id
+      : (await getGiftBySessionId(session.id))?.id ?? null;
+  if (!giftId) {
+    console.error(
+      `[gift] webhook fired without gift_id on session ${session.id}`
+    );
+    // 5xx so Stripe retries while the reverse index propagates.
+    return new Response("missing gift_id", { status: 500 });
+  }
+
+  const gift = await getGift(giftId);
+  if (!gift) {
+    console.error(`[gift] no gift record for ${giftId}`);
+    return new Response("no gift record", { status: 500 });
+  }
+
+  // Idempotency: Stripe retries the same event on transient failures.
+  // Anything past pending means this session was already processed.
+  if (gift.status !== "pending") {
+    return new Response("ok", { status: 200 });
+  }
+
+  const buyerEmail = (
+    session.customer_details?.email ??
+    session.customer_email ??
+    ""
+  )
+    .toLowerCase()
+    .trim();
+  const paymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null;
+
+  // Hard guard: no gifting yourself, and the admin never lands in a
+  // paid slot even via a gift. Auto-refund so there's no manual
+  // cleanup; if the refund call fails Stripe still has the money and
+  // the error log tells Clay to refund from the Dashboard.
+  if (
+    (buyerEmail && buyerEmail === gift.recipientEmail) ||
+    isAdmin(gift.recipientEmail)
+  ) {
+    let refunded = false;
+    if (paymentIntentId) {
+      try {
+        await getStripe().refunds.create({
+          payment_intent: paymentIntentId,
+        });
+        refunded = true;
+      } catch (err) {
+        console.error(
+          `[gift] self-gift auto-refund FAILED for gift ${gift.id} (pi ${paymentIntentId}); refund manually in the Stripe Dashboard:`,
+          err
+        );
+      }
+    }
+    await updateGift(gift.id, {
+      status: "blocked_self",
+      buyerEmail: buyerEmail || null,
+      stripePaymentIntentId: paymentIntentId,
+      paidAt: Date.now(),
+    });
+    if (buyerEmail) {
+      await sendGiftSelfRefundEmail({
+        to: buyerEmail,
+        membershipUrl: `${baseUrl()}/membership`,
+        refunded,
+      }).catch((err) => {
+        console.error(
+          `[gift] self-refund email failed for ${buyerEmail}:`,
+          err
+        );
+      });
+    }
+    return new Response("ok", { status: 200 });
+  }
+
+  const buyerName =
+    gift.buyerName || session.customer_details?.name || "A reader";
+  const paid = await markGiftPaid(gift.id, {
+    buyerEmail: buyerEmail || null,
+    buyerName,
+    stripePaymentIntentId: paymentIntentId,
+  });
+  if (!paid || !paid.redemptionToken) {
+    console.error(`[gift] markGiftPaid failed for ${gift.id}`);
+    // 5xx so Stripe retries; the status is still pending so the retry
+    // re-enters this path cleanly.
+    return new Response("paid flip failed", { status: 500 });
+  }
+
+  await recordEvent("gift_purchased", { source: "gift" });
+
+  const termLabel = paid.termMonths === 3 ? "3 months" : "1 year";
+  const redeemUrl = `${baseUrl()}/gift/${encodeURIComponent(paid.redemptionToken)}`;
+  const sent = await sendGiftEmail({
+    to: paid.recipientEmail,
+    buyerName,
+    message: paid.message,
+    termLabel,
+    redeemUrl,
+  });
+  if (!sent.ok) {
+    // The money landed but the invitation didn't. Loud log; the link
+    // is recoverable from the gift record, and a webhook retry won't
+    // re-fire (status is already paid), so this needs eyes.
+    console.error(
+      `[gift] gift email send FAILED for ${paid.recipientEmail} (gift ${paid.id}): ${sent.error}. Redemption link: ${redeemUrl}`
+    );
   }
 
   return new Response("ok", { status: 200 });

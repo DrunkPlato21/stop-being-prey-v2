@@ -3,9 +3,11 @@ import {
   claimCharterSlot,
   claimFounderSlot,
   getMember,
+  hasActiveGiftSeat,
   isCharterEligible,
   isFounderEligible,
   saveMember,
+  updateMemberStatus,
   type Tier,
 } from "./members";
 
@@ -112,6 +114,26 @@ export async function emailHasActiveMembership(
   ) {
     const normalised = email.toLowerCase().trim();
     return { active: true, customerId: `dev_${normalised}` };
+  }
+
+  // Prepaid gift seat: a redeemed gift writes a real MemberRecord with
+  // giftExpiresAt but no Stripe subscription, so the Stripe lookup
+  // below would wrongly deny them. Honor the unexpired term here. A
+  // lapsed term is flipped to canceled lazily (the cron also sweeps),
+  // then falls through to Stripe in case they subscribed on their own.
+  const record = await getMember(email).catch(() => null);
+  if (record && typeof record.giftExpiresAt === "number") {
+    if (hasActiveGiftSeat(record)) {
+      return { active: true, customerId: record.stripeCustomerId };
+    }
+    if (
+      record.giftExpiresAt <= Date.now() &&
+      (record.status === "active" || record.status === "trialing")
+    ) {
+      await updateMemberStatus(record.stripeCustomerId, "canceled").catch(
+        () => {}
+      );
+    }
   }
 
   const stripe = client();
@@ -510,6 +532,70 @@ export async function createCaseReviewCheckoutSession(args: {
         lane: "case_review",
         case_id: args.caseId,
         tier: args.tier,
+      },
+    },
+  });
+
+  if (!session.url) return { error: "no_url_returned" };
+  return { url: session.url, sessionId: session.id };
+}
+
+/* === Gift membership one-time payment ======================= */
+
+/**
+ * One-time Stripe Checkout for a pay-it-forward gift seat ($39 for
+ * 3 months, $130 for a year). The gift record is pre-written via
+ * gifts.createGift before this is called; the caller binds the session
+ * id back via attachGiftCheckout. Webhook lane `gift` flips the record
+ * to paid, mints the redemption token, and emails the recipient.
+ */
+export async function createGiftCheckoutSession(args: {
+  giftId: string;
+  termMonths: number;
+  termLabel: string;
+  amountCents: number;
+  recipientEmail: string;
+}): Promise<{ url: string; sessionId: string } | { error: CheckoutError }> {
+  const stripe = client();
+  if (!stripe) return { error: "stripe_not_configured" };
+
+  if (
+    typeof args.amountCents !== "number" ||
+    !Number.isFinite(args.amountCents) ||
+    args.amountCents <= 0
+  ) {
+    return { error: "invalid_amount" };
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: args.amountCents,
+          product_data: {
+            name: `Gift Membership, ${args.termLabel}`,
+            description:
+              "A seat inside Stop Being Prey for someone else. One charge, no recurring billing.",
+          },
+        },
+      },
+    ],
+    success_url: `${baseUrl()}/membership/gift/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl()}/membership/gift`,
+    metadata: {
+      lane: "gift",
+      gift_id: args.giftId,
+      term_months: String(args.termMonths),
+      recipient_email: args.recipientEmail,
+    },
+    payment_intent_data: {
+      metadata: {
+        lane: "gift",
+        gift_id: args.giftId,
       },
     },
   });

@@ -782,6 +782,28 @@ export default async function MembershipLandingPage({
 
       <EyeDivider />
 
+      {/* Pay it forward — quiet beat between the pricing block and the
+          FAQ. Catches two readers: the convinced member who wants to
+          bring someone in, and the visitor who isn't buying for
+          themselves but knows exactly who needs this. Single link out
+          to /membership/gift; the full pitch lives there. */}
+      <section className="max-w-2xl mx-auto px-6 py-14 md:py-20 text-center">
+        <p className="eyebrow mb-4">Pay it forward</p>
+        <p
+          className="font-serif text-ink leading-relaxed mb-7 max-w-md mx-auto"
+          style={{ fontSize: "1.05rem" }}
+        >
+          Know someone who needs to be in this room? Buy them a seat. One
+          charge, a fixed term, full membership. They get an email with
+          your name on it.
+        </p>
+        <Link href="/membership/gift" className="btn-primary">
+          <span>Give someone a seat</span>
+        </Link>
+      </section>
+
+      <EyeDivider />
+
       {/* FAQ */}
       <section className="max-w-3xl mx-auto px-6 py-14 md:py-20">
         <div className="text-center mb-10">

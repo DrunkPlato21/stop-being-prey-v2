@@ -167,6 +167,38 @@ export default async function AnalyticsAdminPage({
         </table>
       </div>
 
+      {/* Gift funnel — pay-it-forward seats. Purchased on the Stripe
+          webhook, redeemed when the recipient claims, converted when a
+          gifted recipient later subscribes on their own card. All three
+          roll up under the "gift" source counter. */}
+      <h2 className="eyebrow mt-12 mb-3">Gift funnel</h2>
+      <div className="grid grid-cols-3 gap-4 max-w-xl">
+        <Stat
+          label="Purchased"
+          value={n(sources.get("gift") ?? {}, "gift_purchased")}
+        />
+        <Stat
+          label="Redeemed"
+          value={n(sources.get("gift") ?? {}, "gift_redeemed")}
+          sub={
+            pct(
+              n(sources.get("gift") ?? {}, "gift_redeemed"),
+              n(sources.get("gift") ?? {}, "gift_purchased")
+            ) + " of purchased"
+          }
+        />
+        <Stat
+          label="Converted"
+          value={n(sources.get("gift") ?? {}, "gift_converted")}
+          sub={
+            pct(
+              n(sources.get("gift") ?? {}, "gift_converted"),
+              n(sources.get("gift") ?? {}, "gift_redeemed")
+            ) + " of redeemed"
+          }
+        />
+      </div>
+
       {/* Conversion attribution by surface — free email signups AND the
           paid funnel (checkout started -> became member), so you can see
           which surface actually earns paying members, not just clicks. */}

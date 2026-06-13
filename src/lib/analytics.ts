@@ -20,15 +20,25 @@ export const TRACK_EVENTS = [
   "form_seen",
   "sub_submit",
   "sub_success",
-  // Finisher achievement + membership funnel. achievement_shown fires on
-  // every finish (member or not); ask_shown only when a non-member is
-  // actually shown the membership ask (after the cadence cap);
-  // checkout_started when they click through toward membership;
-  // became_member on the Stripe webhook (server-side, source-attributed).
+  // End-of-read capture + membership funnel. achievement_shown fires on a
+  // non-member's first finish of a piece (the denominator for both ask
+  // flavors; the legacy event name is kept so the counter series stays
+  // continuous); ask_shown only when a known subscriber is shown
+  // the membership ask (after the cadence cap); checkout_started when
+  // they click through toward membership; became_member on the Stripe
+  // webhook (server-side, source-attributed). Cold readers get the email
+  // form instead, tracked via sub_submit/sub_success source "finisher".
   "achievement_shown",
   "ask_shown",
   "checkout_started",
   "became_member",
+  // Pay-it-forward gift funnel. gift_purchased on the Stripe webhook
+  // (lane "gift"), gift_redeemed when the recipient claims the seat,
+  // gift_converted when a gifted recipient later becomes a paying
+  // member on their own card (stamped in the membership webhook).
+  "gift_purchased",
+  "gift_redeemed",
+  "gift_converted",
 ] as const;
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
 
@@ -40,6 +50,7 @@ export const TRACK_SOURCES = [
   "footer",
   "finisher",
   "tip",
+  "gift",
   "unknown",
 ] as const;
 export type TrackSource = (typeof TRACK_SOURCES)[number];
@@ -51,6 +62,9 @@ const SOURCE_TRACKED_EVENTS: ReadonlySet<string> = new Set([
   "sub_success",
   "checkout_started",
   "became_member",
+  "gift_purchased",
+  "gift_redeemed",
+  "gift_converted",
 ]);
 
 /**
