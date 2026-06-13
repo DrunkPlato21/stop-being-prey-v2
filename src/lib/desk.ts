@@ -391,6 +391,30 @@ async function bumpLastActivity(): Promise<void> {
 }
 
 /**
+ * Keepalive for an open admin desk. Refreshes `lastActivityAt` so simply
+ * having the desk open and focused keeps the "at the desk" status from
+ * aging out at the 4h mark, without Clay needing to post anything.
+ *
+ * Critically, it only extends a session that is CURRENTLY active (flag on
+ * AND within the 4h window). It never revives a session that already
+ * auto-expired or was ended manually — reviving one requires an explicit
+ * "start". So a forgotten background tab still times out honestly, and a
+ * stray ping after Clay has actually left can't resurrect his presence.
+ * `bumped` reports whether the timer was actually refreshed.
+ */
+export async function keepAlive(
+  now: number = Date.now()
+): Promise<{ presence: DeskPresence; bumped: boolean }> {
+  const existing = await getPresence();
+  if (derivePresenceState(existing, now) !== "active") {
+    return { presence: existing, bumped: false };
+  }
+  const next: DeskPresence = { ...existing, lastActivityAt: now };
+  await writePresence(next);
+  return { presence: next, bumped: true };
+}
+
+/**
  * Whether an update counts as a "fresh post" for the highlight
  * animation — defined as posted within the last 15 minutes AND
  * (when checked) after the current session's start. The widget

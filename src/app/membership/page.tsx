@@ -137,7 +137,7 @@ const FAQ: FAQEntry[] = [
 export default async function MembershipLandingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ preview?: string; access?: string }>;
+  searchParams?: Promise<{ preview?: string; access?: string; src?: string }>;
 }) {
   const [founderClaimed, charterClaimed, totalMembers, presence] =
     await Promise.all([
@@ -157,6 +157,10 @@ export default async function MembershipLandingPage({
   // side here (for the UI) and again at checkout-create (the real gate).
   // Invalid/missing token → the page renders exactly as the public one.
   const accessParam = typeof sp.access === "string" ? sp.access : "";
+  // Attribution source from the entry link (e.g. /membership?src=finisher
+  // or ?src=tip). Carried into the checkout POST so the webhook credits the
+  // surface that sent the buyer when they convert.
+  const srcParam = typeof sp.src === "string" ? sp.src : undefined;
   const founderAccess = accessParam
     ? await isFounderAccessValid(accessParam)
     : false;
@@ -711,6 +715,7 @@ export default async function MembershipLandingPage({
           totalMembers={totalMembers}
           privateFounderAccess={founderAccess}
           accessToken={founderAccess ? accessParam : undefined}
+          source={srcParam}
         />
 
         <p className="text-center mt-10">
@@ -773,6 +778,28 @@ export default async function MembershipLandingPage({
             If you&apos;ve felt it too, the door is here.
           </p>
         </div>
+      </section>
+
+      <EyeDivider />
+
+      {/* Pay it forward — quiet beat between the pricing block and the
+          FAQ. Catches two readers: the convinced member who wants to
+          bring someone in, and the visitor who isn't buying for
+          themselves but knows exactly who needs this. Single link out
+          to /membership/gift; the full pitch lives there. */}
+      <section className="max-w-2xl mx-auto px-6 py-14 md:py-20 text-center">
+        <p className="eyebrow mb-4">Pay it forward</p>
+        <p
+          className="font-serif text-ink leading-relaxed mb-7 max-w-md mx-auto"
+          style={{ fontSize: "1.05rem" }}
+        >
+          Know someone who needs to be in this room? Buy them a seat. One
+          charge, a fixed term, full membership. They get an email with
+          your name on it.
+        </p>
+        <Link href="/membership/gift" className="btn-primary">
+          <span>Give someone a seat</span>
+        </Link>
       </section>
 
       <EyeDivider />

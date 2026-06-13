@@ -8,7 +8,7 @@ import { PulseSourceGlyph } from "@/components/PulseSourceGlyph";
 
 export const metadata: Metadata = {
   title: "Out in the world · archive",
-  description: "Full archive of admin-curated Facebook and X posts.",
+  description: "Full archive of admin-curated Facebook, X, and YouTube posts.",
 };
 
 export const dynamic = "force-dynamic";
@@ -110,8 +110,8 @@ export default async function OutInTheWorldArchivePage() {
             Out in the world.
           </h1>
           <p className="deck max-w-xl mx-auto fade-up stagger-3">
-            Every post Clay&apos;s tagged across X and Facebook, newest
-            first. Each row links back to the source.
+            Every post Clay&apos;s tagged across X, Facebook, and YouTube,
+            newest first. Each row links back to the source.
           </p>
         </div>
       </section>
@@ -132,8 +132,8 @@ export default async function OutInTheWorldArchivePage() {
             className="font-serif italic text-ink-muted text-center leading-relaxed"
             style={{ fontSize: "1.05rem" }}
           >
-            Nothing here yet. When Clay tags a post on X or Facebook,
-            it&apos;ll land in this archive.
+            Nothing here yet. When Clay tags a post on X, Facebook, or
+            YouTube, it&apos;ll land in this archive.
           </p>
         ) : (
           <ul className="flex flex-col">

@@ -91,8 +91,16 @@ export async function renderEssayBody(content: string): Promise<string> {
  * NOTE: this rewrites EVERY <blockquote> into a sourced-receipt figure, so
  * only call it on bodies that intend that treatment. The article pipeline
  * gates it behind the `essayStyle` flag for exactly this reason.
+ *
+ * `opts.uniformPanelQuotes` forces every quote into the glyph panel
+ * (ea-blockquote), skipping the light centered treatment for short
+ * unattributed one-liners. Use it on pieces where mixing the two styles
+ * reads as incoherent and one consistent quote form is wanted.
  */
-export function applyEssayTokens(input: string): string {
+export function applyEssayTokens(
+  input: string,
+  opts: { uniformPanelQuotes?: boolean } = {}
+): string {
   let bodyHtml = input;
 
   // {{FIGURE: src | alt | caption}} -> captioned figure (olive border +
@@ -163,7 +171,10 @@ export function applyEssayTokens(input: string): string {
         }
       }
       // Short, unattributed one-liner -> light treatment (no panel).
-      if (!attr) {
+      // Suppressed when uniformPanelQuotes is on: the piece wants every
+      // quote in the glyph panel, so don't peel short ones off into the
+      // centered light style.
+      if (!attr && !opts.uniformPanelQuotes) {
         const remaining = quoteInner.match(/<p>[\s\S]*?<\/p>/g) ?? [];
         const plain = quoteInner
           .replace(/<[^>]+>/g, " ")

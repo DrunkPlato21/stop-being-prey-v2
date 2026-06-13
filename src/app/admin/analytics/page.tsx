@@ -167,15 +167,51 @@ export default async function AnalyticsAdminPage({
         </table>
       </div>
 
-      {/* Subscribe attribution by surface */}
-      <h2 className="eyebrow mt-12 mb-3">Subscribes by source</h2>
-      <div className="overflow-x-auto border border-rule max-w-md">
+      {/* Gift funnel — pay-it-forward seats. Purchased on the Stripe
+          webhook, redeemed when the recipient claims, converted when a
+          gifted recipient later subscribes on their own card. All three
+          roll up under the "gift" source counter. */}
+      <h2 className="eyebrow mt-12 mb-3">Gift funnel</h2>
+      <div className="grid grid-cols-3 gap-4 max-w-xl">
+        <Stat
+          label="Purchased"
+          value={n(sources.get("gift") ?? {}, "gift_purchased")}
+        />
+        <Stat
+          label="Redeemed"
+          value={n(sources.get("gift") ?? {}, "gift_redeemed")}
+          sub={
+            pct(
+              n(sources.get("gift") ?? {}, "gift_redeemed"),
+              n(sources.get("gift") ?? {}, "gift_purchased")
+            ) + " of purchased"
+          }
+        />
+        <Stat
+          label="Converted"
+          value={n(sources.get("gift") ?? {}, "gift_converted")}
+          sub={
+            pct(
+              n(sources.get("gift") ?? {}, "gift_converted"),
+              n(sources.get("gift") ?? {}, "gift_redeemed")
+            ) + " of redeemed"
+          }
+        />
+      </div>
+
+      {/* Conversion attribution by surface — free email signups AND the
+          paid funnel (checkout started -> became member), so you can see
+          which surface actually earns paying members, not just clicks. */}
+      <h2 className="eyebrow mt-12 mb-3">Conversions by source</h2>
+      <div className="overflow-x-auto border border-rule max-w-xl">
         <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr className="text-left text-ink-faint uppercase tracking-wider">
               <Th className="text-left">Source</Th>
-              <Th>Submitted</Th>
-              <Th>Confirmed</Th>
+              <Th>Email sub</Th>
+              <Th>Email conf.</Th>
+              <Th>Checkout</Th>
+              <Th>Member</Th>
             </tr>
           </thead>
           <tbody>
@@ -186,6 +222,8 @@ export default async function AnalyticsAdminPage({
                   <Td className="text-left">{s}</Td>
                   <Td>{n(c, "sub_submit").toLocaleString()}</Td>
                   <Td>{n(c, "sub_success").toLocaleString()}</Td>
+                  <Td>{n(c, "checkout_started").toLocaleString()}</Td>
+                  <Td>{n(c, "became_member").toLocaleString()}</Td>
                 </tr>
               );
             })}

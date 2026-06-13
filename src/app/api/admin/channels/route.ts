@@ -6,8 +6,8 @@ import {
   type ChannelSource,
 } from "@/lib/channel-posts";
 
-// Admin endpoint for the unified social-post feed (Facebook + X). Gated
-// by proxy.ts HTTP Basic Auth on /api/admin/*.
+// Admin endpoint for the unified social-post feed (Facebook + X +
+// YouTube). Gated by proxy.ts HTTP Basic Auth on /api/admin/*.
 //
 //   POST { source, url, text, postedAt } → create
 //   GET                                  → list (combined newest-first)
@@ -16,7 +16,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function isSource(v: unknown): v is ChannelSource {
-  return v === "fb" || v === "x";
+  return v === "fb" || v === "x" || v === "youtube";
 }
 
 export async function GET() {

@@ -33,15 +33,15 @@ const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 
 const SYSTEM_PROMPT = `You are helping Clay surface social media posts to his Writer's Desk feed.
 
-Given a screenshot of a social media post (X/Twitter or Facebook), extract:
-1. Which platform it's from (X, Facebook, or unknown).
-2. A short preview line, 80-100 characters max, that captures the gist of the post. Match the voice of the post itself. If it appears to be Clay's post, preserve his cadence. If it's someone else's, be neutral.
-3. The full text of the post for reference.
+Given a screenshot of a social media post (X/Twitter, Facebook, or YouTube), extract:
+1. Which platform it's from (X, Facebook, YouTube, or unknown). A YouTube screenshot shows a video page, channel, or community post with the YouTube player or red branding.
+2. A short preview line, 80-100 characters max, that captures the gist of the post. For a YouTube video, use the video title or its hook. Match the voice of the post itself. If it appears to be Clay's post, preserve his cadence. If it's someone else's, be neutral.
+3. The full text of the post (or video title + description) for reference.
 4. The post's relative timestamp if visible (e.g., "9h", "1d", "May 11").
 
 Respond ONLY in valid JSON matching this schema:
 {
-  "suggested_source": "X" | "Facebook" | "unknown",
+  "suggested_source": "X" | "Facebook" | "YouTube" | "unknown",
   "suggested_preview": "string, 80-100 chars",
   "extracted_text": "string, full text of the post",
   "extracted_timestamp": "string or null"
@@ -50,7 +50,7 @@ Respond ONLY in valid JSON matching this schema:
 Do not include code blocks, markdown, or commentary. JSON only. Never use em dashes in the preview line.`;
 
 export type AnalyzeSuggestion = {
-  suggested_source: "X" | "Facebook" | "unknown";
+  suggested_source: "X" | "Facebook" | "YouTube" | "unknown";
   suggested_preview: string;
   extracted_text: string;
   extracted_timestamp: string | null;
@@ -218,7 +218,7 @@ function parseSuggestion(text: string): AnalyzeSuggestion | null {
 
   const sourceRaw = r.suggested_source;
   const source: AnalyzeSuggestion["suggested_source"] =
-    sourceRaw === "X" || sourceRaw === "Facebook"
+    sourceRaw === "X" || sourceRaw === "Facebook" || sourceRaw === "YouTube"
       ? sourceRaw
       : "unknown";
 

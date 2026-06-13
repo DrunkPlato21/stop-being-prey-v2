@@ -676,6 +676,70 @@ a.no-underline {
 .stagger-4 { animation-delay: 0.35s; }
 .stagger-5 { animation-delay: 0.45s; }
 
+/* === End-of-read capture (finisher v2) ===
+   A quiet block that mounts only when the reader genuinely reaches the
+   end of a piece. No toast, no badge, no gamification — v1's
+   "achievement unlocked" theatrics converted nobody and fought the
+   page's register. Routes to the email form (cold readers) or the
+   membership ask (known subscribers). */
+
+/* Inline end-of-article block. Conditionally mounted on finish, so it
+   rises into the content flow exactly as the reader arrives. */
+.finisher-inline {
+  max-width: 32rem;
+  margin: 3.5rem auto 0;
+  padding: 2rem 1.75rem;
+  text-align: center;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  animation: finisherRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes finisherRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.finisher-inline-recognition {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 0;
+  max-width: 26rem;
+}
+.finisher-ask {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.finisher-ask-line {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+  margin: 0;
+  max-width: 26rem;
+}
+
+/* Reduced motion: no rise animation, the block just appears. */
+@media (prefers-reduced-motion: reduce) {
+  .finisher-inline {
+    animation: none;
+  }
+}
+
 /* === Buttons === */
 
 .btn-primary {

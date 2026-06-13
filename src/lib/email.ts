@@ -999,6 +999,302 @@ export async function sendCaseReviewMemberConfirmation(args: {
   }
 }
 
+/* === Gift membership (pay it forward) ===============================
+   Five sends across the gift lifecycle. Copy is PLACEHOLDER; Clay
+   finalizes in his voice. Framing is pay-it-forward, never "gift card".
+
+   sendGiftEmail               -> recipient: someone bought you a seat
+   sendGiftClaimedEmail        -> buyer: your gift was claimed
+   sendGiftAlreadyMemberEmail  -> buyer: recipient already had a seat
+   sendGiftSelfRefundEmail     -> buyer: you gifted yourself, refunded
+   sendGiftExpiryReminderEmail -> recipient: term ending, keep your seat */
+
+/** Shared shell so the five gift emails stay visually coherent with
+    the magic-link template without repeating the table scaffolding. */
+function renderGiftShell(bodyRowsHtml: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Stop Being Prey</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5efe1;font-family:Georgia,'Times New Roman',serif;color:#1a1714;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5efe1;padding:48px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#fbf6e9;border:1px solid #c9bfa3;padding:40px 32px;">
+            <tr>
+              <td style="text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.7rem;letter-spacing:0.32em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding-bottom:24px;">
+                Stop Being Prey
+              </td>
+            </tr>
+            ${bodyRowsHtml}
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:13px;font-style:italic;color:#8a8077;line-height:1.6;border-top:1px solid #d8cfb8;padding-top:20px;">
+                <p style="margin:0;">stay close,<br/>~ Clay</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+function giftButtonRow(url: string, label: string): string {
+  return `<tr>
+              <td align="center" style="padding:8px 0 28px 0;">
+                <a href="${escapeHtml(url)}" style="display:inline-block;background:#1a1714;color:#f5efe1;text-decoration:none;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.78rem;letter-spacing:0.22em;text-transform:uppercase;font-weight:600;padding:14px 28px;border:1px solid #1a1714;">
+                  ${escapeHtml(label)}
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.6;color:#5c544c;padding-bottom:24px;">
+                <p style="margin:0 0 8px 0;">if the button doesn't work, paste this into your browser:</p>
+                <p style="margin:0;word-break:break-all;color:#8a7d20;font-size:13px;">${escapeHtml(url)}</p>
+              </td>
+            </tr>`;
+}
+
+async function sendGiftLifecycleEmail(args: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  logTag: string;
+}): Promise<SendResult> {
+  const resend = client();
+  if (!resend) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[email] RESEND_API_KEY not set, ${args.logTag} skipped. To: ${args.to}`
+      );
+    }
+    return { ok: false, error: "email_not_configured" };
+  }
+  try {
+    const result = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
+      text: args.text,
+      replyTo: REPLY_TO,
+    });
+    if (result.error) {
+      console.error(`[email] Resend rejected ${args.logTag}:`, {
+        to: args.to,
+        error: result.error,
+      });
+      return { ok: false, error: result.error.message };
+    }
+    return { ok: true, id: result.data?.id ?? "" };
+  } catch (err) {
+    console.error(`[email] Resend threw on ${args.logTag}:`, err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "send_failed",
+    };
+  }
+}
+
+export async function sendGiftEmail(args: {
+  to: string;
+  buyerName: string;
+  message: string | null;
+  termLabel: string;
+  redeemUrl: string;
+}): Promise<SendResult> {
+  // Dev convenience, same as the magic link: print the redemption link
+  // so a developer can walk the flow without a real inbox.
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `\n[email] (dev) gift redemption link for ${args.to}:\n${args.redeemUrl}\n`
+    );
+  }
+
+  const subject = `${args.buyerName} bought you a seat inside Stop Being Prey`;
+  const messageRow = args.message
+    ? `<tr>
+              <td style="padding:8px 0 24px 0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;background:#f5efe1;">
+                  <tr>
+                    <td style="padding:14px 18px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;font-style:italic;color:#1a1714;">
+                      ${escapeHtml(args.message).replace(/\n/g, "<br/>")}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>`
+    : "";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;"><strong style="color:#1a1714;">${escapeHtml(args.buyerName)}</strong> paid it forward. They bought you ${escapeHtml(args.termLabel)} inside Stop Being Prey. The comments, the Writer's Desk, the lounge, all of it.</p>
+                <p style="margin:0 0 18px 0;">no card, no charge, no strings. someone wanted you in the room.</p>
+              </td>
+            </tr>
+            ${messageRow}
+            ${giftButtonRow(args.redeemUrl, "Take your seat")}`);
+  const text = [
+    `${args.buyerName} paid it forward. They bought you ${args.termLabel} inside Stop Being Prey.`,
+    "",
+    ...(args.message ? [`Their note: "${args.message}"`, ""] : []),
+    "no card, no charge, no strings. someone wanted you in the room.",
+    "",
+    `Take your seat: ${args.redeemUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "gift email",
+  });
+}
+
+export async function sendGiftClaimedEmail(args: {
+  to: string;
+  recipientEmail: string;
+  termLabel: string;
+}): Promise<SendResult> {
+  const subject = "your gift was claimed";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:24px;">
+                <p style="margin:0 0 18px 0;">the seat you bought for <strong style="color:#1a1714;">${escapeHtml(args.recipientEmail)}</strong> was just claimed. they're in the room for ${escapeHtml(args.termLabel)}.</p>
+                <p style="margin:0;">thank you for putting someone in it. this place runs on exactly that.</p>
+              </td>
+            </tr>`);
+  const text = [
+    `the seat you bought for ${args.recipientEmail} was just claimed. they're in the room for ${args.termLabel}.`,
+    "",
+    "thank you for putting someone in it. this place runs on exactly that.",
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "gift claimed email",
+  });
+}
+
+export async function sendGiftAlreadyMemberEmail(args: {
+  to: string;
+  recipientEmail: string;
+  redeemUrl: string;
+}): Promise<SendResult> {
+  const subject = "about the seat you bought";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;">good news and a small wrinkle. <strong style="color:#1a1714;">${escapeHtml(args.recipientEmail)}</strong> already has a seat in the room. they beat you to it.</p>
+                <p style="margin:0 0 18px 0;">your gift is not wasted. it's still live, and either of you can pass it to someone else from the link below. pick the next person who needs to be in here.</p>
+              </td>
+            </tr>
+            ${giftButtonRow(args.redeemUrl, "Pass it on")}`);
+  const text = [
+    `good news and a small wrinkle. ${args.recipientEmail} already has a seat in the room. they beat you to it.`,
+    "",
+    "your gift is not wasted. it's still live, and either of you can pass it to someone else from the link below.",
+    "",
+    `Pass it on: ${args.redeemUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "gift already-member email",
+  });
+}
+
+export async function sendGiftSelfRefundEmail(args: {
+  to: string;
+  membershipUrl: string;
+  refunded: boolean;
+}): Promise<SendResult> {
+  const subject = "that seat was for someone else";
+  const refundLineHtml = args.refunded
+    ? `<p style="margin:0 0 18px 0;">your payment was refunded in full. nothing owed, nothing kept.</p>`
+    : `<p style="margin:0 0 18px 0;">your refund is being processed. if it doesn't land within a few days, reply to this email.</p>`;
+  const refundLineText = args.refunded
+    ? "your payment was refunded in full. nothing owed, nothing kept."
+    : "your refund is being processed. if it doesn't land within a few days, reply to this email.";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;">the gift seat you bought was addressed to your own email. gifts are for putting someone else in the room, so I can't hand it back to you.</p>
+                ${refundLineHtml}
+                <p style="margin:0 0 18px 0;">want a seat of your own? that door is always open.</p>
+              </td>
+            </tr>
+            ${giftButtonRow(args.membershipUrl, "Become a member")}`);
+  const text = [
+    "the gift seat you bought was addressed to your own email. gifts are for putting someone else in the room, so I can't hand it back to you.",
+    "",
+    refundLineText,
+    "",
+    `want a seat of your own? ${args.membershipUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "gift self-refund email",
+  });
+}
+
+export async function sendGiftExpiryReminderEmail(args: {
+  to: string;
+  expiresAtLabel: string;
+  membershipUrl: string;
+}): Promise<SendResult> {
+  const subject = "your seat is almost up";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;">someone paid it forward and put you in this room. that seat runs out on <strong style="color:#1a1714;">${escapeHtml(args.expiresAtLabel)}</strong>.</p>
+                <p style="margin:0 0 18px 0;">if the room has been worth it, keep your seat on your own terms. pay what it's worth, cancel anytime. and someday, maybe, put the next person in.</p>
+              </td>
+            </tr>
+            ${giftButtonRow(args.membershipUrl, "Keep your seat")}`);
+  const text = [
+    `someone paid it forward and put you in this room. that seat runs out on ${args.expiresAtLabel}.`,
+    "",
+    "if the room has been worth it, keep your seat on your own terms. pay what it's worth, cancel anytime.",
+    "",
+    `Keep your seat: ${args.membershipUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "gift expiry reminder",
+  });
+}
+
 /* === Payment failed (membership renewal) ============================
    Sent to the member when Stripe reports invoice.payment_failed.
    Too important for in-site only — a churning card needs a real

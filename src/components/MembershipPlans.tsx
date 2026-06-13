@@ -42,6 +42,10 @@ type Props = {
       badge preview but swaps the public "X of 100 slots left" line for
       a private-grant line. */
   privateFounderAccess?: boolean;
+  /** Attribution source from the ?src= entry param (e.g. "finisher",
+      "tip"). Rides along in the checkout POST so the webhook can credit
+      the surface that sent the buyer. */
+  source?: string;
 };
 
 const FOUNDER_MONTHLY_CENTS = 800;
@@ -177,6 +181,7 @@ export function MembershipPlans({
   totalMembers,
   accessToken,
   privateFounderAccess = false,
+  source,
 }: Props) {
   const [plan, setPlan] = useState<Plan>("monthly");
   const [cents, setCents] = useState<number>(() =>
@@ -247,6 +252,7 @@ export function MembershipPlans({
           plan,
           amountCents: cents,
           ...(accessToken ? { accessToken } : {}),
+          ...(source ? { source } : {}),
         }),
       });
       const data: {

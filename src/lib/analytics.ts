@@ -20,6 +20,25 @@ export const TRACK_EVENTS = [
   "form_seen",
   "sub_submit",
   "sub_success",
+  // End-of-read capture + membership funnel. achievement_shown fires on a
+  // non-member's first finish of a piece (the denominator for both ask
+  // flavors; the legacy event name is kept so the counter series stays
+  // continuous); ask_shown only when a known subscriber is shown
+  // the membership ask (after the cadence cap); checkout_started when
+  // they click through toward membership; became_member on the Stripe
+  // webhook (server-side, source-attributed). Cold readers get the email
+  // form instead, tracked via sub_submit/sub_success source "finisher".
+  "achievement_shown",
+  "ask_shown",
+  "checkout_started",
+  "became_member",
+  // Pay-it-forward gift funnel. gift_purchased on the Stripe webhook
+  // (lane "gift"), gift_redeemed when the recipient claims the seat,
+  // gift_converted when a gifted recipient later becomes a paying
+  // member on their own card (stamped in the membership webhook).
+  "gift_purchased",
+  "gift_redeemed",
+  "gift_converted",
 ] as const;
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
 
@@ -29,9 +48,36 @@ export const TRACK_SOURCES = [
   "dual",
   "join",
   "footer",
+  "finisher",
+  "tip",
+  "gift",
   "unknown",
 ] as const;
 export type TrackSource = (typeof TRACK_SOURCES)[number];
+
+// Events that also roll up into a per-source counter (analytics:source:*)
+// so a conversion surface can be measured on its own, not just per article.
+const SOURCE_TRACKED_EVENTS: ReadonlySet<string> = new Set([
+  "sub_submit",
+  "sub_success",
+  "checkout_started",
+  "became_member",
+  "gift_purchased",
+  "gift_redeemed",
+  "gift_converted",
+]);
+
+/**
+ * Narrow an arbitrary value to a known TrackSource (or undefined). Used
+ * server-side where a source arrives from a request body or Stripe
+ * metadata and must be validated before it's counted.
+ */
+export function asTrackSource(v: unknown): TrackSource | undefined {
+  return typeof v === "string" &&
+    (TRACK_SOURCES as readonly string[]).includes(v)
+    ? (v as TrackSource)
+    : undefined;
+}
 
 export type EventCounts = Partial<Record<TrackEvent, number>>;
 
@@ -70,7 +116,7 @@ export async function recordEvent(
   if (opts.slug) {
     tasks.push(client.hincrby(`${ns}article:${opts.slug}`, event, 1));
   }
-  if (event === "sub_submit" || event === "sub_success") {
+  if (SOURCE_TRACKED_EVENTS.has(event)) {
     const source = opts.source ?? "unknown";
     tasks.push(client.hincrby(`${ns}source:${source}`, event, 1));
   }

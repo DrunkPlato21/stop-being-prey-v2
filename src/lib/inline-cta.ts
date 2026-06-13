@@ -24,6 +24,18 @@ const TARGET_RATIO = 0.58;
 const MIN_RATIO = 0.42;
 const MAX_RATIO = 0.72;
 
+// The author override marker, as it renders out of the markdown pipeline:
+// a paragraph holding only `{{CTA}}`. Matched here and in stripCtaMarker.
+const CTA_MARKER_RE = /<p>\s*\{\{\s*CTA\s*\}\}\s*<\/p>/i;
+
+// Remove the `{{CTA}}` marker without inserting a form. Used on the
+// no-form render paths — paying members / the author (captures hidden),
+// `inlineCta: false`, or a piece too short to split — so the raw marker
+// never leaks into the rendered body. A no-op when there's no marker.
+export function stripCtaMarker(html: string): string {
+  return html.replace(CTA_MARKER_RE, "").trimStart();
+}
+
 function visibleLength(html: string): number {
   return html
     .replace(/<[^>]+>/g, " ")

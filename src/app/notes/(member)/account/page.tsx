@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
@@ -21,6 +22,7 @@ import {
   getFounderSlot,
   getMember,
   getTierBadge,
+  hasActiveGiftSeat,
 } from "@/lib/members";
 import { MemberBadge } from "@/components/MemberBadge";
 
@@ -197,7 +199,9 @@ export default async function AccountPage() {
           </div>
         )}
 
-        {/* Subscription block */}
+        {/* Subscription block. Gift-seat members have no Stripe
+            subscription to manage; show the prepaid term + the keep-
+            your-seat path instead of a dead portal button. */}
         <div className="mb-12 pt-10 border-t border-rule">
           <p className="eyebrow mb-3">Subscription</p>
           {stripeReady ? (
@@ -211,6 +215,25 @@ export default async function AccountPage() {
               </p>
               <ManageSubscriptionButton />
             </>
+          ) : hasActiveGiftSeat(member) && member?.giftExpiresAt ? (
+            <>
+              <p
+                className="font-serif text-ink-muted leading-relaxed mb-6"
+                style={{ fontSize: "1.02rem" }}
+              >
+                Your seat is a gift. It runs through{" "}
+                <strong className="text-ink">
+                  {new Date(member.giftExpiresAt).toLocaleDateString(
+                    "en-US",
+                    { month: "long", day: "numeric", year: "numeric" }
+                  )}
+                </strong>
+                . Nothing is charged to you while it lasts.
+              </p>
+              <Link href="/membership?src=gift" className="btn-secondary">
+                <span>Keep your seat after that</span>
+              </Link>
+            </>
           ) : (
             <p
               className="font-serif italic text-ink-muted leading-relaxed"
@@ -220,6 +243,21 @@ export default async function AccountPage() {
               wired in.
             </p>
           )}
+        </div>
+
+        {/* Pay it forward — member-side entry to the gift flow. */}
+        <div className="mb-12 pt-10 border-t border-rule">
+          <p className="eyebrow mb-3">Pay it forward</p>
+          <p
+            className="font-serif text-ink-muted leading-relaxed mb-6"
+            style={{ fontSize: "1.02rem" }}
+          >
+            Know someone who needs to be in this room? Buy them a seat.
+            One charge, a fixed term, full membership.
+          </p>
+          <Link href="/membership/gift" className="btn-secondary">
+            <span>Give someone a seat</span>
+          </Link>
         </div>
 
         {/* Sign out */}

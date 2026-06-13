@@ -207,7 +207,9 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   // the incipit would target the wrong paragraph (and break the token).
   // Everyone else gets the standard small-caps run-in lead.
   const contentHtml = essayStyle
-    ? applyEssayTokens(rawContentHtml)
+    ? applyEssayTokens(rawContentHtml, {
+        uniformPanelQuotes: data.uniformQuotes === true,
+      })
     : applyLeadIncipit(rawContentHtml);
 
   let postscriptHtml: string | null = null;

@@ -2,7 +2,6 @@ import Link from "next/link";
 import Stripe from "stripe";
 import type { Metadata } from "next";
 import { EmailSignup } from "@/components/EmailSignup";
-import { ShareButtons } from "@/components/ShareButtons";
 import { SubscriberCount } from "@/components/SubscriberCount";
 import { EyeDivider } from "@/components/Eyes";
 
@@ -137,9 +136,19 @@ export default async function TipSuccessPage({
 
       <EyeDivider />
 
-      {/* Share. The contribution just happened, the share matters more. */}
-      <section className="max-w-2xl mx-auto px-6 pb-4">
-        <ShareButtons url="/" title="Stop Being Prey" />
+      {/* Membership upsell. A tipper just paid once, so the honest next
+          step is the recurring path. Sits below the share (which matters
+          most) and reads as an invitation, not a hard sell. */}
+      <section className="max-w-2xl mx-auto px-6 pb-4 text-center">
+        <p className="eyebrow mb-3">If you want to do this every month</p>
+        <p className="deck mb-6 max-w-md mx-auto">
+          You backed this once. Members back it every month, and get the
+          room behind the work. The comments, the desk, the book built in
+          the open.
+        </p>
+        <Link href="/membership?src=tip" className="btn-primary">
+          <span>Join the room</span>
+        </Link>
       </section>
 
       <EyeDivider />

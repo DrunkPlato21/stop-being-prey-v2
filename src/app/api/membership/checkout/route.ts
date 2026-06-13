@@ -4,6 +4,7 @@ import {
   type MembershipPlan,
 } from "@/lib/membership";
 import { getFounderAccess } from "@/lib/founder-access";
+import { asTrackSource, recordEvent } from "@/lib/analytics";
 
 // POST /api/membership/checkout
 // Body: { plan: "monthly" | "yearly", amountCents: number, email?: string }
@@ -53,6 +54,11 @@ export async function POST(req: NextRequest) {
     ? await getFounderAccess(accessToken)
     : null;
 
+  // Attribution source (e.g. "finisher", "tip") so the webhook can count
+  // became_member against the surface that sent the buyer. Validated to a
+  // known TrackSource; anything else is dropped.
+  const source = asTrackSource((body as { source?: unknown })?.source);
+
   const result = await createMembershipCheckoutSession({
     plan,
     amountCents,
@@ -63,6 +69,7 @@ export async function POST(req: NextRequest) {
         ? founderAccess.founderNumber
         : undefined,
     accessToken: founderAccess ? accessToken : undefined,
+    source,
   });
   if ("error" in result) {
     const status =
@@ -74,5 +81,11 @@ export async function POST(req: NextRequest) {
       { status }
     );
   }
+
+  // Funnel: a real Stripe checkout session was created. Counts toward the
+  // per-source checkout_started counter (became_member closes it in the
+  // webhook). recordEvent never throws.
+  await recordEvent("checkout_started", { source });
+
   return Response.json({ url: result.url });
 }

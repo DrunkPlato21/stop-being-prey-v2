@@ -51,7 +51,32 @@ export type MemberRecord = {
   createdAt: number;
   updatedAt: number;
   customAvatarUrl: string | null;
+  /** Prepaid gift-seat end. Set when the member's access came from a
+      redeemed gift rather than a Stripe subscription; access checks
+      treat the record as active until this passes. Cleared (absent)
+      on records created by a real subscription, including when a
+      gifted member converts. Backward compatible: legacy records
+      read as undefined. */
+  giftExpiresAt?: number | null;
+  /** The gift that granted this seat (see lib/gifts.ts). */
+  viaGiftId?: string | null;
 };
+
+/**
+ * True when the record's access comes from an unexpired prepaid gift
+ * term. A converted recipient gets a fresh subscription-backed record
+ * with these fields absent, so this flips false on conversion.
+ */
+export function hasActiveGiftSeat(
+  record: Pick<MemberRecord, "status" | "giftExpiresAt"> | null
+): boolean {
+  if (!record) return false;
+  if (record.status !== "active" && record.status !== "trialing") return false;
+  return (
+    typeof record.giftExpiresAt === "number" &&
+    record.giftExpiresAt > Date.now()
+  );
+}
 
 /* === Tier badges ============================================
    Three public badges earned by paying above the $13 standard rate.

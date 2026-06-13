@@ -18,8 +18,9 @@ import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
 import { InlineSubscribe } from "@/components/InlineSubscribe";
 import { ReadingTracker } from "@/components/ReadingTracker";
+import { FinisherAchievement } from "@/components/FinisherAchievement";
 import { ReadThisNext } from "@/components/ReadThisNext";
-import { splitForInlineCta } from "@/lib/inline-cta";
+import { splitForInlineCta, stripCtaMarker } from "@/lib/inline-cta";
 import { isPaidViewer } from "@/lib/viewer";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
@@ -325,38 +326,21 @@ export default async function ArticlePage({
         ) : (
           <div
             className={`prose-article${article.essayStyle ? " ea-essay" : ""}`}
-            dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+            // No form here (captures hidden, opted out, or too short to
+            // split). Strip any {{CTA}} marker so it never shows as raw text.
+            dangerouslySetInnerHTML={{
+              __html: stripCtaMarker(article.contentHtml),
+            }}
           />
         )}
 
-        {/* Essay-style pieces (e.g. the Massie issue) close on a pull-
-            quote meant to land on silence. Give that ending a big gap to
-            breathe, then a light email-capture beat — a line + a link to
-            /join, deliberately not a form — before the share P.S. below.
-            Scoped to essayStyle so ordinary essays keep their tighter
-            ending. */}
-        {article.essayStyle && (
-          <div className="max-w-2xl mx-auto mt-32 md:mt-48 text-center">
-            <p
-              className="font-serif italic text-ink-muted leading-relaxed"
-              style={{ fontSize: "1.05rem" }}
-            >
-              stay close. the next one goes out by email first.
-            </p>
-            <p className="mt-4">
-              <Link
-                href="/join"
-                className="font-display text-eye-deep hover:text-ink no-underline transition-colors"
-                style={{
-                  fontSize: "0.95rem",
-                  fontWeight: 600,
-                  letterSpacing: "0.04em",
-                }}
-              >
-                get on the list &rarr;
-              </Link>
-            </p>
-          </div>
+        {/* Essay-style pieces close on a pull-quote meant to land on
+            silence. Give the P.S. below extra room to breathe. The old
+            static "get on the list" beat that lived in this gap was
+            retired when the end-of-read capture block (below) took over
+            that moment with a real form for cold readers. */}
+        {article.essayStyle && !article.postscriptHtml && (
+          <div className="mt-24 md:mt-32" aria-hidden="true" />
         )}
 
         {/* === P.S. directly under the article body, no drop cap.
@@ -374,6 +358,12 @@ export default async function ArticlePage({
           )}
         </div>
       </div>
+
+      {/* End-of-read capture. Mounts nothing until the reader reaches the
+          end of #reading-region. Members get nothing; cold readers get
+          the email-list form; known subscribers get the cadence-capped
+          membership ask. */}
+      <FinisherAchievement slug={article.slug} isMember={hideCaptures} />
 
       {/* === References (opt-in, populated when markdown ends with
           `## References` followed by a list). Sits with the article
