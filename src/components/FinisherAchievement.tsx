@@ -30,11 +30,13 @@ const RECOGNITION =
 const LIST_LINE =
   "The next one can land in your inbox the day it ships. No algorithm deciding whether you see it.";
 
-// Finalized non-member ask (Clay's voice). Shown only to readers already
-// on the email list; the cadence cap in lib/finisher governs how OFTEN.
-// (Em dash from the source copy swapped to periods per the no-em-dash rule.)
-const ASK_LINE =
-  "You read to the end. So does everyone in the room. The members-only conversation you won't find anywhere else. You just proved you belong in it. Take your seat, and you keep the whole thing alive while you're at it.";
+// Finalized membership ask (Clay's voice, June 2026). Shown only to
+// readers already on the email list; the cadence cap in lib/finisher
+// governs how OFTEN. Two paragraphs, rendered in order.
+const ASK_LINES = [
+  "The room is the people who do exactly that. Read to the end. Want the whole argument. You get every piece the second it drops, a comment section that's better than most people's articles, and a place with no advertisers in it, because it runs on readers. That's why it can tell the truth.",
+  "You already belong here. Take your seat.",
+];
 const ASK_CTA = "Take a seat";
 
 type Resolved = { showAsk: boolean; subscriber: boolean };
@@ -45,7 +47,11 @@ function MembershipAsk() {
   // attributed to this source, so there's no client double-count.
   return (
     <div className="finisher-ask">
-      <p className="finisher-ask-line">{ASK_LINE}</p>
+      {ASK_LINES.map((line) => (
+        <p key={line} className="finisher-ask-line">
+          {line}
+        </p>
+      ))}
       <Link
         href="/membership?src=finisher"
         className="btn-primary finisher-ask-cta"
