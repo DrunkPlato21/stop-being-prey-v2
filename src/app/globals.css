@@ -740,6 +740,76 @@ a.no-underline {
   }
 }
 
+/* === Sticky mobile join bar ===
+   Persistent CTA on the long membership page. Mobile only; hidden on
+   desktop and retracted whenever the real pricing form is on screen. */
+.sticky-join {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: #0c0a08;
+  border-top: 1px solid var(--eye-deep);
+  box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.32);
+  padding: 0.7rem 1rem;
+  padding-bottom: calc(0.7rem + env(safe-area-inset-bottom));
+  transform: translateY(115%);
+  transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sticky-join--show {
+  transform: translateY(0);
+}
+.sticky-join-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  max-width: 28rem;
+  margin: 0 auto;
+}
+.sticky-join-price {
+  font-family: var(--font-source-serif), Georgia, serif;
+  color: #f5efe1;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sticky-join-cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  background: #f5efe1;
+  color: #0c0a08;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.7rem 1.25rem;
+  text-decoration: none;
+  border: 1px solid #f5efe1;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.sticky-join-cta:hover {
+  background: var(--eye-deep);
+  border-color: var(--eye-deep);
+  color: #0c0a08;
+}
+@media (min-width: 768px) {
+  .sticky-join {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sticky-join {
+    transition: none;
+  }
+}
+
 /* === Buttons === */
 
 .btn-primary {

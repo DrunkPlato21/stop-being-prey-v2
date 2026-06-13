@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MembershipPlans } from "@/components/MembershipPlans";
+import { StickyJoinBar } from "@/components/StickyJoinBar";
 import { EmailSignup } from "@/components/EmailSignup";
 import { EyeDivider } from "@/components/Eyes";
 import { DeskPresenceIndicator } from "@/components/DeskPresenceIndicator";
@@ -222,6 +223,13 @@ export default async function MembershipLandingPage({
   // flip presence in real time.
   const presenceState = derivePresenceState(presence);
 
+  // Compact labels for the sticky mobile CTA. Price mirrors the live
+  // founder/charter/regular floor; the action label reuses the hero's
+  // (minus the long private-grant variant, which won't fit the bar).
+  const stickyPrice =
+    founderAccess || founderEligible ? "$8/mo" : "$13/mo";
+  const stickyCta = founderAccess ? "Claim your slot" : heroCta;
+
   return (
     <div>
       {/* Cold-open — opens the page with a reader anecdote that
@@ -234,6 +242,13 @@ export default async function MembershipLandingPage({
           No italics this version. */}
       <section>
         <div className="max-w-3xl mx-auto px-6 pt-16 md:pt-24 pb-20 md:pb-24">
+          {/* Orienting eyebrow — the cold-open is deliberately prose-
+              first, but a cold visitor needs to know in the first screen
+              that this is the membership offer, not a blog post. One
+              quiet line does it without breaking the anecdote's spell. */}
+          <p className="eyebrow text-center mb-10 fade-up stagger-1">
+            Membership
+          </p>
           <div
             className="max-w-2xl mx-auto font-serif text-ink space-y-5 fade-up stagger-1"
             style={{ fontSize: "1.18rem", lineHeight: 1.62 }}
@@ -279,12 +294,23 @@ export default async function MembershipLandingPage({
               so there's one source of truth for the form. */}
           <div className="max-w-md mx-auto mb-12 fade-up stagger-3">
             <p
-              className="font-serif text-ink-muted leading-relaxed mb-5"
+              className="font-serif text-ink-muted leading-relaxed mb-4"
               style={{ fontSize: "1.08rem" }}
             >
               A direct line to me while I write, and a room of people
-              learning to see power clearly and stop being prey. Comments,
-              the desk, the lounge, the book.
+              learning to see power clearly and stop being prey.
+            </p>
+            {/* Scannable inventory so a skimmer who won't read the letter
+                below still sees what membership actually includes, up
+                front. Reads as one wrapping line, not a bulleted block. */}
+            <p
+              className="font-serif text-ink leading-relaxed mb-5"
+              style={{ fontSize: "0.95rem" }}
+            >
+              <span className="text-ink-muted">Inside:</span> the
+              Writer&apos;s Desk, the comment room, the Lounge, Case Files,
+              early access to every issue, and the book as it&apos;s
+              written.
             </p>
             <p
               className="font-display text-ink leading-none mb-1"
@@ -863,6 +889,12 @@ export default async function MembershipLandingPage({
           ← back home
         </Link>
       </div>
+
+      {/* Spacer so the fixed mobile join bar never sits over the footer
+          link. Mobile only, matching the bar's own breakpoint. */}
+      <div aria-hidden="true" className="h-20 md:hidden" />
+
+      <StickyJoinBar priceLabel={stickyPrice} ctaLabel={stickyCta} />
     </div>
   );
 }
