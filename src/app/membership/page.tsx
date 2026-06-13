@@ -324,7 +324,7 @@ export default async function MembershipLandingPage({
             >
               {heroScarcity}
             </p>
-            <Link href="#pricing" className="btn-primary">
+            <Link href="#pricing" id="hero-cta" className="btn-primary">
               <span>{heroCta}</span>
             </Link>
             {totalMembers > 0 && (

@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 
 // Persistent join CTA for the long membership page. Mobile only (the
 // page is short enough on desktop that the hero CTA stays reachable).
-// Slides up once the reader scrolls past the hero, and steps aside
-// whenever the real pricing form is on screen so the two never compete.
-// Tapping it jumps to #pricing — one source of truth for the form.
+// Shows only when neither real "join" control is on screen — the hero
+// CTA up top or the pricing form at the bottom — so the bar never
+// competes with the actual buttons. Tapping it jumps to #pricing, the
+// one source of truth for the form.
 
 export function StickyJoinBar({
   priceLabel,
@@ -19,38 +20,35 @@ export function StickyJoinBar({
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const pricing = document.getElementById("pricing");
-    let pastThreshold = false;
-    let pricingVisible = false;
+    // Hide the bar whenever one of the page's own CTAs is in view. Keyed
+    // by element so each observer callback only flips its own target.
+    const targets = ["hero-cta", "pricing"]
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
 
-    const update = () => setShow(pastThreshold && !pricingVisible);
-
-    const onScroll = () => {
-      // Roughly one screen down — past the masthead's own CTA.
-      pastThreshold = window.scrollY > 640;
-      update();
-    };
-
-    let observer: IntersectionObserver | null = null;
-    if (pricing && "IntersectionObserver" in window) {
-      observer = new IntersectionObserver(
-        (entries) => {
-          pricingVisible = entries.some((e) => e.isIntersecting);
-          update();
-        },
-        // Count the pricing block as "visible" slightly before it fully
-        // enters, so the bar retracts as the form arrives.
-        { rootMargin: "0px 0px -25% 0px" }
-      );
-      observer.observe(pricing);
+    if (!("IntersectionObserver" in window) || targets.length === 0) {
+      // Without observers we can't tell when a CTA is on screen, so leave
+      // the bar hidden rather than risk overlapping the real buttons.
+      return;
     }
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      observer?.disconnect();
-    };
+    const visible = new Set<Element>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.add(entry.target);
+          else visible.delete(entry.target);
+        }
+        setShow(visible.size === 0);
+      },
+      // Count a CTA as "visible" slightly before it fully enters, so the
+      // bar retracts a touch early as a real button approaches.
+      { rootMargin: "0px 0px -25% 0px" }
+    );
+
+    targets.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
   return (
