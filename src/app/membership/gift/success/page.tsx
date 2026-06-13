@@ -107,6 +107,13 @@ export default async function GiftSuccessPage({
                 You&apos;ll get an email when they claim it. Thank you for
                 putting someone in the room.
               </p>
+              <p
+                className="font-serif text-ink leading-relaxed"
+                style={{ fontSize: "1rem" }}
+              >
+                Want to give them a heads up yourself? A word from you
+                means more than our email ever could.
+              </p>
             </div>
           </>
         )}
