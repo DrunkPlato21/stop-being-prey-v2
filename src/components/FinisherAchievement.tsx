@@ -25,7 +25,7 @@ import { EmailSignup } from "@/components/EmailSignup";
 // finalized voice, carried over.
 
 const RECOGNITION =
-  "Only about half who start a piece this long finish it. You did.";
+  "Less than half who start a piece this long finish it. You did.";
 
 const LIST_LINE =
   "The next one can land in your inbox the day it ships. No algorithm deciding whether you see it.";
@@ -34,7 +34,8 @@ const LIST_LINE =
 // readers already on the email list; the cadence cap in lib/finisher
 // governs how OFTEN. Two paragraphs, rendered in order.
 const ASK_LINES = [
-  "The room is the people who do exactly that. Read to the end. Want the whole argument. You get every piece the second it drops, a comment section that's better than most people's articles, and a place with no advertisers in it, because it runs on readers. That's why it can tell the truth.",
+  "My inner circle is for people like you. Serious people. The ones who actually read and think things through. Want the whole argument. You get to connect with them, and to me. In there, we sharpen each other.",
+  "There are no advertisers here, because it runs on readers. That's why it can tell the truth.",
   "You already belong here. Take your seat.",
 ];
 const ASK_CTA = "Take a seat";
