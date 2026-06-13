@@ -676,106 +676,12 @@ a.no-underline {
 .stagger-4 { animation-delay: 0.35s; }
 .stagger-5 { animation-delay: 0.45s; }
 
-/* === Finisher Achievement (v1) ===
-   A reader who reaches the end gets a video-game-style "unlock": a
-   non-blocking corner toast plus an inline end-of-article block. Premium
-   and earned, never bouncy or candy. No modal, ever. */
-
-/* Non-blocking unlock toast. Dark, slides up from the corner, the badge
-   catches a one-time shimmer, then it fades on its own — no dismissal. */
-.finisher-toast {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  max-width: 340px;
-  padding: 0.85rem 1rem;
-  background: #0c0a08;
-  border: 1px solid var(--eye-deep);
-  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  transform: translateY(16px) scale(0.98);
-  transition:
-    opacity 0.52s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.52s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.finisher-toast--show {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
-.finisher-toast-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
-}
-.finisher-toast-eyebrow {
-  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
-  font-size: 0.6rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: #b8a82c;
-}
-.finisher-toast-line {
-  font-family: var(--font-source-serif), Georgia, serif;
-  font-style: italic;
-  font-size: 0.92rem;
-  line-height: 1.35;
-  color: #f5efe1;
-}
-@media (max-width: 640px) {
-  .finisher-toast {
-    right: 12px;
-    left: 12px;
-    bottom: 12px;
-    max-width: none;
-  }
-}
-
-/* Medallion badge, shared by the toast and the inline block. */
-.finisher-badge {
-  position: relative;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: radial-gradient(circle at 32% 28%, #2c2614, #100d07 75%);
-  border: 1px solid var(--eye-deep);
-  box-shadow:
-    inset 0 0 0 1px rgba(184, 168, 44, 0.18),
-    0 0 18px rgba(184, 168, 44, 0.12);
-}
-.finisher-badge-mark {
-  font-size: 1.15rem;
-  line-height: 1;
-  color: #d9c64a;
-  text-shadow: 0 0 10px rgba(217, 198, 74, 0.45);
-}
-.finisher-shimmer {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    115deg,
-    transparent 32%,
-    rgba(245, 239, 225, 0.55) 50%,
-    transparent 68%
-  );
-  transform: translateX(-130%);
-  animation: finisherShimmer 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.28s 1 both;
-}
-@keyframes finisherShimmer {
-  to {
-    transform: translateX(130%);
-  }
-}
+/* === End-of-read capture (finisher v2) ===
+   A quiet block that mounts only when the reader genuinely reaches the
+   end of a piece. No toast, no badge, no gamification — v1's
+   "achievement unlocked" theatrics converted nobody and fought the
+   page's register. Routes to the email form (cold readers) or the
+   membership ask (known subscribers). */
 
 /* Inline end-of-article block. Conditionally mounted on finish, so it
    rises into the content flow exactly as the reader arrives. */
@@ -802,23 +708,6 @@ a.no-underline {
     transform: translateY(0);
   }
 }
-.finisher-inline .finisher-badge {
-  width: 54px;
-  height: 54px;
-  margin-bottom: 0.4rem;
-}
-.finisher-inline .finisher-badge-mark {
-  font-size: 1.4rem;
-}
-.finisher-inline-eyebrow {
-  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
-  font-size: 0.62rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--eye-deep);
-  margin: 0;
-}
 .finisher-inline-recognition {
   font-family: var(--font-source-serif), Georgia, serif;
   font-style: italic;
@@ -827,13 +716,6 @@ a.no-underline {
   color: var(--ink);
   margin: 0;
   max-width: 26rem;
-}
-.finisher-inline-member {
-  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
-  font-size: 0.95rem;
-  letter-spacing: 0.04em;
-  color: var(--ink-muted);
-  margin: 0.35rem 0 0;
 }
 .finisher-ask {
   margin-top: 0.9rem;
@@ -851,18 +733,8 @@ a.no-underline {
   max-width: 26rem;
 }
 
-/* Reduced motion: keep the recognition, drop the theatrics. */
+/* Reduced motion: no rise animation, the block just appears. */
 @media (prefers-reduced-motion: reduce) {
-  .finisher-toast {
-    transition: opacity 0.3s linear;
-    transform: none;
-  }
-  .finisher-toast--show {
-    transform: none;
-  }
-  .finisher-shimmer {
-    display: none;
-  }
   .finisher-inline {
     animation: none;
   }

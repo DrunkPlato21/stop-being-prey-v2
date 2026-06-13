@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { track } from "@/lib/track";
+import { markSubscribed } from "@/lib/subscribed";
 import type { TrackSource } from "@/lib/analytics";
 
 // Posts to a same-origin Next.js route handler that forwards to Kit
@@ -48,6 +49,9 @@ export function EmailSignup({
       }
       setStatus("success");
       track("sub_success", { source, slug });
+      // Remember the win locally so ask-routing surfaces (e.g. the
+      // finisher block) stop pitching the list to someone already on it.
+      markSubscribed();
     } catch (err) {
       setStatus("error");
       setErrorMessage(

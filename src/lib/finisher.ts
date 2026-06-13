@@ -61,8 +61,9 @@ function write(state: FinisherState): void {
 }
 
 /** Whether to surface the membership ask on a finish at `count`, given how
-    many asks have already been shown. Non-member gating happens at the
-    caller. First finish always asks; then every Nth; never after back-off. */
+    many asks have already been shown. Eligibility gating (non-member AND
+    already on the email list) happens at the caller. First finish always
+    asks; then every Nth; never after back-off. */
 export function shouldShowAsk(count: number, asksShown: number): boolean {
   if (asksShown >= ASK_BACKOFF_AFTER) return false;
   if (count <= 1) return true;
@@ -73,10 +74,15 @@ export function shouldShowAsk(count: number, asksShown: number): boolean {
  * Register a finish for `slug` and resolve whether the membership ask
  * should show this time. Single read+write. Returns the post-increment
  * finish count and the ask decision so the component can render in one pass.
+ *
+ * `askEligible` is the caller's routing decision (non-member who is
+ * already a list subscriber). When false the cadence is neither consulted
+ * nor consumed, so a cold reader who subscribes later starts the
+ * membership cadence fresh.
  */
 export function registerFinish(
   slug: string,
-  isMember: boolean
+  askEligible: boolean
 ): { count: number; showAsk: boolean; firstFinish: boolean } {
   const prev = readFinisher();
 
@@ -88,7 +94,7 @@ export function registerFinish(
   if (prev.slugs.includes(slug)) {
     return {
       count: prev.count,
-      showAsk: !isMember && prev.asked.includes(slug),
+      showAsk: askEligible && prev.asked.includes(slug),
       firstFinish: false,
     };
   }
@@ -98,7 +104,7 @@ export function registerFinish(
   const count = prev.count + 1;
   const slugs = [...prev.slugs, slug];
   let asked = prev.asked;
-  const showAsk = !isMember && shouldShowAsk(count, asked.length);
+  const showAsk = askEligible && shouldShowAsk(count, asked.length);
   if (showAsk) asked = [...asked, slug];
 
   write({ count, slugs, asked });

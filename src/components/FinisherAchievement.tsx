@@ -1,95 +1,45 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { computeReadingProgress } from "@/lib/reading-progress";
 import { registerFinish } from "@/lib/finisher";
+import { isKnownSubscriber } from "@/lib/subscribed";
 import { track } from "@/lib/track";
+import { EmailSignup } from "@/components/EmailSignup";
 
-// Finisher Achievement. Mounts NOTHING until the reader genuinely reaches
+// End-of-read capture. Mounts NOTHING until the reader genuinely reaches
 // the end of #reading-region (the same scroll_100 signal ReadingTracker
-// uses). On finish it materializes two things, so arriving IS the reward:
-//   1. a non-blocking achievement toast (portal, auto-dismisses, never
-//      traps the reader — no modal, ever)
-//   2. an inline end-of-article block that animates into the content flow
+// uses) — the highest-intent moment on the page. No toast, no badge, no
+// "achievement" theatrics: 2,318 gamified membership asks produced 2
+// checkout clicks and 0 members, so the block now matches the page's
+// register and routes by who the reader is:
+//   - member: nothing. They own the room already.
+//   - non-member, not on the email list: the free-list form (the proven
+//     converter for cold readers), tracked as sub_submit/sub_success
+//     under source "finisher".
+//   - non-member, already on the list: the membership ask, still
+//     cadence-capped (see lib/finisher).
 //
-// Recognition recurs on every finish. The membership ask is non-members
-// only and cadence-capped (see lib/finisher). Members are celebrated and
-// never pitched something they already own.
-//
-// All copy here is PLACEHOLDER for Clay to finalize in his voice.
+// Email-ask copy is PLACEHOLDER for Clay; the membership ASK_LINE is his
+// finalized voice, carried over.
 
-const TOAST_ENTER_MS = 520;
-const TOAST_HOLD_MS = 5200;
-const TOAST_EXIT_MS = 460;
-
-const TOAST_LINE = "You read the whole thing. In this economy.";
 const RECOGNITION =
   "Only about half who start a piece this long finish it. You did.";
 
-function memberLine(count: number): string {
-  return count > 1 ? `Another one down. ${count} finished.` : "Another one down.";
-}
+const LIST_LINE =
+  "The next one can land in your inbox the day it ships. No algorithm deciding whether you see it.";
 
-// Finalized non-member ask (Clay's voice). One ask line now; the cadence
-// cap in lib/finisher still governs how OFTEN it shows, and the stored
-// finish-count stays available for a future escalation/streak layer.
+// Finalized non-member ask (Clay's voice). Shown only to readers already
+// on the email list; the cadence cap in lib/finisher governs how OFTEN.
 // (Em dash from the source copy swapped to periods per the no-em-dash rule.)
 const ASK_LINE =
   "You read to the end. So does everyone in the room. The members-only conversation you won't find anywhere else. You just proved you belong in it. Take your seat, and you keep the whole thing alive while you're at it.";
 const ASK_CTA = "Take a seat";
 
-type Resolved = { count: number; showAsk: boolean };
+type Resolved = { showAsk: boolean; subscriber: boolean };
 
-function Badge() {
-  return (
-    <span className="finisher-badge" aria-hidden="true">
-      <span className="finisher-badge-mark">&#10038;</span>
-      <span className="finisher-shimmer" />
-    </span>
-  );
-}
-
-function AchievementToast({ onDone }: { onDone: () => void }) {
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setShown(true));
-    const t1 = window.setTimeout(
-      () => setShown(false),
-      TOAST_ENTER_MS + TOAST_HOLD_MS
-    );
-    const t2 = window.setTimeout(
-      onDone,
-      TOAST_ENTER_MS + TOAST_HOLD_MS + TOAST_EXIT_MS
-    );
-    return () => {
-      cancelAnimationFrame(raf);
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-    };
-  }, [onDone]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className={`finisher-toast${shown ? " finisher-toast--show" : ""}`}
-      role="status"
-      aria-live="polite"
-    >
-      <Badge />
-      <span className="finisher-toast-text">
-        <span className="finisher-toast-eyebrow">Achievement unlocked</span>
-        <span className="finisher-toast-line">{TOAST_LINE}</span>
-      </span>
-    </div>,
-    document.body
-  );
-}
-
-function FinisherAsk() {
+function MembershipAsk() {
   // The CTA carries ?src=finisher to /membership; checkout_started and
   // became_member are recorded server-side (checkout route + webhook),
   // attributed to this source, so there's no client double-count.
@@ -106,24 +56,12 @@ function FinisherAsk() {
   );
 }
 
-function FinisherInline({
-  isMember,
-  resolved,
-}: {
-  isMember: boolean;
-  resolved: Resolved;
-}) {
+function ListAsk({ slug }: { slug: string }) {
   return (
-    <aside className="finisher-inline" aria-label="Reading achievement">
-      <Badge />
-      <p className="finisher-inline-eyebrow">Achievement unlocked</p>
-      <p className="finisher-inline-recognition">{RECOGNITION}</p>
-      {isMember ? (
-        <p className="finisher-inline-member">{memberLine(resolved.count)}</p>
-      ) : resolved.showAsk ? (
-        <FinisherAsk />
-      ) : null}
-    </aside>
+    <div className="finisher-ask">
+      <p className="finisher-ask-line">{LIST_LINE}</p>
+      <EmailSignup source="finisher" slug={slug} />
+    </div>
   );
 }
 
@@ -137,10 +75,12 @@ export function FinisherAchievement({
   regionId?: string;
 }) {
   const [resolved, setResolved] = useState<Resolved | null>(null);
-  const [toastOpen, setToastOpen] = useState(false);
   const firedRef = useRef(false);
 
   useEffect(() => {
+    // Members get no block at all; don't even watch the scroll.
+    if (isMember) return;
+
     const region = document.getElementById(regionId);
     if (!region) return;
 
@@ -153,15 +93,19 @@ export function FinisherAchievement({
     const finish = () => {
       if (firedRef.current) return;
       firedRef.current = true;
-      const r = registerFinish(slug, isMember);
-      // Count each distinct piece once: a refresh re-finish still shows the
-      // recognition (rewarding), but shouldn't inflate the funnel.
+      const subscriber = isKnownSubscriber();
+      const r = registerFinish(slug, subscriber);
+      // Count each distinct piece once: a refresh re-finish still shows
+      // the block (stable), but shouldn't inflate the funnel.
+      // achievement_shown = "the end-of-read block rendered", the
+      // denominator for both ask flavors.
       if (r.firstFinish) {
         track("achievement_shown", { slug });
-        if (r.showAsk) track("ask_shown", { slug, source: "finisher" });
+        if (subscriber && r.showAsk) {
+          track("ask_shown", { slug, source: "finisher" });
+        }
       }
-      setResolved(r);
-      setToastOpen(true);
+      setResolved({ showAsk: r.showAsk, subscriber });
       cleanup();
     };
 
@@ -183,12 +127,16 @@ export function FinisherAchievement({
     return cleanup;
   }, [slug, isMember, regionId]);
 
-  if (!resolved) return null;
+  if (isMember || !resolved) return null;
+
+  // A subscriber outside the ask cadence gets nothing — the quiet "no"
+  // they've expressed through behavior is respected, same as before.
+  if (resolved.subscriber && !resolved.showAsk) return null;
 
   return (
-    <>
-      {toastOpen && <AchievementToast onDone={() => setToastOpen(false)} />}
-      <FinisherInline isMember={isMember} resolved={resolved} />
-    </>
+    <aside className="finisher-inline" aria-label="End of piece">
+      <p className="finisher-inline-recognition">{RECOGNITION}</p>
+      {resolved.subscriber ? <MembershipAsk /> : <ListAsk slug={slug} />}
+    </aside>
   );
 }
