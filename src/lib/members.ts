@@ -12,15 +12,36 @@ import { Redis } from "@upstash/redis";
 //   member:by-session:<sessionId>    STRING email (idempotency dedupe for checkout.session.completed retries)
 //   members:all                      ZSET, score=createdAt, member=email (fan-out broadcast index)
 
-const FOUNDER_KEY = "founder:claimed";
+// SAFETY: dev sandbox namespace, same reasoning as coins.ts / pool.ts.
+// Local dev shares ONE production Redis, so without this, granting a
+// seat or creating a member while testing on localhost writes a real
+// member:<email> the live site reads. This prefix pushes member writes
+// made outside production into a separate `dev:` keyspace the live site
+// never reads. Production (NODE_ENV=production on Vercel) uses no prefix.
+// MEMBERS_KEY_PREFIX overrides both — set it to "" to read/write the
+// live keyspace from a local box on purpose. Keys off NODE_ENV, so
+// sandboxing applies under `npm run dev`, NOT `build && start`.
+//
+// Exported so the few consumers that scan member keys directly
+// (lib/activity.ts, the admin backfill route) stay in the same keyspace.
+const KEY_PREFIX =
+  process.env.MEMBERS_KEY_PREFIX ??
+  (process.env.NODE_ENV === "production" ? "" : "dev:");
+
+const FOUNDER_KEY = `${KEY_PREFIX}founder:claimed`;
 export const FOUNDER_CAP = 100;
-const CHARTER_KEY = "charter:claimed";
+const CHARTER_KEY = `${KEY_PREFIX}charter:claimed`;
 export const CHARTER_CAP = 100;
 
-const MEMBER_PREFIX = "member:";
-const MEMBER_BY_CUSTOMER_PREFIX = "member:by-customer:";
-const MEMBER_BY_SESSION_PREFIX = "member:by-session:";
-const MEMBERS_ALL_INDEX = "members:all";
+export const MEMBER_PREFIX = `${KEY_PREFIX}member:`;
+export const MEMBER_BY_CUSTOMER_PREFIX = `${KEY_PREFIX}member:by-customer:`;
+export const MEMBER_BY_SESSION_PREFIX = `${KEY_PREFIX}member:by-session:`;
+export const MEMBERS_ALL_INDEX = `${KEY_PREFIX}members:all`;
+
+/** True when member writes are landing in the production keyspace. */
+export function isMembersProduction(): boolean {
+  return KEY_PREFIX === "";
+}
 
 export type Tier = "founder" | "charter" | "regular";
 

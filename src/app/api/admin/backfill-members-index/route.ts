@@ -1,5 +1,11 @@
 import { Redis } from "@upstash/redis";
-import type { MemberRecord } from "@/lib/members";
+import {
+  MEMBER_PREFIX,
+  MEMBER_BY_CUSTOMER_PREFIX as BY_CUSTOMER_PREFIX,
+  MEMBER_BY_SESSION_PREFIX as BY_SESSION_PREFIX,
+  MEMBERS_ALL_INDEX,
+  type MemberRecord,
+} from "@/lib/members";
 
 // One-shot (idempotent) backfill for the members:all ZSET index.
 // Walks every member:<email> key, skips the reverse-index keys
@@ -14,10 +20,6 @@ import type { MemberRecord } from "@/lib/members";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MEMBER_PREFIX = "member:";
-const BY_CUSTOMER_PREFIX = "member:by-customer:";
-const BY_SESSION_PREFIX = "member:by-session:";
-const MEMBERS_ALL_INDEX = "members:all";
 const SCAN_PAGE_SIZE = 200;
 
 let cached: Redis | null = null;

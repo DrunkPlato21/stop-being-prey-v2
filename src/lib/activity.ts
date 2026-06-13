@@ -3,6 +3,7 @@ import {
   type CommentRecord,
   type CommentKind,
 } from "./comments";
+import { MEMBER_PREFIX } from "./members";
 
 // Activity stripe aggregator. Pulls "stuff that happened in the last
 // N hours" across three lanes (new members, comments, wall donations)
@@ -97,9 +98,9 @@ export async function getRecentActivity({
   // member counts are low; if member volume grows we'll add a sorted
   // index keyed by createdAt.
   try {
-    const memberKeys = (await client.keys("member:*")) ?? [];
+    const memberKeys = (await client.keys(`${MEMBER_PREFIX}*`)) ?? [];
     const detailKeys = memberKeys.filter(
-      (k) => !k.startsWith("member:by-")
+      (k) => !k.startsWith(`${MEMBER_PREFIX}by-`)
     );
     if (detailKeys.length > 0) {
       const rawMembers = (await client.mget<(string | null)[]>(
