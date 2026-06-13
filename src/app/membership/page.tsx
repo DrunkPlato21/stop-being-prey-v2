@@ -786,8 +786,10 @@ export default async function MembershipLandingPage({
           FAQ. Catches two readers: the convinced member who wants to
           bring someone in, and the visitor who isn't buying for
           themselves but knows exactly who needs this. Single link out
-          to /membership/gift; the full pitch lives there. */}
-      <section className="max-w-2xl mx-auto px-6 py-14 md:py-20 text-center">
+          to /membership/gift; the full pitch lives there. Minimal own
+          padding — the EyeDividers on either side already carry 4rem of
+          breathing room, so a short block doesn't need to add more. */}
+      <section className="max-w-2xl mx-auto px-6 text-center">
         <p className="eyebrow mb-4">Pay it forward</p>
         <p
           className="font-serif text-ink leading-relaxed mb-7 max-w-md mx-auto"
