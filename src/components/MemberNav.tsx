@@ -77,7 +77,13 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
         aria-label="Member area"
         className="md:hidden sticky top-0 z-20 bg-paper-deep/95 backdrop-blur-sm border-b border-rule"
       >
-        <ul className="flex items-stretch justify-center max-w-3xl mx-auto px-2">
+        {/* flex-wrap so the strip flows onto a second row instead of
+            overflowing the page sideways. The item count outgrew the
+            single-row mobile design (now 8), and on a narrow phone an
+            overflowing row pushed the whole document wider — breaking
+            fixed/centered overlays too. Wrapping keeps every item
+            reachable and the page width pinned to the viewport. */}
+        <ul className="flex flex-wrap items-stretch justify-center max-w-3xl mx-auto px-2">
           {ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
             const showDot = hasDot(item.href);
@@ -86,7 +92,7 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
                 <Link
                   href={item.href}
                   className={
-                    "font-display uppercase tracking-[0.22em] no-underline px-4 py-3 transition-colors " +
+                    "font-display uppercase tracking-[0.18em] no-underline px-3 py-2.5 transition-colors " +
                     (active
                       ? "text-eye-deep"
                       : "text-ink-muted hover:text-ink")
