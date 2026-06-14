@@ -28,7 +28,7 @@ import { isWatchFeedEnabled, listWatchPosts } from "@/lib/watch-feed";
 import {
   getCharterSlot,
   getFounderSlot,
-  getMember,
+  getMembersByEmails,
   getTierBadge,
   type TierBadge,
 } from "@/lib/members";
@@ -133,19 +133,12 @@ export default async function LoungePage() {
       ),
     ])
   );
-  const memberBadgesEntries = await Promise.all(
-    uniqueEmails.map(async (email) => {
-      const m = await getMember(email).catch(() => null);
-      return [
-        email,
-        {
-          founderSlot: getFounderSlot(m),
-          charterSlot: getCharterSlot(m),
-          tierBadge: getTierBadge(m),
-        },
-      ] as const;
-    })
-  );
+  // One batched MGET for every author's record instead of a fan-out of
+  // one getMember per unique email — the same shape the /api/lounge GET
+  // already uses. On a busy thread this collapses N Redis round-trips
+  // into one, which was a meaningful chunk of the page's first-paint
+  // latency.
+  const memberMap = await getMembersByEmails(uniqueEmails);
   const initialMemberBadges: Record<
     string,
     {
@@ -153,7 +146,15 @@ export default async function LoungePage() {
       charterSlot: number | null;
       tierBadge: TierBadge | null;
     }
-  > = Object.fromEntries(memberBadgesEntries);
+  > = {};
+  for (const email of uniqueEmails) {
+    const m = memberMap.get(email.toLowerCase().trim()) ?? null;
+    initialMemberBadges[email] = {
+      founderSlot: getFounderSlot(m),
+      charterSlot: getCharterSlot(m),
+      tierBadge: getTierBadge(m),
+    };
+  }
 
   const adminUser = isAdmin(session.email);
   const adminEmailNormalized =
