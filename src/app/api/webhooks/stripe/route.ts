@@ -61,6 +61,7 @@ import {
   updateGift,
 } from "@/lib/gifts";
 import {
+  createFundedPoolSeat,
   getPoolFund,
   getPoolFundBySession,
   getPoolRequest,
@@ -796,18 +797,43 @@ async function handlePoolFunding(
   await recordEvent("pool_funded", { source: "pool" });
 
   const termLabel = funded.termMonths === 3 ? "3 months" : "1 year";
+  const seats = funded.seats && funded.seats > 1 ? funded.seats : 1;
 
-  // Atomically hand the seat to the front waiter, or park it as
-  // available. A matched waiter has already confirmed their email, so
-  // it's safe to grant directly here.
-  const placement = await placeFundedSeat(fund.id);
-  if (placement.kind === "matched") {
-    await grantPoolSeatToWaiter(placement.requestId, funded.id, funded.termMonths);
+  // Drop each funded seat into the pool: hand it to the front waiter, or
+  // park it as available. A matched waiter has already confirmed their
+  // email, so it's safe to grant directly here. For a single-seat order
+  // the order fund IS the seat; for a multi-seat order we mint N child
+  // seats (each a normal single-seat fund) so they're claimed one by one.
+  const place = async (seatFundId: string) => {
+    const placement = await placeFundedSeat(seatFundId);
+    if (placement.kind === "matched") {
+      await grantPoolSeatToWaiter(
+        placement.requestId,
+        seatFundId,
+        funded.termMonths
+      );
+    }
+  };
+
+  if (seats <= 1) {
+    await place(funded.id);
+  } else {
+    for (let i = 0; i < seats; i++) {
+      const child = await createFundedPoolSeat({
+        parentFundId: funded.id,
+        termMonths: funded.termMonths,
+        amountCents: funded.amountCents,
+        buyerEmail: buyerEmail || null,
+        buyerName,
+        message: funded.message,
+      });
+      if (child) await place(child.id);
+    }
   }
 
   // Always thank the giver (when Stripe captured an email).
   if (buyerEmail) {
-    await sendPoolFundThankYouEmail({ to: buyerEmail, termLabel }).catch(
+    await sendPoolFundThankYouEmail({ to: buyerEmail, termLabel, seats }).catch(
       (err) => {
         console.error(
           `[pool] fund thank-you email failed for ${buyerEmail}:`,

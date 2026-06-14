@@ -22,6 +22,7 @@ const IP_LIMIT = 10; // checkout creates per hour per IP
 const WINDOW_SECONDS = 60 * 60;
 const MAX_MESSAGE_LENGTH = 280;
 const MAX_NAME_LENGTH = 80;
+const MAX_SEATS = 25;
 
 export async function POST(req: NextRequest) {
   if (!isPoolStorageConfigured()) {
@@ -38,11 +39,19 @@ export async function POST(req: NextRequest) {
   const rawTerm = (body as { termMonths?: unknown })?.termMonths;
   const rawName = (body as { buyerName?: unknown })?.buyerName;
   const rawMessage = (body as { message?: unknown })?.message;
+  const rawSeats = (body as { seats?: unknown })?.seats;
 
   const term = giftTermByMonths(typeof rawTerm === "number" ? rawTerm : NaN);
   if (!term) {
     return Response.json({ error: "invalid_term" }, { status: 400 });
   }
+
+  // Seats per checkout, clamped 1..MAX_SEATS so a multi-seat order can't
+  // mint an unbounded fan-out of child seats on the webhook.
+  const seats =
+    typeof rawSeats === "number" && Number.isFinite(rawSeats)
+      ? Math.min(Math.max(Math.floor(rawSeats), 1), MAX_SEATS)
+      : 1;
 
   const buyerName =
     typeof rawName === "string" && rawName.trim().length > 0
@@ -72,6 +81,7 @@ export async function POST(req: NextRequest) {
     message,
     termMonths: term.months,
     amountCents: term.amountCents,
+    seats,
   });
   if (!fund) {
     return Response.json({ error: "storage_unavailable" }, { status: 503 });
@@ -82,6 +92,7 @@ export async function POST(req: NextRequest) {
     termMonths: term.months,
     termLabel: term.label,
     amountCents: term.amountCents,
+    seats,
   });
   if ("error" in result) {
     const status =

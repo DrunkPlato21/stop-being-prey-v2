@@ -76,7 +76,14 @@ export type PoolFund = {
       kept for the giver's own thank-you context and admin. */
   message: string | null;
   termMonths: GiftTermMonths;
+  /** Per-seat price. The Stripe charge is amountCents * seats. */
   amountCents: number;
+  /** Seats this payment funds (default 1). When > 1 the record is the
+      ORDER; the webhook fans out `seats` child seats (each a single-seat
+      fund with parentFundId set) that are individually claimable. */
+  seats?: number;
+  /** Set on a child seat minted from a multi-seat order. */
+  parentFundId?: string | null;
   status: PoolFundStatus;
   stripeSessionId: string | null;
   stripePaymentIntentId: string | null;
@@ -114,6 +121,9 @@ export type PoolRequest = {
   grantedAt: number | null;
   /** Membership end (grantedAt + term), for admin display. */
   membershipExpiresAt: number | null;
+  /** "Keep your seat" reminder dispatched (the expiry cron sets this
+      once). Absent on legacy/un-reminded grants. */
+  reminderSentAt?: number | null;
 };
 
 /** Confirm links are good for 72h; after that the claimer re-submits. */
@@ -157,6 +167,8 @@ export async function createPoolFund(args: {
   message: string | null;
   termMonths: GiftTermMonths;
   amountCents: number;
+  /** Seats this payment funds; default 1. */
+  seats?: number;
 }): Promise<PoolFund | null> {
   const client = getClient();
   if (!client) return null;
@@ -168,12 +180,53 @@ export async function createPoolFund(args: {
     message: args.message,
     termMonths: args.termMonths,
     amountCents: args.amountCents,
+    seats: args.seats && args.seats > 1 ? Math.floor(args.seats) : 1,
+    parentFundId: null,
     status: "pending",
     stripeSessionId: null,
     stripePaymentIntentId: null,
     createdAt: now,
     updatedAt: now,
     paidAt: null,
+    claimedByRequestId: null,
+    claimedAt: null,
+  };
+  await client.set(`${K.fund}${record.id}`, JSON.stringify(record));
+  await client.zadd(K.fundsAll, { score: now, member: record.id });
+  return record;
+}
+
+/**
+ * Mint a single, already-funded child seat from a multi-seat order. Each
+ * child is an ordinary single-seat fund (so the existing claim/grant path
+ * works unchanged) tagged with its parent order. Returns the seat record.
+ */
+export async function createFundedPoolSeat(args: {
+  parentFundId: string;
+  termMonths: GiftTermMonths;
+  amountCents: number;
+  buyerEmail: string | null;
+  buyerName: string | null;
+  message: string | null;
+}): Promise<PoolFund | null> {
+  const client = getClient();
+  if (!client) return null;
+  const now = Date.now();
+  const record: PoolFund = {
+    id: randomUUID(),
+    buyerEmail: args.buyerEmail,
+    buyerName: args.buyerName,
+    message: args.message,
+    termMonths: args.termMonths,
+    amountCents: args.amountCents,
+    seats: 1,
+    parentFundId: args.parentFundId,
+    status: "funded",
+    stripeSessionId: null,
+    stripePaymentIntentId: null,
+    createdAt: now,
+    updatedAt: now,
+    paidAt: now,
     claimedByRequestId: null,
     claimedAt: null,
   };
@@ -280,6 +333,7 @@ export async function createPoolRequest(args: {
     confirmedAt: null,
     grantedAt: null,
     membershipExpiresAt: null,
+    reminderSentAt: null,
   };
   await client.set(`${K.request}${record.id}`, JSON.stringify(record));
   await client.set(`${K.requestByToken}${record.confirmToken}`, record.id);
@@ -383,6 +437,26 @@ export async function markRequestExpired(
   const next = await updatePoolRequest(id, { status: "expired" });
   if (next) await clearRequestEmailIndex(next.email);
   return next;
+}
+
+/** Stamp the "keep your seat" reminder so the expiry cron sends it once. */
+export async function markRequestReminded(
+  id: string
+): Promise<PoolRequest | null> {
+  return updatePoolRequest(id, { reminderSentAt: Date.now() });
+}
+
+/** Every pool request id, for the daily expiry-reminder cron scan.
+    Reads the env's own keyspace (prod in production). */
+export async function listAllPoolRequestIds(): Promise<string[]> {
+  const client = getClient();
+  if (!client) return [];
+  const raw = await client
+    .zrange(K.requestsAll, 0, -1)
+    .catch(() => [] as unknown[]);
+  return Array.isArray(raw)
+    ? raw.filter((v): v is string => typeof v === "string")
+    : [];
 }
 
 async function clearRequestEmailIndex(email: string): Promise<void> {

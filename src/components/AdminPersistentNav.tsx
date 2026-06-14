@@ -41,7 +41,6 @@ const SECONDARY: NavItem[] = [
     label: "Case submissions",
     badgeSection: "case-submissions",
   },
-  { href: "/admin/lounge/moderation", label: "Lounge log" },
   { href: "/admin/book", label: "Book" },
   { href: "/admin/members", label: "Members" },
   { href: "/admin/pool", label: "Seat pool" },

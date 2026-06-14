@@ -5,9 +5,17 @@ import {
   reminderWindowDays,
   updateGift,
 } from "@/lib/gifts";
+import {
+  getPoolRequest,
+  listAllPoolRequestIds,
+  markRequestReminded,
+} from "@/lib/pool";
 import { getMember, saveMember } from "@/lib/members";
 import { baseUrl } from "@/lib/membership";
-import { sendGiftExpiryReminderEmail } from "@/lib/email";
+import {
+  sendGiftExpiryReminderEmail,
+  sendPoolExpiryReminderEmail,
+} from "@/lib/email";
 import { createNotification } from "@/lib/notifications";
 
 // GET /api/cron/gift-reminders
@@ -102,5 +110,89 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return Response.json({ ok: true, scanned: ids.length, remindersSent, lapsed });
+  // === Pool pass: the same arc for free (pooled) seats =============
+  // Pool grants use the same prepaid-seat mechanism as gifts but are
+  // tracked on the claim REQUEST (status granted, membershipExpiresAt).
+  // Mirror the gift logic: nudge near expiry, lapse-cancel past it. We
+  // act only while the member is still riding THIS pooled seat
+  // (member.viaPoolFundId === the request's seat) — a member who
+  // converted to their own card gets a fresh record without that field.
+  const poolIds = await listAllPoolRequestIds();
+  let poolRemindersSent = 0;
+  let poolLapsed = 0;
+
+  for (const id of poolIds) {
+    const req = await getPoolRequest(id).catch(() => null);
+    if (
+      !req ||
+      req.status !== "granted" ||
+      !req.membershipExpiresAt ||
+      !req.termMonths ||
+      !req.seatFundId
+    ) {
+      continue;
+    }
+
+    const member = await getMember(req.email).catch(() => null);
+    const onThisSeat = !!member && member.viaPoolFundId === req.seatFundId;
+
+    // Lapse: term over, member still on this pooled seat.
+    if (req.membershipExpiresAt <= now) {
+      if (
+        onThisSeat &&
+        (member!.status === "active" || member!.status === "trialing")
+      ) {
+        await saveMember({ ...member!, status: "canceled", updatedAt: now });
+        poolLapsed++;
+      }
+      continue;
+    }
+
+    // Reminder: inside the window, not sent, still on the pooled seat.
+    if (req.reminderSentAt || !onThisSeat) continue;
+    const poolWindowMs =
+      reminderWindowDays(req.termMonths) * 24 * 60 * 60 * 1000;
+    if (req.membershipExpiresAt - now > poolWindowMs) continue;
+
+    const membershipUrl = `${baseUrl()}/membership?src=pool`;
+    const expiresAtLabel = new Date(req.membershipExpiresAt).toLocaleDateString(
+      "en-US",
+      { month: "long", day: "numeric", year: "numeric" }
+    );
+    const sent = await sendPoolExpiryReminderEmail({
+      to: req.email,
+      expiresAtLabel,
+      membershipUrl,
+    });
+    if (sent.ok) {
+      await markRequestReminded(req.id);
+      poolRemindersSent++;
+      await createNotification({
+        memberEmail: req.email,
+        type: "payment_failed",
+        title: "Your seat is almost up.",
+        body: `The seat a reader covered for you ends ${expiresAtLabel}. Keep it going.`,
+        linkUrl: "/membership?src=pool",
+      }).catch((err) => {
+        console.error(
+          `[pool] reminder notification failed for ${req.email}:`,
+          err
+        );
+      });
+    } else {
+      console.error(
+        `[pool] reminder email failed for ${req.email}: ${sent.error}`
+      );
+    }
+  }
+
+  return Response.json({
+    ok: true,
+    scanned: ids.length,
+    remindersSent,
+    lapsed,
+    poolScanned: poolIds.length,
+    poolRemindersSent,
+    poolLapsed,
+  });
 }

@@ -1310,23 +1310,36 @@ export async function sendGiftExpiryReminderEmail(args: {
 export async function sendPoolFundThankYouEmail(args: {
   to: string;
   termLabel: string;
+  /** Seats funded in this payment (default 1). */
+  seats?: number;
 }): Promise<SendResult> {
   // DRAFT copy — Clay finalizes.
-  const subject = "you funded a seat";
+  const seats = args.seats && args.seats > 1 ? args.seats : 1;
+  const subject = seats > 1 ? `you funded ${seats} seats` : "you funded a seat";
+  const lead =
+    seats > 1
+      ? `you just funded ${seats} seats for people who couldn't swing it. ${escapeHtml(
+          args.termLabel
+        )} in the room each, no questions asked of them, no names on any side.`
+      : `you just funded a seat for someone who couldn't swing it. ${escapeHtml(
+          args.termLabel
+        )} in the room, no questions asked of them, no names on either side.`;
+  const leadText =
+    seats > 1
+      ? `you just funded ${seats} seats for people who couldn't swing it. ${args.termLabel} in the room each, no questions asked of them, no names on any side.`
+      : `you just funded a seat for someone who couldn't swing it. ${args.termLabel} in the room, no questions asked of them, no names on either side.`;
+  const tail =
+    seats > 1
+      ? "they go to whoever's waiting, or wait in the pool until the right people find them. either way, you put people in here who wouldn't be otherwise. thank you."
+      : "they may claim it today or it may wait in the pool until the right person finds it. either way, you put someone in here who wouldn't be otherwise. thank you.";
+
   const html = renderGiftShell(`<tr>
               <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:24px;">
-                <p style="margin:0 0 18px 0;">you just funded a seat for someone who couldn't swing it. ${escapeHtml(args.termLabel)} in the room, no questions asked of them, no names on either side.</p>
-                <p style="margin:0;">they may claim it today or it may wait in the pool until the right person finds it. either way, you put someone in here who wouldn't be otherwise. thank you.</p>
+                <p style="margin:0 0 18px 0;">${lead}</p>
+                <p style="margin:0;">${tail}</p>
               </td>
             </tr>`);
-  const text = [
-    `you just funded a seat for someone who couldn't swing it. ${args.termLabel} in the room, no questions asked of them, no names on either side.`,
-    "",
-    "they may claim it today or it may wait in the pool until the right person finds it. either way, you put someone in here who wouldn't be otherwise. thank you.",
-    "",
-    "stay close,",
-    "~ Clay",
-  ].join("\n");
+  const text = [leadText, "", tail, "", "stay close,", "~ Clay"].join("\n");
 
   return sendGiftLifecycleEmail({
     to: args.to,
@@ -1415,6 +1428,115 @@ export async function sendPoolWelcomeEmail(args: {
     html,
     text,
     logTag: "pool welcome",
+  });
+}
+
+export async function sendPoolWaitlistEmail(args: {
+  to: string;
+}): Promise<SendResult> {
+  // DRAFT copy — Clay finalizes.
+  const subject = "you're in line";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:24px;">
+                <p style="margin:0 0 18px 0;">you're in line for a seat. there isn't one free this second, but every seat is funded by another reader, and the moment the next one lands, it's yours.</p>
+                <p style="margin:0;">we'll email you the instant it opens. nothing more to do, and no need to ask again.</p>
+              </td>
+            </tr>`);
+  const text = [
+    "you're in line for a seat. there isn't one free this second, but every seat is funded by another reader, and the moment the next one lands, it's yours.",
+    "",
+    "we'll email you the instant it opens. nothing more to do, and no need to ask again.",
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "pool waitlist",
+  });
+}
+
+export async function sendPoolExpiryReminderEmail(args: {
+  to: string;
+  expiresAtLabel: string;
+  membershipUrl: string;
+}): Promise<SendResult> {
+  // DRAFT copy — Clay finalizes. Chain framing, not "renew or lose it".
+  const subject = "your seat is almost up";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;">a reader covered your seat in this room. that seat runs out on <strong style="color:#1a1714;">${escapeHtml(args.expiresAtLabel)}</strong>.</p>
+                <p style="margin:0 0 18px 0;">if the room has been worth it, keep it going on your own terms. pay what it's worth, cancel anytime. and someday, when you're able, cover the next person the way someone covered you.</p>
+              </td>
+            </tr>
+            ${giftButtonRow(args.membershipUrl, "Keep your seat")}`);
+  const text = [
+    `a reader covered your seat in this room. that seat runs out on ${args.expiresAtLabel}.`,
+    "",
+    "if the room has been worth it, keep it going on your own terms. pay what it's worth, cancel anytime. and someday, when you're able, cover the next person the way someone covered you.",
+    "",
+    `Keep your seat: ${args.membershipUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "pool expiry reminder",
+  });
+}
+
+// Admin alert: a member left a note on the Writer's Desk. Goes to Clay so
+// he's reached even when the Desk Alert tray app isn't running. Reuses
+// the gift shell for visual consistency. (Not member-facing — copy here
+// is functional, not voiced.)
+export async function sendDeskNoteAdminEmail(args: {
+  to: string;
+  fromName: string;
+  body: string;
+  notesUrl: string;
+}): Promise<SendResult> {
+  const subject = `New desk note from ${args.fromName}`;
+  const quoted = escapeHtml(args.body).replace(/\n/g, "<br/>");
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;"><strong style="color:#1a1714;">${escapeHtml(args.fromName)}</strong> left a note on your desk:</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 0 24px 0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;background:#f5efe1;">
+                  <tr>
+                    <td style="padding:14px 18px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;font-style:italic;color:#1a1714;">
+                      ${quoted}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            ${giftButtonRow(args.notesUrl, "Open your notes")}`);
+  const text = [
+    `${args.fromName} left a note on your desk:`,
+    "",
+    `"${args.body}"`,
+    "",
+    `Open your notes: ${args.notesUrl}`,
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "desk note admin alert",
   });
 }
 

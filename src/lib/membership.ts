@@ -622,6 +622,9 @@ export async function createPoolCheckoutSession(args: {
   termMonths: number;
   termLabel: string;
   amountCents: number;
+  /** Number of seats to fund in this one payment (default 1). The Stripe
+      line-item quantity, so the buyer is charged amountCents * seats. */
+  seats?: number;
 }): Promise<{ url: string; sessionId: string } | { error: CheckoutError }> {
   const stripe = client();
   if (!stripe) return { error: "stripe_not_configured" };
@@ -634,18 +637,22 @@ export async function createPoolCheckoutSession(args: {
     return { error: "invalid_amount" };
   }
 
+  const seats = args.seats && args.seats > 1 ? Math.floor(args.seats) : 1;
+  const seatLabel =
+    seats > 1 ? `${seats} seats, ${args.termLabel} each` : `Fund a seat, ${args.termLabel}`;
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
     line_items: [
       {
-        quantity: 1,
+        quantity: seats,
         price_data: {
           currency: "usd",
           unit_amount: args.amountCents,
           product_data: {
             // DRAFT copy — Clay finalizes.
-            name: `Fund a seat, ${args.termLabel}`,
+            name: seatLabel,
             description:
               "A seat inside Stop Being Prey for someone who can't afford one. One charge, no recurring billing.",
           },
@@ -658,6 +665,7 @@ export async function createPoolCheckoutSession(args: {
       lane: "pool",
       fund_id: args.fundId,
       term_months: String(args.termMonths),
+      seats: String(seats),
     },
     payment_intent_data: {
       metadata: {

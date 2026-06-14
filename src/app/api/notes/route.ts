@@ -7,6 +7,8 @@ import {
   isNotesConfigured,
   listByMember,
 } from "@/lib/notes";
+import { sendDeskNoteAdminEmail } from "@/lib/email";
+import { baseUrl } from "@/lib/membership";
 
 // Member-facing notes endpoint.
 //   POST /api/notes  — submit a note (signed-in members only)
@@ -67,6 +69,24 @@ export async function POST(req: NextRequest) {
     const status = result.error === "storage_unavailable" ? 503 : 400;
     return Response.json({ error: result.error }, { status });
   }
+
+  // Email alert so Clay is reached even when the Desk Alert tray app isn't
+  // running. Goes to DESK_NOTE_ALERT_EMAIL (or ADMIN_EMAIL); skipped if
+  // neither is set. Fire-and-forget — a failed alert must not fail the
+  // member's note.
+  const alertTo =
+    process.env.DESK_NOTE_ALERT_EMAIL || process.env.ADMIN_EMAIL;
+  if (alertTo) {
+    void sendDeskNoteAdminEmail({
+      to: alertTo,
+      fromName: displayName,
+      body: result.note.body,
+      notesUrl: `${baseUrl()}/admin/notes`,
+    }).catch((err) => {
+      console.error("[notes] desk-note admin alert failed:", err);
+    });
+  }
+
   return Response.json({ ok: true, note: result.note });
 }
 

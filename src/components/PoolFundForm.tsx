@@ -23,11 +23,17 @@ const TERMS: Term[] = [
 
 type Status = "idle" | "loading" | "error";
 
+const MAX_SEATS = 25;
+
 export function PoolFundForm() {
   const [months, setMonths] = useState<3 | 12>(12);
+  const [seats, setSeats] = useState(1);
   const [buyerName, setBuyerName] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+
+  const perSeat = months === 3 ? 39 : 130;
+  const total = perSeat * seats;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,6 +46,7 @@ export function PoolFundForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           termMonths: months,
+          seats,
           buyerName: buyerName || undefined,
         }),
       });
@@ -114,6 +121,39 @@ export function PoolFundForm() {
         })}
       </div>
 
+      {/* How many seats */}
+      <div className="flex items-center justify-between mb-6">
+        <span className="eyebrow">how many seats?</span>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            aria-label="one fewer seat"
+            onClick={() => setSeats((s) => Math.max(1, s - 1))}
+            disabled={status === "loading" || seats <= 1}
+            className="border border-rule w-9 h-9 font-display text-ink hover:border-ink disabled:opacity-40 disabled:cursor-not-allowed leading-none"
+            style={{ fontSize: "1.2rem" }}
+          >
+            −
+          </button>
+          <span
+            className="font-display text-ink text-center"
+            style={{ fontSize: "1.2rem", fontWeight: 700, minWidth: "2ch" }}
+          >
+            {seats}
+          </span>
+          <button
+            type="button"
+            aria-label="one more seat"
+            onClick={() => setSeats((s) => Math.min(MAX_SEATS, s + 1))}
+            disabled={status === "loading" || seats >= MAX_SEATS}
+            className="border border-rule w-9 h-9 font-display text-ink hover:border-ink disabled:opacity-40 disabled:cursor-not-allowed leading-none"
+            style={{ fontSize: "1.2rem" }}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
       {/* From name (optional, for Clay's records / the thank-you) */}
       <label className="block mb-6">
         <span className="eyebrow block mb-2">from (optional)</span>
@@ -134,7 +174,11 @@ export function PoolFundForm() {
         className="w-full bg-ink text-paper hover:bg-eye-deep px-6 py-4 font-display transition-colors text-sm uppercase tracking-widest disabled:opacity-60 disabled:cursor-not-allowed"
         style={{ fontWeight: 600 }}
       >
-        {status === "loading" ? "One moment..." : "Fund a seat"}
+        {status === "loading"
+          ? "One moment..."
+          : seats > 1
+            ? `Fund ${seats} seats · $${total}`
+            : "Fund a seat"}
       </button>
 
       <p

@@ -11,6 +11,7 @@ import { getMember, hasActiveGiftSeat } from "@/lib/members";
 import { emailHasActiveMembership } from "@/lib/membership";
 import { isAdmin } from "@/lib/comments";
 import { finalizePoolGrant } from "@/lib/seat-grants";
+import { sendPoolWaitlistEmail } from "@/lib/email";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { recordEvent } from "@/lib/analytics";
 
@@ -134,5 +135,8 @@ export async function POST(req: NextRequest) {
   // No seat free: held a place in line. Auto-granted when one funds.
   await markRequestWaiting(request.id);
   await recordEvent("pool_waitlisted", { source: "pool" });
+  await sendPoolWaitlistEmail({ to: request.email }).catch((err) => {
+    console.error(`[pool] waitlist email failed for ${request.email}:`, err);
+  });
   return Response.json({ state: "waitlisted" });
 }
