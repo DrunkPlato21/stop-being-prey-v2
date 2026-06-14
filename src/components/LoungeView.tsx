@@ -29,7 +29,7 @@ import { InitialAvatar } from "@/components/InitialAvatar";
 import { Linkified } from "@/components/Linkified";
 import { LoungeMedia } from "@/components/LoungeMedia";
 import { resizeImageToWebp } from "@/lib/image-resize";
-import { extractYouTubeId } from "@/lib/youtube";
+import { extractYouTubeId, stripYouTubeUrls } from "@/lib/youtube";
 import { mentionTokenFor } from "@/lib/display-name";
 import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
 import {
@@ -1535,10 +1535,36 @@ export function LoungeView(props: Props) {
                 type="button"
                 onClick={() => imageInputRef.current?.click()}
                 disabled={composing || uploadingImage || !!pendingImage}
-                className="font-display uppercase tracking-[0.14em] text-ink-muted hover:text-eye-deep disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ fontSize: "0.72rem", fontWeight: 600 }}
+                aria-label="Add a photo"
+                title="Add a photo"
+                className="text-ink hover:text-eye-deep disabled:opacity-40 disabled:cursor-not-allowed transition-colors -ml-1 p-1 leading-none"
               >
-                {uploadingImage ? "uploading…" : "+ Image"}
+                {uploadingImage ? (
+                  <span
+                    className="font-serif italic text-ink-muted"
+                    style={{ fontSize: "0.74rem" }}
+                  >
+                    uploading…
+                  </span>
+                ) : (
+                  // Universal "image" glyph (frame + sun + mountain) so it
+                  // reads as photo-upload at a glance, like any chat app.
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2.5" />
+                    <circle cx="8.5" cy="9" r="1.6" />
+                    <path d="M21 15.5 16 11 6.5 20.5" />
+                  </svg>
+                )}
               </button>
               <span
                 className={`font-serif italic ${
@@ -2273,12 +2299,23 @@ function PostCard(props: CardProps) {
       {isEditing ? (
         <EditBox edit={edit} cap={isAdmin ? MAX_BODY_ADMIN : MAX_BODY} />
       ) : (
-        <p
-          className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
-          style={{ fontSize: "1rem" }}
-        >
-          <Linkified text={post.body} highlightMentions />
-        </p>
+        (() => {
+          // When a YouTube link embeds below, drop the raw URL from the
+          // text — the player IS the link. A link-only post then renders
+          // no text block at all, just the embed. Stored body untouched.
+          const displayBody =
+            post.media?.type === "youtube"
+              ? stripYouTubeUrls(post.body)
+              : post.body;
+          return displayBody ? (
+            <p
+              className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
+              style={{ fontSize: "1rem" }}
+            >
+              <Linkified text={displayBody} highlightMentions />
+            </p>
+          ) : null;
+        })()
       )}
 
       {post.media && <LoungeMedia media={post.media} />}

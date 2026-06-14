@@ -29,7 +29,21 @@ export function isYouTubeId(id: string): boolean {
   return /^[A-Za-z0-9_-]{11}$/.test(id);
 }
 
-/** Thumbnail from YouTube's CDN (~10-30KB) for the click-to-play facade. */
+/**
+ * Remove YouTube URLs from text and tidy the whitespace they leave
+ * behind. Used at RENDER time on a post that has a YouTube embed, so the
+ * raw link doesn't sit redundantly above the player. The stored body is
+ * never mutated.
+ */
+export function stripYouTubeUrls(text: string): string {
+  return text
+    .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/\S+/gi, "")
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** Thumbnail from YouTube's CDN (~10-30KB). */
 export function youTubeThumb(id: string): string {
   return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 }

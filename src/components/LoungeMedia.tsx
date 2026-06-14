@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import type { LoungeMedia as Media, LoungeImageMedia } from "@/lib/lounge";
-import { youTubeEmbedUrl, youTubeThumb } from "@/lib/youtube";
 
-// Renders a post's media: an image (click to open a lightbox) or a
-// YouTube embed (click-to-play facade — only the ~20KB thumbnail loads
-// until the reader hits play, so a feed full of videos stays fast and
-// costs nothing). Type-only import of the union keeps the Redis-backed
-// lounge lib out of this client bundle.
+// Renders a post's media: an image (click to open a lightbox) or a clean
+// lazy-loaded 16:9 YouTube embed. YouTube's own player handles the poster
+// + play button, and loading="lazy" keeps its heavy JS from loading until
+// the embed scrolls into view — so it stays cheap without a custom
+// click-to-play facade (which fought the player and rendered janky).
+// Type-only import of the union keeps the Redis-backed lounge lib out of
+// this client bundle.
 
 export function LoungeMedia({ media }: { media: Media }) {
   if (media.type === "image") return <LoungeImage media={media} />;
@@ -66,31 +67,15 @@ function LoungeImage({ media }: { media: LoungeImageMedia }) {
 }
 
 function LoungeYouTube({ videoId }: { videoId: string }) {
-  const [playing, setPlaying] = useState(false);
-
-  if (playing) {
-    return (
-      <div className="lounge-media lounge-media-video">
-        <iframe
-          src={youTubeEmbedUrl(videoId)}
-          title="YouTube video"
-          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          allowFullScreen
-          loading="lazy"
-        />
-      </div>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={() => setPlaying(true)}
-      className="lounge-media lounge-media-video lounge-yt-facade"
-      aria-label="Play video"
-    >
-      <img src={youTubeThumb(videoId)} alt="" loading="lazy" draggable={false} />
-      <span className="lounge-yt-play" aria-hidden="true" />
-    </button>
+    <div className="lounge-media lounge-media-video">
+      <iframe
+        src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}
+        title="YouTube video"
+        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        loading="lazy"
+      />
+    </div>
   );
 }
