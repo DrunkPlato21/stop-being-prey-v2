@@ -139,7 +139,7 @@ export function PoolClaimForm() {
           disabled={state === "loading"}
           rows={3}
           maxLength={MAX_NOTE_LENGTH}
-          placeholder="not required. no proof, no explaining yourself."
+          placeholder="no need to justify anything. say what you want, or leave it blank."
           className="w-full border border-rule bg-paper px-4 py-3 text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink focus:bg-surface transition-colors font-serif text-base disabled:opacity-60 resize-y"
         />
         <span
@@ -163,7 +163,7 @@ export function PoolClaimForm() {
         className="font-serif italic text-ink-faint text-center mt-3"
         style={{ fontSize: "0.82rem" }}
       >
-        private, both ways. nobody sees who asked.
+        nobody sees that you asked.
       </p>
 
       {state === "error" && error && (

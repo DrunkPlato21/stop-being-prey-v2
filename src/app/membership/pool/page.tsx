@@ -41,23 +41,23 @@ export default function PoolClaimPage() {
               style={{ fontSize: "1.08rem" }}
             >
               Readers fund seats for people who can&apos;t swing the price
-              right now. If that&apos;s you, take one. No income proof, no
-              story to tell, no one judging whether you qualify.
+              right now. If that&apos;s you, take one. No proof, no
+              questions, nobody deciding whether you qualify.
             </p>
             <p
               className="font-serif text-ink leading-relaxed"
               style={{ fontSize: "1.08rem" }}
             >
-              This isn&apos;t charity and you&apos;re not a charity case.
-              Someone covered you. When you&apos;re able, you cover the next
-              person. Nobody&apos;s a handout here. Everybody&apos;s a link.
+              Someone covered you. When you&apos;re able, you&apos;ll cover
+              the next person. That&apos;s the whole thing. A chain, and
+              you&apos;re a link in it.
             </p>
             <p
               className="font-serif text-ink leading-relaxed"
               style={{ fontSize: "1.08rem" }}
             >
-              It&apos;s private on both ends. The person who funded your seat
-              never learns who took it, and you never learn who they were.
+              Private both ways: whoever funded your seat never learns who
+              took it, and you never learn who they were.
             </p>
           </div>
         </div>

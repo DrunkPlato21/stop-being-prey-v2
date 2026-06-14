@@ -63,9 +63,9 @@ export function PoolFundForm() {
         className="font-serif text-ink-muted leading-relaxed mb-6 text-center"
         style={{ fontSize: "1rem" }}
       >
-        Fund a seat for someone who can&apos;t swing it. No name needed.
-        It waits in the pool until the right person claims it, privately.
-        You&apos;ll never see who, and they&apos;ll never see you.
+        Fund a seat, and someone who can&apos;t afford it gets to be in the
+        room. No name needed. It waits in the pool until they claim it,
+        privately. You&apos;ll never see who, and they&apos;ll never see you.
       </p>
 
       {/* Term toggle */}
