@@ -6,6 +6,7 @@ import {
   emailHasActiveMembership,
   ensureDevMemberRecord,
 } from "@/lib/membership";
+import { getMember } from "@/lib/members";
 import { isAdmin } from "@/lib/comments";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
@@ -106,31 +107,47 @@ export async function POST(req: NextRequest) {
     return Response.json({ ok: true });
   }
 
-  // Look up the active membership status. Soft-fails to false when
-  // Stripe isn't configured, so dev environments don't pretend everyone
-  // is a member.
-  const status = await emailHasActiveMembership(email).catch((err) => {
-    console.error("[auth/request-link] membership lookup threw:", err);
-    return { active: false, customerId: null };
-  });
+  // Decide whether to send a login link. The webhook-maintained member
+  // record is the source of truth: if it says active/trialing, send.
+  //
+  // Resolving the member via a LIVE Stripe email-search
+  // (emailHasActiveMembership -> findCustomerByEmail) made login brittle:
+  // a case / secondary-email mismatch on the Stripe customer, or a
+  // transient Stripe error, silently locked real paying members out of
+  // their own account with no email and nothing in Resend (incident
+  // 2026-06-14: founder #12, active record + valid customer id, but the
+  // by-email search missed). Trust the record; fall back to the Stripe
+  // lookup only when there's no record yet — a just-completed checkout
+  // race, or the DEV_AUTO_GRANT path.
+  let customerId: string | null = null;
+  const member = await getMember(email).catch(() => null);
+  if (
+    member &&
+    (member.status === "active" || member.status === "trialing") &&
+    member.stripeCustomerId
+  ) {
+    customerId = member.stripeCustomerId;
+  } else {
+    const status = await emailHasActiveMembership(email).catch((err) => {
+      console.error("[auth/request-link] membership lookup threw:", err);
+      return { active: false, customerId: null };
+    });
+    // Dev grant path: DEV_AUTO_GRANT=1 makes the lookup active without a
+    // member record; bridge it so the chrome, comments, and badges see a
+    // real (test-mode) member.
+    await ensureDevMemberRecord(email).catch((err) => {
+      console.warn("[auth/request-link] ensureDevMemberRecord failed:", err);
+    });
+    if (status.active && status.customerId) customerId = status.customerId;
+  }
 
-  // Dev grant path: emailHasActiveMembership returns active:true for
-  // every email when DEV_AUTO_GRANT=1, but it doesn't write a member
-  // record. Bridge the gap here so the chrome, comments, and badge
-  // system all see this email as a real (test-mode) member.
-  await ensureDevMemberRecord(email).catch((err) => {
-    console.warn("[auth/request-link] ensureDevMemberRecord failed:", err);
-  });
-
-  if (!status.active || !status.customerId) {
-    // Silent success to the caller — don't leak whether the email is a
-    // member. But in dev, log loudly so a developer can tell why no
-    // email arrived. (DEV_AUTO_GRANT=1 short-circuits this whole path.)
+  if (!customerId) {
+    // Silent success — don't leak whether the email is a member. In dev,
+    // log loudly so a developer can tell why no email arrived.
     if (process.env.NODE_ENV !== "production") {
       console.warn(
-        `[auth/request-link] no active membership for ${email}; ` +
-          `skipping magic link send. Set DEV_AUTO_GRANT=1 in .env.local ` +
-          `to bypass the Stripe check while testing.`
+        `[auth/request-link] no active membership for ${email}; skipping ` +
+          `magic link send. Set DEV_AUTO_GRANT=1 to bypass while testing.`
       );
     }
     return Response.json({ ok: true });
@@ -138,7 +155,7 @@ export async function POST(req: NextRequest) {
 
   const id = await createMagicLink({
     email,
-    customerId: status.customerId,
+    customerId,
     next,
   });
   if (!id) {
