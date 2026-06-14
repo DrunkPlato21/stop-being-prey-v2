@@ -35,6 +35,18 @@ function isMemberRoute(pathname: string): boolean {
   );
 }
 
+// Join-flow / sales pages (/membership and its sub-pages: gift, pool,
+// success, account). These carry their own hero + sticky-bottom CTA, so a
+// second scroll-up bar with a redundant loud "Join" only competes — and
+// its nav links are just exits off the page you're trying to convert on.
+const JOIN_FLOW_PREFIXES = ["/membership"];
+
+function isJoinFlowRoute(pathname: string): boolean {
+  return JOIN_FLOW_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
 export type StickyNavProps = {
   signedIn: boolean;
   isPaidMember: boolean;
@@ -59,7 +71,7 @@ export function StickyNav({ signedIn, isPaidMember }: StickyNavProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  if (isMemberRoute(pathname)) return null;
+  if (isMemberRoute(pathname) || isJoinFlowRoute(pathname)) return null;
 
   return (
     <div

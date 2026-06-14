@@ -7,6 +7,7 @@ import { derivePresenceState, getPresence } from "@/lib/desk";
 import { IdentityMenu, type IdentityMenuProps } from "@/components/IdentityMenu";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { DeskPresenceIndicator } from "@/components/DeskPresenceIndicator";
+import { HeaderJoinLink } from "@/components/HeaderJoinLink";
 
 const navLinkClass =
   "header-nav-link text-ink hover:text-eye-deep transition-colors no-underline";
@@ -179,9 +180,9 @@ export async function Header() {
               <Link href="/notes/sign-in" className="header-signin">
                 Sign in
               </Link>
-              <Link href="/membership" className="header-subscribe">
-                Join
-              </Link>
+              {/* Hidden on the join-flow pages where it would just point
+                  at the current page; see HeaderJoinLink. */}
+              <HeaderJoinLink />
             </div>
           )}
         </div>
