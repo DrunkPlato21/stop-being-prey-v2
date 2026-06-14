@@ -238,6 +238,9 @@ export async function POST(req: NextRequest) {
   if (typeof rawBody !== "string") {
     return Response.json({ error: "missing_body" }, { status: 400 });
   }
+  // Raw media descriptor; createPost validates (image must be our Blob,
+  // YouTube is re-derived from the body, never trusted from the client).
+  const rawMedia = (body as { media?: unknown })?.media;
 
   const identity = await resolveIdentity(session.email);
   const result = await createPost({
@@ -246,6 +249,7 @@ export async function POST(req: NextRequest) {
     isFounder: identity.isFounder,
     body: rawBody,
     isAdmin: identity.isAdmin,
+    media: rawMedia,
   });
 
   if (!result.ok) {

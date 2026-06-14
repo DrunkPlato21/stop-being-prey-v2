@@ -9,6 +9,7 @@ import {
 } from "react";
 import type {
   ActiveNowSnapshot,
+  LoungeImageMedia,
   LoungePost,
   LoungeReply,
   ReactionCounts,
@@ -26,6 +27,9 @@ import { LoungeSceneIllustration } from "@/components/LoungeSceneIllustration";
 import { MemberBadge } from "@/components/MemberBadge";
 import { InitialAvatar } from "@/components/InitialAvatar";
 import { Linkified } from "@/components/Linkified";
+import { LoungeMedia } from "@/components/LoungeMedia";
+import { resizeImageToWebp } from "@/lib/image-resize";
+import { extractYouTubeId } from "@/lib/youtube";
 import { mentionTokenFor } from "@/lib/display-name";
 import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
 import {
@@ -248,6 +252,15 @@ export function LoungeView(props: Props) {
   const [composeBody, setComposeBody] = useState("");
   const [composing, setComposing] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
+  // Attached image (one per post). pendingImage is the validated,
+  // uploaded descriptor sent with the post; pendingPreview is a local
+  // object URL for an instant thumbnail while/after it uploads.
+  const [pendingImage, setPendingImage] = useState<LoungeImageMedia | null>(
+    null
+  );
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   // Reply boxes by parent post id. `openUnderReplyId` controls where
   // the composer renders: null anchors it under the post body (when
@@ -611,17 +624,66 @@ export function LoungeView(props: Props) {
     return at > stamp;
   }
 
+  function clearPendingImage() {
+    setPendingImage(null);
+    setPendingPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }
+
+  async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file later
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setComposeError("That doesn't look like an image.");
+      return;
+    }
+    setComposeError(null);
+    clearPendingImage();
+    setUploadingImage(true);
+    const preview = URL.createObjectURL(file);
+    setPendingPreview(preview);
+    try {
+      // Downscale + re-encode to WebP in the browser before upload —
+      // keeps storage/bandwidth tiny and strips EXIF.
+      const { blob, width, height } = await resizeImageToWebp(file);
+      const fd = new FormData();
+      fd.append("file", new File([blob], "image.webp", { type: "image/webp" }));
+      const res = await fetch("/api/lounge/upload", { method: "POST", body: fd });
+      const data: { ok?: boolean; url?: string; error?: string } = await res
+        .json()
+        .catch(() => ({}));
+      if (!res.ok || !data.ok || !data.url) {
+        setComposeError(
+          data.error === "daily_limit"
+            ? "You've hit today's image limit."
+            : "Image upload failed. Try again."
+        );
+        clearPendingImage();
+        return;
+      }
+      setPendingImage({ type: "image", url: data.url, width, height });
+    } catch {
+      setComposeError("Couldn't process that image.");
+      clearPendingImage();
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
   async function submitPost(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const body = composeBody.trim();
-    if (!body || composing) return;
+    if ((!body && !pendingImage) || composing || uploadingImage) return;
     setComposing(true);
     setComposeError(null);
     try {
       const res = await fetch("/api/lounge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, media: pendingImage ?? undefined }),
       });
       const data: { ok?: boolean; post?: LoungePost } & ApiError = await res
         .json()
@@ -634,6 +696,7 @@ export function LoungeView(props: Props) {
       setReplies((prev) => ({ ...prev, [data.post!.id]: [] }));
       setReactions((prev) => ({ ...prev, [data.post!.id]: emptySnapshot() }));
       setComposeBody("");
+      clearPendingImage();
     } catch (err) {
       setComposeError(err instanceof Error ? err.message : "send_failed");
     } finally {
@@ -1414,28 +1477,99 @@ export function LoungeView(props: Props) {
               }}
             />
           </label>
+
+          {/* Attached image preview (one per post), with remove. */}
+          {pendingPreview && (
+            <div className="relative inline-block mt-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={pendingPreview}
+                alt=""
+                style={{
+                  maxHeight: "6rem",
+                  width: "auto",
+                  display: "block",
+                  border: "1px solid var(--border, #d8cfb8)",
+                  opacity: uploadingImage ? 0.6 : 1,
+                }}
+              />
+              <button
+                type="button"
+                onClick={clearPendingImage}
+                aria-label="Remove image"
+                className="absolute -top-2 -right-2 bg-ink text-paper flex items-center justify-center"
+                style={{
+                  width: "1.25rem",
+                  height: "1.25rem",
+                  borderRadius: "999px",
+                  fontSize: "0.8rem",
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
+          {/* YouTube auto-embed hint (only when no image is attached). */}
+          {!pendingImage &&
+            !pendingPreview &&
+            extractYouTubeId(composeBody) && (
+              <p
+                className="font-serif italic text-ink-faint mt-2"
+                style={{ fontSize: "0.74rem" }}
+              >
+                A YouTube video will embed when you post.
+              </p>
+            )}
+
           <div className="flex items-center justify-between gap-4 mt-2">
-            <span
-              className={`font-serif italic ${
-                composeOver ? "" : "text-ink-faint"
-              }`}
-              style={{
-                fontSize: "0.78rem",
-                ...(composeOver
-                  ? { color: WARN_INK, fontWeight: 600 }
-                  : {}),
-              }}
-            >
-              {composeBody.length} / {MAX_BODY}
-              {composeOver && " — over recommended"}
-            </span>
+            <div className="flex items-center gap-3">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                hidden
+                onChange={onPickImage}
+              />
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={composing || uploadingImage || !!pendingImage}
+                className="font-display uppercase tracking-[0.14em] text-ink-muted hover:text-eye-deep disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ fontSize: "0.72rem", fontWeight: 600 }}
+              >
+                {uploadingImage ? "uploading…" : "+ Image"}
+              </button>
+              <span
+                className={`font-serif italic ${
+                  composeOver ? "" : "text-ink-faint"
+                }`}
+                style={{
+                  fontSize: "0.78rem",
+                  ...(composeOver
+                    ? { color: WARN_INK, fontWeight: 600 }
+                    : {}),
+                }}
+              >
+                {composeBody.length} / {MAX_BODY}
+                {composeOver && " — over recommended"}
+              </span>
+            </div>
             <button
               type="submit"
-              disabled={composing || !composeBody.trim()}
+              disabled={
+                composing ||
+                uploadingImage ||
+                (!composeBody.trim() && !pendingImage)
+              }
               className="btn-primary"
               style={{
                 opacity:
-                  composing || !composeBody.trim() ? 0.6 : 1,
+                  composing ||
+                  uploadingImage ||
+                  (!composeBody.trim() && !pendingImage)
+                    ? 0.6
+                    : 1,
                 cursor: composing ? "wait" : "pointer",
               }}
             >
@@ -2146,6 +2280,8 @@ function PostCard(props: CardProps) {
           <Linkified text={post.body} highlightMentions />
         </p>
       )}
+
+      {post.media && <LoungeMedia media={post.media} />}
 
       {/* Read-by-Clay mark lives below the body, as a quiet editor's
           stamp on the post itself. Out of the header so it can't be

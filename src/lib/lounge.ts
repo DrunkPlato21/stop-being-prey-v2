@@ -1,6 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { randomUUID } from "crypto";
 import { getProfilesByEmails } from "./comments";
+import { extractYouTubeId } from "./youtube";
 
 // The Lounge: member-to-member async discussion. Short posts (≤500),
 // one-level-deep replies, single-reaction-per-target (the olive ✓).
@@ -140,6 +141,9 @@ export type LoungePost = {
   lastActivityAt: number;
   pinned: boolean;
   deleted: boolean;
+  /** Optional image or YouTube embed (one per post). Absent on legacy
+      records and text-only posts. */
+  media?: LoungeMedia | null;
   /** Total across all reaction keys. Denormalized for fast feed
       rendering; per-key breakdown derived from the reactions hash. */
   reactionCount: number;
@@ -163,6 +167,20 @@ export type LoungeReply = {
   /** See LoungePost.editedAt. */
   editedAt: number | null;
 };
+
+// One media item per post. An image lives in our own Vercel Blob store
+// (the client downscales + re-encodes to WebP before upload); a YouTube
+// embed is just the validated 11-char video id (the player is built from
+// it client-side, click-to-play). No arbitrary embeds — that's the
+// security + tidiness line.
+export type LoungeImageMedia = {
+  type: "image";
+  url: string;
+  width: number;
+  height: number;
+};
+export type LoungeYouTubeMedia = { type: "youtube"; videoId: string };
+export type LoungeMedia = LoungeImageMedia | LoungeYouTubeMedia;
 
 export type ModerationEntry = {
   ts: number;
@@ -317,6 +335,10 @@ export type CreatePostInput = {
   isFounder: boolean;
   body: string;
   isAdmin: boolean;
+  /** Raw client-supplied media descriptor. Validated in createPost — an
+      image must point at our own Blob store; YouTube is re-derived from
+      the body server-side, never trusted from the client. */
+  media?: unknown;
 };
 
 export type CreatePostResult =
@@ -329,6 +351,31 @@ export type CreatePostResult =
       secondsRemaining: number;
     };
 
+// Only accept an image whose URL lives in our own Vercel Blob store, so
+// a forged client payload can't make us render (or hotlink) an arbitrary
+// external URL. Dimensions come from the client's canvas resize and just
+// drive layout, so they're sanity-bounded, not trusted precisely.
+const BLOB_HOST_RE = /\.public\.blob\.vercel-storage\.com$/i;
+const MAX_MEDIA_DIM = 5000;
+
+function validateImageMedia(raw: unknown): LoungeImageMedia | null {
+  if (!raw || typeof raw !== "object") return null;
+  const m = raw as Record<string, unknown>;
+  if (m.type !== "image") return null;
+  const url = typeof m.url === "string" ? m.url : "";
+  const w = typeof m.width === "number" ? m.width : 0;
+  const h = typeof m.height === "number" ? m.height : 0;
+  let host = "";
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return null;
+  }
+  if (!BLOB_HOST_RE.test(host)) return null;
+  if (!(w > 0 && w <= MAX_MEDIA_DIM && h > 0 && h <= MAX_MEDIA_DIM)) return null;
+  return { type: "image", url, width: Math.round(w), height: Math.round(h) };
+}
+
 export async function createPost(
   input: CreatePostInput
 ): Promise<CreatePostResult> {
@@ -338,7 +385,16 @@ export async function createPost(
     input.body,
     input.isAdmin ? MAX_BODY_ADMIN : MAX_BODY
   );
-  if (!body) return { ok: false, error: "empty_body" };
+
+  // One media item per post: an uploaded image wins; otherwise a YouTube
+  // link in the body becomes a click-to-play embed (derived here, never
+  // trusted from the client). A post may be media-only (empty body).
+  let media: LoungeMedia | null = validateImageMedia(input.media);
+  if (!media) {
+    const ytId = extractYouTubeId(body);
+    if (ytId) media = { type: "youtube", videoId: ytId };
+  }
+  if (!body && !media) return { ok: false, error: "empty_body" };
 
   const email = normEmail(input.memberEmail);
   const rate = await checkRate(email, "post", { isAdmin: input.isAdmin });
@@ -366,6 +422,7 @@ export async function createPost(
     reactionCount: 0,
     replyCount: 0,
     editedAt: null,
+    media,
   };
 
   await client.set(`${POST_PREFIX}${id}`, JSON.stringify(post));
@@ -390,6 +447,21 @@ export async function countLoungeAuthors(): Promise<number> {
   if (!client) return 0;
   const n = await client.scard(AUTHORS_KEY).catch(() => 0);
   return typeof n === "number" ? n : 0;
+}
+
+/**
+ * Per-member rolling-24h cap on image uploads. Cheap backstop so a member
+ * can't quietly run up Blob storage by uploading without ever posting.
+ * Returns true when still under the cap (i.e. the upload may proceed).
+ */
+const UPLOAD_DAILY_CAP = 30;
+export async function checkUploadQuota(email: string): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+  const key = `lounge:uploads:${normEmail(email)}`;
+  const n = await client.incr(key);
+  if (n === 1) await client.expire(key, 86400);
+  return n <= UPLOAD_DAILY_CAP;
 }
 
 export async function getPost(id: string): Promise<LoungePost | null> {

@@ -5097,3 +5097,94 @@ body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .moon-icon {
   padding: 1rem 0;
 }
 
+/* === Lounge media (images + YouTube embeds) ===================
+   One media item per post. Kept tidy: fixed max display size, sharp
+   corners to match the room, click-to-open image lightbox, and a
+   click-to-play YouTube facade so a feed of videos stays cheap+fast. */
+.lounge-media {
+  display: block;
+  margin-top: 0.85rem;
+  max-width: 32rem;
+  border: 1px solid var(--border, #d8cfb8);
+  background: #0c0a08;
+  padding: 0;
+}
+.lounge-media-image {
+  cursor: zoom-in;
+  width: auto;
+  line-height: 0;
+}
+.lounge-media-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 30rem;
+  object-fit: contain;
+}
+.lounge-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(8, 7, 6, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2vmin;
+  cursor: zoom-out;
+}
+.lounge-lightbox img {
+  max-width: 96vw;
+  max-height: 96vh;
+  object-fit: contain;
+}
+/* 16:9 frame for the video facade + the real iframe. */
+.lounge-media-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+.lounge-media-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.lounge-yt-facade {
+  cursor: pointer;
+}
+.lounge-yt-facade img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.lounge-yt-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4rem;
+  height: 4rem;
+  border-radius: 999px;
+  background: rgba(12, 10, 8, 0.72);
+  border: 2px solid rgba(245, 239, 225, 0.92);
+  transition: background 0.18s ease;
+}
+.lounge-yt-facade:hover .lounge-yt-play {
+  background: var(--eye-deep, #7a2e2e);
+}
+/* Play triangle, centered in the circle. */
+.lounge-yt-play::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 54%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 0.7rem 0 0.7rem 1.15rem;
+  border-color: transparent transparent transparent #f5efe1;
+}
+
