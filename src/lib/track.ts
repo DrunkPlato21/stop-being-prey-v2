@@ -1,4 +1,5 @@
 import type { TrackEvent, TrackSource } from "@/lib/analytics";
+import type { TrackChannel } from "@/lib/channels";
 
 // Client-side event beacon. Fire-and-forget POST to /api/track. Prefers
 // navigator.sendBeacon so events survive page unload (a reader who clicks
@@ -9,7 +10,7 @@ import type { TrackEvent, TrackSource } from "@/lib/analytics";
 
 export function track(
   event: TrackEvent,
-  opts: { slug?: string; source?: TrackSource } = {}
+  opts: { slug?: string; source?: TrackSource; channel?: TrackChannel } = {}
 ): void {
   if (typeof navigator === "undefined") return;
   try {
@@ -17,6 +18,7 @@ export function track(
       event,
       slug: opts.slug,
       source: opts.source,
+      channel: opts.channel,
     });
     if (typeof navigator.sendBeacon === "function") {
       navigator.sendBeacon(

@@ -3,11 +3,15 @@ import type { Metadata } from "next";
 import { getAllArticles } from "@/lib/articles";
 import {
   getArticleCounts,
+  getChannelCounts,
   getSourceCounts,
+  TRACK_CHANNELS,
   TRACK_SOURCES,
   type EventCounts,
+  type TrackChannel,
   type TrackSource,
 } from "@/lib/analytics";
+import { getEngagementStats, getMembershipStats } from "@/lib/member-stats";
 
 // First-party funnel dashboard. Localhost only (proxy.ts 404s /admin in
 // prod), so it reads the PROD analytics namespace by default to show real
@@ -30,6 +34,12 @@ function pct(part: number, whole: number): string {
   return `${Math.round((part / whole) * 1000) / 10}%`;
 }
 
+function money(cents: number): string {
+  return `$${(cents / 100).toLocaleString(undefined, {
+    maximumFractionDigits: 0,
+  })}`;
+}
+
 type Row = {
   slug: string;
   title: string;
@@ -46,10 +56,14 @@ export default async function AnalyticsAdminPage({
 
   const articles = getAllArticles();
   const slugs = articles.map((a) => a.slug);
-  const [counts, sources] = await Promise.all([
-    getArticleCounts(slugs, dev),
-    getSourceCounts(dev),
-  ]);
+  const [counts, sources, channels, membership, engagement] =
+    await Promise.all([
+      getArticleCounts(slugs, dev),
+      getSourceCounts(dev),
+      getChannelCounts(dev),
+      getMembershipStats(dev),
+      getEngagementStats(),
+    ]);
 
   const rows: Row[] = articles
     .map((a) => ({ slug: a.slug, title: a.title, c: counts.get(a.slug) ?? {} }))
@@ -92,7 +106,67 @@ export default async function AnalyticsAdminPage({
         </p>
       </header>
 
+      {/* Membership — GROUND TRUTH from members:all, not event counters.
+          The funnel events below only count members who joined after the
+          tracking shipped; this is the real roster. */}
+      <h2 className="eyebrow mb-3">Membership (actual)</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+        <Stat label="Members" value={membership.total} />
+        <Stat label="Active now" value={membership.active} />
+        <Stat label="Joined (30d)" value={membership.joined30d} sub={`${membership.joined7d} in 7d`} />
+        <Stat label="Est. MRR" valueText={money(membership.mrrCents)} sub="active, monthly-equiv" />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+        <Stat
+          label="Tier mix (active)"
+          valueText={`${membership.tiers.founder}f · ${membership.tiers.charter}c · ${membership.tiers.regular}r`}
+        />
+        <Stat
+          label="Billing (active)"
+          valueText={`${membership.intervals.month} mo · ${membership.intervals.year} yr`}
+        />
+        <Stat
+          label="Canceled (30d)"
+          value={membership.canceled30d}
+          sub={`${membership.canceled} all-time`}
+        />
+        <Stat
+          label="30d churn"
+          valueText={pct(
+            membership.canceled30d,
+            membership.active + membership.canceled30d
+          )}
+          sub="canceled / (active+canceled)"
+        />
+      </div>
+
+      {/* Engagement — are members actually using the room? */}
+      <h2 className="eyebrow mb-3">Engagement (last 30d)</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+        <Stat
+          label="Active members"
+          value={engagement.activeMembers30d}
+          sub={pct(engagement.activeMembers30d, membership.active) + " of active"}
+        />
+        <Stat
+          label="Comments"
+          value={engagement.comments.d30}
+          sub={`${engagement.comments.d7} in 7d`}
+        />
+        <Stat
+          label="Lounge posts"
+          value={engagement.lounge.d30}
+          sub={`${engagement.lounge.d7} in 7d`}
+        />
+        <Stat
+          label="Desk notes"
+          value={engagement.notes.d30}
+          sub={`${engagement.notes.d7} in 7d`}
+        />
+      </div>
+
       {/* Headline numbers */}
+      <h2 className="eyebrow mb-3">Reader funnel</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
         <Stat label="Article views" value={totalViews} />
         <Stat label="Reached form" value={n(totals, "form_seen")} />
@@ -231,6 +305,40 @@ export default async function AnalyticsAdminPage({
         </table>
       </div>
 
+      {/* Acquisition by channel — first-touch (where the visitor came
+          from off-site), so you can see which channel drives views AND
+          which actually earns paying members. Empty until first-touch
+          traffic accrues after deploy. */}
+      <h2 className="eyebrow mt-12 mb-3">Acquisition by channel</h2>
+      <div className="overflow-x-auto border border-rule max-w-xl">
+        <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr className="text-left text-ink-faint uppercase tracking-wider">
+              <Th className="text-left">Channel</Th>
+              <Th>Visits</Th>
+              <Th>Checkout</Th>
+              <Th>Member</Th>
+              <Th>Conv.</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {TRACK_CHANNELS.map((ch: TrackChannel) => {
+              const c = channels.get(ch) ?? {};
+              const v = n(c, "view");
+              return (
+                <tr key={ch} className="border-t border-rule">
+                  <Td className="text-left">{ch}</Td>
+                  <Td>{v.toLocaleString()}</Td>
+                  <Td>{n(c, "checkout_started").toLocaleString()}</Td>
+                  <Td>{n(c, "became_member").toLocaleString()}</Td>
+                  <Td>{pct(n(c, "became_member"), v)}</Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
       <p className="font-serif italic text-ink-faint text-sm mt-8 leading-relaxed max-w-xl">
         Funnel reads left to right: a view, how far they scrolled, whether
         they reached the inline form, and whether they subscribed. The
@@ -243,10 +351,13 @@ export default async function AnalyticsAdminPage({
 function Stat({
   label,
   value,
+  valueText,
   sub,
 }: {
   label: string;
-  value: number;
+  value?: number;
+  /** Use for non-numeric values (money, mixes). Takes precedence. */
+  valueText?: string;
   sub?: string;
 }) {
   return (
@@ -256,7 +367,7 @@ function Stat({
         className="font-display text-ink"
         style={{ fontSize: "1.8rem", fontWeight: 700 }}
       >
-        {value.toLocaleString()}
+        {valueText ?? (value ?? 0).toLocaleString()}
       </p>
       {sub && <p className="text-xs text-ink-faint mt-1">{sub}</p>}
     </div>

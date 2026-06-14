@@ -1,4 +1,11 @@
 import { Redis } from "@upstash/redis";
+import {
+  TRACK_CHANNELS,
+  asTrackChannel,
+  type TrackChannel,
+} from "./channels";
+
+export { TRACK_CHANNELS, asTrackChannel, type TrackChannel };
 
 // First-party, cookieless funnel analytics. Counts a small set of events
 // per article (and per subscribe source) as plain Redis hash counters.
@@ -87,6 +94,16 @@ const SOURCE_TRACKED_EVENTS: ReadonlySet<string> = new Set([
   "pool_waitlisted",
 ]);
 
+// Events that also roll up into a per-CHANNEL counter (analytics:channel:*)
+// so the acquisition funnel can be read by where the visitor came from
+// (facebook / google / direct ...). Just the funnel skeleton: a visit, a
+// checkout start, a paid conversion.
+const CHANNEL_TRACKED_EVENTS: ReadonlySet<string> = new Set([
+  "view",
+  "checkout_started",
+  "became_member",
+]);
+
 /**
  * Narrow an arbitrary value to a known TrackSource (or undefined). Used
  * server-side where a source arrives from a request body or Stripe
@@ -126,7 +143,7 @@ function isDevWrite(): boolean {
  */
 export async function recordEvent(
   event: TrackEvent,
-  opts: { slug?: string; source?: TrackSource } = {}
+  opts: { slug?: string; source?: TrackSource; channel?: TrackChannel } = {}
 ): Promise<void> {
   const client = getClient();
   if (!client) return;
@@ -139,6 +156,12 @@ export async function recordEvent(
   if (SOURCE_TRACKED_EVENTS.has(event)) {
     const source = opts.source ?? "unknown";
     tasks.push(client.hincrby(`${ns}source:${source}`, event, 1));
+  }
+  // Channel counter only when the visit was attributed to one (the
+  // first-touch cookie). No cookie -> no channel write, rather than
+  // dumping everything into an "unknown" bucket.
+  if (opts.channel && CHANNEL_TRACKED_EVENTS.has(event)) {
+    tasks.push(client.hincrby(`${ns}channel:${opts.channel}`, event, 1));
   }
   if (tasks.length === 0) return;
 
@@ -200,5 +223,27 @@ export async function getSourceCounts(
   TRACK_SOURCES.forEach((s) => pipe.hgetall(`${ns}source:${s}`));
   const results = (await pipe.exec()) as (Record<string, unknown> | null)[];
   TRACK_SOURCES.forEach((s, i) => out.set(s, coerceCounts(results[i] ?? null)));
+  return out;
+}
+
+/**
+ * Read the per-channel funnel counters (view / checkout_started /
+ * became_member), so acquisition can be measured by where visitors came
+ * from. Same dev/prod namespace selection as the others.
+ */
+export async function getChannelCounts(
+  dev = false
+): Promise<Map<TrackChannel, EventCounts>> {
+  const out = new Map<TrackChannel, EventCounts>();
+  const client = getClient();
+  if (!client) {
+    TRACK_CHANNELS.forEach((c) => out.set(c, {}));
+    return out;
+  }
+  const ns = prefix(dev);
+  const pipe = client.pipeline();
+  TRACK_CHANNELS.forEach((c) => pipe.hgetall(`${ns}channel:${c}`));
+  const results = (await pipe.exec()) as (Record<string, unknown> | null)[];
+  TRACK_CHANNELS.forEach((c, i) => out.set(c, coerceCounts(results[i] ?? null)));
   return out;
 }

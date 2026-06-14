@@ -3,6 +3,7 @@ import {
   recordEvent,
   TRACK_EVENTS,
   TRACK_SOURCES,
+  asTrackChannel,
   type TrackEvent,
   type TrackSource,
 } from "@/lib/analytics";
@@ -54,6 +55,8 @@ export async function POST(request: NextRequest) {
       ? (rawSource as TrackSource)
       : undefined;
 
-  await recordEvent(event, { slug, source });
+  const channel = asTrackChannel((body as { channel?: unknown })?.channel);
+
+  await recordEvent(event, { slug, source, channel });
   return new Response(null, { status: 204 });
 }

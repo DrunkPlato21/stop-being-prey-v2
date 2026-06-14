@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { StickyNavServer } from "@/components/StickyNavServer";
 import { ReadingProgressBar } from "@/components/ReadingProgressBar";
 import { PresenceBeacon } from "@/components/PresenceBeacon";
+import { FirstTouchTracker } from "@/components/FirstTouchTracker";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -94,6 +95,9 @@ export default function RootLayout({
             ping endpoint from every member route change so the
             admin /admin/presence panel shows who's on the site. */}
         <PresenceBeacon />
+        {/* First-touch acquisition channel: cookie + one channel view on
+            the first visit, read back server-side at checkout. */}
+        <FirstTouchTracker />
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <GoogleAnalytics
             gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}

@@ -52,7 +52,7 @@ import {
   sendPaymentFailedEmail,
 } from "@/lib/email";
 import { createNotification } from "@/lib/notifications";
-import { asTrackSource, recordEvent } from "@/lib/analytics";
+import { asTrackChannel, asTrackSource, recordEvent } from "@/lib/analytics";
 import {
   getGift,
   getGiftByRecipient,
@@ -424,7 +424,10 @@ async function handleMembershipCheckout(
   // the per-source counter shows real paid conversions, not just clicks.
   // Idempotent: the getMemberBySessionId guard above returns early on
   // webhook retries, so this fires once per member. recordEvent never throws.
-  await recordEvent("became_member", { source: asTrackSource(metadata.source) });
+  await recordEvent("became_member", {
+    source: asTrackSource(metadata.source),
+    channel: asTrackChannel(metadata.channel),
+  });
 
   // Gift funnel close: if this email ever redeemed a gifted seat, the
   // recipient just converted to paying on their own card. Stamp the

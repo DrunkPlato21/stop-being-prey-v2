@@ -308,6 +308,10 @@ export async function createMembershipCheckoutSession(args: {
       into metadata so the webhook can fire became_member attributed to the
       surface that sent the buyer. Validated by the caller. */
   source?: string;
+  /** First-touch acquisition channel (a TrackChannel like "facebook" /
+      "direct"), carried into metadata so the webhook credits the channel
+      that originally brought the buyer. Validated by the caller. */
+  channel?: string;
 }): Promise<{ url: string } | { error: CheckoutError; floor?: number }> {
   const stripe = client();
   if (!stripe) return { error: "stripe_not_configured" };
@@ -388,6 +392,7 @@ export async function createMembershipCheckoutSession(args: {
       plan: args.plan,
       amount_cents: String(args.amountCents),
       ...(args.source ? { source: args.source } : {}),
+      ...(args.channel ? { channel: args.channel } : {}),
       ...(founderOverride && typeof args.founderGrantSlot === "number"
         ? { founder_slot_grant: String(args.founderGrantSlot) }
         : {}),
@@ -401,6 +406,7 @@ export async function createMembershipCheckoutSession(args: {
         tier_at_checkout: tierAtCheckout,
         plan: args.plan,
         ...(args.source ? { source: args.source } : {}),
+        ...(args.channel ? { channel: args.channel } : {}),
       },
     },
   });

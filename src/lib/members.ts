@@ -86,7 +86,26 @@ export type MemberRecord = {
       mint a prepaid seat via grantPrepaidSeat, only one source set.
       Backward compatible: legacy records read as undefined. */
   viaPoolFundId?: string | null;
+  /** When the subscription was first canceled (status -> "canceled").
+      Stamped once on cancel, cleared if the member reactivates. Powers
+      churn reporting (when, not just how many). Backward compatible:
+      legacy + active records read as undefined/null. */
+  canceledAt?: number | null;
 };
+
+/**
+ * Resolve canceledAt for a status transition: stamp it the first time a
+ * member goes canceled, clear it when they come back active/trialing,
+ * and leave it untouched for in-between states (past_due, etc.).
+ */
+function nextCanceledAt(
+  prev: MemberRecord,
+  status: MemberSubscriptionStatus
+): number | null {
+  if (status === "canceled") return prev.canceledAt ?? Date.now();
+  if (status === "active" || status === "trialing") return null;
+  return prev.canceledAt ?? null;
+}
 
 /**
  * True when the record's access comes from an unexpired prepaid gift
@@ -493,7 +512,12 @@ export async function updateMemberStatus(
 ): Promise<void> {
   const member = await getMemberByCustomerId(customerId);
   if (!member) return;
-  const next: MemberRecord = { ...member, status, updatedAt: Date.now() };
+  const next: MemberRecord = {
+    ...member,
+    status,
+    canceledAt: nextCanceledAt(member, status),
+    updatedAt: Date.now(),
+  };
   const client = getClient();
   if (!client) return;
   await client.set(
@@ -518,9 +542,11 @@ export async function updateMemberSubscription(
 ): Promise<void> {
   const member = await getMemberByCustomerId(customerId);
   if (!member) return;
+  const resolvedStatus = fields.status ?? member.status;
   const next: MemberRecord = {
     ...member,
-    status: fields.status ?? member.status,
+    status: resolvedStatus,
+    canceledAt: nextCanceledAt(member, resolvedStatus),
     interval: fields.interval ?? member.interval,
     amountCents:
       typeof fields.amountCents === "number"

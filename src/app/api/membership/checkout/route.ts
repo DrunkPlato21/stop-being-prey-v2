@@ -4,7 +4,7 @@ import {
   type MembershipPlan,
 } from "@/lib/membership";
 import { getFounderAccess } from "@/lib/founder-access";
-import { asTrackSource, recordEvent } from "@/lib/analytics";
+import { asTrackChannel, asTrackSource, recordEvent } from "@/lib/analytics";
 
 // POST /api/membership/checkout
 // Body: { plan: "monthly" | "yearly", amountCents: number, email?: string }
@@ -59,6 +59,11 @@ export async function POST(req: NextRequest) {
   // known TrackSource; anything else is dropped.
   const source = asTrackSource((body as { source?: unknown })?.source);
 
+  // First-touch acquisition channel, set client-side on the visitor's
+  // first arrival (see FirstTouchTracker). Read server-side so it can be
+  // threaded into Stripe metadata and credited on the became_member close.
+  const channel = asTrackChannel(req.cookies.get("sbp_channel")?.value);
+
   const result = await createMembershipCheckoutSession({
     plan,
     amountCents,
@@ -70,6 +75,7 @@ export async function POST(req: NextRequest) {
         : undefined,
     accessToken: founderAccess ? accessToken : undefined,
     source,
+    channel,
   });
   if ("error" in result) {
     const status =
@@ -85,7 +91,7 @@ export async function POST(req: NextRequest) {
   // Funnel: a real Stripe checkout session was created. Counts toward the
   // per-source checkout_started counter (became_member closes it in the
   // webhook). recordEvent never throws.
-  await recordEvent("checkout_started", { source });
+  await recordEvent("checkout_started", { source, channel });
 
   return Response.json({ url: result.url });
 }
