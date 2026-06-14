@@ -246,9 +246,18 @@ export function NotificationsBell() {
       const trigger = triggerRef.current;
       if (!trigger) return;
       const rect = trigger.getBoundingClientRect();
+      // The panel is positioned by its right edge. On a narrow phone the
+      // bell can sit near the LEFT of the header, so anchoring purely to
+      // the trigger's right edge pushed the panel's left edge off-screen
+      // (it was getting clipped on the left on mobile). Clamp `right` so
+      // the full panel width always stays inside the viewport with an
+      // 8px gutter on both sides.
+      const menuWidth = Math.min(360, window.innerWidth - 16);
+      const maxRight = Math.max(8, window.innerWidth - menuWidth - 8);
+      const anchoredRight = Math.max(8, window.innerWidth - rect.right);
       setPos({
         top: rect.bottom + 8,
-        right: Math.max(8, window.innerWidth - rect.right),
+        right: Math.min(anchoredRight, maxRight),
       });
     }
     update();

@@ -2750,6 +2750,21 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   color: var(--eye-deep);
 }
 
+/* Pill variant — the prominent Reply button under each post body.
+   Bordered so it reads as a tappable control rather than eyebrow text.
+   Hover fills it with the olive accent; the inline `aria-pressed` open
+   state already paints the filled treatment, so its hover keeps the
+   paper-colored label legible instead of folding back to olive-on-olive. */
+.lounge-reply-cta--button {
+  transition: background-color 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
+}
+.lounge-reply-cta--button:hover {
+  background: var(--eye-deep) !important;
+  border-color: var(--eye-deep) !important;
+  color: var(--paper) !important;
+}
+
 /* Small green pulse beside a post's timestamp when a reply has
    landed in the last 10 minutes. Matches the writer's desk "live
    now" green so the signal reads consistently across the site. */

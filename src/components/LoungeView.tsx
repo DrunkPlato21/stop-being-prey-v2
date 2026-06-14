@@ -1438,6 +1438,13 @@ export function LoungeView(props: Props) {
             through the room. Becomes the page-end element naturally
             when the user reaches the bottom. */}
         {(() => {
+          // While a reply composer is open, hide the sticky "Pull up a
+          // chair" dock. Two reasons: (1) on mobile you'd otherwise see
+          // both the inline reply box and the dock at once; (2) members
+          // who meant to reply were typing into the dock by mistake and
+          // posting a new top-level note instead of a reply. One compose
+          // surface at a time removes the ambiguity.
+          if (openReplyFor !== null) return null;
           const composeCap = props.isAdmin ? MAX_BODY_ADMIN : MAX_BODY;
           const composeOver = props.isAdmin && composeBody.length > MAX_BODY;
           return (
@@ -2353,15 +2360,21 @@ function PostCard(props: CardProps) {
                   setOpenUnderReplyId(null);
                 }
               }}
-              className="lounge-reply-cta font-display uppercase tracking-[0.22em] transition-colors"
+              className="lounge-reply-cta lounge-reply-cta--button font-display uppercase tracking-[0.18em] transition-colors"
               style={{
                 fontSize: "0.7rem",
                 fontWeight: 600,
-                background: "transparent",
-                border: 0,
-                color: composerHere ? "var(--eye-deep)" : "var(--ink-muted)",
+                // Bordered pill so the reply action reads unmistakably as
+                // a button. Members were missing the old text-only link
+                // and typing into the main composer instead.
+                border: composerHere
+                  ? "1px solid var(--eye-deep)"
+                  : "1px solid var(--rule)",
+                background: composerHere ? "var(--eye-deep)" : "var(--paper)",
+                color: composerHere ? "var(--paper)" : "var(--eye-deep)",
                 cursor: "pointer",
-                padding: "0.25rem 0",
+                padding: "0.4rem 0.85rem",
+                borderRadius: "999px",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "0.4rem",
