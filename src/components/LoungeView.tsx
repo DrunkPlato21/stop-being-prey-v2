@@ -1438,13 +1438,120 @@ export function LoungeView(props: Props) {
             through the room. Becomes the page-end element naturally
             when the user reaches the bottom. */}
         {(() => {
-          // While a reply composer is open, hide the sticky "Pull up a
-          // chair" dock. Two reasons: (1) on mobile you'd otherwise see
-          // both the inline reply box and the dock at once; (2) members
-          // who meant to reply were typing into the dock by mistake and
-          // posting a new top-level note instead of a reply. One compose
-          // surface at a time removes the ambiguity.
-          if (openReplyFor !== null) return null;
+          // While a reply composer is open, swap the sticky "Pull up a
+          // chair" dock for a slim "you're replying" bar. Reasons: (1) on
+          // mobile you'd otherwise see both the inline reply box and the
+          // dock at once; (2) members who meant to reply were typing into
+          // the dock by mistake and posting a new top-level note. Keeping
+          // the slot occupied (rather than just hiding it) also means you
+          // can't forget a reply is open after scrolling away without
+          // typing — the bar names who you're replying to and jumps you
+          // back to the composer.
+          if (openReplyFor !== null) {
+            const target = posts.find((p) => p.id === openReplyFor);
+            let replyingToName = target?.firstName ?? "someone";
+            if (openUnderReplyId) {
+              const r = (replies[openReplyFor] ?? []).find(
+                (x) => x.id === openUnderReplyId
+              );
+              if (r) replyingToName = r.firstName;
+            }
+            const jumpToComposer = () => {
+              const el = document.getElementById("lounge-active-reply");
+              if (!el) return;
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+              const ta = el.querySelector("textarea");
+              if (ta) ta.focus({ preventScroll: true });
+            };
+            const cancelReply = () => {
+              setReplyDraft("");
+              setOpenReplyFor(null);
+              setOpenUnderReplyId(null);
+            };
+            return (
+              <div
+                className="lounge-compose-dock"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "0.75rem",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={jumpToComposer}
+                  className="font-display uppercase tracking-[0.18em] transition-colors"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    minWidth: 0,
+                    fontSize: "0.72rem",
+                    fontWeight: 600,
+                    background: "transparent",
+                    border: 0,
+                    color: "var(--eye-deep)",
+                    cursor: "pointer",
+                    padding: "0.25rem 0",
+                    textAlign: "left",
+                  }}
+                  title="Jump back to your reply"
+                >
+                  <svg
+                    aria-hidden="true"
+                    width="12"
+                    height="10"
+                    viewBox="0 0 14 12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
+                  >
+                    <path d="M5 2 L1.5 5.5 L5 9" />
+                    <path d="M1.5 5.5 H8.5 Q12.5 5.5 12.5 10" />
+                  </svg>
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Replying to {replyingToName}
+                    <span
+                      className="lounge-meta"
+                      style={{
+                        marginLeft: "0.55rem",
+                        fontSize: "0.6rem",
+                        letterSpacing: "0.16em",
+                      }}
+                    >
+                      tap to go back
+                    </span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelReply}
+                  className="font-display uppercase tracking-[0.18em] text-ink-faint hover:text-ink transition-colors"
+                  style={{
+                    flexShrink: 0,
+                    fontSize: "0.62rem",
+                    fontWeight: 600,
+                    background: "transparent",
+                    border: 0,
+                    cursor: "pointer",
+                    padding: "0.25rem 0",
+                  }}
+                >
+                  cancel
+                </button>
+              </div>
+            );
+          }
           const composeCap = props.isAdmin ? MAX_BODY_ADMIN : MAX_BODY;
           const composeOver = props.isAdmin && composeBody.length > MAX_BODY;
           return (
@@ -2110,7 +2217,7 @@ function PostCard(props: CardProps) {
   const replyCap = isAdmin ? MAX_BODY_ADMIN : MAX_BODY;
   const replyOver = isAdmin && replyDraft.length > MAX_BODY;
   const renderComposer = (replyingToName: string) => (
-    <div className="mt-4 pt-4 border-t border-rule">
+    <div id="lounge-active-reply" className="mt-4 pt-4 border-t border-rule">
       <MentionAutoResizingTextarea
         value={replyDraft}
         onValueChange={(v) => setReplyDraft(v.slice(0, replyCap))}
