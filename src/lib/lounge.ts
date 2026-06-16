@@ -91,6 +91,7 @@ export const REACTION_KEYS = [
   "fire",
   "laugh",
   "wow",
+  "cry",
   "hundred",
 ] as const;
 export type ReactionKey = (typeof REACTION_KEYS)[number];
@@ -108,6 +109,7 @@ export const REACTION_EMOJI: Record<ReactionKey, string> = {
   fire: "🔥",
   laugh: "😂",
   wow: "😮",
+  cry: "😢",
   hundred: "💯",
 };
 
@@ -117,13 +119,14 @@ export const REACTION_LABEL: Record<ReactionKey, string> = {
   fire: "Fire",
   laugh: "Laugh",
   wow: "Wow",
+  cry: "Cry",
   hundred: "Hundred",
 };
 
 export type ReactionCounts = Record<ReactionKey, number>;
 
 export function emptyReactionCounts(): ReactionCounts {
-  return { like: 0, love: 0, fire: 0, laugh: 0, wow: 0, hundred: 0 };
+  return { like: 0, love: 0, fire: 0, laugh: 0, wow: 0, cry: 0, hundred: 0 };
 }
 
 export type LoungePost = {
