@@ -40,6 +40,7 @@ export type MemberNavDots = Partial<Record<string, boolean>>;
 const ITEMS: NavItem[] = [
   { href: "/desk", label: "Desk" },
   { href: "/lounge", label: "Lounge" },
+  { href: "/guild", label: "The Guild" },
   { href: "/notes/rules", label: "Rules", clusterBreak: true },
   { href: "/notes/field-notes", label: "Field Notes" },
   { href: "/case-files", label: "Case Files" },
