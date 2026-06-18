@@ -138,8 +138,8 @@ export function GuildIndexView({
             margin: "0 auto",
           }}
         >
-          This is the library, not the feed. Bring what you have actually
-          studied. The good threads last. The noise does not.
+          This is the deep room. Bring a real fight, or a real question.
+          The Lounge is for talk. This is for the work.
         </p>
       </header>
 

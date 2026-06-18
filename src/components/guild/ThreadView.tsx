@@ -367,13 +367,18 @@ function ReplyNode({
       {/* Control row */}
       {!reply.deleted && (
         <div style={{ display: "flex", alignItems: "center", gap: "1.1rem", marginTop: "0.6rem", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={() => setReplying((v) => !v)}
-            style={{ ...controlStyle, color: "var(--eye-deep)" }}
-          >
-            Reply
-          </button>
+          {/* Hidden while the composer is open — the open box has its
+              own Reply/Cancel, so showing this toggle too just doubles
+              the word "Reply" next to itself. */}
+          {!replying && (
+            <button
+              type="button"
+              onClick={() => setReplying(true)}
+              style={{ ...controlStyle, color: "var(--eye-deep)" }}
+            >
+              Reply
+            </button>
+          )}
           {canEdit && (
             <button type="button" onClick={() => setEditing((v) => !v)} style={controlStyle}>
               Edit
@@ -398,14 +403,26 @@ function ReplyNode({
         </div>
       )}
 
+      {/* Anchored to the comment it answers: an olive left rule binds the
+          box to this reply and separates it from the next comment, so the
+          box never reads as belonging to the comment below it. */}
       {replying && (
-        <ReplyComposer
-          threadId={threadId}
-          parentReplyId={reply.id}
-          placeholder={`Reply to ${replyToName}…`}
-          onDone={() => setReplying(false)}
-          compact
-        />
+        <div
+          style={{
+            marginTop: "0.8rem",
+            marginBottom: "0.4rem",
+            paddingLeft: "1.1rem",
+            borderLeft: "2px solid var(--eye-deep)",
+          }}
+        >
+          <ReplyComposer
+            threadId={threadId}
+            parentReplyId={reply.id}
+            placeholder={`Reply to ${replyToName}…`}
+            onDone={() => setReplying(false)}
+            compact
+          />
+        </div>
       )}
 
       {/* Nested children (one tier; the lib flattens anything deeper) */}
