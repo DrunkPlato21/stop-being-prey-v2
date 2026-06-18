@@ -355,6 +355,20 @@ async function migrateSimpleKeyRenames() {
     const dst = `member-comment:${TO}:${suffix}`;
     await renameKey(src, dst);
   }
+
+  // The member record embeds its own email field; renameKey copies the
+  // value verbatim, so the JSON still says FROM after the key moves.
+  // Rewrite the embedded field too — code paths like the payment-failed
+  // dunning email read member.email directly, so a stale value here re-
+  // sends to the bad address. After --commit the record lives at TO; in
+  // dry-run it still lives at FROM.
+  await rewriteJson(`member:${COMMIT ? TO : FROM}`, (rec) => {
+    if (rec.email === FROM) {
+      rec.email = TO;
+      return true;
+    }
+    return false;
+  });
 }
 
 async function migrateIndexMemberships() {
@@ -371,11 +385,25 @@ async function migrateReverseLookups(member) {
     note("no member record loaded; skipping reverse-lookup updates");
     return;
   }
-  if (member.customerId) {
-    await rewriteString(`member:by-customer:${member.customerId}`, FROM, TO);
+  // The record field is stripeCustomerId (not customerId). This reverse
+  // index is what every subscription lifecycle webhook resolves through
+  // (customerId → email → member record), so if it isn't repointed the
+  // migrated member stops syncing on renewal / cancel / plan change.
+  if (member.stripeCustomerId) {
+    await rewriteString(
+      `member:by-customer:${member.stripeCustomerId}`,
+      FROM,
+      TO
+    );
   }
-  if (member.sessionId) {
-    await rewriteString(`member:by-session:${member.sessionId}`, FROM, TO);
+  // There is no sessionId on the member record, so we can't address the
+  // by-session idempotency key directly. Scan the (small) by-session
+  // keyspace and repoint whichever entry still names FROM — otherwise a
+  // Stripe retry of the original checkout could re-process and claim a
+  // second founder/charter slot against the deleted old record.
+  const sessionKeys = await scanAll("member:by-session:*");
+  for (const key of sessionKeys) {
+    await rewriteString(key, FROM, TO);
   }
   // displayname:taken:<normalized> → stores the email that claimed
   // the name. We scan + rewrite any key whose value is FROM. Cheaper

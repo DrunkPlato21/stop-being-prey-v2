@@ -50,7 +50,12 @@ type WireEntry =
 
 export type WireLine = { id: string; text: string };
 
-const POLL_INTERVAL_MS = 5_000;
+// The Watch is off the vast majority of the time. Poll fast (5s) only
+// while it's live; when it's off, back off to 30s — just enough to
+// notice it being switched on. This keeps an idle lounge tab from
+// firing a dynamic function call every 5s for an empty payload.
+const ACTIVE_POLL_MS = 5_000;
+const IDLE_POLL_MS = 30_000;
 const TICK_MS = 1_000;
 const BREAKING_DURATION_MS = 8_000;
 // Don't surface the live headcount in the Wire below this — a small
@@ -77,6 +82,9 @@ export function WatchFeed({
     new Set(initialPosts.map((p) => p.id))
   );
   const [breakingId, setBreakingId] = useState<string | null>(null);
+  // Mirror `enabled` into a ref so the poll loop can pick its cadence
+  // (5s live / 30s off) without re-subscribing the effect each toggle.
+  const enabledRef = useRef<boolean>(initialEnabled);
 
   // Tick once a second so the dominant card's timer ("Live · 0:43")
   // visibly counts up instead of jumping in 15s steps.
@@ -89,6 +97,7 @@ export function WatchFeed({
   // state. The billboard's keyed remount handles the cut-in animation.
   useEffect(() => {
     let cancelled = false;
+    let timer: number | null = null;
 
     async function poll() {
       if (cancelled) return;
@@ -108,8 +117,11 @@ export function WatchFeed({
         if (cancelled) return;
 
         // Honor the on/off switch live — flipping it off in admin
-        // collapses the feed for members within a poll cycle.
-        setEnabled(data.enabled !== false);
+        // collapses the feed for members within a poll cycle. Keep the
+        // ref in sync so the next tick picks the right cadence.
+        const nextEnabled = data.enabled !== false;
+        enabledRef.current = nextEnabled;
+        setEnabled(nextEnabled);
         if (Array.isArray(data.arrivals)) setArrivals(data.arrivals);
         if (typeof data.roomCount === "number") setRoomCount(data.roomCount);
         if (Array.isArray(data.lines)) setLines(data.lines);
@@ -132,14 +144,24 @@ export function WatchFeed({
       }
     }
 
-    const id = window.setInterval(poll, POLL_INTERVAL_MS);
+    // Self-scheduling loop so the cadence can shorten (5s while live)
+    // or lengthen (30s while off) between ticks.
+    function schedule() {
+      const interval = enabledRef.current ? ACTIVE_POLL_MS : IDLE_POLL_MS;
+      timer = window.setTimeout(async () => {
+        await poll();
+        if (!cancelled) schedule();
+      }, interval);
+    }
+    schedule();
+
     function onFocus() {
       void poll();
     }
     window.addEventListener("focus", onFocus);
     return () => {
       cancelled = true;
-      window.clearInterval(id);
+      if (timer !== null) window.clearTimeout(timer);
       window.removeEventListener("focus", onFocus);
     };
   }, []);
