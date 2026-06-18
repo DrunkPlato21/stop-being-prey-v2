@@ -1,10 +1,13 @@
 import { Redis } from "@upstash/redis";
 import { randomUUID } from "crypto";
 import {
+  DEFAULT_GUILD_CATEGORY,
   EDIT_WINDOW_MS,
+  isGuildCategory,
   MAX_BODY,
   MAX_REPLY,
   MAX_TITLE,
+  type GuildCategory,
 } from "./guild-constants";
 
 // The Guild — a member-initiated, topic-organized library of substantive
@@ -76,6 +79,9 @@ export type GuildThread = {
   authorEmail: string;
   title: string;
   body: string;
+  // The kind of post, chosen at creation. Required going forward; legacy
+  // threads written before categories existed are defaulted on read.
+  category: GuildCategory;
   createdAt: number;
   editedAt: number | null;
   // Bumped to the newest reply's createdAt so the active index surfaces
@@ -137,6 +143,16 @@ function parse<T>(raw: unknown): T | null {
   }
 }
 
+// Ensure a thread read from storage carries a valid category. Threads
+// written before categories existed have none; default them so callers
+// and the UI never see an undefined category.
+function withCategory(thread: GuildThread | null): GuildThread | null {
+  if (thread && !isGuildCategory(thread.category)) {
+    thread.category = DEFAULT_GUILD_CATEGORY;
+  }
+  return thread;
+}
+
 // --------------------------------------------------------------------
 // Rate limiting
 // --------------------------------------------------------------------
@@ -171,6 +187,7 @@ export async function createThread(args: {
   authorEmail: string;
   title: string;
   body: string;
+  category: string;
 }): Promise<CreateThreadResult> {
   const client = getClient();
   if (!client) return { ok: false, error: "storage_unavailable" };
@@ -178,6 +195,11 @@ export async function createThread(args: {
   const title = args.title.trim().slice(0, MAX_TITLE);
   const body = args.body.trim().slice(0, MAX_BODY);
   if (!title || !body) return { ok: false, error: "invalid" };
+  // The composer forces a valid pick; a direct POST might not. Coerce
+  // anything unrecognized to the default rather than reject.
+  const category: GuildCategory = isGuildCategory(args.category)
+    ? args.category
+    : DEFAULT_GUILD_CATEGORY;
 
   if (!(await claimCooldown(args.authorEmail, "thread", THREAD_COOLDOWN_SECONDS))) {
     return { ok: false, error: "rate_limited" };
@@ -189,6 +211,7 @@ export async function createThread(args: {
     authorEmail: normEmail(args.authorEmail),
     title,
     body,
+    category,
     createdAt: now,
     editedAt: null,
     lastActivityAt: now,
@@ -205,7 +228,7 @@ export async function createThread(args: {
 export async function getThread(id: string): Promise<GuildThread | null> {
   const client = getClient();
   if (!client) return null;
-  return parse<GuildThread>(await client.get(`${THREAD_PREFIX}${id}`));
+  return withCategory(parse<GuildThread>(await client.get(`${THREAD_PREFIX}${id}`)));
 }
 
 export type ThreadPage = { threads: GuildThread[]; hasMore: boolean };
@@ -251,7 +274,7 @@ export async function listActiveThreads(args?: {
     ...pageIds.map((id) => `${THREAD_PREFIX}${id}`)
   );
   const threads = raw
-    .map((r) => parse<GuildThread>(r))
+    .map((r) => withCategory(parse<GuildThread>(r)))
     .filter((t): t is GuildThread => !!t && !t.deleted && !t.pinned);
   return { threads, hasMore };
 }

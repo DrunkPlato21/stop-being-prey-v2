@@ -62,11 +62,13 @@ export async function postThreadAction(
 
   const title = String(formData.get("title") ?? "");
   const body = String(formData.get("body") ?? "");
+  const category = String(formData.get("category") ?? "");
 
   const result = await createThread({
     authorEmail: session.email,
     title,
     body,
+    category,
   });
   if (!result.ok) return { ok: false, error: messageFor(result.error) };
 

@@ -5,6 +5,25 @@ import { ClayReadSeal } from "./ClayReadSeal";
 import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { GuildCrest } from "./GuildCrest";
 import { formatRelative } from "./guild-format";
+import { guildCategoryLabel } from "@/lib/guild-constants";
+
+// Small uppercase category tag. Reuses the eyebrow vocabulary so it reads
+// as a kicker above the thread title, not a loud badge.
+function CategoryTag({ slug }: { slug: string }) {
+  return (
+    <span
+      className="font-display uppercase"
+      style={{
+        color: "var(--eye-deep)",
+        letterSpacing: "0.2em",
+        fontSize: "0.6rem",
+        fontWeight: 600,
+      }}
+    >
+      {guildCategoryLabel(slug)}
+    </span>
+  );
+}
 
 // The Guild index: the king's pinned Question of the Week at the top,
 // then the library of member threads ordered by latest activity. Server
@@ -180,6 +199,9 @@ export function GuildIndexView({
               style={{ borderTop: "1px solid var(--rule)", padding: "1.4rem 0" }}
             >
               <Link href={`/guild/${t.id}`} className="no-underline" style={{ display: "block" }}>
+                <div style={{ marginBottom: "0.3rem" }}>
+                  <CategoryTag slug={t.category} />
+                </div>
                 <h3
                   className="font-display"
                   style={{ fontSize: "1.45rem", lineHeight: 1.2, margin: 0, color: "var(--ink)" }}

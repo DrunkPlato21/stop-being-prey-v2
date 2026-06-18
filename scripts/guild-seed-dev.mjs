@@ -71,6 +71,7 @@ function mkThread(o) {
     authorEmail: o.authorEmail,
     title: o.title,
     body: o.body,
+    category: o.category ?? "open",
     createdAt: o.createdAt,
     editedAt: null,
     lastActivityAt: o.lastActivityAt ?? o.createdAt,
@@ -153,6 +154,7 @@ async function main() {
   const founding = mkThread({
     authorEmail: "marcus.dev@example.com",
     title: "The deliberate destruction of the black family",
+    category: "doctrine",
     body:
       "I have spent years reading the policy history here, from the welfare rules that penalized a father in the home to the incentives that followed. The pattern is too consistent to be accident.\n\nIs anyone else here who has thoroughly studied these issues? I want to compare sources and stop arguing from vibes.",
     createdAt: h(26),
@@ -188,6 +190,28 @@ async function main() {
   await writeReply(reply1);
   await writeReply(reply1child);
   await writeReply(reply2);
+
+  // --- A field engagement (so the index shows more than one tag) ---
+  const field = mkThread({
+    authorEmail: "denise.dev@example.com",
+    title: "Cornered on 'do you even have a source' — here's the move",
+    category: "field",
+    body:
+      "DEV PLACEHOLDER. He tried to make me the one defending while he risked nothing. I handed the burden back and asked him to show his own work first. He folded. Posting the exchange so we can break down why it worked.",
+    createdAt: h(9),
+  });
+  await writeThread(field);
+
+  // --- An open-floor thread ---
+  const open = mkThread({
+    authorEmail: "marcus.dev@example.com",
+    title: "Thinking out loud: is 'apex class' the right frame, or too tidy?",
+    category: "open",
+    body:
+      "DEV PLACEHOLDER. Half-formed. Sometimes the predator/prey frame clarifies, sometimes it flattens. Where does it stop being useful? Not trying to win anything here, just turning it over.",
+    createdAt: h(5),
+  });
+  await writeThread(open);
 
   console.log("Seeded dev: Guild:");
   console.log(`  pinned QOTW   ${qotw.id}`);

@@ -2,7 +2,12 @@
 
 import { useActionState, useState } from "react";
 import { postThreadAction, type GuildFormState } from "@/app/guild/actions";
-import { MAX_BODY, MAX_TITLE } from "@/lib/guild-constants";
+import {
+  GUILD_CATEGORIES,
+  MAX_BODY,
+  MAX_TITLE,
+  type GuildCategory,
+} from "@/lib/guild-constants";
 
 const INITIAL: GuildFormState = { ok: false };
 
@@ -18,6 +23,8 @@ export function NewThreadComposer() {
   );
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  // Required. Empty until the author picks, which gates the Post button.
+  const [category, setCategory] = useState<GuildCategory | "">("");
 
   if (!open) {
     return (
@@ -53,6 +60,49 @@ export function NewThreadComposer() {
       >
         New thread
       </p>
+      {/* Category — a required pick, placed first on purpose. Choosing
+          the kind of post before writing scaffolds it and kills the
+          blank-page freeze. The hint doubles as a prompt. */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+        {GUILD_CATEGORIES.map((c) => {
+          const active = category === c.slug;
+          return (
+            <button
+              key={c.slug}
+              type="button"
+              onClick={() => setCategory(c.slug)}
+              aria-pressed={active}
+              className="font-display uppercase tracking-[0.16em] transition-colors"
+              style={{
+                background: active ? "var(--eye-deep)" : "transparent",
+                color: active ? "var(--surface)" : "var(--eye-deep)",
+                border: "1px solid var(--eye-deep)",
+                borderRadius: 2,
+                padding: "0.4rem 0.8rem",
+                fontSize: "0.64rem",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
+      <p
+        style={{
+          minHeight: "1.1rem",
+          margin: "0.55rem 0 1.1rem",
+          fontSize: "0.82rem",
+          fontStyle: "italic",
+          color: "var(--ink-soft)",
+        }}
+      >
+        {category
+          ? GUILD_CATEGORIES.find((c) => c.slug === category)?.hint
+          : "Pick what kind of thread this is."}
+      </p>
+      <input type="hidden" name="category" value={category} />
       <input
         name="title"
         value={title}
@@ -115,7 +165,7 @@ export function NewThreadComposer() {
         </button>
         <button
           type="submit"
-          disabled={pending || !title.trim() || !body.trim()}
+          disabled={pending || !title.trim() || !body.trim() || !category}
           className="font-display uppercase tracking-[0.18em] transition-opacity"
           style={{
             background: "var(--eye-deep)",
@@ -126,7 +176,8 @@ export function NewThreadComposer() {
             fontSize: "0.7rem",
             fontWeight: 600,
             cursor: pending ? "default" : "pointer",
-            opacity: pending || !title.trim() || !body.trim() ? 0.5 : 1,
+            opacity:
+              pending || !title.trim() || !body.trim() || !category ? 0.5 : 1,
           }}
         >
           {pending ? "Posting…" : "Post thread"}
