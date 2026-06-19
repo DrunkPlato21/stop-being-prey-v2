@@ -59,10 +59,11 @@ export async function POST(
     return Response.json({ error: result.error }, { status });
   }
 
-  // Only fire on a reaction *set* (not clear), and only for public
-  // notes — private notes don't surface reactions to the author in
-  // any meaningful way. Best-effort.
-  if (reaction !== null && result.note.visibility === "public" && result.note.fromEmail) {
+  // Fire on a reaction *set* (not clear). Notes are uniformly private
+  // now, and the member sees Clay's reaction under their note on the
+  // desk, so every set pings the author. (The old public-only gate
+  // never fired once notes went private.) Best-effort.
+  if (reaction !== null && result.note.fromEmail) {
     const excerpt =
       result.note.body.length > 60
         ? `${result.note.body.slice(0, 60).trim()}…`
