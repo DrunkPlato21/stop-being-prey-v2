@@ -56,7 +56,7 @@ const RULES: Rule[] = [
   {
     number: 3,
     title: "The audience is the prize. The opponent is the evidence.",
-    body: "You're not arguing to him. You'll never change his mind, and you don't need to. You're arguing to the hundred people reading in silence who haven't picked a side. He's not your enemy. He's your evidence. Take him apart in the open and he becomes the exhibit, the proof of everything you're showing the room. He volunteered for it. Most of them do.",
+    body: "You're not arguing to him. You'll probably never change his mind, and you don't need to. You're arguing to everyone reading in silence who hasn't picked a side. He's not your enemy. He's your evidence. Take him apart in the open and he becomes the exhibit, the proof of everything you're showing the room. He volunteered for it. Most of them do.",
   },
   {
     number: 4,
