@@ -517,6 +517,50 @@ export async function softDeleteReply(
 }
 
 // --------------------------------------------------------------------
+// Restore (admin only — undo a soft delete)
+// --------------------------------------------------------------------
+
+// Soft deletes are tombstones, not erasures, so a restore is just
+// flipping the flag back and undoing the index/count bookkeeping the
+// delete did. Admin-guarded at the action layer.
+
+export async function restoreThread(id: string): Promise<EditResult> {
+  const client = getClient();
+  if (!client) return { ok: false, error: "storage_unavailable" };
+  const thread = await getThread(id);
+  if (!thread) return { ok: false, error: "not_found" };
+  if (thread.deleted) {
+    thread.deleted = false;
+    await client.set(`${THREAD_PREFIX}${id}`, JSON.stringify(thread));
+    // softDeleteThread dropped it from the active index; put it back at
+    // its last-activity score so it sorts where it belongs.
+    await client.zadd(THREADS_INDEX, {
+      score: thread.lastActivityAt,
+      member: id,
+    });
+  }
+  return { ok: true };
+}
+
+export async function restoreReply(id: string): Promise<EditResult> {
+  const client = getClient();
+  if (!client) return { ok: false, error: "storage_unavailable" };
+  const reply = await getReply(id);
+  if (!reply) return { ok: false, error: "not_found" };
+  if (reply.deleted) {
+    reply.deleted = false;
+    await client.set(`${REPLY_PREFIX}${id}`, JSON.stringify(reply));
+    // Add the visible reply back to its thread's count (delete decremented).
+    const thread = await getThread(reply.threadId);
+    if (thread) {
+      thread.replyCount += 1;
+      await client.set(`${THREAD_PREFIX}${thread.id}`, JSON.stringify(thread));
+    }
+  }
+  return { ok: true };
+}
+
+// --------------------------------------------------------------------
 // Clay presiding: pin + read-mark (admin only — guarded at the action)
 // --------------------------------------------------------------------
 

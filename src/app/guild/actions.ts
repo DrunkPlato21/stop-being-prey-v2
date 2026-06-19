@@ -13,6 +13,8 @@ import {
   markReplyReadByClay,
   markThreadReadByClay,
   pinThread,
+  restoreReply,
+  restoreThread,
   softDeleteReply,
   softDeleteThread,
   unpinThread,
@@ -187,6 +189,26 @@ export async function deleteReplyAction(formData: FormData): Promise<void> {
   const threadId = String(formData.get("threadId") ?? "");
   const admin = isAdmin(session.email);
   await softDeleteReply(id, session.email, admin);
+  revalidatePath(`/guild/${threadId}`);
+}
+
+// --- Restore (admin only — undo a soft delete) ----------------------
+
+export async function restoreThreadAction(formData: FormData): Promise<void> {
+  const session = await currentSession();
+  if (!session || !isAdmin(session.email)) return;
+  const id = String(formData.get("id") ?? "");
+  await restoreThread(id);
+  revalidatePath("/guild");
+  revalidatePath(`/guild/${id}`);
+}
+
+export async function restoreReplyAction(formData: FormData): Promise<void> {
+  const session = await currentSession();
+  if (!session || !isAdmin(session.email)) return;
+  const id = String(formData.get("id") ?? "");
+  const threadId = String(formData.get("threadId") ?? "");
+  await restoreReply(id);
   revalidatePath(`/guild/${threadId}`);
 }
 

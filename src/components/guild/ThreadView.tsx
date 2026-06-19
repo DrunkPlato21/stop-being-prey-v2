@@ -13,6 +13,8 @@ import {
   markThreadReadAction,
   pinThreadAction,
   postReplyAction,
+  restoreReplyAction,
+  restoreThreadAction,
   type GuildFormState,
 } from "@/app/guild/actions";
 import { ClayReadSeal } from "./ClayReadSeal";
@@ -33,6 +35,49 @@ const controlStyle: React.CSSProperties = {
   textTransform: "uppercase",
   color: "var(--ink-faint)",
 };
+
+// Two-step inline delete. The first click only arms it; a second
+// explicit "Confirm" fires the soft delete. Stops the one-click accident
+// without a jarring native confirm() box. The delete is reversible by an
+// admin, but the confirm still spares everyone the "where did it go".
+function DeleteControl({
+  action,
+  hidden,
+}: {
+  action: (formData: FormData) => void | Promise<void>;
+  hidden: Record<string, string>;
+}) {
+  const [armed, setArmed] = useState(false);
+  if (!armed) {
+    return (
+      <button type="button" onClick={() => setArmed(true)} style={controlStyle}>
+        Delete
+      </button>
+    );
+  }
+  return (
+    <form action={action} className="flex items-center gap-3">
+      {Object.entries(hidden).map(([k, v]) => (
+        <input key={k} type="hidden" name={k} value={v} />
+      ))}
+      <span
+        style={{ ...controlStyle, cursor: "default", color: "var(--ink-muted)" }}
+      >
+        Delete?
+      </span>
+      <button type="submit" style={{ ...controlStyle, color: "var(--blood)" }}>
+        Confirm
+      </button>
+      <button
+        type="button"
+        onClick={() => setArmed(false)}
+        style={controlStyle}
+      >
+        Cancel
+      </button>
+    </form>
+  );
+}
 
 function Body({ text }: { text: string }) {
   return (
@@ -355,9 +400,31 @@ function ReplyNode({
       </div>
 
       {reply.deleted ? (
-        <p style={{ color: "var(--ink-faint)", fontStyle: "italic", marginTop: "0.5rem" }}>
-          [removed]
-        </p>
+        <div
+          style={{
+            marginTop: "0.5rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.9rem",
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>
+            [removed]
+          </span>
+          {isAdmin && (
+            <form action={restoreReplyAction}>
+              <input type="hidden" name="id" value={reply.id} />
+              <input type="hidden" name="threadId" value={threadId} />
+              <button
+                type="submit"
+                style={{ ...controlStyle, color: "var(--eye-deep)" }}
+              >
+                Restore
+              </button>
+            </form>
+          )}
+        </div>
       ) : editing ? (
         <EditReplyForm reply={reply} onDone={() => setEditing(false)} />
       ) : (
@@ -385,11 +452,10 @@ function ReplyNode({
             </button>
           )}
           {mounted && (isOwner || isAdmin) && (
-            <form action={deleteReplyAction}>
-              <input type="hidden" name="id" value={reply.id} />
-              <input type="hidden" name="threadId" value={threadId} />
-              <button type="submit" style={controlStyle}>Delete</button>
-            </form>
+            <DeleteControl
+              action={deleteReplyAction}
+              hidden={{ id: reply.id, threadId }}
+            />
           )}
           {isAdmin && !reply.clayReadAt && (
             <form action={markReplyReadAction}>
@@ -503,9 +569,29 @@ export function ThreadView({
         )}
 
         {thread.deleted ? (
-          <p style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>
-            [This thread was removed.]
-          </p>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "1rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>
+              [This thread was removed.]
+            </span>
+            {isAdmin && (
+              <form action={restoreThreadAction}>
+                <input type="hidden" name="id" value={thread.id} />
+                <button
+                  type="submit"
+                  style={{ ...controlStyle, color: "var(--eye-deep)" }}
+                >
+                  Restore thread
+                </button>
+              </form>
+            )}
+          </div>
         ) : editing ? (
           <EditThreadForm thread={thread} onDone={() => setEditing(false)} />
         ) : (
@@ -541,10 +627,10 @@ export function ThreadView({
               </button>
             )}
             {mounted && (isOwner || isAdmin) && (
-              <form action={deleteThreadAction}>
-                <input type="hidden" name="id" value={thread.id} />
-                <button type="submit" style={controlStyle}>Delete</button>
-              </form>
+              <DeleteControl
+                action={deleteThreadAction}
+                hidden={{ id: thread.id }}
+              />
             )}
             {isAdmin && (
               <>
