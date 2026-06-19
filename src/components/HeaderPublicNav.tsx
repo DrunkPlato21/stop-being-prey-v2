@@ -1,0 +1,60 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+// The public site's nav strip (Issues / Podcast / About / Tip). Hidden in
+// the member area, where the member sidebar/strip is the only nav — so
+// each context shows exactly one nav instead of two stacked on top of
+// each other. The wordmark still returns to the public site.
+//
+// Member-area routes are the ones that render the member nav via their
+// own layout: desk, lounge, guild, notes/*, book, case-files.
+
+const MEMBER_PREFIXES = [
+  "/desk",
+  "/lounge",
+  "/guild",
+  "/notes",
+  "/book",
+  "/case-files",
+];
+
+const navLinkClass =
+  "header-nav-link text-ink hover:text-eye-deep transition-colors no-underline";
+
+export function HeaderPublicNav() {
+  const pathname = usePathname() ?? "";
+  const inMemberArea = MEMBER_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+  if (inMemberArea) return null;
+
+  return (
+    <nav className="border-b border-rule bg-paper-deep/40">
+      <div className="max-w-6xl mx-auto px-5 sm:px-6 flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-7 gap-y-1 py-2.5 sm:py-3">
+        <Link href="/issues" className={navLinkClass}>
+          Issues
+        </Link>
+        <span className="header-nav-sep" aria-hidden="true">
+          ·
+        </span>
+        <Link href="/podcast" className={navLinkClass}>
+          Podcast
+        </Link>
+        <span className="header-nav-sep" aria-hidden="true">
+          ·
+        </span>
+        <Link href="/about" className={navLinkClass}>
+          About
+        </Link>
+        <span className="header-nav-sep" aria-hidden="true">
+          ·
+        </span>
+        <Link href="/tip" className={navLinkClass}>
+          Tip
+        </Link>
+      </div>
+    </nav>
+  );
+}

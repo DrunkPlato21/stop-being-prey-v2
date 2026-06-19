@@ -8,9 +8,7 @@ import { IdentityMenu, type IdentityMenuProps } from "@/components/IdentityMenu"
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { DeskPresenceIndicator } from "@/components/DeskPresenceIndicator";
 import { HeaderJoinLink } from "@/components/HeaderJoinLink";
-
-const navLinkClass =
-  "header-nav-link text-ink hover:text-eye-deep transition-colors no-underline";
+import { HeaderPublicNav } from "@/components/HeaderPublicNav";
 
 // Three chrome states:
 //   - Logged-out: presence indicator (only when Clay is active) + JOIN.
@@ -188,34 +186,11 @@ export async function Header() {
         </div>
       </div>
 
-      {/* === Tier 2: slim nav strip ===
-          Membership is not surfaced here — the Sign in / Join pair in
-          the top-right of Tier 1 already covers that entry point. */}
-      <nav className="border-b border-rule bg-paper-deep/40">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-7 gap-y-1 py-2.5 sm:py-3">
-          <Link href="/issues" className={navLinkClass}>
-            Issues
-          </Link>
-          <span className="header-nav-sep" aria-hidden="true">
-            ·
-          </span>
-          <Link href="/podcast" className={navLinkClass}>
-            Podcast
-          </Link>
-          <span className="header-nav-sep" aria-hidden="true">
-            ·
-          </span>
-          <Link href="/about" className={navLinkClass}>
-            About
-          </Link>
-          <span className="header-nav-sep" aria-hidden="true">
-            ·
-          </span>
-          <Link href="/tip" className={navLinkClass}>
-            Tip
-          </Link>
-        </div>
-      </nav>
+      {/* === Tier 2: the public site's nav strip ===
+          Hidden in the member area (see HeaderPublicNav), where the
+          member nav is the only nav. Membership isn't surfaced here — the
+          Sign in / Join pair in Tier 1 already covers that entry point. */}
+      <HeaderPublicNav />
     </header>
   );
 }
