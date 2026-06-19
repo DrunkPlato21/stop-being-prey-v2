@@ -1,29 +1,35 @@
 "use client";
 
-import { useState } from "react";
-import { ReactionIcon, REACTION_LABELS } from "@/components/ReactionIcon";
-import { GUILD_REACTIONS, type GuildReaction } from "@/lib/guild-constants";
+import { useEffect, useRef, useState } from "react";
+import {
+  REACTION_EMOJI,
+  REACTION_KEYS,
+  REACTION_LABEL,
+  type ReactionKey,
+} from "@/lib/lounge";
 import type { ReactionSummary } from "@/lib/guild";
 
-// Reaction bar under a Guild thread or reply. Shows existing reaction
-// chips (glyph + count) and a "React" trigger that opens the five-glyph
-// picker. Optimistic: the tap updates local state instantly, then the
-// server's authoritative summary reconciles (or reverts on failure).
-// One reaction per member per target; tapping your own toggles it off.
+// Reaction control for a Guild thread or reply. This is the Lounge's
+// ReactionControl, cloned: the same seven emoji, the same inline "React"
+// trigger, the same hover-open popover picker and summary cluster. The
+// only difference is the storage target (Guild threads/replies). One
+// reaction per member per target; tapping your own toggles it off.
+// Optimistic — taps update instantly, then the server summary reconciles.
+
+const OPEN_DELAY_MS = 180;
+const CLOSE_DELAY_MS = 280;
 
 function applyOptimistic(
   prev: ReactionSummary,
-  r: GuildReaction
+  r: ReactionKey
 ): ReactionSummary {
-  const counts: Partial<Record<GuildReaction, number>> = { ...prev.counts };
-  let myReaction: GuildReaction | null = prev.myReaction;
-
-  const dec = (k: GuildReaction) => {
+  const counts: Partial<Record<ReactionKey, number>> = { ...prev.counts };
+  let myReaction: ReactionKey | null = prev.myReaction;
+  const dec = (k: ReactionKey) => {
     const next = (counts[k] ?? 1) - 1;
     if (next <= 0) delete counts[k];
     else counts[k] = next;
   };
-
   if (prev.myReaction === r) {
     dec(r);
     myReaction = null;
@@ -39,18 +45,6 @@ function applyOptimistic(
   return { counts, total, myReaction };
 }
 
-const triggerStyle: React.CSSProperties = {
-  background: "transparent",
-  border: 0,
-  padding: 0,
-  cursor: "pointer",
-  fontSize: "0.64rem",
-  fontWeight: 600,
-  letterSpacing: "0.16em",
-  textTransform: "uppercase",
-  color: "var(--eye-deep)",
-};
-
 export function GuildReactions({
   kind,
   targetId,
@@ -63,14 +57,81 @@ export function GuildReactions({
   initial: ReactionSummary;
 }) {
   const [summary, setSummary] = useState<ReactionSummary>(initial);
-  const [picking, setPicking] = useState(false);
+  const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
 
-  async function react(r: GuildReaction) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const openTimer = useRef<number | null>(null);
+  const closeTimer = useRef<number | null>(null);
+
+  const mine = summary.myReaction;
+  const hasReaction = mine !== null;
+  const topKeys = REACTION_KEYS.filter((k) => (summary.counts[k] ?? 0) > 0)
+    .sort((a, b) => (summary.counts[b] ?? 0) - (summary.counts[a] ?? 0))
+    .slice(0, 3);
+
+  function clearTimers() {
+    if (openTimer.current !== null) {
+      window.clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }
+
+  function handleEnter() {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    if (open) return;
+    if (openTimer.current !== null) window.clearTimeout(openTimer.current);
+    openTimer.current = window.setTimeout(() => {
+      setOpen(true);
+      openTimer.current = null;
+    }, OPEN_DELAY_MS);
+  }
+
+  function handleLeave() {
+    if (openTimer.current !== null) {
+      window.clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+    if (!open) return;
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    closeTimer.current = window.setTimeout(() => {
+      setOpen(false);
+      closeTimer.current = null;
+    }, CLOSE_DELAY_MS);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => () => clearTimers(), []);
+
+  async function react(r: ReactionKey) {
     if (pending) return;
     const prev = summary;
     setSummary(applyOptimistic(prev, r));
-    setPicking(false);
+    setOpen(false);
     setPending(true);
     try {
       const res = await fetch("/api/guild/react", {
@@ -91,78 +152,127 @@ export function GuildReactions({
     }
   }
 
-  const reacted = GUILD_REACTIONS.filter((r) => (summary.counts[r] ?? 0) > 0);
+  const triggerColor = hasReaction ? "var(--eye-deep)" : "var(--ink-faint)";
 
   return (
-    <div className="flex items-center gap-2 flex-wrap mt-2.5">
-      {reacted.map((r) => {
-        const mine = summary.myReaction === r;
-        return (
-          <button
-            key={r}
-            type="button"
-            onClick={() => react(r)}
-            title={REACTION_LABELS[r]}
-            aria-label={`${REACTION_LABELS[r]}, ${summary.counts[r]}`}
-            aria-pressed={mine}
-            className="inline-flex items-center gap-1 transition-colors"
-            style={{
-              background: mine ? "rgba(138, 125, 32, 0.1)" : "transparent",
-              border: `1px solid ${mine ? "var(--eye-deep)" : "var(--rule)"}`,
-              borderRadius: 999,
-              padding: "0.12rem 0.5rem 0.12rem 0.4rem",
-              cursor: "pointer",
-            }}
-          >
-            <ReactionIcon type={r} size={15} />
-            <span
-              className="font-display"
-              style={{
-                fontSize: "0.74rem",
-                fontWeight: 600,
-                color: mine ? "var(--eye-deep)" : "var(--ink-muted)",
-              }}
-            >
-              {summary.counts[r]}
-            </span>
-          </button>
-        );
-      })}
+    <div
+      ref={rootRef}
+      style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="font-display uppercase tracking-[0.16em] transition-colors"
+        style={{
+          fontSize: "0.64rem",
+          fontWeight: 600,
+          background: "transparent",
+          border: 0,
+          color: triggerColor,
+          cursor: "pointer",
+          padding: 0,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.4rem",
+        }}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={
+          hasReaction ? `Your reaction: ${REACTION_LABEL[mine]}` : "Add a reaction"
+        }
+      >
+        {hasReaction && (
+          <span aria-hidden="true" style={{ fontSize: "1.05rem", lineHeight: 1 }}>
+            {REACTION_EMOJI[mine]}
+          </span>
+        )}
+        <span>{hasReaction ? REACTION_LABEL[mine] : "React"}</span>
+      </button>
 
-      {picking ? (
-        <span className="inline-flex items-center gap-2">
-          {GUILD_REACTIONS.map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => react(r)}
-              title={REACTION_LABELS[r]}
-              aria-label={REACTION_LABELS[r]}
-              className="reaction-button"
-              data-type={r}
-              data-active={summary.myReaction === r ? "true" : "false"}
-            >
-              <ReactionIcon type={r} size={22} />
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setPicking(false)}
-            aria-label="Close reactions"
-            style={{ ...triggerStyle, color: "var(--ink-faint)" }}
-          >
-            &times;
-          </button>
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setPicking(true)}
-          style={triggerStyle}
-          aria-label="React"
+      {summary.total > 0 && !(hasReaction && summary.total === 1) && (
+        <span
+          className="font-display"
+          style={{
+            marginLeft: "0.55rem",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.25rem",
+            color: "var(--ink-faint)",
+            fontSize: "0.66rem",
+            fontWeight: 600,
+          }}
         >
-          {reacted.length > 0 ? "+" : "React"}
-        </button>
+          <span aria-hidden="true" style={{ display: "inline-flex" }}>
+            {topKeys.map((k) => (
+              <span
+                key={k}
+                style={{ fontSize: "0.95rem", lineHeight: 1, marginRight: "-0.2rem" }}
+              >
+                {REACTION_EMOJI[k]}
+              </span>
+            ))}
+          </span>
+          <span style={{ marginLeft: "0.3rem" }}>{summary.total}</span>
+        </span>
+      )}
+
+      {open && (
+        <div
+          role="menu"
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 6px)",
+            left: 0,
+            zIndex: 30,
+            display: "inline-flex",
+            background: "var(--paper)",
+            border: "1px solid var(--rule)",
+            boxShadow: "0 6px 22px rgba(26, 23, 20, 0.12)",
+            padding: "0.35rem 0.45rem",
+            gap: "0.2rem",
+          }}
+        >
+          {REACTION_KEYS.map((key) => {
+            const isMine = mine === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="menuitem"
+                onClick={() => react(key)}
+                aria-pressed={isMine}
+                title={REACTION_LABEL[key]}
+                aria-label={REACTION_LABEL[key]}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "2rem",
+                  height: "2rem",
+                  fontSize: "1.25rem",
+                  lineHeight: 1,
+                  background: isMine ? "rgba(184, 168, 44, 0.18)" : "transparent",
+                  border: 0,
+                  cursor: "pointer",
+                  borderRadius: 2,
+                  transition: "transform 0.12s ease, background 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.transform =
+                    "scale(1.18)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.transform =
+                    "scale(1)";
+                }}
+              >
+                <span aria-hidden="true">{REACTION_EMOJI[key]}</span>
+              </button>
+            );
+          })}
+        </div>
       )}
     </div>
   );

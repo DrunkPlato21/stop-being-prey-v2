@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getProfile } from "@/lib/comments";
 import { getReply, getThread, setGuildReaction } from "@/lib/guild";
-import { isGuildReaction, type GuildReaction } from "@/lib/guild-constants";
+import { isReactionKey, type ReactionKey } from "@/lib/lounge";
 import { createNotification } from "@/lib/notifications";
 
 // POST /api/guild/react
@@ -44,10 +44,10 @@ export async function POST(req: NextRequest) {
   }
 
   const reactionRaw = b.reaction;
-  let choice: GuildReaction | null;
+  let choice: ReactionKey | null;
   if (reactionRaw === null || reactionRaw === undefined || reactionRaw === "") {
     choice = null;
-  } else if (isGuildReaction(reactionRaw)) {
+  } else if (isReactionKey(reactionRaw)) {
     choice = reactionRaw;
   } else {
     return Response.json({ error: "invalid_reaction" }, { status: 400 });

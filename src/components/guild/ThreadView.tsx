@@ -476,16 +476,13 @@ function ReplyNode({
               </button>
             </form>
           )}
+          <GuildReactions
+            kind="reply"
+            targetId={reply.id}
+            threadId={threadId}
+            initial={reactions[reply.id] ?? EMPTY_REACTIONS}
+          />
         </div>
-      )}
-
-      {!reply.deleted && (
-        <GuildReactions
-          kind="reply"
-          targetId={reply.id}
-          threadId={threadId}
-          initial={reactions[reply.id] ?? EMPTY_REACTIONS}
-        />
       )}
 
       {/* Anchored to the comment it answers: an olive left rule binds the
@@ -673,16 +670,13 @@ export function ThreadView({
                 )}
               </>
             )}
+            <GuildReactions
+              kind="thread"
+              targetId={thread.id}
+              threadId={thread.id}
+              initial={reactions[thread.id] ?? EMPTY_REACTIONS}
+            />
           </div>
-        )}
-
-        {!thread.deleted && (
-          <GuildReactions
-            kind="thread"
-            targetId={thread.id}
-            threadId={thread.id}
-            initial={reactions[thread.id] ?? EMPTY_REACTIONS}
-          />
         )}
       </article>
 

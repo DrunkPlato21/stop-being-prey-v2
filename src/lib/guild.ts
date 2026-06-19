@@ -4,13 +4,14 @@ import {
   DEFAULT_GUILD_CATEGORY,
   EDIT_WINDOW_MS,
   isGuildCategory,
-  isGuildReaction,
   MAX_BODY,
   MAX_REPLY,
   MAX_TITLE,
   type GuildCategory,
-  type GuildReaction,
 } from "./guild-constants";
+// Reactions reuse the Lounge's exact set, emoji, and labels so the two
+// rooms are identical.
+import { isReactionKey, type ReactionKey } from "./lounge";
 
 // The Guild — a member-initiated, topic-organized library of substantive
 // titled threads. NOT the Lounge (a recency-ordered chat river) and NOT
@@ -648,10 +649,10 @@ export async function markReplyReadByClay(id: string): Promise<boolean> {
 const REACTIONS_PREFIX = `${KEY_PREFIX}guild:reactions:`;
 
 export type ReactionSummary = {
-  counts: Partial<Record<GuildReaction, number>>;
+  counts: Partial<Record<ReactionKey, number>>;
   total: number;
   /** The viewer's own reaction, if any. */
-  myReaction: GuildReaction | null;
+  myReaction: ReactionKey | null;
 };
 
 const EMPTY_SUMMARY: ReactionSummary = {
@@ -664,13 +665,13 @@ function summarize(
   hash: Record<string, string> | null | undefined,
   viewerEmail: string | null
 ): ReactionSummary {
-  const counts: Partial<Record<GuildReaction, number>> = {};
+  const counts: Partial<Record<ReactionKey, number>> = {};
   let total = 0;
-  let myReaction: GuildReaction | null = null;
+  let myReaction: ReactionKey | null = null;
   const viewer = viewerEmail ? normEmail(viewerEmail) : null;
   if (hash) {
     for (const [email, reaction] of Object.entries(hash)) {
-      if (!isGuildReaction(reaction)) continue;
+      if (!isReactionKey(reaction)) continue;
       counts[reaction] = (counts[reaction] ?? 0) + 1;
       total += 1;
       if (viewer && email.toLowerCase() === viewer) myReaction = reaction;
@@ -712,14 +713,14 @@ export async function getGuildReactions(
 export async function setGuildReaction(
   targetId: string,
   email: string,
-  choice: GuildReaction | null
+  choice: ReactionKey | null
 ): Promise<{ ok: boolean; added: boolean; summary: ReactionSummary }> {
   const client = getClient();
   if (!client) return { ok: false, added: false, summary: EMPTY_SUMMARY };
   const key = `${REACTIONS_PREFIX}${targetId}`;
   const field = normEmail(email);
   const currentRaw = await client.hget<string>(key, field).catch(() => null);
-  const current = isGuildReaction(currentRaw) ? currentRaw : null;
+  const current = isReactionKey(currentRaw) ? currentRaw : null;
 
   let added = false;
   if (choice === null || choice === current) {
