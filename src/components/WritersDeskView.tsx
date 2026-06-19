@@ -632,6 +632,18 @@ export function WritersDeskView({
           </div>
         </div>
 
+        {/* Leave a note for Clay — sits right under his presence, since
+            the note is the direct line to him. Members only (Clay works
+            notes from /admin/notes). */}
+        {isSignedIn && !viewerIsAdmin && (
+          <div className="mt-6">
+            <NotePaperPanel
+              memberNotes={memberNotes}
+              onSubmitted={handleNoteSubmitted}
+            />
+          </div>
+        )}
+
         {/* The rooms — the hub. Two spokes off the desk: the Guild
             (deep threads) and the Lounge (live talk). Each shows its
             own pulse so the desk answers "what's alive now" before the
@@ -915,18 +927,6 @@ export function WritersDeskView({
               ))}
             </ul>
           </div>
-        )}
-
-        {/* Member-to-Clay notes. The "paper in a slot" affordance
-            sits at the bottom of the widget so the surface reads as
-            a desk with a notepad tucked in. Hidden for the admin
-            viewer (Clay uses /admin/notes instead) and for anonymous
-            visitors. */}
-        {isSignedIn && !viewerIsAdmin && (
-          <NotePaperPanel
-            memberNotes={memberNotes}
-            onSubmitted={handleNoteSubmitted}
-          />
         )}
 
         {/* Admin viewer: quiet link into the moderation queue. */}
