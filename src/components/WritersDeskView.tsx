@@ -506,7 +506,7 @@ export function WritersDeskView({
     ? {
         steps: [
           { key: "name", label: "Set your name", href: "/notes/account", done: false },
-          { key: "rules", label: "Read the Rules", href: "/notes/rules", done: false },
+          { key: "rules", label: "Read the Rules", href: "/rules", done: false },
           {
             key: "qotw",
             label: "Answer the Question of the Week",

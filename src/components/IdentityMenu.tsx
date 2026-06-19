@@ -17,7 +17,7 @@ import type { TierBadge } from "@/lib/members";
 // anchored to the trigger's bounding rect. This is the only way to
 // guarantee the menu paints above page content that creates its own
 // stacking context — the Writer's Desk widget on /desk, the
-// .rules-paper isolation context on /notes/rules, etc. — without
+// .rules-paper isolation context on /rules, etc. — without
 // playing whack-a-mole with z-index values up the tree.
 //
 // Closing rules:

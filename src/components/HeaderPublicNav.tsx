@@ -10,6 +10,11 @@ import { usePathname } from "next/navigation";
 //
 // Member-area routes are the ones that render the member nav via their
 // own layout: desk, lounge, guild, notes/*, book, case-files.
+//
+// /rules is the exception: it's a PUBLIC page (the doctrine front door),
+// but it stays focused — no public strip, no member nav for strangers,
+// just the rules + a Join CTA. Signed-in members get the member sidebar
+// via /rules' own layout. Either way the public strip is suppressed.
 
 const MEMBER_PREFIXES = [
   "/desk",
@@ -18,6 +23,7 @@ const MEMBER_PREFIXES = [
   "/notes",
   "/book",
   "/case-files",
+  "/rules",
 ];
 
 const navLinkClass =

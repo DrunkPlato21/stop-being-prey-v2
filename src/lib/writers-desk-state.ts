@@ -215,7 +215,7 @@ export async function getWritersDeskState(
       firstRun = {
         steps: [
           { key: "name", label: "Set your name", href: "/notes/account", done: nameDone },
-          { key: "rules", label: "Read the Rules", href: "/notes/rules", done: rulesDone },
+          { key: "rules", label: "Read the Rules", href: "/rules", done: rulesDone },
           {
             key: "qotw",
             label: "Answer the Question of the Week",

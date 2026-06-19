@@ -15,7 +15,12 @@ import { EyeDivider } from "@/components/Eyes";
 import { Comments } from "@/components/Comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { markNavViewed } from "@/lib/nav-dots";
-import { FOUNDER_CAP, getFounderClaimed } from "@/lib/members";
+import {
+  CHARTER_CAP,
+  FOUNDER_CAP,
+  getCharterClaimed,
+  getFounderClaimed,
+} from "@/lib/members";
 
 type PageParams = { slug: string };
 
@@ -233,12 +238,19 @@ export default async function CaseFileDetailPage({
   );
   const previewMode = !session?.email && cf.publicPreview;
 
-  // Pull the live founder count only when we're going to render the
-  // preview CTA — saves a Redis read for member viewers who never see
-  // the seat-counter line. Clamped to non-negative just in case.
-  const founderSeatsLeft = previewMode
-    ? Math.max(0, FOUNDER_CAP - (await getFounderClaimed()))
-    : 0;
+  // Pull the live offer state only when we're going to render the
+  // preview CTA — saves the Redis reads for member viewers who never
+  // see the seat-counter line. Mirrors the /membership state machine:
+  // $8 founder pitch while founders remain, $13 charter pitch with
+  // charter seats once founders fill, plain $13 floor when both caps
+  // fill. Keeps cold-traffic pricing in step with the real checkout.
+  const [founderClaimed, charterClaimed] = previewMode
+    ? await Promise.all([getFounderClaimed(), getCharterClaimed()])
+    : [FOUNDER_CAP, CHARTER_CAP];
+  const founderEligible = founderClaimed < FOUNDER_CAP;
+  const charterEligible = !founderEligible && charterClaimed < CHARTER_CAP;
+  const founderRemaining = Math.max(0, FOUNDER_CAP - founderClaimed);
+  const charterRemaining = Math.max(0, CHARTER_CAP - charterClaimed);
 
   // Clear the nav dot — a member who came in via a direct link to a
   // specific case file has still effectively engaged with the section.
@@ -558,7 +570,7 @@ export default async function CaseFileDetailPage({
                       {"  ·  "}
                     </span>
                   )}
-                  <Link href={`/notes/rules#rule-${n}`}>
+                  <Link href={`/rules#rule-${n}`}>
                     Rule {RULE_ROMAN[n - 1]} &middot;{" "}
                     {RULE_SHORT_LABEL[n]}
                   </Link>
@@ -662,10 +674,25 @@ export default async function CaseFileDetailPage({
               className="font-serif text-ink-soft mb-5"
               style={{ fontSize: "1rem", lineHeight: 1.65 }}
             >
-              {founderSeatsLeft} founder seat
-              {founderSeatsLeft === 1 ? "" : "s"} left. $8/month locked
-              for life. When the last fills, $13 forever. There is no
-              second cohort.
+              {founderEligible ? (
+                <>
+                  {founderRemaining} founder seat
+                  {founderRemaining === 1 ? "" : "s"} left. $8/month
+                  locked for life. When the last fills, $13 forever.
+                </>
+              ) : charterEligible ? (
+                <>
+                  {charterRemaining} charter seat
+                  {charterRemaining === 1 ? "" : "s"} left. $13/month
+                  floor, or pay what it&apos;s worth. Your rate locked
+                  for life, with your slot number.
+                </>
+              ) : (
+                <>
+                  $13/month floor, or pay what it&apos;s worth. Locked
+                  for life.
+                </>
+              )}
             </p>
             <p>
               <Link

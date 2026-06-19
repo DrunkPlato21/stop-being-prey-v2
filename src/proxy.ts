@@ -121,6 +121,18 @@ export async function proxy(request: NextRequest) {
     url.pathname = "/desk";
     return NextResponse.redirect(url, 301);
   }
+  // The Rules of Engagement moved out from behind the membership gate
+  // to a public top-level /rules (the doctrine is the public lure). Old
+  // member links and bookmarks to /notes/rules get a permanent redirect.
+  // Done before the auth gate so unauthenticated visitors land on the
+  // public page rather than bouncing to sign-in. Anchors (#rule-N) are
+  // client-side and survive the hop.
+  if (pathname === "/notes/rules" || pathname === "/notes/rules/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/rules";
+    url.search = "";
+    return NextResponse.redirect(url, 301);
+  }
   if (pathname === "/den" || pathname === "/den/") {
     const url = request.nextUrl.clone();
     url.pathname = "/desk";

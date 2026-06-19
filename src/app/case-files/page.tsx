@@ -129,7 +129,7 @@ export default async function CaseFilesPage() {
           >
             Where the{" "}
             <Link
-              href="/notes/rules"
+              href="/rules"
               className="text-eye-deep hover:text-ink"
               style={{
                 textDecoration: "underline",
@@ -544,11 +544,11 @@ export default async function CaseFilesPage() {
                   Rules Applied
                 </p>
                 <p className="rule-demo" style={{ margin: 0 }}>
-                  <Link href="/notes/rules#rule-3">
+                  <Link href="/rules#rule-3">
                     Rule III &middot; Identify the move
                   </Link>
                   {"  ·  "}
-                  <Link href="/notes/rules#rule-6">
+                  <Link href="/rules#rule-6">
                     Rule VI &middot; Make examples
                   </Link>
                 </p>

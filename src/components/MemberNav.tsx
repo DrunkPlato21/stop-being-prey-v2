@@ -43,7 +43,7 @@ const ITEMS: NavItem[] = [
   { href: "/desk", label: "Desk" },
   { href: "/lounge", label: "Lounge" },
   { href: "/guild", label: "The Guild" },
-  { href: "/notes/rules", label: "Rules", clusterBreak: true },
+  { href: "/rules", label: "Rules", clusterBreak: true },
   { href: "/case-files", label: "Case Files" },
   { href: "/book", label: "Book" },
 ];
