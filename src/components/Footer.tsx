@@ -51,7 +51,7 @@ export function Footer() {
               <ul className="space-y-2">
                 <li>
                   <Link href="/issues" className={navLinkClass}>
-                    Issues
+                    Writing
                   </Link>
                 </li>
                 <li>
@@ -119,6 +119,16 @@ export function Footer() {
                     className={navLinkClass}
                   >
                     Spotify
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://youtube.com/@stopbeingprey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={navLinkClass}
+                  >
+                    YouTube
                   </a>
                 </li>
                 <li>

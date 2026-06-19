@@ -116,7 +116,7 @@ export function StickyNav({ signedIn, isPaidMember }: StickyNavProps) {
             still available via scroll-to-top. */}
         <nav className="hidden sm:flex items-center gap-x-5 text-sm">
           <Link href="/issues" className="header-nav-link text-ink hover:text-eye-deep transition-colors no-underline">
-            Issues
+            Writing
           </Link>
           <Link href="/about" className="header-nav-link text-ink hover:text-eye-deep transition-colors no-underline">
             About

@@ -15,6 +15,12 @@ export type ArticleMeta = {
   description: string;
   subtitle?: string;
   issue?: number;
+  /** Marks a major essay (a "cornerstone" - the heavy, worked pieces)
+      as opposed to a dispatch (the shorter, more frequent writing). Set
+      `cornerstone: true` in frontmatter. Backward-compatible: any piece
+      carrying a legacy `issue` number is treated as a cornerstone too,
+      so the old issues need no migration. See isCornerstone(). */
+  cornerstone?: boolean;
   spotifyEpisodeId?: string;
   chapter?: number;
   wordCount?: number;
@@ -158,6 +164,7 @@ export function getAllArticles(): ArticleMeta[] {
       description: data.description,
       subtitle: data.subtitle,
       issue: data.issue,
+      cornerstone: data.cornerstone === true,
       spotifyEpisodeId: data.spotifyEpisodeId,
       chapter: data.chapter,
       // essayStyle pieces carry {{tokens}} and inline citation URLs that
@@ -187,6 +194,27 @@ export function getAllArticles(): ArticleMeta[] {
   return articles
     .filter((a) => a.published !== false)
     .sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+/**
+ * The two tempos of the writing. A "cornerstone" is a major, worked
+ * essay (the depth); a "dispatch" is a shorter, more frequent piece
+ * (the pulse, the reason to check back). The distinction is set per
+ * piece at publish time via `cornerstone: true`, with legacy `issue`
+ * numbers grandfathered in so nothing needs migrating.
+ */
+export function isCornerstone(a: ArticleMeta): boolean {
+  return a.cornerstone === true || typeof a.issue === "number";
+}
+
+/** Major essays, newest-first (getAllArticles is already date-sorted). */
+export function getCornerstones(): ArticleMeta[] {
+  return getAllArticles().filter(isCornerstone);
+}
+
+/** Dispatches (everything that isn't a cornerstone), newest-first. */
+export function getDispatches(): ArticleMeta[] {
+  return getAllArticles().filter((a) => !isCornerstone(a));
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {

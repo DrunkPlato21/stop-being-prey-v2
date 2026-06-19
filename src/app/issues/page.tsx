@@ -1,18 +1,32 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getAllArticles } from "@/lib/articles";
-import { getIssueLabel } from "@/lib/issue";
+import { getCornerstones, getDispatches } from "@/lib/articles";
+
+// The writing archive, in two tempos: the major essays (cornerstones)
+// and the dispatches (shorter, more frequent pieces). Replaces the old
+// magazine "Issues" framing (Vol/No numbering is gone). The route stays
+// /issues for now; nav + heading read "Writing".
+//
+// NOTE: section labels ("The major essays" / "Dispatches") are
+// placeholder - Clay to name in his voice.
 
 export const metadata: Metadata = {
-  title: "Issues",
+  title: "Writing",
   description:
-    "Every issue of Stop Being Prey, in order. Long-form essays on politics, power, and the apex class by Clay.",
+    "The writing of Stop Being Prey. Major essays and dispatches on power, politics, and the apex class by Clay.",
 };
 
-export default function IssuesPage() {
-  const issues = getAllArticles()
-    .filter((a) => typeof a.issue === "number")
-    .sort((a, b) => (b.issue ?? 0) - (a.issue ?? 0));
+const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+
+export default function EssaysPage() {
+  const cornerstones = getCornerstones();
+  const dispatches = getDispatches();
 
   return (
     <div>
@@ -27,28 +41,32 @@ export default function IssuesPage() {
               letterSpacing: "-0.03em",
             }}
           >
-            Issues
+            Writing
           </h1>
           <p className="font-serif italic text-ink-muted text-lg md:text-xl max-w-xl mx-auto leading-relaxed fade-up stagger-3">
-            Every issue, in order. Newest first.
+            On power, politics, and the apex class.
+            <br />
+            The long essays and the quick ones.
           </p>
         </div>
       </section>
 
-      <section className="max-w-3xl mx-auto px-6 py-12 md:py-16">
-        {issues.length === 0 ? (
+      {/* === The major essays (cornerstones) === */}
+      <section className="max-w-3xl mx-auto px-6 pt-12 md:pt-16 pb-8">
+        <p className="eyebrow mb-10">The major essays</p>
+        {cornerstones.length === 0 ? (
           <p className="text-center text-ink-muted italic">
-            No issues yet. Stay close.
+            Nothing here yet. Stay close.
           </p>
         ) : (
           <ol className="space-y-10">
-            {issues.map((article) => (
+            {cornerstones.map((article) => (
               <li key={article.slug}>
                 <Link
                   href={`/${article.slug}`}
                   className="block border-b border-rule pb-10 no-underline group"
                 >
-                  <p className="eyebrow mb-3">{getIssueLabel(article)}</p>
+                  <p className="eyebrow mb-3">{formatDate(article.date)}</p>
                   <h2
                     className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep transition-colors"
                     style={{
@@ -67,16 +85,46 @@ export default function IssuesPage() {
             ))}
           </ol>
         )}
+      </section>
 
-        <div className="mt-16 text-center">
-          <Link
-            href="/"
-            className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            ← Back home
-          </Link>
-        </div>
+      {/* === Dispatches (the shorter, frequent pieces) === */}
+      {dispatches.length > 0 && (
+        <section className="max-w-3xl mx-auto px-6 pb-12 md:pb-16">
+          <p className="eyebrow mb-6">Dispatches</p>
+          <ul className="flex flex-col">
+            {dispatches.map((article, idx) => (
+              <li
+                key={article.slug}
+                className={idx > 0 ? "border-t border-rule" : undefined}
+              >
+                <Link
+                  href={`/${article.slug}`}
+                  className="group flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-6 py-4 no-underline"
+                >
+                  <span
+                    className="font-display text-ink group-hover:text-eye-deep transition-colors leading-snug"
+                    style={{ fontSize: "1.2rem", fontWeight: 600 }}
+                  >
+                    {article.title}
+                  </span>
+                  <span className="eyebrow shrink-0 whitespace-nowrap">
+                    {formatDate(article.date)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="max-w-3xl mx-auto px-6 pb-16 text-center">
+        <Link
+          href="/"
+          className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
+          style={{ fontWeight: 500 }}
+        >
+          ← Back home
+        </Link>
       </section>
     </div>
   );

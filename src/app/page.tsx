@@ -1,20 +1,38 @@
 import Link from "next/link";
 import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
-import { EyeDivider } from "@/components/Eyes";
 import { AudioPill } from "@/components/AudioPill";
-import { getAllArticles, audioRuntimeMinutes } from "@/lib/articles";
-import { getCurrentIssue } from "@/lib/issue";
+import {
+  getAllArticles,
+  getCornerstones,
+  getDispatches,
+  audioRuntimeMinutes,
+} from "@/lib/articles";
+import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
+
+// Doctrine-first homepage. A stranger should meet the doctrine, not a
+// magazine masthead. The spine: thesis hero -> the seven rules (funnel
+// to the free /rules) -> essays as proof -> the Rules email magnet.
+//
+// NOTE (placeholder copy): the hero thesis lines and the magnet framing
+// are first-pass and meant for Clay to rewrite in his voice. The rule
+// teaser pulls RULE_SHORT_LABEL / RULE_ROMAN so it tracks the live rule
+// edits automatically and never drifts.
+
+// The seven rules, by number. Source of truth is /rules; here we only
+// surface the short labels as a teaser that funnels to the full page.
+const RULE_NUMBERS = [1, 2, 3, 4, 5, 6, 7];
 
 export default function Home() {
-  const articles = getAllArticles();
-  // The lead is the highest-numbered issue. Non-issue essays never take the
-  // hero slot; they live at their own URL but are not listed here.
-  const issues = articles
-    .filter((a) => typeof a.issue === "number")
-    .sort((a, b) => (b.issue ?? 0) - (a.issue ?? 0));
-  const featured = issues[0] ?? articles[0];
-  const previousIssues = issues.filter((a) => a.slug !== featured?.slug);
-  const issue = getCurrentIssue(featured ? [featured] : articles);
+  // Two tempos. Cornerstones (major essays) lead the proof section; the
+  // latest one takes the big slot. Dispatches (the shorter, frequent
+  // pieces) run as a stream below - the pulse that gives a reason to
+  // return between the big drops.
+  const cornerstones = getCornerstones();
+  const featured = cornerstones[0] ?? getAllArticles()[0];
+  const otherCornerstones = cornerstones.filter(
+    (a) => a.slug !== featured?.slug
+  );
+  const dispatches = getDispatches().slice(0, 5);
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-US", {
@@ -56,56 +74,112 @@ export default function Home() {
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
       />
-      {/* === Masthead === */}
-      <section>
-        <div className="max-w-6xl mx-auto px-6 py-12 md:py-16 border-t border-b border-rule">
-          <div className="flex flex-col items-center text-center">
-            {issue && (
-              <p className="eyebrow mb-7 fade-up">
-                Vol. {issue.volume} · No. {issue.number} ·{" "}
-                <span className="sm:hidden">{issue.shortDateLabel}</span>
-                <span className="hidden sm:inline">{issue.dateLabel}</span>
-              </p>
-            )}
-            <h1
-              className="font-display text-ink leading-[0.95] tracking-tight fade-up stagger-2"
-              style={{
-                fontSize: "clamp(3.5rem, 10vw, 6rem)",
-                fontWeight: 700,
-                letterSpacing: "-0.025em",
-              }}
-            >
-              Stop Being Prey
-            </h1>
-            <p
-              className="font-serif italic text-ink-muted text-lg md:text-xl mt-6 max-w-2xl leading-relaxed fade-up stagger-3"
-              style={{ fontWeight: 400 }}
-            >
-              On power, politics, and the apex class. Letters and audio
-              by Clay.
-            </p>
+
+      {/* === Thesis hero === PLACEHOLDER COPY: Clay to rewrite. The
+          stranger meets the doctrine here, not a masthead. The wordmark
+          already lives in the global header, so the hero leads with the
+          claim. */}
+      <section className="border-b border-rule">
+        <div className="max-w-4xl mx-auto px-6 pt-16 md:pt-24 pb-14 md:pb-20 text-center">
+          <p className="eyebrow mb-7 fade-up stagger-1">
+            The predator-prey doctrine
+          </p>
+          <h1
+            className="font-display text-ink leading-[1.02] tracking-tight fade-up stagger-2"
+            style={{
+              fontSize: "clamp(2.75rem, 7vw, 5rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.03em",
+            }}
+          >
+            You keep losing fights
+            <br className="hidden sm:block" /> you were right about.
+          </h1>
+          <p
+            className="font-serif text-ink-muted text-lg md:text-xl mt-7 max-w-2xl mx-auto leading-relaxed fade-up stagger-3"
+            style={{ fontWeight: 400 }}
+          >
+            Being right was never the contest. Power was. Seven rules
+            for everyone tired of being the prey. Start with rule one.
+          </p>
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-3 fade-up stagger-4">
+            <Link href="/rules" className="btn-primary">
+              <span>Read the 7 Rules</span>
+            </Link>
+            <Link href="/membership" className="btn-secondary">
+              Join the room
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* === Featured Lead Article === */}
+      {/* === The Doctrine: seven-rule teaser === Funnels to the free
+          /rules page. Labels come from RULE_SHORT_LABEL so this never
+          drifts from the canonical rule copy. */}
+      <section className="bg-paper-deep border-b border-rule py-14 md:py-20">
+        <div className="max-w-3xl mx-auto px-6">
+          <p className="eyebrow mb-3 text-center">The Doctrine</p>
+          <p className="deck text-center max-w-xl mx-auto mb-10">
+            Power decides, not righteousness. Everything below is how you
+            stop confusing the two.
+          </p>
+          <ol className="flex flex-col">
+            {RULE_NUMBERS.map((n, idx) => (
+              <li
+                key={n}
+                className={idx > 0 ? "border-t border-rule" : undefined}
+              >
+                <Link
+                  href={`/rules#rule-${n}`}
+                  className="group flex items-baseline gap-4 md:gap-6 py-4 no-underline"
+                >
+                  <span
+                    className="font-display text-eye-deep shrink-0"
+                    style={{
+                      fontSize: "0.95rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.1em",
+                      minWidth: "2.25rem",
+                    }}
+                  >
+                    {RULE_ROMAN[n - 1]}
+                  </span>
+                  <span
+                    className="font-display text-ink group-hover:text-eye-deep transition-colors leading-snug"
+                    style={{
+                      fontSize: "clamp(1.15rem, 2.5vw, 1.4rem)",
+                      fontWeight: 600,
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    {RULE_SHORT_LABEL[n]}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-10 text-center">
+            <Link href="/rules" className="btn-primary">
+              <span>Read all seven</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* === Seen in practice: essays as proof === The literature that
+          teaches the rules through real engagements. The lead essay,
+          then the archive. */}
       {featured && (() => {
         const featuredAudioMin = audioRuntimeMinutes(featured);
-        // The masthead above already carries the volume / issue / date
-        // line, so the lead card's eyebrow names the *role* of this slot
-        // (it's the featured essay of the current issue) rather than
-        // restating the issue number.
-        const leadEyebrow =
-          typeof featured.issue === "number" ? "The Lead" : "Latest";
         return (
-          <section className="max-w-6xl mx-auto px-6 py-10 md:py-16">
+          <section className="max-w-6xl mx-auto px-6 py-12 md:py-16">
+            <p className="eyebrow mb-10 text-center">Seen in practice</p>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-16 md:items-center">
               <div className="md:col-span-7">
-                <p className="eyebrow mb-5">{leadEyebrow}</p>
                 <h2
                   className="font-display tracking-tight mb-6 leading-[1.04]"
                   style={{
-                    fontSize: "clamp(2.25rem, 4.5vw, 3.75rem)",
+                    fontSize: "clamp(2rem, 4vw, 3.25rem)",
                     fontWeight: 700,
                     letterSpacing: "-0.022em",
                   }}
@@ -154,8 +228,6 @@ export default function Home() {
                       fontWeight: 400,
                     }}
                   >
-                    {/* Pull quote follows the lead. Falls back to the house
-                        line when the featured issue sets no leadQuote. */}
                     &ldquo;
                     {featured.leadQuote ??
                       "We can model them. They can't model us."}
@@ -168,19 +240,16 @@ export default function Home() {
         );
       })()}
 
-      {previousIssues.length > 0 && (
-        <section className="max-w-6xl mx-auto px-6 py-10 md:py-14">
-          <p className="eyebrow mb-10 text-center">Previous issues</p>
+      {otherCornerstones.length > 0 && (
+        <section className="max-w-6xl mx-auto px-6 pb-12 md:pb-16">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {previousIssues.map((article) => (
+            {otherCornerstones.map((article) => (
               <Link
                 key={article.slug}
                 href={`/${article.slug}`}
                 className="block border border-rule p-6 md:p-8 no-underline transition-colors hover:border-eye"
               >
-                <p className="eyebrow mb-3">
-                  Issue No. {article.issue} · {formatDate(article.date)}
-                </p>
+                <p className="eyebrow mb-3">{formatDate(article.date)}</p>
                 <h3
                   className="font-display text-ink text-2xl md:text-3xl mb-3 leading-tight tracking-tight"
                   style={{ fontWeight: 700, letterSpacing: "-0.02em" }}
@@ -193,69 +262,90 @@ export default function Home() {
               </Link>
             ))}
           </div>
-          <div className="mt-10 text-center">
+        </section>
+      )}
+
+      {/* === Dispatches: the pulse === The shorter, more frequent pieces.
+          A reason to check back between the big essays. PLACEHOLDER label
+          ("Dispatches") - Clay to name. */}
+      {dispatches.length > 0 && (
+        <section className="max-w-3xl mx-auto px-6 pb-14 md:pb-20">
+          <p className="eyebrow mb-8 text-center">Dispatches</p>
+          <ul className="flex flex-col">
+            {dispatches.map((article, idx) => (
+              <li
+                key={article.slug}
+                className={idx > 0 ? "border-t border-rule" : undefined}
+              >
+                <Link
+                  href={`/${article.slug}`}
+                  className="group flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-6 py-4 no-underline"
+                >
+                  <span
+                    className="font-display text-ink group-hover:text-eye-deep transition-colors leading-snug"
+                    style={{ fontSize: "1.2rem", fontWeight: 600 }}
+                  >
+                    {article.title}
+                  </span>
+                  <span className="eyebrow shrink-0 whitespace-nowrap">
+                    {formatDate(article.date)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-8 text-center">
             <Link
               href="/issues"
               className="eyebrow no-underline hover:text-ink transition-colors"
             >
-              All issues →
+              All writing →
             </Link>
           </div>
         </section>
       )}
 
-      {/* === Manifesto strip === */}
-      <section className="bg-paper-deep border-y border-rule py-12 md:py-16">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <p className="eyebrow mb-8">The work</p>
-          <p
-            className="font-display text-ink leading-tight mb-8"
-            style={{
-              fontSize: "clamp(1.6rem, 3vw, 2.25rem)",
-              fontWeight: 400,
-            }}
-          >
-            <em className="italic">Stop Being Prey</em> is a publication
-            on politics, power, and the apex class.
-          </p>
-          <p className="deck mb-8 max-w-2xl mx-auto">
-            A continuing inquiry into who the real predators are, who lets
-            them stay predators, and what it takes to stop being their prey.
-          </p>
-          <p className="text-sm italic text-ink-faint">
-            Written and narrated by Clay.{" "}
-            <Link
-              href="/tip"
-              className="text-ink-faint hover:text-eye-deep transition-colors no-underline"
-            >
-              Reader-supported.
-            </Link>
-          </p>
-        </div>
-      </section>
-
-      {/* === Subscribe === */}
+      {/* === The Rules email magnet === PLACEHOLDER framing: Clay to
+          finalize. The Rules are free to read at /rules; this captures
+          the email. NOTE: actually delivering the Rules by email on
+          signup is the separate "Rules as the email magnet" task. */}
       <section
         id="join"
-        className="max-w-3xl mx-auto px-6 py-12 md:py-16 text-center"
+        className="bg-paper-deep border-t border-rule py-14 md:py-20"
       >
-        <p className="eyebrow mb-5">Subscribe</p>
-        <h2
-          className="font-display tracking-tight mb-10 leading-[1.05]"
-          style={{
-            fontSize: "clamp(2rem, 4vw, 3.25rem)",
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Get the next one.
-        </h2>
-        <DualSubscribeBlock />
-        <p className="text-xs italic text-ink-faint mt-8 text-center">
-          Unsubscribe anytime. We never share your email.
-        </p>
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <p className="eyebrow mb-5">Free</p>
+          <h2
+            className="font-display tracking-tight mb-6 leading-[1.05]"
+            style={{
+              fontSize: "clamp(2rem, 4vw, 3.25rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Get the Rules of Engagement.
+          </h2>
+          <p className="deck max-w-xl mx-auto mb-10">
+            The whole doctrine, free.{" "}
+            <Link
+              href="/rules"
+              className="text-eye-deep hover:text-ink"
+              style={{
+                textDecoration: "underline",
+                textDecorationColor: "var(--eye)",
+                textUnderlineOffset: "3px",
+              }}
+            >
+              Read them now
+            </Link>
+            , or get them in your inbox with every new dispatch.
+          </p>
+          <DualSubscribeBlock />
+          <p className="text-xs italic text-ink-faint mt-8 text-center">
+            Unsubscribe anytime. We never share your email.
+          </p>
+        </div>
       </section>
     </div>
   );
 }
-
