@@ -531,7 +531,7 @@ export function WritersDeskView({
                       marginBottom: "0.35rem",
                     }}
                   >
-                    Latest
+                    Active now
                   </p>
                   <p
                     className="font-serif italic text-ink leading-snug group-hover:text-eye-deep transition-colors"

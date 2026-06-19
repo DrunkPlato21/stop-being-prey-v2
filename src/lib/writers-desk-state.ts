@@ -130,7 +130,11 @@ export async function getWritersDeskState(
     viewerEmail && !viewerIsAdmin
       ? getLastVisited(viewerEmail)
       : Promise.resolve(null),
-    listActiveThreads({ limit: 1 }),
+    // Fetch a few: listActiveThreads filters the pinned thread out AFTER
+    // slicing to the limit, so limit:1 can come back empty when the
+    // pinned Question of the Week is the most-recently-active. A small
+    // buffer guarantees we land on a real non-pinned thread.
+    listActiveThreads({ limit: 5 }),
     getPinnedThread(),
     countRoomPresence(),
     // Pull a small page (the feed is ordered by last activity, which a
