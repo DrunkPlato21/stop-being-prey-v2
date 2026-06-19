@@ -4,10 +4,12 @@ import {
   DEFAULT_GUILD_CATEGORY,
   EDIT_WINDOW_MS,
   isGuildCategory,
+  isGuildReaction,
   MAX_BODY,
   MAX_REPLY,
   MAX_TITLE,
   type GuildCategory,
+  type GuildReaction,
 } from "./guild-constants";
 
 // The Guild — a member-initiated, topic-organized library of substantive
@@ -635,4 +637,100 @@ export async function markReplyReadByClay(id: string): Promise<boolean> {
   reply.clayReadAt = Date.now();
   await client.set(`${REPLY_PREFIX}${id}`, JSON.stringify(reply));
   return true;
+}
+
+// --------------------------------------------------------------------
+// Reactions (threads + replies share one keyspace, keyed by target id)
+// --------------------------------------------------------------------
+
+// One HASH per target: field = member email, value = reaction key. One
+// reaction per member per target. Counts are derived on read.
+const REACTIONS_PREFIX = `${KEY_PREFIX}guild:reactions:`;
+
+export type ReactionSummary = {
+  counts: Partial<Record<GuildReaction, number>>;
+  total: number;
+  /** The viewer's own reaction, if any. */
+  myReaction: GuildReaction | null;
+};
+
+const EMPTY_SUMMARY: ReactionSummary = {
+  counts: {},
+  total: 0,
+  myReaction: null,
+};
+
+function summarize(
+  hash: Record<string, string> | null | undefined,
+  viewerEmail: string | null
+): ReactionSummary {
+  const counts: Partial<Record<GuildReaction, number>> = {};
+  let total = 0;
+  let myReaction: GuildReaction | null = null;
+  const viewer = viewerEmail ? normEmail(viewerEmail) : null;
+  if (hash) {
+    for (const [email, reaction] of Object.entries(hash)) {
+      if (!isGuildReaction(reaction)) continue;
+      counts[reaction] = (counts[reaction] ?? 0) + 1;
+      total += 1;
+      if (viewer && email.toLowerCase() === viewer) myReaction = reaction;
+    }
+  }
+  return { counts, total, myReaction };
+}
+
+/** Reaction summaries for a batch of target ids (a thread + its replies). */
+export async function getGuildReactions(
+  targetIds: string[],
+  viewerEmail: string | null
+): Promise<Record<string, ReactionSummary>> {
+  const out: Record<string, ReactionSummary> = {};
+  const client = getClient();
+  if (!client || targetIds.length === 0) {
+    for (const id of targetIds) out[id] = EMPTY_SUMMARY;
+    return out;
+  }
+  const hashes = await Promise.all(
+    targetIds.map((id) =>
+      client
+        .hgetall<Record<string, string>>(`${REACTIONS_PREFIX}${id}`)
+        .catch(() => null)
+    )
+  );
+  targetIds.forEach((id, i) => {
+    out[id] = summarize(hashes[i], viewerEmail);
+  });
+  return out;
+}
+
+/**
+ * Set, switch, or clear the caller's reaction on a target. Passing the
+ * reaction you already have (or null) removes it. `added` is true only
+ * when this is a brand-new reaction (was none before) — the signal the
+ * caller uses to decide whether to notify the target's owner.
+ */
+export async function setGuildReaction(
+  targetId: string,
+  email: string,
+  choice: GuildReaction | null
+): Promise<{ ok: boolean; added: boolean; summary: ReactionSummary }> {
+  const client = getClient();
+  if (!client) return { ok: false, added: false, summary: EMPTY_SUMMARY };
+  const key = `${REACTIONS_PREFIX}${targetId}`;
+  const field = normEmail(email);
+  const currentRaw = await client.hget<string>(key, field).catch(() => null);
+  const current = isGuildReaction(currentRaw) ? currentRaw : null;
+
+  let added = false;
+  if (choice === null || choice === current) {
+    if (current !== null) await client.hdel(key, field);
+  } else {
+    await client.hset(key, { [field]: choice });
+    added = current === null;
+  }
+
+  const hash = await client
+    .hgetall<Record<string, string>>(key)
+    .catch(() => null);
+  return { ok: true, added, summary: summarize(hash, email) };
 }

@@ -57,3 +57,27 @@ export function guildCategoryLabel(slug: string): string {
     GUILD_CATEGORIES.find((c) => c.slug === slug)?.label ?? "Open floor"
   );
 }
+
+// --------------------------------------------------------------------
+// Reactions
+// --------------------------------------------------------------------
+
+// The same five tap-reactions used elsewhere on the site (notes, lounge),
+// so the ReactionIcon glyphs render. Members react to threads and replies;
+// one reaction per member per target, tap again to remove.
+export const GUILD_REACTIONS = [
+  "heart",
+  "thumb",
+  "laugh",
+  "fire",
+  "shock",
+] as const;
+
+export type GuildReaction = (typeof GUILD_REACTIONS)[number];
+
+export function isGuildReaction(v: unknown): v is GuildReaction {
+  return (
+    typeof v === "string" &&
+    (GUILD_REACTIONS as readonly string[]).includes(v)
+  );
+}

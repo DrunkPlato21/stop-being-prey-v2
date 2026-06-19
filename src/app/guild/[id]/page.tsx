@@ -9,7 +9,7 @@ import {
   getMembersByEmails,
   getTierBadge,
 } from "@/lib/members";
-import { getThread, listReplies } from "@/lib/guild";
+import { getGuildReactions, getThread, listReplies } from "@/lib/guild";
 import { ThreadView } from "@/components/guild/ThreadView";
 import type { GuildBadgeInfo } from "@/components/guild/GuildByline";
 
@@ -38,9 +38,13 @@ export default async function GuildThreadPage({
   const replies = await listReplies(id);
 
   const emails = [thread.authorEmail, ...replies.map((r) => r.authorEmail)];
-  const [profiles, memberMap] = await Promise.all([
+  const [profiles, memberMap, reactions] = await Promise.all([
     getProfilesByEmails(emails),
     getMembersByEmails(emails),
+    getGuildReactions(
+      [thread.id, ...replies.map((r) => r.id)],
+      session.email
+    ),
   ]);
   const names: Record<string, string> = {};
   for (const [email, profile] of profiles) {
@@ -65,6 +69,7 @@ export default async function GuildThreadPage({
       adminEmail={adminEmail}
       viewerEmail={session.email}
       isAdmin={isAdmin(session.email)}
+      reactions={reactions}
     />
   );
 }

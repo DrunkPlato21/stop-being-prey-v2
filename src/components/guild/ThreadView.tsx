@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import type { GuildReply, GuildThread } from "@/lib/guild";
+import type { GuildReply, GuildThread, ReactionSummary } from "@/lib/guild";
 import { EDIT_WINDOW_MS, MAX_BODY, MAX_REPLY, MAX_TITLE } from "@/lib/guild-constants";
 import {
   deleteReplyAction,
@@ -21,8 +21,15 @@ import { ClayReadSeal } from "./ClayReadSeal";
 import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { authorName, formatRelative } from "./guild-format";
 import { Linkified } from "@/components/Linkified";
+import { GuildReactions } from "./GuildReactions";
 
 const INITIAL: GuildFormState = { ok: false };
+
+const EMPTY_REACTIONS: ReactionSummary = {
+  counts: {},
+  total: 0,
+  myReaction: null,
+};
 
 // Shared small-caps action link styling for the quiet control row.
 const controlStyle: React.CSSProperties = {
@@ -347,6 +354,7 @@ function ReplyNode({
   threadId,
   mounted,
   nested,
+  reactions,
 }: {
   reply: GuildReply;
   childReplies?: GuildReply[];
@@ -358,6 +366,7 @@ function ReplyNode({
   threadId: string;
   mounted: boolean;
   nested?: boolean;
+  reactions: Record<string, ReactionSummary>;
 }) {
   const [replying, setReplying] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -470,6 +479,15 @@ function ReplyNode({
         </div>
       )}
 
+      {!reply.deleted && (
+        <GuildReactions
+          kind="reply"
+          targetId={reply.id}
+          threadId={threadId}
+          initial={reactions[reply.id] ?? EMPTY_REACTIONS}
+        />
+      )}
+
       {/* Anchored to the comment it answers: an olive left rule binds the
           box to this reply and separates it from the next comment, so the
           box never reads as belonging to the comment below it. */}
@@ -504,6 +522,7 @@ function ReplyNode({
           isAdmin={isAdmin}
           threadId={threadId}
           mounted={mounted}
+          reactions={reactions}
           nested
         />
       ))}
@@ -521,6 +540,7 @@ export function ThreadView({
   adminEmail,
   viewerEmail,
   isAdmin,
+  reactions,
 }: {
   thread: GuildThread;
   replies: GuildReply[];
@@ -529,6 +549,7 @@ export function ThreadView({
   adminEmail: string | null;
   viewerEmail: string;
   isAdmin: boolean;
+  reactions: Record<string, ReactionSummary>;
 }) {
   const [editing, setEditing] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -654,6 +675,15 @@ export function ThreadView({
             )}
           </div>
         )}
+
+        {!thread.deleted && (
+          <GuildReactions
+            kind="thread"
+            targetId={thread.id}
+            threadId={thread.id}
+            initial={reactions[thread.id] ?? EMPTY_REACTIONS}
+          />
+        )}
       </article>
 
       {/* Replies */}
@@ -678,6 +708,7 @@ export function ThreadView({
             isAdmin={isAdmin}
             threadId={thread.id}
             mounted={mounted}
+            reactions={reactions}
           />
         ))}
 

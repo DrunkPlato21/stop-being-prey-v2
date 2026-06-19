@@ -49,6 +49,7 @@ export type NotificationType =
   | "lounge_reaction"
   | "lounge_mention"
   | "guild_reply"
+  | "guild_reaction"
   | "coin_received";
 
 export type Notification = {
