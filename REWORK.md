@@ -76,11 +76,46 @@ Do not launch the Guild empty. Seed five to eight strong starter threads, each a
 
 ## Build sequence
 
-1. [x] Get `feat/members-area-v2` current with main.
-2. [x] Guild categories (composer + model + index). Required intent picker in the composer, `category` on the thread model (legacy threads default to Open floor on read), category tag on each index row, dev seed varied across all three. Follow-ups, not blockers: a category filter on the index (deferred on purpose until volume needs it, so we don't show empty rooms), and showing the tag on the thread detail page (`ThreadView`).
-3. [~] Seed the Guild starter threads. Dev preview seed written (throwaway, Clay replaces). Real launch threads still to write.
-4. [x] Desk as hub: "The rooms" panel under Clay's status pulls Guild (recent threads) + Lounge (active-now count + latest post) signals into the snapshot, so the existing 5s desk poll refreshes them. Folded into `getWritersDeskState`; rendered in `WritersDeskView`.
-5. [ ] Public Rules page (free the doctrine).
-6. [ ] Kill the podcast frame, add Listen on essays.
-7. [ ] Homepage reframe.
-8. [ ] Navigation pass.
+### DONE — members area (all committed on `feat/members-area-v2`, NOT deployed)
+- [x] Branch current with main.
+- [x] **Guild categories** — required intent picker (The Field / The Doctrine / Open floor), `category` on the model, tags on rows. Worry to watch: most posts may default to Open floor; fine early, kill the categories later if they're dead chrome.
+- [~] **Guild dev seed** — throwaway preview threads; Clay writes the real launch threads.
+- [x] **Desk as hub** — "The rooms" panel (Guild Question-of-the-Week + Active-now thread, Lounge presence + latest line), doorway headings with engraved marks (cat's-eye crest + club-armchair), folded into `getWritersDeskState`.
+- [x] **Guild moderation** — two-step confirm-before-delete + admin restore on tombstones.
+- [x] **Guild member-nav layout** — always a way home from inside a thread.
+- [x] **Guild notifications** — in-app bell on every reply + batched email (prod-only, `notifyOnReply`-gated, one per thread per 2h).
+- [x] **Guild reactions** — cloned the Lounge exactly (the seven emoji, hover popover, inline trigger) + owner bell notification. (First attempt used the wrong glyph set; fixed.)
+- [x] **Guild** — URLs hyperlinked in bodies (via `Linkified`).
+- [x] **New-member first run** — "Getting started" panel (set name / read Rules / answer QOTW / say hi in Lounge), steps marked when actually done, dismiss persists, 30-day gate. Dev preview: `/desk?firstrun=preview`. WelcomeModal retired.
+- [x] **Notes** — reactions reach the member (notify + show under their note); "leave a note" moved up beside Clay's presence.
+- [x] **Nav** — sidebar slimmed to 6 places (Account + Coins moved to the identity menu, Field Notes dropped); public strip hidden in the member area (`HeaderPublicNav`); mobile member nav is a 3×2 grid (no orphaned Book).
+
+### NEXT SESSION — the PUBLIC / CONVERSION side (untouched; strangers → members)
+The other half of the vision. Wants a clear head.
+
+5. [ ] **Free the Rules** — the doctrine as the public front door. ONE Rules page, not two: public, the eight rules clean; *deepens when signed in* (Case File "demonstrated in" links + discussion) with a "join to train" CTA for strangers. Move `/notes/rules` to a public route, gate the enrichments. Doctrine public = the lure; practice (Case Files, Guild, presence) = the paid product. (Short/sharp rules are a GOOD lure — like the 48 Laws titles. Don't fatten them.)
+6. [ ] **Kill the podcast frame** — drop the "Podcast" nav item + `/podcast`; audio becomes a "Listen" option on essays. Writer, not podcaster.
+7. [ ] **Homepage reframe** — a stranger meets the doctrine, not a magazine masthead (Vol/No / "the lead" / issues).
+8. [ ] **Public nav pass** — once podcast dies and the Rules surface publicly.
+
+### Conversion adds for the public page (beyond freeing the Rules)
+- **Rules as the email magnet** — "Get the Rules of Engagement" replaces "get the next one." Captures the email AND delivers the lure. Biggest top-of-funnel upgrade; my #1 pick after freeing the Rules.
+- **A look inside the room** — a stranger sees nothing of the members area. Show one full Case File / a redacted Guild thread / a Desk peek. Proof it's real and alive.
+- **Sell the transformation on `/membership`**, not the feature list. Lead with who they become (un-modelable, stop being prey); the room is just *how*.
+- **Clay-live FOMO** — public "Clay is in the room now (members only)" when he's active.
+- **Founder/charter scarcity counter** surfaced beyond `/membership` (honest scarcity, works at any size).
+- Social proof / testimonials / member count = LATER, once there's a base. Don't advertise small numbers (same lesson as "quiet right now").
+
+### Parked / later
+- **Member standing / progress engine** — premature. Needs deeper doctrine + content. Year-two. (Clay: rules are "a paragraph each," membership too bare for it now.)
+- **Weekly digest auto-recap** — auto-assemble "this week in the room" so the Sunday note half-writes itself. Only good once there's real activity; until then it advertises the quiet. Clay does the Sunday email manually via Kit for now — and the Sunday-Lounge gathering is his single best ghost-town weapon, don't lose it.
+- **"Summon the room" button** — Clay taps it, opted-in members get pinged "Clay's in the Lounge now." Highest-leverage presence amplifier when ready.
+- **`/admin/guild` panel** — find/restore deleted threads without the URL.
+- **Guild category filter** — when volume needs it.
+
+## The honest throughline (say it back to Clay)
+Features are amplifiers, not saviors. The engine is Clay showing up — the Sunday gathering and replying to people while it's small. Win the first ten true believers (depth over breadth); they make the room feel alive for the eleventh. Notifications keep the core warm all week (fast loop); the Sunday digest catches drifters (slow loop). Everything multiplies the same input: Clay in the room.
+
+## Email infra (for reference)
+- **Resend** = all per-event site email (magic links, comment/guild reply notifications, gifts), from `noreply@stopbeingprey.com`, domain verified.
+- **Kit** = Clay's broadcast tool (the manual Sunday email lives here).
