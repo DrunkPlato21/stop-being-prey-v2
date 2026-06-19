@@ -77,28 +77,26 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
         aria-label="Member area"
         className="md:hidden sticky top-0 z-20 bg-paper-deep/95 backdrop-blur-sm border-b border-rule"
       >
-        {/* flex-wrap so the strip flows onto a second row instead of
-            overflowing the page sideways. The item count outgrew the
-            single-row mobile design (now 8), and on a narrow phone an
-            overflowing row pushed the whole document wider — breaking
-            fixed/centered overlays too. Wrapping keeps every item
-            reachable and the page width pinned to the viewport. */}
-        <ul className="flex flex-wrap items-stretch justify-center max-w-3xl mx-auto px-2">
+        {/* A fixed 3-column grid rather than a free wrap: six items land
+            as a clean 3x2 block instead of the natural wrap orphaning the
+            last item on its own row. Stays within the viewport (no
+            sideways overflow). */}
+        <ul className="grid grid-cols-3 max-w-md mx-auto">
           {ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
             const showDot = hasDot(item.href);
             return (
-              <li key={item.href} className="flex">
+              <li key={item.href} className="flex justify-center">
                 <Link
                   href={item.href}
                   className={
-                    "font-display uppercase tracking-[0.18em] no-underline px-3 py-2.5 transition-colors " +
+                    "font-display uppercase tracking-[0.16em] no-underline whitespace-nowrap px-2 py-2.5 transition-colors " +
                     (active
                       ? "text-eye-deep"
                       : "text-ink-muted hover:text-ink")
                   }
                   style={{
-                    fontSize: "0.7rem",
+                    fontSize: "0.68rem",
                     fontWeight: 600,
                     borderBottom: active
                       ? "2px solid var(--eye-deep)"
