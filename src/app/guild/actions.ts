@@ -10,6 +10,8 @@ import {
   createThread,
   editReply,
   editThread,
+  getReply,
+  getThread,
   markReplyReadByClay,
   markThreadReadByClay,
   pinThread,
@@ -19,6 +21,7 @@ import {
   softDeleteThread,
   unpinThread,
 } from "@/lib/guild";
+import { createNotification } from "@/lib/notifications";
 
 // Server Actions for the Guild. Every action re-verifies the session
 // inside the function body — Server Actions are reachable by direct POST,
@@ -103,33 +106,36 @@ export async function postReplyAction(
   });
   if (!result.ok) return { ok: false, error: messageFor(result.error) };
 
-  // ---------------------------------------------------------------
-  // NOTIFICATION SEAM (deferred to the next layer, intentionally off).
-  //
-  // Recipient resolution is worked out here so turning notifications on
-  // later is a few lines, not a redesign: a reply under another reply
-  // notifies that reply's author; a top-level reply notifies the thread
-  // author. Never notify yourself.
-  //
-  // Not wired yet for two reasons: (1) the notifications keyspace is
-  // unprefixed and shared with prod, so emitting during local dev would
-  // mint real notifications against real members; (2) the "calm, no
-  // red-dot" feel of Guild notifications is its own design decision we
-  // haven't made. When ready, add the guild_* types and uncomment:
-  //
-  // const recipient = parentReplyId
-  //   ? (await getReply(parentReplyId))?.authorEmail
-  //   : (await getThread(threadId))?.authorEmail;
-  // if (recipient && recipient !== session.email) {
-  //   await createNotification({
-  //     memberEmail: recipient,
-  //     type: "guild_reply",
-  //     title: "New reply in the Guild",
-  //     body: "Someone replied to your thread.",
-  //     linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
-  //   });
-  // }
-  // ---------------------------------------------------------------
+  // Notify the person being replied to: the parent reply's author for a
+  // nested reply, otherwise the thread author. Resolve against the reply's
+  // LANDED parent (createReply re-parents a grandchild up one tier), and
+  // use the thread title as the body so the notification is legible. Never
+  // notify yourself, and never let a notification hiccup break the reply.
+  // (Dev never touches prod here — the notifications keyspace is now
+  // dev-namespaced, same as the Guild.)
+  try {
+    const landedParentId = result.reply.parentReplyId;
+    const [thread, parent] = await Promise.all([
+      getThread(threadId),
+      landedParentId ? getReply(landedParentId) : Promise.resolve(null),
+    ]);
+    const recipient = parent?.authorEmail ?? thread?.authorEmail ?? null;
+    if (
+      thread &&
+      recipient &&
+      recipient.toLowerCase() !== session.email.toLowerCase()
+    ) {
+      await createNotification({
+        memberEmail: recipient,
+        type: "guild_reply",
+        title: "New reply in the Guild",
+        body: thread.title,
+        linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
+      });
+    }
+  } catch {
+    // A notification hiccup must never break posting a reply.
+  }
 
   revalidatePath(`/guild/${threadId}`);
   return { ok: true };

@@ -15,9 +15,18 @@ import { randomUUID } from "crypto";
 //   - Read notifications older than 14 days are dropped.
 //   - Unread notifications older than 60 days are dropped.
 
-const MEMBER_SET_PREFIX = "notifications:member:";
-const UNREAD_COUNTER_PREFIX = "notifications:unread:";
-const RECORD_PREFIX = "notification:";
+// Dev-namespaced like guild.ts / coins.ts: production (NODE_ENV=production
+// on Vercel) uses no prefix and keeps the existing live keys; every other
+// environment is pushed into a `dev:` keyspace the live site never reads,
+// so local testing never mints real members' notifications. An explicit
+// override wins for special cases.
+const KEY_PREFIX =
+  process.env.NOTIFICATIONS_KEY_PREFIX ??
+  (process.env.NODE_ENV === "production" ? "" : "dev:");
+
+const MEMBER_SET_PREFIX = `${KEY_PREFIX}notifications:member:`;
+const UNREAD_COUNTER_PREFIX = `${KEY_PREFIX}notifications:unread:`;
+const RECORD_PREFIX = `${KEY_PREFIX}notification:`;
 
 const UNREAD_RETENTION_MS = 60 * 24 * 60 * 60 * 1000; // 60 days
 const READ_RETENTION_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
@@ -39,6 +48,7 @@ export type NotificationType =
   | "lounge_reply"
   | "lounge_reaction"
   | "lounge_mention"
+  | "guild_reply"
   | "coin_received";
 
 export type Notification = {
