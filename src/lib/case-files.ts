@@ -21,10 +21,10 @@ import matter from "gray-matter";
 
 const CASE_FILES_DIR = path.join(process.cwd(), "content", "case-files");
 
-// Roman numerals for the eight rules. Lookup by rule.number - 1.
+// Roman numerals for the seven rules. Lookup by rule.number - 1.
 // Matches the ROMAN array in the rules page so the two surfaces
 // agree on numeral style.
-export const RULE_ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+export const RULE_ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
 // Short labels for each rule, used in the "Rules Applied" line on
 // case file detail pages and on the rules-applied chip row in the
@@ -34,14 +34,13 @@ export const RULE_ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 // so case files and the rules page can both import a single source
 // of truth.
 export const RULE_SHORT_LABEL: Record<number, string> = {
-  1: "Never enter a battle you can't dominate",
-  2: "The audience is the prize",
-  3: "Identify the move",
-  4: "Walking away wins",
-  5: "Principle without power is a hobby",
-  6: "Make examples not converts",
-  7: "Hostility funds the work",
-  8: "Devastation with grace",
+  1: "Refuse their traps",
+  2: "Make them come to you",
+  3: "The audience is the prize",
+  4: "Name the move",
+  5: "Walking away wins",
+  6: "Devastate, then grace",
+  7: "Hostility feeds you",
 };
 
 export type CaseFile = {

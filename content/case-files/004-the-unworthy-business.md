@@ -46,7 +46,7 @@ frame_shift: |
   reply is not written for Ryan. It is written for the readers
   watching the thread.
 one_shot: "Walmart, Amazon, and Costco publicly lobby for minimum wage increases. They disagree with me and agree with you. How does that sit?"
-rules_applied: [2, 3, 6]
+rules_applied: [1]
 outcome: "Trish named the script in the member Lounge the same day. 'The Unworthy Business' is now the first named recurring progressive script in the case files."
 screenshot_src: "/assets/case-files/ryan-exchange.png"
 screenshot_alt: "Screenshot of Ryan Christopher's Facebook comment on the Sam Walton minimum wage post"

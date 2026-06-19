@@ -31,7 +31,7 @@ frame_shift: |
   walks into it. If he leaves, he's revealed himself as drive-by
   snark. Either way, the audience sees the pattern.
 one_shot: "Did you know that you are my prey, Jamie? Fascinating, right? If you want to test it... keep replying."
-rules_applied: [3, 6]
+rules_applied: [4]
 screenshot_src: "/assets/case-files/jamie-exchange.png"
 screenshot_alt: "Screenshot of Jamie Lex Unwin's Facebook comment manufacturing a censorship position"
 screenshot_caption: "The actual comment, as it appeared on Facebook."

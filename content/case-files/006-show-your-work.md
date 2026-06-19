@@ -71,7 +71,7 @@ frame_shift: |
   whether the opponent did it. Clay's job is to make sure the
   question never moves.
 one_shot: "We, the lesser intelligent, are still waiting."
-rules_applied: [1, 3, 6]
+rules_applied: [4]
 outcome: ""
 screenshot_src: "/assets/case-files/sasser-exchange.png"
 screenshot_alt: "The Sowell post on Facebook, Ben Sasser's first comment, and Clay's reply"

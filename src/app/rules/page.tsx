@@ -16,7 +16,7 @@ import { markOnboardingStep } from "@/lib/onboarding";
 // The Rules of Engagement — the public front door. The doctrine is the
 // lure; practice (the Case Files, the Guild, Clay's presence) is the
 // paid product. So this page is PUBLIC, but it deepens when signed in:
-// a stranger gets the eight rules clean plus a "join to train" CTA;
+// a stranger gets the axiom and seven rules clean plus a "join to train" CTA;
 // a member gets the same rules plus the enrichments (case files
 // demonstrating each rule, demonstrated-in field notes) and the
 // onboarding tick. Same single page, auth-aware — the pattern mirrors
@@ -28,7 +28,7 @@ import { markOnboardingStep } from "@/lib/onboarding";
 export const metadata: Metadata = {
   title: "Rules of Engagement",
   description:
-    "Eight rules. The predator-prey doctrine of engagement. They explain every political conversation you've ever lost.",
+    "Seven rules. The predator-prey doctrine of engagement. They explain every political conversation you've ever lost.",
 };
 
 export const dynamic = "force-dynamic";
@@ -45,47 +45,55 @@ type Rule = {
 const RULES: Rule[] = [
   {
     number: 1,
-    title: "Never enter a battle you don't have a plan to absolutely dominate.",
-    body: "If you can't win the audience's reading regardless of how the opponent responds, don't engage. Pick fights you've already won before they start. The amateur looks for opponents. The operator looks for battles where the outcome is already determined.",
+    title: "Refuse their traps.",
+    body: "They've spent fifty years building the ground you keep losing on. The gotcha question. The fake position they put in your mouth so they can knock it down. The word your tribe handed them to end the conversation before it starts. Most of politics is good people walking into these one after another. That's what being prey is. Not weakness, just reacting to a trap you never saw coming. Learn to feel the trap before you step in it. The second you're defending something you never said, you've already lost. Don't pick up the rope.",
   },
   {
     number: 2,
-    title: "The audience is the prize. The opponent is the demonstration.",
-    body: "You're not arguing TO him. You're arguing FOR everyone watching. Every move serves their understanding, not his correction. The opponent is the chalkboard. The audience is the class.",
+    title: "Lay your own. Make them come to you.",
+    body: "Stop reacting. Start building. Set the ground, ask the question, drop the bait, and let them charge it. When they show up swinging, they're not attacking you. They're walking onto a stage you built, into a fight you already won. That's the whole difference between predator and prey. The prey waits to get hit. The predator decides where the fight happens. Welcome them to your territory.",
   },
   {
     number: 3,
-    title: "Identify the move. Name the move. Refuse the move. Set your own frame.",
-    body: "Gish gallop, reframing 101, asymmetric demand, concern troll, dead-authority projection. Every bad-faith engagement has a structure. Spot it. Name it publicly so the audience can see what's happening. Then impose YOUR frame on the conversation. Frame the conversation or be framed by it. Don't react. Lead.",
+    title: "The audience is the prize. The opponent is the evidence.",
+    body: "You're not arguing to him. You'll never change his mind, and you don't need to. You're arguing to the hundred people reading in silence who haven't picked a side. He's not your enemy. He's your evidence. Take him apart in the open and he becomes the exhibit, the proof of everything you're showing the room. He volunteered for it. Most of them do.",
   },
   {
     number: 4,
-    title: "Don't argue with people who pay no price for being wrong. Silence is a move. Walking away wins.",
-    body: "Sowell's diagnostic. They have no skin in the game. Your engagement only extracts from you. Silence is the move. Walking away from a bad-faith opponent is not retreat. It's a public verdict on their seriousness. Your attention is the currency. Don't spend it on people who give nothing back.",
+    title: "Name the move. Refuse it. Set your frame.",
+    body: "Every bad-faith move has a shape, and the moment you name it, it stops working. The dodge. The fake outrage. The ten things you're suddenly supposed to answer at once. Say it out loud so the room can see it: here's the trick he just tried. Then you stop answering his question and ask your own. Whoever sets the frame wins. Reacting to his frame is what prey does. You set your own, and make him live in it.",
   },
   {
     number: 5,
-    title: "Principle without power is a hobby.",
-    body: "Being right doesn't win. Being effective wins. Libertarians have been right for fifty years and lost every fight because they confused moral purity with moral seriousness. Right is what you tell yourself in defeat. Winning is what changes the country. Build the leverage that lets your principles survive contact with the world. Audience. Skills. Income. Allies. Capital. Property. Operate from a position your principles can survive on, or keep losing while feeling correct.",
+    title: "Silence is a verdict. Walking away wins.",
+    body: "Some people pay no price for being wrong, so they'll argue forever. Your attention is the only thing they came for. Don't hand it over. Walking away from a bad-faith opponent isn't retreat. It's a public verdict on whether he was ever worth answering. The best proof of this rule is the reply they'll never get.",
   },
   {
     number: 6,
-    title: "Make examples, not converts.",
-    body: "You don't need to change your opponent's mind. You need to demonstrate to the audience what happens when someone behaves like a predator vs. like prey. The example teaches more than the argument ever could. One real demonstration outperforms a hundred essays. Examples replicate. Arguments don't.",
+    title: "Devastate, then grace.",
+    body: "Take the argument apart completely. Leave nothing standing. And then, from the position of total dominance, extend your hand. I say that with a smile. Have a blessed day. I'll pray for you. The grace isn't weakness and it isn't retreat. You've already won by the time you offer it. Anyone can be cruel. Anyone can be a pushover. A man who can devastate you and still wish you well is operating from a place you can't touch.",
   },
   {
     number: 7,
-    title: "Hostility funds the work.",
-    body: "Every hostile encounter is raw material. They show up to extract attention from you. You convert their attack into something they didn't intend to fund. Your audience. Your doctrine. Your reputation. Your story. The wall mechanic is this rule made literal in money, but the principle is bigger than money. Every time you handle a hostile opponent well, the audience gives you something the opponent meant to take from you. Done right, they fund the project they came to attack.",
-  },
-  {
-    number: 8,
-    title: "Discipline with love. Devastation with grace.",
-    body: "Consequences must be matched by grace. Discipline without love is cruelty. Love without discipline is weakness. After you devastate an opponent, you extend grace. The Christian tradition named this most clearly, but you don't need to be Christian to deploy it. Name the harm. Make them pay the price. Then close with mercy. Grace is not retreat. You devastate completely first. Mercy comes from the position of total dominance, not in place of it. A man who can devastate and still show grace operates from a place no enemy can match.",
+    title: "Their hostility feeds you.",
+    body: "Every attack is a meal. They show up to take something from you, your time, your name, your peace, and you feed on it instead. The audience. The doctrine. The next chapter. Thank you for the demonstration. Your comment just paid for the next one. The prey that bites the predator only makes him stronger. The people who come to tear the work down are the ones who end up feeding it.",
   },
 ];
 
-const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
+
+// The axiom sits above the rules: not a numbered rule, the premise the
+// seven rest on. Rendered as a distinct, weightier framed statement
+// between the hero and the rule list. Copy is the author's, verbatim.
+const AXIOM = {
+  eyebrow: "The Axiom",
+  title: "Power decides, not righteousness.",
+  body: "Every fight you've ever lost, you lost while being right. That should tell you something. The question was never what's true. It's who gets to decide what's true, and act on it. Being right is what you tell yourself in defeat. Power is what changes the outcome. Everything below is how you stop confusing the two.",
+  founding: {
+    title: "The Losertarian Problem",
+    href: "/the-losertarian-problem",
+  },
+};
 
 // Rules that expand into a founding-text essay carry a quiet
 // "Read the full essay" footnote. The founding essays are public, so
@@ -96,8 +104,7 @@ const FOUNDING_LINK_BY_RULE: Record<
   number,
   { title: string; href: string }
 > = {
-  5: { title: "The Losertarian Problem", href: "/the-losertarian-problem" },
-  8: {
+  6: {
     title: "We Pray For Our Prey",
     href: "/founding/we-pray-for-our-prey",
   },
@@ -169,10 +176,69 @@ export default async function RulesPage() {
             Rules of Engagement.
           </h1>
           <p className="deck max-w-xl mx-auto fade-up stagger-3">
-            Eight rules. The predator-prey doctrine of engagement.
+            Seven rules. The predator-prey doctrine of engagement.
             Memorize them. They explain every political conversation
             you&apos;ve ever lost.
           </p>
+        </div>
+      </section>
+
+      {/* The Axiom. Not a numbered rule, the premise the seven rest on.
+          Set apart as a weightier framed statement (olive top/bottom
+          rules, paper-deep field, display title) so it reads as the
+          floor of the doctrine rather than the first card. Carries the
+          Losertarian founding pointer beneath. */}
+      <section className="border-b border-rule">
+        <div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
+          <div
+            className="text-center px-6 py-9 md:px-10 md:py-12"
+            style={{
+              background: "var(--paper-deep)",
+              borderTop: "2px solid var(--eye-deep)",
+              borderBottom: "2px solid var(--eye-deep)",
+            }}
+          >
+            <p
+              className="eyebrow mb-5"
+              style={{
+                fontSize: "0.7rem",
+                letterSpacing: "0.32em",
+                fontWeight: 600,
+                color: "var(--eye-deep)",
+              }}
+            >
+              {AXIOM.eyebrow}
+            </p>
+            <h2
+              className="font-display text-ink leading-tight mb-5"
+              style={{
+                fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)",
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {AXIOM.title}
+            </h2>
+            <p
+              className="font-serif text-ink-soft max-w-2xl mx-auto"
+              style={{ fontSize: "1.08rem", lineHeight: 1.7 }}
+            >
+              {AXIOM.body}
+            </p>
+            <p
+              className="font-serif italic text-ink-muted leading-relaxed mt-7"
+              style={{ fontSize: "0.98rem" }}
+            >
+              Read the full essay:{" "}
+              <Link
+                href={AXIOM.founding.href}
+                className="text-eye-deep hover:text-ink no-underline transition-colors not-italic"
+                style={{ fontWeight: 600 }}
+              >
+                {AXIOM.founding.title} &rarr;
+              </Link>
+            </p>
+          </div>
         </div>
       </section>
 
@@ -301,7 +367,7 @@ export default async function RulesPage() {
               className="font-serif italic text-ink-muted leading-relaxed mb-3"
               style={{ fontSize: "1.05rem" }}
             >
-              eight rules. one operator class.
+              seven rules. one operator class.
             </p>
             <p
               className="font-display text-ink"

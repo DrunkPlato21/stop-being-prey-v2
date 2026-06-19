@@ -46,7 +46,7 @@ frame_shift: |
   not your wallet. That's still worth more than the time he was
   trying to drain.
 one_shot: "Don't reply. Open a wall."
-rules_applied: [4, 7, 8]
+rules_applied: [6, 7]
 outcome: "Marek's second wall got no response from Clay. The wall closed at $400. Multiple readers brought prayers and Christian framings unprompted. The takedown became a doctrine demonstration without Clay writing another word."
 wall_screenshot_src: "/assets/case-files/marek-wall.png"
 wall_screenshot_alt: "Screenshot of the Marek Takedown wall on stopbeingprey.com showing $403 raised toward a $250 goal"
@@ -62,7 +62,7 @@ exhibit:
   attribution_amount: "$50"
   attribution_date: "May 11, 2026"
   framing: |
-    Rule VIII says: devastation with grace. Clay devastated Marek
+    Rule VI says: devastation with grace. Clay devastated Marek
     publicly. The grace didn't have to come from Clay. It came from
     readers, unprompted, with their own money on the line. The
     doctrine taught itself to the audience.

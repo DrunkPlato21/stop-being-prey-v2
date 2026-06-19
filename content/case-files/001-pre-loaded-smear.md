@@ -27,7 +27,7 @@ frame_shift: |
   the relevant window. Let the pattern speak. Marek isn't a
   participant in the argument anymore. He's an exhibit.
 one_shot: "Walk it back through and tell me who's the predator and who's the prey in this budding friendship we have, Marek?"
-rules_applied: [3, 6, 7]
+rules_applied: [1]
 outcome: "Marek didn't stay quiet. He came back with a wall of new 'facts' piled on top of each other, designed to drain Clay's time. What happened next is in Case File №2."
 screenshot_src: "/assets/case-files/marek-exchange.png"
 screenshot_alt: "Screenshot of Marek Wiechula's Facebook comment on a Charlie Kirk memorial post"
