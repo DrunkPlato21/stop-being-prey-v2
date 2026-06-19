@@ -388,6 +388,9 @@ export function WritersDeskView({
   const [frozenLastVisitedAt] = useState<number | null>(
     initialState.lastVisitedAt
   );
+  // Dev-only preview: visit /desk?firstrun=preview to see the new-member
+  // panel even as admin / an established member. Never fires in prod.
+  const [previewFirstRun, setPreviewFirstRun] = useState(false);
   // Latch the latest-update id we've seen so we can mount-trigger the
   // fresh-update highlight when polling brings in a new one.
   const lastUpdateId = useRef<string | null>(
@@ -400,6 +403,20 @@ export function WritersDeskView({
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), NOW_TICK_MS);
     return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (
+        process.env.NODE_ENV !== "production" &&
+        new URLSearchParams(window.location.search).get("firstrun") ===
+          "preview"
+      ) {
+        setPreviewFirstRun(true);
+      }
+    } catch {
+      // no-op
+    }
   }, []);
 
   // Mark this visit as seen on the server after a short delay. We use
@@ -483,6 +500,26 @@ export function WritersDeskView({
     isAdmin: viewerIsAdmin,
   } = data;
 
+  // The preview override (dev-only) synthesizes a fresh, all-unchecked
+  // panel so Clay can see the new-member experience without being one.
+  const effectiveFirstRun: FirstRunState | null = previewFirstRun
+    ? {
+        steps: [
+          { key: "name", label: "Set your name", href: "/notes/account", done: false },
+          { key: "rules", label: "Read the Rules", href: "/notes/rules", done: false },
+          {
+            key: "qotw",
+            label: "Answer the Question of the Week",
+            href: rooms.guild.questionOfWeek
+              ? `/guild/${rooms.guild.questionOfWeek.id}`
+              : "/guild",
+            done: false,
+          },
+          { key: "lounge", label: "Say hi in the Lounge", href: "/lounge", done: false },
+        ],
+      }
+    : firstRun;
+
   // First-time visitors (no stamp yet) and admins never see NEW
   // badges. Otherwise compare item timestamps to the frozen baseline.
   function isNewSinceLastVisit(at: number | null | undefined): boolean {
@@ -543,7 +580,7 @@ export function WritersDeskView({
           green.
         </p>
 
-        {firstRun && <FirstRunPanel firstRun={firstRun} />}
+        {effectiveFirstRun && <FirstRunPanel firstRun={effectiveFirstRun} />}
 
         {/* Status panel — the focal point of the widget. The lamp
             light concentrates ON this panel (not the whole widget),
