@@ -28,6 +28,7 @@ import {
 } from "@/lib/lounge";
 import { createNotification } from "@/lib/notifications";
 import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
+import { markOnboardingStep } from "@/lib/onboarding";
 
 // GET  /api/lounge?before=<createdAt>&limit=20
 //   → { pinned, posts, replies, reacted, lastVisitedAt, hasMore, isAdmin }
@@ -258,6 +259,9 @@ export async function POST(req: NextRequest) {
     }
     return Response.json(result, { status: 400 });
   }
+
+  // First-run: posting in the Lounge ticks that onboarding step.
+  await markOnboardingStep(session.email, "lounge").catch(() => {});
 
   // Fan out `lounge_mention` notifications to anyone @-tagged in the
   // post body. Mirrors the reply route's mention block, minus the

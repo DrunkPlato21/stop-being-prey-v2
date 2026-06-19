@@ -1,8 +1,11 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getAllFieldNotes, type FieldNoteMeta } from "@/lib/field-notes";
 import { getAllCaseFiles, type CaseFile } from "@/lib/case-files";
+import { markOnboardingStep } from "@/lib/onboarding";
 
 export const metadata: Metadata = {
   title: "Rules of Engagement",
@@ -79,7 +82,18 @@ const FOUNDING_LINK_BY_RULE: Record<
   },
 };
 
-export default function RulesPage() {
+export default async function RulesPage() {
+  // First-run: visiting the Rules ticks that onboarding step. Cheap, and
+  // never allowed to break the page.
+  try {
+    const session = await verifySession(
+      (await cookies()).get(SESSION_COOKIE)?.value
+    );
+    if (session) await markOnboardingStep(session.email, "rules");
+  } catch {
+    // no-op
+  }
+
   const fieldNotesBySlug: Record<string, FieldNoteMeta> = Object.fromEntries(
     getAllFieldNotes().map((n) => [n.slug, n])
   );

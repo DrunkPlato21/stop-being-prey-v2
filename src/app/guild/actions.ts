@@ -24,6 +24,7 @@ import {
 } from "@/lib/guild";
 import { createNotification } from "@/lib/notifications";
 import { sendGuildReplyNotification } from "@/lib/email";
+import { markOnboardingStep } from "@/lib/onboarding";
 
 // Server Actions for the Guild. Every action re-verifies the session
 // inside the function body — Server Actions are reachable by direct POST,
@@ -79,6 +80,9 @@ export async function postThreadAction(
   });
   if (!result.ok) return { ok: false, error: messageFor(result.error) };
 
+  // First-run: posting in the Guild ticks that onboarding step.
+  await markOnboardingStep(session.email, "guild").catch(() => {});
+
   revalidatePath("/guild");
   // Drop the author straight into their new thread.
   redirect(`/guild/${result.thread.id}`);
@@ -107,6 +111,9 @@ export async function postReplyAction(
     body,
   });
   if (!result.ok) return { ok: false, error: messageFor(result.error) };
+
+  // First-run: replying in the Guild ticks that onboarding step.
+  await markOnboardingStep(session.email, "guild").catch(() => {});
 
   // Notify the person being replied to: the parent reply's author for a
   // nested reply, otherwise the thread author. Resolve against the reply's

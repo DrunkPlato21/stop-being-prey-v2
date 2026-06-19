@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { WritersDeskState } from "@/lib/writers-desk-state";
+import type { WritersDeskState, FirstRunState } from "@/lib/writers-desk-state";
 import type { PresenceState } from "@/lib/desk";
 import type { PulseEvent } from "@/lib/pulse";
 import type { Note } from "@/lib/notes";
@@ -223,6 +223,156 @@ function PulseRow({
   return inner;
 }
 
+function CheckDisc({ done }: { done: boolean }) {
+  if (done) {
+    return (
+      <span
+        aria-hidden
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: "50%",
+          background: "var(--eye-deep)",
+          color: "var(--surface)",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "0.62rem",
+          flexShrink: 0,
+        }}
+      >
+        &#10003;
+      </span>
+    );
+  }
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 16,
+        height: 16,
+        borderRadius: "50%",
+        border: "1.5px solid var(--border)",
+        display: "inline-block",
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
+// New-member "Getting started" checklist. The one place a contained card
+// earns its keep on the desk: it's a temporary, actionable element that
+// should stand out, and it retires once the member is settled (finished
+// or dismissed). Olive outline marks it as the thing to act on.
+function FirstRunPanel({ firstRun }: { firstRun: FirstRunState }) {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+
+  const doneCount = firstRun.steps.filter((s) => s.done).length;
+  const total = firstRun.steps.length;
+
+  function dismiss() {
+    setDismissed(true);
+    fetch("/api/onboarding/dismiss", { method: "POST", cache: "no-store" }).catch(
+      () => {}
+    );
+  }
+
+  return (
+    <div
+      style={{
+        marginBottom: "1.75rem",
+        background: "var(--surface)",
+        border: "1px solid var(--eye-deep)",
+        borderRadius: 2,
+        padding: "1.25rem 1.4rem 1rem",
+      }}
+    >
+      <div className="flex items-baseline justify-between gap-4 mb-1">
+        <p
+          className="font-display uppercase text-ink"
+          style={{ letterSpacing: "0.2em", fontSize: "0.78rem", fontWeight: 700 }}
+        >
+          Getting started
+        </p>
+        <span
+          className="font-serif italic text-ink-faint"
+          style={{ fontSize: "0.78rem" }}
+        >
+          {doneCount} of {total}
+        </span>
+      </div>
+      <p
+        className="font-serif italic text-ink-muted mb-3"
+        style={{ fontSize: "0.9rem" }}
+      >
+        Four quick moves to settle in.
+      </p>
+      <ul className="flex flex-col">
+        {firstRun.steps.map((s) => (
+          <li
+            key={s.key}
+            className="py-1.5"
+            style={{ borderTop: "1px solid var(--rule)" }}
+          >
+            {s.done ? (
+              <span className="flex items-center gap-2.5">
+                <CheckDisc done />
+                <span
+                  className="font-serif text-ink-faint"
+                  style={{
+                    fontSize: "0.98rem",
+                    textDecoration: "line-through",
+                    textDecorationColor: "var(--ink-faint)",
+                  }}
+                >
+                  {s.label}
+                </span>
+              </span>
+            ) : (
+              <Link
+                href={s.href}
+                className="group flex items-center gap-2.5 no-underline"
+              >
+                <CheckDisc done={false} />
+                <span
+                  className="font-serif text-ink group-hover:text-eye-deep transition-colors"
+                  style={{ fontSize: "0.98rem" }}
+                >
+                  {s.label}
+                </span>
+                <span
+                  className="text-eye-deep transition-transform group-hover:translate-x-0.5"
+                  aria-hidden
+                  style={{ fontSize: "0.8rem" }}
+                >
+                  &rarr;
+                </span>
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
+      <div className="flex justify-end mt-2.5">
+        <button
+          type="button"
+          onClick={dismiss}
+          className="font-display uppercase tracking-[0.18em] text-ink-faint hover:text-ink transition-colors"
+          style={{
+            background: "transparent",
+            border: 0,
+            fontSize: "0.62rem",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function WritersDeskView({
   initialState,
 }: {
@@ -328,6 +478,7 @@ export function WritersDeskView({
     voiceMemo,
     activeWall,
     rooms,
+    firstRun,
     isSignedIn,
     isAdmin: viewerIsAdmin,
   } = data;
@@ -391,6 +542,8 @@ export function WritersDeskView({
           Live updates from Clay&apos;s desk. Check back when the light is
           green.
         </p>
+
+        {firstRun && <FirstRunPanel firstRun={firstRun} />}
 
         {/* Status panel — the focal point of the widget. The lamp
             light concentrates ON this panel (not the whole widget),

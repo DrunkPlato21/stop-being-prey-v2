@@ -12,8 +12,10 @@ import {
   getRecentWorkEvents,
   type PulseEvent,
 } from "./pulse";
-import { getProfilesByEmails, isAdmin } from "./comments";
+import { getProfile, getProfilesByEmails, isAdmin } from "./comments";
+import { getMember } from "./members";
 import { listByMember, type Note } from "./notes";
+import { getOnboarding } from "./onboarding";
 import { getLatestPublished, type VoiceMemo } from "./voice-memos";
 import {
   getActiveWallSnapshot,
@@ -66,6 +68,13 @@ export type DeskRoomsSignal = {
   };
 };
 
+/** New-member onboarding checklist for the Desk's "Getting started"
+    panel. Null once the member has finished every step, dismissed it, or
+    aged out of the first-run window (and always for admin / anon). */
+export type FirstRunState = {
+  steps: { key: string; label: string; href: string; done: boolean }[];
+};
+
 export type WritersDeskState = {
   presence: DeskPresence;
   state: PresenceState;
@@ -91,6 +100,9 @@ export type WritersDeskState = {
   lastVisitedAt: number | null;
   /** The Guild + Lounge pulse for the hub panel. */
   rooms: DeskRoomsSignal;
+  /** New-member onboarding checklist, or null when there's nothing to
+      show (finished, dismissed, established member, admin, anon). */
+  firstRun: FirstRunState | null;
   isSignedIn: boolean;
   isAdmin: boolean;
 };
@@ -170,6 +182,52 @@ export async function getWritersDeskState(
     ? await getProfilesByEmails([latestThread.authorEmail])
     : null;
 
+  // First-run onboarding inputs (members only; admin + anon skip).
+  const isMember = !!viewerEmail && !viewerIsAdmin;
+  let onboarding: Awaited<ReturnType<typeof getOnboarding>> | null = null;
+  let viewerProfile: Awaited<ReturnType<typeof getProfile>> = null;
+  let memberRecord: Awaited<ReturnType<typeof getMember>> = null;
+  if (isMember) {
+    [onboarding, viewerProfile, memberRecord] = await Promise.all([
+      getOnboarding(viewerEmail!),
+      getProfile(viewerEmail!),
+      getMember(viewerEmail!),
+    ]);
+  }
+
+  // Show the panel only to members still in their first 30 days, until
+  // they've done every step or dismissed it. Established members never
+  // get nagged. The name step derives from the profile; the other three
+  // are marked when the member actually does the thing.
+  const FIRST_RUN_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+  let firstRun: FirstRunState | null = null;
+  if (isMember && memberRecord) {
+    const joinedRecently =
+      typeof memberRecord.createdAt === "number" &&
+      now - memberRecord.createdAt < FIRST_RUN_WINDOW_MS;
+    const nameDone = !!viewerProfile?.displayNameChangedAt;
+    const rulesDone = !!onboarding?.rules;
+    const guildDone = !!onboarding?.guild;
+    const loungeDone = !!onboarding?.lounge;
+    const allDone = nameDone && rulesDone && guildDone && loungeDone;
+    if (joinedRecently && !onboarding?.dismissedAt && !allDone) {
+      const qotwHref = pinnedThread ? `/guild/${pinnedThread.id}` : "/guild";
+      firstRun = {
+        steps: [
+          { key: "name", label: "Set your name", href: "/notes/account", done: nameDone },
+          { key: "rules", label: "Read the Rules", href: "/notes/rules", done: rulesDone },
+          {
+            key: "qotw",
+            label: "Answer the Question of the Week",
+            href: qotwHref,
+            done: guildDone,
+          },
+          { key: "lounge", label: "Say hi in the Lounge", href: "/lounge", done: loungeDone },
+        ],
+      };
+    }
+  }
+
   const rooms: DeskRoomsSignal = {
     guild: {
       questionOfWeek: pinnedThread
@@ -216,6 +274,7 @@ export async function getWritersDeskState(
     activeWall,
     lastVisitedAt,
     rooms,
+    firstRun,
     isSignedIn: !!viewerEmail,
     isAdmin: viewerIsAdmin,
   };
