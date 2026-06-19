@@ -81,9 +81,14 @@ export default function WelcomePage() {
             <Link href="/the-losertarian-problem" className="btn-primary">
               <span>Read the essay</span>
             </Link>
-            <Link href="/podcast" className="btn-secondary">
-              Listen on the podcast
-            </Link>
+            <a
+              href="https://open.spotify.com/show/6Pjbl5jXQlOoHpVn696V1t"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              Listen on Spotify
+            </a>
           </div>
         </div>
       </div>

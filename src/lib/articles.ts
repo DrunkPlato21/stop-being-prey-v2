@@ -18,14 +18,15 @@ export type ArticleMeta = {
   spotifyEpisodeId?: string;
   chapter?: number;
   wordCount?: number;
-  /** When true, surfaces this episode as the "Start Here" pick at the top
-      of the podcast page. Only the most recent episode flagged featured
-      is shown; older flagged episodes fall back into the regular feed. */
+  /** Legacy: marked the "Start Here" pick on the retired podcast page.
+      Currently unused; kept so existing frontmatter stays valid and a
+      future featured-essay slot can reuse it. */
   featured?: boolean;
-  /** Curator's one-line note shown on the featured podcast card. */
+  /** Legacy companion to `featured` (the note on the old podcast card).
+      Currently unused. */
   featuredNote?: string;
   /** Publish gate. Absent or true = live. `published: false` hides the
-      article from every public catalog (homepage, /issues, /podcast, issue
+      article from every public catalog (homepage, /issues, issue
       numbering) and from static generation, while leaving its own URL
       reachable for a member/preview gate on the detail page. Flip this one
       field to true (or delete the line) to launch. */
@@ -46,7 +47,7 @@ export type ArticleMeta = {
   leadQuote?: string;
   /** Real audio runtime in minutes, from the `audioMinutes` frontmatter
       field. Overrides the word-count estimate everywhere the runtime is
-      shown (issue masthead pill, homepage lead pill, /podcast feed). */
+      shown (issue masthead pill, homepage lead pill). */
   audioMinutes?: number;
   /** Set `inlineCta: false` in frontmatter to suppress the inline
       mid-article email form on this piece (for essays with no natural
@@ -59,7 +60,7 @@ export type ArticleMeta = {
  * Minutes shown for an episode's audio. Prefers the real runtime
  * (`audioMinutes` frontmatter) when set; otherwise estimates from word
  * count at ~150 wpm. Null when there's nothing to base it on. Single
- * source so the issue page, homepage lead, and /podcast all agree.
+ * source so the issue page and homepage lead agree.
  */
 export function audioRuntimeMinutes(a: ArticleMeta): number | null {
   if (typeof a.audioMinutes === "number" && a.audioMinutes > 0) {
@@ -180,7 +181,7 @@ export function getAllArticles(): ArticleMeta[] {
     } as ArticleMeta;
   });
   // Drop unpublished drafts from the public catalog. This single filter
-  // removes a draft from the homepage lead, /issues, /podcast, and the
+  // removes a draft from the homepage lead, /issues, and the
   // issue-number identity in one place; the detail page reads the file
   // directly via getArticleBySlug, so its URL still resolves for previews.
   return articles

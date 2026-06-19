@@ -25,7 +25,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // The doctrine front door — public lure, key conversion + SEO surface.
     { url: `${BASE}/rules`, lastModified: newest, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/issues`, lastModified: newest, changeFrequency: "weekly", priority: 0.7 },
-    { url: `${BASE}/podcast`, lastModified: newest, changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE}/membership`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/about`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE}/join`, changeFrequency: "monthly", priority: 0.6 },

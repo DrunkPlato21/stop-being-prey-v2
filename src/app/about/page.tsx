@@ -84,8 +84,8 @@ export default function AboutPage() {
           </p>
 
           <p>
-            Stop Being Prey is also a book in progress, and a podcast where I
-            read each essay aloud.
+            Stop Being Prey is also a book in progress. Every essay is read
+            aloud too, for anyone who&apos;d rather listen.
           </p>
 
           <h2>The work</h2>

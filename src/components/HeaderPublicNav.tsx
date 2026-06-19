@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// The public site's nav strip (Issues / Podcast / About / Tip). Hidden in
+// The public site's nav strip (Issues / About / Tip). Hidden in
 // the member area, where the member sidebar/strip is the only nav — so
 // each context shows exactly one nav instead of two stacked on top of
 // each other. The wordmark still returns to the public site.
@@ -41,12 +41,6 @@ export function HeaderPublicNav() {
       <div className="max-w-6xl mx-auto px-5 sm:px-6 flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-7 gap-y-1 py-2.5 sm:py-3">
         <Link href="/issues" className={navLinkClass}>
           Issues
-        </Link>
-        <span className="header-nav-sep" aria-hidden="true">
-          ·
-        </span>
-        <Link href="/podcast" className={navLinkClass}>
-          Podcast
         </Link>
         <span className="header-nav-sep" aria-hidden="true">
           ·

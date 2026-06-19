@@ -161,16 +161,6 @@ export default function Home() {
                       "We can model them. They can't model us."}
                     &rdquo;
                   </blockquote>
-                  {featured.spotifyEpisodeId && (
-                    <div className="mt-6 text-right">
-                      <Link
-                        href="/podcast"
-                        className="eyebrow no-underline hover:text-ink transition-colors"
-                      >
-                        All episodes →
-                      </Link>
-                    </div>
-                  )}
                 </div>
               </aside>
             </div>

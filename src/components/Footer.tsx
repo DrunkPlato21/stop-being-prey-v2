@@ -55,11 +55,6 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/podcast" className={navLinkClass}>
-                    Podcast
-                  </Link>
-                </li>
-                <li>
                   <Link href="/about" className={navLinkClass}>
                     About
                   </Link>

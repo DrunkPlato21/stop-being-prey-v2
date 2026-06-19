@@ -118,9 +118,6 @@ export function StickyNav({ signedIn, isPaidMember }: StickyNavProps) {
           <Link href="/issues" className="header-nav-link text-ink hover:text-eye-deep transition-colors no-underline">
             Issues
           </Link>
-          <Link href="/podcast" className="header-nav-link text-ink hover:text-eye-deep transition-colors no-underline">
-            Podcast
-          </Link>
           <Link href="/about" className="header-nav-link text-ink hover:text-eye-deep transition-colors no-underline">
             About
           </Link>

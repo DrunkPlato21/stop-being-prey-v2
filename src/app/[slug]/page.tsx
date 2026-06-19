@@ -208,7 +208,7 @@ export default async function ArticlePage({
         partOfSeries: {
           "@type": "PodcastSeries",
           name: "Stop Being Prey",
-          url: "https://stopbeingprey.com/podcast",
+          url: "https://open.spotify.com/show/6Pjbl5jXQlOoHpVn696V1t",
         },
         author: { "@type": "Person", name: "Clay" },
       }

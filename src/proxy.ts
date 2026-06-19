@@ -133,6 +133,16 @@ export async function proxy(request: NextRequest) {
     url.search = "";
     return NextResponse.redirect(url, 301);
   }
+
+  // The podcast frame was retired (writer, not podcaster). Audio still
+  // lives inline on each essay (the Listen pill) and on Spotify, but the
+  // standalone /podcast section is gone. Old links land on the archive.
+  if (pathname === "/podcast" || pathname === "/podcast/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/issues";
+    url.search = "";
+    return NextResponse.redirect(url, 301);
+  }
   if (pathname === "/den" || pathname === "/den/") {
     const url = request.nextUrl.clone();
     url.pathname = "/desk";
@@ -215,5 +225,6 @@ export const config = {
     "/book/:path*",
     "/den",
     "/den/:path*",
+    "/podcast",
   ],
 };
