@@ -424,6 +424,137 @@ export async function sendCommentThreadReplyNotification(args: {
   }
 }
 
+/* === Guild reply notification =============================
+   Sent to a thread (or reply) author when another member replies in
+   the Guild. Same visual language as the comment thread-reply email.
+   Batching is enforced upstream (one email per thread per window).
+
+   HARD-GUARDED to production: Guild replies are frequent and recipients
+   include local test accounts, so this email never sends from dev even
+   when Resend is configured. The in-app bell still fires in dev; only
+   the mail is withheld. */
+
+export async function sendGuildReplyNotification(args: {
+  to: string;
+  recipientDisplayName: string;
+  replyAuthorDisplayName: string;
+  threadTitle: string;
+  /** Path like /guild/<id>#reply-<id>; the absolute URL is built here. */
+  threadPath: string;
+  replyBody: string;
+}): Promise<SendResult> {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `[email] (dev) guild reply email SKIPPED -> ${args.to} re "${args.threadTitle}"`
+    );
+    return { ok: false, error: "skipped_in_dev" };
+  }
+
+  const resend = client();
+  if (!resend) return { ok: false, error: "email_not_configured" };
+
+  const threadUrl = `${getBaseUrl()}${args.threadPath}`;
+  const greeting = args.recipientDisplayName
+    ? escapeHtml(args.recipientDisplayName)
+    : "Hey";
+  const subject = `${args.replyAuthorDisplayName} replied to your thread in the Guild`;
+  const replyEscaped = escapeHtml(args.replyBody.trim()).replace(/\n/g, "<br/>");
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>New reply in the Guild</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5efe1;font-family:Georgia,'Times New Roman',serif;color:#1a1714;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5efe1;padding:48px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#fbf6e9;border:1px solid #c9bfa3;padding:40px 32px;">
+            <tr>
+              <td style="text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.7rem;letter-spacing:0.32em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding-bottom:24px;">
+                Stop Being Prey &middot; The Guild
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;">${greeting},</p>
+                <p style="margin:0 0 18px 0;"><strong style="color:#1a1714;">${escapeHtml(args.replyAuthorDisplayName)}</strong> replied to your thread <em>${escapeHtml(args.threadTitle)}</em>.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0 24px 0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;background:#f5efe1;">
+                  <tr>
+                    <td style="padding:14px 18px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:#1a1714;">
+                      ${replyEscaped}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:8px 0 24px 0;">
+                <a href="${escapeHtml(threadUrl)}" style="display:inline-block;background:#1a1714;color:#f5efe1;text-decoration:none;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.78rem;letter-spacing:0.22em;text-transform:uppercase;font-weight:600;padding:14px 28px;border:1px solid #1a1714;">
+                  Read it in the Guild
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:13px;font-style:italic;color:#8a8077;line-height:1.6;border-top:1px solid #d8cfb8;padding-top:20px;">
+                <p style="margin:0 0 6px 0;">to stop these emails, toggle off &ldquo;email me when someone replies&rdquo; in your account.</p>
+                <p style="margin:14px 0 0 0;">stay close,<br/>~ Clay</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  const text = [
+    `${args.recipientDisplayName || "Hey"},`,
+    "",
+    `${args.replyAuthorDisplayName} replied to your thread "${args.threadTitle}":`,
+    "",
+    args.replyBody.trim(),
+    "",
+    `Read it in the Guild: ${threadUrl}`,
+    "",
+    'to stop these emails, toggle off "email me when someone replies" in your account.',
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: args.to,
+      subject,
+      html,
+      text,
+      replyTo: REPLY_TO,
+    });
+    if (result.error) {
+      console.error("[email] Resend rejected guild reply notification:", {
+        to: args.to,
+        error: result.error,
+      });
+      return { ok: false, error: result.error.message };
+    }
+    return { ok: true, id: result.data?.id ?? "" };
+  } catch (err) {
+    console.error("[email] Resend threw on guild reply notification:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "send_failed",
+    };
+  }
+}
+
 /* === Pending-comment notification (to admin) ==============
    Sent to ADMIN_EMAIL when a member posts a new comment, so Clay
    doesn't need to poll /admin/comments. Quiet, plain, transactional. */

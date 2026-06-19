@@ -175,6 +175,25 @@ async function claimCooldown(
   return ok === "OK";
 }
 
+/**
+ * Batch guard for reply EMAILS: at most one per (recipient, thread) per
+ * window. The bell fires on every reply, but a hot thread should send a
+ * single "come look" email, not one per reply. Fails CLOSED (returns
+ * false, no email) when the store is unavailable — a missed email beats
+ * a burst of them.
+ */
+export async function claimReplyEmailCooldown(
+  recipientEmail: string,
+  threadId: string,
+  seconds = 2 * 60 * 60
+): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+  const key = `${KEY_PREFIX}guild:emailcooldown:${normEmail(recipientEmail)}:${threadId}`;
+  const ok = await client.set(key, "1", { nx: true, ex: seconds });
+  return ok === "OK";
+}
+
 // --------------------------------------------------------------------
 // Threads
 // --------------------------------------------------------------------

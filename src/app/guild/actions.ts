@@ -4,8 +4,9 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { isAdmin } from "@/lib/comments";
+import { getProfile, isAdmin, notifyOnReply } from "@/lib/comments";
 import {
+  claimReplyEmailCooldown,
   createReply,
   createThread,
   editReply,
@@ -22,6 +23,7 @@ import {
   unpinThread,
 } from "@/lib/guild";
 import { createNotification } from "@/lib/notifications";
+import { sendGuildReplyNotification } from "@/lib/email";
 
 // Server Actions for the Guild. Every action re-verifies the session
 // inside the function body — Server Actions are reachable by direct POST,
@@ -125,6 +127,7 @@ export async function postReplyAction(
       recipient &&
       recipient.toLowerCase() !== session.email.toLowerCase()
     ) {
+      // In-app bell: always, on every reply.
       await createNotification({
         memberEmail: recipient,
         type: "guild_reply",
@@ -132,6 +135,26 @@ export async function postReplyAction(
         body: thread.title,
         linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
       });
+
+      // Email: preference-gated and batched to one per thread per window
+      // (the bell already covered the rest). Never sends from dev.
+      const [recipientProfile, replierProfile] = await Promise.all([
+        getProfile(recipient),
+        getProfile(session.email),
+      ]);
+      if (
+        notifyOnReply(recipientProfile) &&
+        (await claimReplyEmailCooldown(recipient, threadId))
+      ) {
+        await sendGuildReplyNotification({
+          to: recipient,
+          recipientDisplayName: recipientProfile?.displayName ?? "",
+          replyAuthorDisplayName: replierProfile?.displayName ?? "A member",
+          threadTitle: thread.title,
+          threadPath: `/guild/${threadId}#reply-${result.reply.id}`,
+          replyBody: result.reply.body,
+        });
+      }
     }
   } catch {
     // A notification hiccup must never break posting a reply.
