@@ -20,6 +20,7 @@ import {
 import { ClayReadSeal } from "./ClayReadSeal";
 import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { authorName, formatRelative } from "./guild-format";
+import { Linkified } from "@/components/Linkified";
 
 const INITIAL: GuildFormState = { ok: false };
 
@@ -90,7 +91,7 @@ function Body({ text }: { text: string }) {
         marginTop: "0.8rem",
       }}
     >
-      {text}
+      <Linkified text={text} />
     </div>
   );
 }
