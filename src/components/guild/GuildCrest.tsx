@@ -27,10 +27,13 @@ export function GuildCrest({ size = 64 }: { size?: number }) {
       />
       {ticks.map((deg) => {
         const r = (deg * Math.PI) / 180;
-        const x1 = 32 + Math.cos(r) * 27;
-        const y1 = 32 + Math.sin(r) * 27;
-        const x2 = 32 + Math.cos(r) * 29.5;
-        const y2 = 32 + Math.sin(r) * 29.5;
+        // Round so server and client serialize identical strings (raw
+        // trig floats differ in their last digit and trip hydration).
+        const round = (n: number) => Math.round(n * 1000) / 1000;
+        const x1 = round(32 + Math.cos(r) * 27);
+        const y1 = round(32 + Math.sin(r) * 27);
+        const x2 = round(32 + Math.cos(r) * 29.5);
+        const y2 = round(32 + Math.sin(r) * 29.5);
         return (
           <line
             key={deg}

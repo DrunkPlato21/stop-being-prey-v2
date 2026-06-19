@@ -12,6 +12,8 @@ import { ActiveWallPanel } from "@/components/ActiveWallPanel";
 import { Linkified } from "@/components/Linkified";
 import { PulseSourceGlyph } from "@/components/PulseSourceGlyph";
 import { DeskLamp } from "@/components/DeskLamp";
+import { GuildCrest } from "@/components/guild/GuildCrest";
+import { LoungeMark } from "@/components/LoungeMark";
 
 // Polling cadence. Tight enough that "I just changed something in
 // another tab / on my phone" registers within a few seconds, but not
@@ -454,8 +456,9 @@ export function WritersDeskView({
             <div className="mb-7">
               <Link
                 href="/guild"
-                className="group inline-flex items-baseline gap-2 no-underline"
+                className="group inline-flex items-center gap-2.5 no-underline"
               >
+                <GuildCrest size={26} />
                 <span
                   className="font-display text-ink group-hover:text-eye-deep transition-colors"
                   style={{ fontSize: "1.25rem", fontWeight: 600 }}
@@ -563,8 +566,9 @@ export function WritersDeskView({
               <div className="flex items-baseline gap-3 flex-wrap">
                 <Link
                   href="/lounge"
-                  className="group inline-flex items-baseline gap-2 no-underline"
+                  className="group inline-flex items-center gap-2.5 no-underline"
                 >
+                  <LoungeMark size={26} />
                   <span
                     className="font-display text-ink group-hover:text-eye-deep transition-colors"
                     style={{ fontSize: "1.25rem", fontWeight: 600 }}
