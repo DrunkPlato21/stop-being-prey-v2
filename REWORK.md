@@ -78,8 +78,8 @@ Do not launch the Guild empty. Seed five to eight strong starter threads, each a
 
 1. [x] Get `feat/members-area-v2` current with main.
 2. [x] Guild categories (composer + model + index). Required intent picker in the composer, `category` on the thread model (legacy threads default to Open floor on read), category tag on each index row, dev seed varied across all three. Follow-ups, not blockers: a category filter on the index (deferred on purpose until volume needs it, so we don't show empty rooms), and showing the tag on the thread detail page (`ThreadView`).
-3. [ ] Seed the Guild starter threads.
-4. [ ] Desk as hub: dashboard that pulls Guild + Lounge signals.
+3. [~] Seed the Guild starter threads. Dev preview seed written (throwaway, Clay replaces). Real launch threads still to write.
+4. [x] Desk as hub: "The rooms" panel under Clay's status pulls Guild (recent threads) + Lounge (active-now count + latest post) signals into the snapshot, so the existing 5s desk poll refreshes them. Folded into `getWritersDeskState`; rendered in `WritersDeskView`.
 5. [ ] Public Rules page (free the doctrine).
 6. [ ] Kill the podcast frame, add Listen on essays.
 7. [ ] Homepage reframe.

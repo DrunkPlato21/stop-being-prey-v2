@@ -28,6 +28,17 @@ const NOW_TICK_MS = 30_000;
 // member's reading session before being cleared next visit.
 const MARK_VISITED_DELAY_MS = 5_000;
 
+// Hard cap on a previewed snippet so one long Lounge post can't blow out
+// the quote height. Pairs with line-clamp as a belt-and-suspenders guard.
+function clampText(text: string, max: number): string {
+  const t = text.trim();
+  return t.length > max ? `${t.slice(0, max).trimEnd()}…` : t;
+}
+
+function replyLabel(n: number): string {
+  return n === 0 ? "No replies yet" : n === 1 ? "1 reply" : `${n} replies`;
+}
+
 function formatRelative(at: number, now: number): string {
   const diff = now - at;
   if (diff < 0) return "just now";
@@ -110,6 +121,35 @@ function PresenceLine({
 // next to the source label or section eyebrow, never the body text.
 function NewBadge() {
   return <span className="desk-new-badge">New</span>;
+}
+
+// Zone title. Deliberately heavier than the per-row kicker labels
+// (darker ink, larger, wider tracking) so the eye can find where one
+// section ends and the next begins instead of reading the widget as one
+// flat column. Pairs with a top rule + generous space on its wrapper.
+function SectionHeader({
+  children,
+  action,
+}: {
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 mb-4">
+      <h3
+        className="font-display uppercase text-ink flex items-center gap-2"
+        style={{
+          letterSpacing: "0.24em",
+          fontSize: "0.82rem",
+          fontWeight: 700,
+          margin: 0,
+        }}
+      >
+        {children}
+      </h3>
+      {action}
+    </div>
+  );
 }
 
 function PulseRow({
@@ -285,6 +325,7 @@ export function WritersDeskView({
     memberNotes,
     voiceMemo,
     activeWall,
+    rooms,
     isSignedIn,
     isAdmin: viewerIsAdmin,
   } = data;
@@ -399,49 +440,224 @@ export function WritersDeskView({
           </div>
         </div>
 
+        {/* The rooms — the hub. Two spokes off the desk: the Guild
+            (deep threads) and the Lounge (live talk). Each shows its
+            own pulse so the desk answers "what's alive now" before the
+            member decides where to go. Members + admin only. */}
+        {isSignedIn && (
+          <div className="mt-10 pt-8 border-t border-rule">
+            <SectionHeader>The rooms</SectionHeader>
+
+            {/* The Guild — the room name IS the door: name + arrow link
+                straight in, so where it goes is obvious. A live preview
+                of the latest thread sits beneath. */}
+            <div className="mb-7">
+              <Link
+                href="/guild"
+                className="group inline-flex items-baseline gap-2 no-underline"
+              >
+                <span
+                  className="font-display text-ink group-hover:text-eye-deep transition-colors"
+                  style={{ fontSize: "1.25rem", fontWeight: 600 }}
+                >
+                  The Guild
+                </span>
+                <span
+                  className="text-eye-deep transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                  style={{ fontSize: "0.95rem" }}
+                >
+                  &rarr;
+                </span>
+              </Link>
+              {!rooms.guild.questionOfWeek && !rooms.guild.latest && (
+                <p
+                  className="font-serif italic text-ink-faint mt-1.5"
+                  style={{ fontSize: "0.92rem" }}
+                >
+                  No open threads yet.
+                </p>
+              )}
+
+              {rooms.guild.questionOfWeek && (
+                <Link
+                  href={`/guild/${rooms.guild.questionOfWeek.id}`}
+                  className="group block no-underline mt-2.5"
+                >
+                  <p
+                    className="eyebrow"
+                    style={{
+                      color: "var(--eye-deep)",
+                      letterSpacing: "0.22em",
+                      fontSize: "0.58rem",
+                      marginBottom: "0.35rem",
+                    }}
+                  >
+                    Question of the week
+                  </p>
+                  <p
+                    className="font-serif italic text-ink leading-snug group-hover:text-eye-deep transition-colors"
+                    style={{ fontSize: "1.02rem" }}
+                  >
+                    {rooms.guild.questionOfWeek.title}
+                  </p>
+                  <p
+                    className="font-serif italic text-ink-faint mt-1"
+                    style={{ fontSize: "0.78rem" }}
+                  >
+                    {replyLabel(rooms.guild.questionOfWeek.replyCount)} &middot;{" "}
+                    {formatRelative(
+                      rooms.guild.questionOfWeek.lastActivityAt,
+                      now
+                    )}
+                  </p>
+                </Link>
+              )}
+
+              {rooms.guild.latest && (
+                <Link
+                  href={`/guild/${rooms.guild.latest.id}`}
+                  className="group block no-underline mt-4"
+                >
+                  <p
+                    className="eyebrow"
+                    style={{
+                      color: "var(--ink-faint)",
+                      letterSpacing: "0.22em",
+                      fontSize: "0.58rem",
+                      marginBottom: "0.35rem",
+                    }}
+                  >
+                    Latest
+                  </p>
+                  <p
+                    className="font-serif italic text-ink leading-snug group-hover:text-eye-deep transition-colors"
+                    style={{ fontSize: "1.02rem" }}
+                  >
+                    {rooms.guild.latest.title}
+                  </p>
+                  <p
+                    className="font-serif italic text-ink-faint mt-1 flex items-center gap-2"
+                    style={{ fontSize: "0.78rem" }}
+                  >
+                    <span>
+                      {rooms.guild.latest.authorName
+                        ? `${rooms.guild.latest.authorName} · `
+                        : ""}
+                      {replyLabel(rooms.guild.latest.replyCount)} &middot;{" "}
+                      {formatRelative(rooms.guild.latest.lastActivityAt, now)}
+                    </span>
+                    {isNewSinceLastVisit(rooms.guild.latest.lastActivityAt) && (
+                      <NewBadge />
+                    )}
+                  </p>
+                </Link>
+              )}
+            </div>
+
+            {/* The Lounge — same door pattern. Presence rides next to the
+                room name (positive only, never an empty-room note) so the
+                doorway itself shows life. The latest line is the preview,
+                italic so it reads as something someone actually said. */}
+            <div>
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <Link
+                  href="/lounge"
+                  className="group inline-flex items-baseline gap-2 no-underline"
+                >
+                  <span
+                    className="font-display text-ink group-hover:text-eye-deep transition-colors"
+                    style={{ fontSize: "1.25rem", fontWeight: 600 }}
+                  >
+                    The Lounge
+                  </span>
+                  <span
+                    className="text-eye-deep transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                    style={{ fontSize: "0.95rem" }}
+                  >
+                    &rarr;
+                  </span>
+                </Link>
+                {rooms.lounge.activeNow > 0 && (
+                  <span
+                    className="font-serif italic text-eye-deep"
+                    style={{ fontSize: "0.82rem" }}
+                  >
+                    {rooms.lounge.activeNow} here now
+                  </span>
+                )}
+              </div>
+              {rooms.lounge.latest ? (
+                <Link href="/lounge" className="group block no-underline mt-1.5">
+                  <p
+                    className="font-serif italic text-ink leading-snug line-clamp-2 group-hover:text-eye-deep transition-colors"
+                    style={{ fontSize: "1.02rem" }}
+                  >
+                    &ldquo;{clampText(rooms.lounge.latest.body, 150)}&rdquo;
+                  </p>
+                  <p
+                    className="font-serif italic text-ink-faint mt-1"
+                    style={{ fontSize: "0.78rem" }}
+                  >
+                    {rooms.lounge.latest.firstName},{" "}
+                    {formatRelative(rooms.lounge.latest.createdAt, now)}
+                  </p>
+                </Link>
+              ) : rooms.lounge.activeNow > 0 ? (
+                <p
+                  className="font-serif italic text-ink-muted mt-1.5"
+                  style={{ fontSize: "0.92rem" }}
+                >
+                  Quiet, but people are here. Say something.
+                </p>
+              ) : (
+                <p
+                  className="font-serif italic text-ink-faint mt-1.5"
+                  style={{ fontSize: "0.92rem" }}
+                >
+                  Drop the first line.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {voiceMemo && (
-          <div className="mt-7">
-            <p
-              className="eyebrow mb-3 flex items-center gap-2"
-              style={{ letterSpacing: "0.32em", fontSize: "0.65rem" }}
-            >
+          <div className="mt-10 pt-8 border-t border-rule">
+            <SectionHeader>
               <span>Voice from the desk</span>
               {isNewSinceLastVisit(voiceMemo.publishedAt) && <NewBadge />}
-            </p>
+            </SectionHeader>
             <VoiceMemoCard memo={voiceMemo} now={now} />
           </div>
         )}
 
         {activeWall && (
-          <div className="mt-7">
-            <p
-              className="eyebrow mb-3 flex items-center gap-2"
-              style={{ letterSpacing: "0.32em", fontSize: "0.65rem" }}
-            >
+          <div className="mt-10 pt-8 border-t border-rule">
+            <SectionHeader>
               <span>Active wall</span>
               {isNewSinceLastVisit(activeWall.openedAt) && <NewBadge />}
-            </p>
+            </SectionHeader>
             <ActiveWallPanel snapshot={activeWall} />
           </div>
         )}
 
         {recentWork.length > 0 && (
-          <div className="mt-9 pt-6 border-t border-rule">
-            <div className="flex items-baseline justify-between gap-4 mb-3">
-              <p
-                className="eyebrow"
-                style={{ letterSpacing: "0.32em", fontSize: "0.65rem" }}
-              >
-                At home
-              </p>
-              <Link
-                href="/notes/activity"
-                className="font-display uppercase tracking-[0.22em] text-eye-deep hover:text-ink no-underline transition-colors"
-                style={{ fontSize: "0.62rem", fontWeight: 600 }}
-              >
-                View all &rarr;
-              </Link>
-            </div>
+          <div className="mt-10 pt-8 border-t border-rule">
+            <SectionHeader
+              action={
+                <Link
+                  href="/notes/activity"
+                  className="font-display uppercase tracking-[0.22em] text-eye-deep hover:text-ink no-underline transition-colors"
+                  style={{ fontSize: "0.62rem", fontWeight: 600 }}
+                >
+                  View all &rarr;
+                </Link>
+              }
+            >
+              At home
+            </SectionHeader>
             <ul className="flex flex-col">
               {recentWork.map((event, idx) => (
                 <li
@@ -468,25 +684,23 @@ export function WritersDeskView({
           <div
             className={
               recentWork.length > 0
-                ? "mt-8"
-                : "mt-9 pt-6 border-t border-rule"
+                ? "mt-9"
+                : "mt-10 pt-8 border-t border-rule"
             }
           >
-            <div className="flex items-baseline justify-between gap-4 mb-3">
-              <p
-                className="eyebrow"
-                style={{ letterSpacing: "0.32em", fontSize: "0.65rem" }}
-              >
-                Out in the world
-              </p>
-              <Link
-                href="/notes/elsewhere"
-                className="font-display uppercase tracking-[0.22em] text-eye-deep hover:text-ink no-underline transition-colors"
-                style={{ fontSize: "0.62rem", fontWeight: 600 }}
-              >
-                View all &rarr;
-              </Link>
-            </div>
+            <SectionHeader
+              action={
+                <Link
+                  href="/notes/elsewhere"
+                  className="font-display uppercase tracking-[0.22em] text-eye-deep hover:text-ink no-underline transition-colors"
+                  style={{ fontSize: "0.62rem", fontWeight: 600 }}
+                >
+                  View all &rarr;
+                </Link>
+              }
+            >
+              Out in the world
+            </SectionHeader>
             <ul className="flex flex-col">
               {elsewhere.map((event, idx) => (
                 <li

@@ -12,7 +12,7 @@ import {
   getRecentWorkEvents,
   type PulseEvent,
 } from "./pulse";
-import { isAdmin } from "./comments";
+import { getProfilesByEmails, isAdmin } from "./comments";
 import { listByMember, type Note } from "./notes";
 import { getLatestPublished, type VoiceMemo } from "./voice-memos";
 import {
@@ -20,6 +20,8 @@ import {
   type ActiveWallSnapshot,
 } from "./active-wall";
 import { getLastVisited } from "./desk-visits";
+import { getPinnedThread, listActiveThreads } from "./guild";
+import { countRoomPresence, listVisiblePosts } from "./lounge";
 
 // Voice memo widget cutoff: if Clay hasn't published a memo within this
 // window, the whole "Voice from the desk" section drops off the widget.
@@ -30,6 +32,39 @@ const VOICE_MEMO_FRESH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 // and the polling endpoint (live updates). Member-specific fields
 // (memberNotes, isAdmin, isSignedIn) populate only when a viewer is
 // passed in; they're empty/false for anonymous callers.
+
+/** Live pulse of the two member rooms, surfaced on the Desk so the home
+    base answers "what's alive now" at a glance. The Desk is the hub;
+    the Guild and Lounge are the spokes you step out to. */
+export type DeskRoomsSignal = {
+  guild: {
+    /** Clay's pinned Question of the Week, if one is up. The desk leads
+        with this — it's the room's standing prompt. */
+    questionOfWeek: {
+      id: string;
+      title: string;
+      replyCount: number;
+      lastActivityAt: number;
+    } | null;
+    /** The most-recently-active member thread (pinned excluded), so the
+        peek also shows the life happening in response. */
+    latest: {
+      id: string;
+      title: string;
+      replyCount: number;
+      lastActivityAt: number;
+      /** Author's display name, or null if they haven't set one (e.g.
+          dev fixtures). Real members always have one. */
+      authorName: string | null;
+    } | null;
+  };
+  lounge: {
+    /** Members active in the room within the presence window. */
+    activeNow: number;
+    /** The newest post, for a one-line "what's being said" peek. */
+    latest: { firstName: string; body: string; createdAt: number } | null;
+  };
+};
 
 export type WritersDeskState = {
   presence: DeskPresence;
@@ -54,6 +89,8 @@ export type WritersDeskState = {
   /** Epoch ms of this viewer's last desk visit, used to drive NEW
       badges. Null on first visit or for anonymous viewers. */
   lastVisitedAt: number | null;
+  /** The Guild + Lounge pulse for the hub panel. */
+  rooms: DeskRoomsSignal;
   isSignedIn: boolean;
   isAdmin: boolean;
 };
@@ -76,6 +113,10 @@ export async function getWritersDeskState(
     voiceMemoRaw,
     activeWall,
     lastVisitedAt,
+    guildPage,
+    pinnedThread,
+    loungeActiveNow,
+    loungeLatest,
   ] = await Promise.all([
     listRecentUpdates(1),
     getPresence(),
@@ -89,6 +130,13 @@ export async function getWritersDeskState(
     viewerEmail && !viewerIsAdmin
       ? getLastVisited(viewerEmail)
       : Promise.resolve(null),
+    listActiveThreads({ limit: 1 }),
+    getPinnedThread(),
+    countRoomPresence(),
+    // Pull a small page (the feed is ordered by last activity, which a
+    // reply can bump), then pick the genuinely newest post by when it
+    // was written so the desk peek's name + timestamp always agree.
+    listVisiblePosts({ limit: 10 }),
   ]);
   const now = Date.now();
   const state = derivePresenceState(presence, now);
@@ -105,6 +153,53 @@ export async function getWritersDeskState(
       ? voiceMemoRaw
       : null;
 
+  let latestLoungePost: (typeof loungeLatest.posts)[number] | null = null;
+  for (const p of loungeLatest.posts) {
+    if (!latestLoungePost || p.createdAt > latestLoungePost.createdAt) {
+      latestLoungePost = p;
+    }
+  }
+  // Resolve the latest thread author's display name so the Guild peek
+  // can show who started it. Null for fixtures with no profile set.
+  const latestThread = guildPage.threads[0] ?? null;
+  const guildProfiles = latestThread
+    ? await getProfilesByEmails([latestThread.authorEmail])
+    : null;
+
+  const rooms: DeskRoomsSignal = {
+    guild: {
+      questionOfWeek: pinnedThread
+        ? {
+            id: pinnedThread.id,
+            title: pinnedThread.title,
+            replyCount: pinnedThread.replyCount,
+            lastActivityAt: pinnedThread.lastActivityAt,
+          }
+        : null,
+      latest: latestThread
+        ? {
+            id: latestThread.id,
+            title: latestThread.title,
+            replyCount: latestThread.replyCount,
+            lastActivityAt: latestThread.lastActivityAt,
+            authorName:
+              guildProfiles?.get(latestThread.authorEmail)?.displayName ?? null,
+          }
+        : null,
+    },
+    lounge: {
+      activeNow: loungeActiveNow,
+      latest:
+        latestLoungePost && latestLoungePost.body.trim()
+          ? {
+              firstName: latestLoungePost.firstName,
+              body: latestLoungePost.body,
+              createdAt: latestLoungePost.createdAt,
+            }
+          : null,
+    },
+  };
+
   return {
     presence,
     state,
@@ -116,6 +211,7 @@ export async function getWritersDeskState(
     voiceMemo,
     activeWall,
     lastVisitedAt,
+    rooms,
     isSignedIn: !!viewerEmail,
     isAdmin: viewerIsAdmin,
   };
