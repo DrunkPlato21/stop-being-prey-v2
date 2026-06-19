@@ -267,6 +267,27 @@ export function IdentityMenu(props: IdentityMenuProps) {
             </span>
           </Link>
 
+          <Link
+            href="/notes/coins"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="identity-menu-item flex items-center justify-between gap-4 px-4 py-3 no-underline border-t border-rule"
+            style={{
+              fontFamily:
+                "var(--font-source-serif), Georgia, 'Times New Roman', serif",
+              color: "var(--ink)",
+              fontSize: "0.95rem",
+            }}
+          >
+            <span>Your Coins</span>
+            <span
+              aria-hidden="true"
+              style={{ color: "var(--ink-faint)", fontSize: "0.85rem" }}
+            >
+              &rarr;
+            </span>
+          </Link>
+
           <form
             method="post"
             action="/api/auth/logout"

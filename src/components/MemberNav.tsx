@@ -33,20 +33,19 @@ type NavItem = {
 
 export type MemberNavDots = Partial<Record<string, boolean>>;
 
-// Three clusters, no dividing lines, just whitespace:
-//   1. Presence layer: Desk, Lounge
-//   2. Content / doctrine: Rules, Field Notes, Case Files, Book
-//   3. Utility: Account
+// The nav holds only *places*. Personal stuff (account, coins, sign-out)
+// lives in the identity menu under the member's name in the header, so
+// this stays a clean list of destinations instead of a junk drawer.
+// Two clusters, no dividing lines, just whitespace:
+//   1. The rooms: Desk, Lounge, The Guild
+//   2. The doctrine + the book: Rules, Case Files, Book
 const ITEMS: NavItem[] = [
   { href: "/desk", label: "Desk" },
   { href: "/lounge", label: "Lounge" },
   { href: "/guild", label: "The Guild" },
   { href: "/notes/rules", label: "Rules", clusterBreak: true },
-  { href: "/notes/field-notes", label: "Field Notes" },
   { href: "/case-files", label: "Case Files" },
   { href: "/book", label: "Book" },
-  { href: "/notes/account", label: "Account", clusterBreak: true },
-  { href: "/notes/coins", label: "Your Coins" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
