@@ -90,26 +90,31 @@ Do not launch the Guild empty. Seed five to eight strong starter threads, each a
 - [x] **Notes** — reactions reach the member (notify + show under their note); "leave a note" moved up beside Clay's presence.
 - [x] **Nav** — sidebar slimmed to 6 places (Account + Coins moved to the identity menu, Field Notes dropped); public strip hidden in the member area (`HeaderPublicNav`); mobile member nav is a 3×2 grid (no orphaned Book).
 
-### NEXT SESSION — the PUBLIC / CONVERSION side (untouched; strangers → members)
-The other half of the vision. Wants a clear head.
+### DONE — public / conversion side (committed on `feat/members-area-v2`, NOT deployed) [2026-06-19/20]
+5. [x] **Free the Rules** — public `/rules`, auth-aware. Strangers: clean axiom + 7 rules + "join to train" CTA. Members: case-file "demonstrated in" enrichments + onboarding tick. 301 from `/notes/rules`. The join CTA mirrors the live `/membership` state machine (founder sold out → charter $13).
+6. [x] **Kill the podcast frame** — `/podcast` deleted (301 → `/writing`); "Podcast" dropped from every nav; audio stays on each essay (Listen pill + Spotify embed, untouched). Podcaster copy reframed (about/tip/join/welcome). Kept external Spotify/RSS links.
+7. [x] **Homepage reframe** — doctrine-first spine: thesis hero → 7-rule teaser → cornerstones (proof) → dispatches stream → Rules email magnet. Killed the Vol/No masthead, "The Lead", "Get the next one".
+8. [x] **Public nav pass** — podcast gone; "Issues" → "Writing"; route renamed `/issues` → `/writing` (301, also repointed the /podcast redirect).
 
-5. [ ] **Free the Rules** — the doctrine as the public front door. ONE Rules page, not two: public, the eight rules clean; *deepens when signed in* (Case File "demonstrated in" links + discussion) with a "join to train" CTA for strangers. Move `/notes/rules` to a public route, gate the enrichments. Doctrine public = the lure; practice (Case Files, Guild, presence) = the paid product. (Short/sharp rules are a GOOD lure — like the 48 Laws titles. Don't fatten them.)
-6. [ ] **Kill the podcast frame** — drop the "Podcast" nav item + `/podcast`; audio becomes a "Listen" option on essays. Writer, not podcaster.
-7. [ ] **Homepage reframe** — a stranger meets the doctrine, not a magazine masthead (Vol/No / "the lead" / issues).
-8. [ ] **Public nav pass** — once podcast dies and the Rules surface publicly.
+Also this session:
+- [x] **Doctrine restructure** — 1 axiom ("Power decides, not righteousness") + 7 rules, predator/prey frame throughout. Case files retagged to the single-rule-it-most-demonstrates convention (rules 2/3/5 intentionally bare). Axiom body, Rule 3, Rule 5 label all refined since.
+- [x] **Two-tier writing model** — `cornerstone: true` frontmatter flag (legacy `issue` grandfathered via `isCornerstone()`), `getCornerstones()`/`getDispatches()`. Surfaced 7 essays that were previously invisible (non-issue pieces were never listed). Archive ("Writing") shows both tiers; Vol/No numbering gone.
+- [x] **End-of-piece CTA** (FinisherAchievement) de-flattered + tier-aware recognition; comment-box copy.
 
-### Conversion adds for the public page (beyond freeing the Rules)
-- **Rules as the email magnet** — "Get the Rules of Engagement" replaces "get the next one." Captures the email AND delivers the lure. Biggest top-of-funnel upgrade; my #1 pick after freeing the Rules.
-- **A look inside the room** — a stranger sees nothing of the members area. Show one full Case File / a redacted Guild thread / a Desk peek. Proof it's real and alive.
-- **Sell the transformation on `/membership`**, not the feature list. Lead with who they become (un-modelable, stop being prey); the room is just *how*.
-- **Clay-live FOMO** — public "Clay is in the room now (members only)" when he's active.
-- **Founder/charter scarcity counter** surfaced beyond `/membership` (honest scarcity, works at any size).
-- Social proof / testimonials / member count = LATER, once there's a base. Don't advertise small numbers (same lesson as "quiet right now").
+### NEXT SESSION — finish + ship
+Code is structurally done; most of what's left is Clay's copy, plus shipping.
+- [ ] **Hero thesis line** (homepage) — PLACEHOLDER. Clay's to write. Biggest single "not done" on the public side.
+- [ ] **`/membership` rewrite** — transformation-first (lead with who they become; the room is just *how*). The end-of-piece CTA copy (FinisherAchievement, `MEMBERSHIP_OPENER`/`ASK_LINES`) is PLACEHOLDER and should be rewritten in the SAME pass — one pitch, two surfaces. Highest-value remaining build; Clay flagged he'll rethink the CTA here.
+- [ ] **Section names** — "Dispatches" / "Seen in practice" / "The major essays" are placeholders in Clay's voice.
+- [ ] **Rules email-magnet delivery** — headline's in; wire the actual "email you the Rules on signup" automation (Resend/Kit). The lure isn't delivered yet, only promised.
+- [ ] **A look inside the room** (public-preview case file / redacted Guild thread), **charter scarcity counter** beyond `/membership`, **Clay-live FOMO** — conversion amplifiers, optional/prioritize. (Social proof / member counts = LATER; don't advertise small numbers.)
+- [ ] **SHIP IT** — the whole branch (members area + everything above) is NOT deployed. Merge `feat/members-area-v2` → `main` (Vercel auto-deploys stopbeingprey.com) when ready. This is the real finish line.
 
 ### Parked / later
 - **Member standing / progress engine** — premature. Needs deeper doctrine + content. Year-two. (Clay: rules are "a paragraph each," membership too bare for it now.)
 - **Weekly digest auto-recap** — auto-assemble "this week in the room" so the Sunday note half-writes itself. Only good once there's real activity; until then it advertises the quiet. Clay does the Sunday email manually via Kit for now — and the Sunday-Lounge gathering is his single best ghost-town weapon, don't lose it.
-- **"Summon the room" button** — Clay taps it, opted-in members get pinged "Clay's in the Lounge now." Highest-leverage presence amplifier when ready.
+- **"Summon the room" button** — Clay taps it, opted-in members get pinged "Clay's in the Lounge now." Highest-leverage presence amplifier when ready. NOTE (2026-06-20): real-time needs **web push** (email's too slow for "live now"); for a small base the scheduled Sunday ritual beats ad-hoc pings. Shelved until push + a bigger core.
+- **Lounge "you were away" email** — batched/capped re-engagement nudge: fire only when a reply is unseen AND the member's been away past a delay window (~30 min), at most one per few hours. Lounge already fires the in-app bell; this needs a periodic cron *sweep* (serverless can't hold a per-reply timer). Discussed 2026-06-20, not built. (Per-reply email on the Lounge = too much; wrong medium for ephemeral chat.)
 - **`/admin/guild` panel** — find/restore deleted threads without the URL.
 - **Guild category filter** — when volume needs it.
 
