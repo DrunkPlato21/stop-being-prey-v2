@@ -123,7 +123,7 @@ export function sectionForPath(path: string): Section {
     "/",
     "/about",
     "/coin",
-    "/issues",
+    "/writing",
     "/join",
     "/tip",
     "/welcome",

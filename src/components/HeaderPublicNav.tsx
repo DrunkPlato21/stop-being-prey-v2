@@ -39,7 +39,7 @@ export function HeaderPublicNav() {
   return (
     <nav className="border-b border-rule bg-paper-deep/40">
       <div className="max-w-6xl mx-auto px-5 sm:px-6 flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-7 gap-y-1 py-2.5 sm:py-3">
-        <Link href="/issues" className={navLinkClass}>
+        <Link href="/writing" className={navLinkClass}>
           Writing
         </Link>
         <span className="header-nav-sep" aria-hidden="true">

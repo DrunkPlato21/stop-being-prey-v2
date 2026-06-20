@@ -296,7 +296,7 @@ export default function Home() {
           </ul>
           <div className="mt-8 text-center">
             <Link
-              href="/issues"
+              href="/writing"
               className="eyebrow no-underline hover:text-ink transition-colors"
             >
               All writing →

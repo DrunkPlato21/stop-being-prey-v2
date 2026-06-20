@@ -32,7 +32,7 @@ export type ArticleMeta = {
       Currently unused. */
   featuredNote?: string;
   /** Publish gate. Absent or true = live. `published: false` hides the
-      article from every public catalog (homepage, /issues, issue
+      article from every public catalog (homepage, /writing, issue
       numbering) and from static generation, while leaving its own URL
       reachable for a member/preview gate on the detail page. Flip this one
       field to true (or delete the line) to launch. */
@@ -188,7 +188,7 @@ export function getAllArticles(): ArticleMeta[] {
     } as ArticleMeta;
   });
   // Drop unpublished drafts from the public catalog. This single filter
-  // removes a draft from the homepage lead, /issues, and the
+  // removes a draft from the homepage lead, /writing, and the
   // issue-number identity in one place; the detail page reads the file
   // directly via getArticleBySlug, so its URL still resolves for previews.
   return articles

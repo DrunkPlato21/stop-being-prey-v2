@@ -115,7 +115,7 @@ export function StickyNav({ signedIn, isPaidMember }: StickyNavProps) {
             comfortable row on phones; the masthead's tier-2 nav is
             still available via scroll-to-top. */}
         <nav className="hidden sm:flex items-center gap-x-5 text-sm">
-          <Link href="/issues" className="header-nav-link text-ink hover:text-eye-deep transition-colors no-underline">
+          <Link href="/writing" className="header-nav-link text-ink hover:text-eye-deep transition-colors no-underline">
             Writing
           </Link>
           <Link href="/about" className="header-nav-link text-ink hover:text-eye-deep transition-colors no-underline">

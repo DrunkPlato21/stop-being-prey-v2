@@ -139,7 +139,16 @@ export async function proxy(request: NextRequest) {
   // standalone /podcast section is gone. Old links land on the archive.
   if (pathname === "/podcast" || pathname === "/podcast/") {
     const url = request.nextUrl.clone();
-    url.pathname = "/issues";
+    url.pathname = "/writing";
+    url.search = "";
+    return NextResponse.redirect(url, 301);
+  }
+
+  // The writing archive moved off the magazine-flavored /issues onto
+  // /writing (matches the "Writing" nav + heading). Old links redirect.
+  if (pathname === "/issues" || pathname === "/issues/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/writing";
     url.search = "";
     return NextResponse.redirect(url, 301);
   }
@@ -226,5 +235,6 @@ export const config = {
     "/den",
     "/den/:path*",
     "/podcast",
+    "/issues",
   ],
 };

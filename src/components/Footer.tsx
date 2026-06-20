@@ -50,7 +50,7 @@ export function Footer() {
               </p>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/issues" className={navLinkClass}>
+                  <Link href="/writing" className={navLinkClass}>
                     Writing
                   </Link>
                 </li>

@@ -4,8 +4,8 @@ import { getCornerstones, getDispatches } from "@/lib/articles";
 
 // The writing archive, in two tempos: the major essays (cornerstones)
 // and the dispatches (shorter, more frequent pieces). Replaces the old
-// magazine "Issues" framing (Vol/No numbering is gone). The route stays
-// /issues for now; nav + heading read "Writing".
+// magazine "Issues" framing (Vol/No numbering is gone). Route, nav, and
+// heading all read "Writing"; the old /issues 301-redirects here (proxy).
 //
 // NOTE: section labels ("The major essays" / "Dispatches") are
 // placeholder - Clay to name in his voice.
