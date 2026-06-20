@@ -6,6 +6,7 @@ import {
   getArticleBySlug,
   audioRuntimeMinutes,
   readingMinutes,
+  isCornerstone,
   type Article,
 } from "@/lib/articles";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
@@ -363,7 +364,11 @@ export default async function ArticlePage({
           end of #reading-region. Members get nothing; cold readers get
           the email-list form; known subscribers get the cadence-capped
           membership ask. */}
-      <FinisherAchievement slug={article.slug} isMember={hideCaptures} />
+      <FinisherAchievement
+        slug={article.slug}
+        isMember={hideCaptures}
+        isCornerstone={isCornerstone(article)}
+      />
 
       {/* === References (opt-in, populated when markdown ends with
           `## References` followed by a list). Sits with the article

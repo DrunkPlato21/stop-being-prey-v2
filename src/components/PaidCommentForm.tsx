@@ -28,7 +28,7 @@ const ERRORS: Record<string, string> = {
   invalid_body_field: "Write the comment first.",
   empty_body: "Write the comment first.",
   already_commented:
-    "There's already a comment from this email on this piece. One per piece, even from non-members.",
+    "You've hit the comment limit on this piece from this email.",
   storage_unavailable: "Storage is temporarily down. Try again.",
   unknown_piece: "Couldn't find this piece. Refresh the page.",
   stripe_not_configured: "Payments are temporarily disabled.",
@@ -178,7 +178,7 @@ export function PaidCommentForm({ kind, slug }: Props) {
           onChange={(e) => setBody(e.target.value)}
           minRows={5}
           maxLength={1500}
-          placeholder="One per piece. Make it count."
+          placeholder="Add to the argument."
           disabled={pending}
           className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink"
           style={{ fontSize: "1rem", lineHeight: 1.55 }}

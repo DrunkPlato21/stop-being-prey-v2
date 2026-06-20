@@ -38,7 +38,7 @@ export const RULE_SHORT_LABEL: Record<number, string> = {
   2: "Make them come to you",
   3: "The audience is the prize",
   4: "Name the move",
-  5: "Walking away wins",
+  5: "Silence is a verdict",
   6: "Devastate, then grace",
   7: "Hostility feeds you",
 };

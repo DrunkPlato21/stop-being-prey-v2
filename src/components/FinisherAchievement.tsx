@@ -21,22 +21,53 @@ import { EmailSignup } from "@/components/EmailSignup";
 //   - non-member, already on the list: the membership ask, still
 //     cadence-capped (see lib/finisher).
 //
-// Email-ask copy is PLACEHOLDER for Clay; the membership ASK_LINE is his
-// finalized voice, carried over.
+// Both asks (email-list and membership) carry PLACEHOLDER copy that Clay
+// plans to revisit alongside the /membership rewrite.
 
-const RECOGNITION =
-  "Less than half who start a piece this long finish it. You did.";
+// Recognition line (the lead-in above the ask). Two problems with the old
+// single line ("...a piece this long...You did."): it read canned because
+// it was identical everywhere, and it was false on a short dispatch (not
+// "this long"). So it now (1) branches on tier - cornerstones get the
+// earned completion flattery, dispatches pivot to depth instead - and
+// (2) varies within each tier by a stable per-slug pick, so no two pieces
+// say the same thing and Clay writes nothing per piece. PLACEHOLDER copy.
+const CORNERSTONE_RECOGNITION = [
+  "Less than half who start a piece this long finish it. You did.",
+  "Most people bail on something this long. You read the whole argument.",
+  "A piece this long filters for serious people. You're still here.",
+];
+
+const DISPATCH_RECOGNITION = [
+  "Short one. The full argument lives in the long essays, and the room.",
+  "If that landed, it's not the half of it.",
+  "That's the quick version. There's a whole doctrine behind it.",
+];
+
+// Stable pick: same slug always shows the same line, different slugs vary.
+// No Math.random (keeps SSR/CSR in agreement and the choice deterministic).
+function pickBySlug(pool: string[], slug: string): string {
+  let h = 0;
+  for (let i = 0; i < slug.length; i++) {
+    h = (h * 31 + slug.charCodeAt(i)) >>> 0;
+  }
+  return pool[h % pool.length];
+}
 
 const LIST_LINE =
   "The next one can land in your inbox the day it ships. No algorithm deciding whether you see it.";
 
-// Finalized membership ask (Clay's voice, June 2026). Shown only to
-// readers already on the email list; the cadence cap in lib/finisher
-// governs how OFTEN. Two paragraphs, rendered in order.
+// Membership ask shown to finishers already on the email list (cadence-
+// capped in lib/finisher). PLACEHOLDER pending the /membership rewrite.
+// Rewritten away from the old "serious people like you / you already
+// belong" flattery, which read as a move to an audience trained to spot
+// moves. Now: an identity-contrast opener (the MEMBERSHIP_OPENER above
+// the body), the reason-why (reader-funded, so it can tell the truth),
+// and a takeaway close instead of a beg.
+const MEMBERSHIP_OPENER =
+  "Reading this makes you informed. The room makes you hard to beat.";
 const ASK_LINES = [
-  "My inner circle is for people like you. Serious people. The ones who actually read and think things through. Want the whole argument. You get to connect with them, and to me. In there, we sharpen each other.",
-  "There are no advertisers here, because it runs on readers. That's why it can tell the truth.",
-  "You already belong here. Take your seat.",
+  "No advertisers, no donor class, nobody I have to keep happy. That's the only reason this is the one place I say the whole thing out loud. The case files, the arguments, me in the thread daily.",
+  "Stay a spectator on the free list if you want. No hard feelings.",
 ];
 const ASK_CTA = "Take a seat";
 
@@ -75,10 +106,12 @@ function ListAsk({ slug }: { slug: string }) {
 export function FinisherAchievement({
   slug,
   isMember,
+  isCornerstone = false,
   regionId = "reading-region",
 }: {
   slug: string;
   isMember: boolean;
+  isCornerstone?: boolean;
   regionId?: string;
 }) {
   const [resolved, setResolved] = useState<Resolved | null>(null);
@@ -140,9 +173,18 @@ export function FinisherAchievement({
   // they've expressed through behavior is respected, same as before.
   if (resolved.subscriber && !resolved.showAsk) return null;
 
+  // Subscribers (the membership ask) get the identity-contrast opener;
+  // cold readers (the free-list ask) get the tier-varied finish line.
+  const recognition = resolved.subscriber
+    ? MEMBERSHIP_OPENER
+    : pickBySlug(
+        isCornerstone ? CORNERSTONE_RECOGNITION : DISPATCH_RECOGNITION,
+        slug
+      );
+
   return (
     <aside className="finisher-inline" aria-label="End of piece">
-      <p className="finisher-inline-recognition">{RECOGNITION}</p>
+      <p className="finisher-inline-recognition">{recognition}</p>
       {resolved.subscriber ? <MembershipAsk /> : <ListAsk slug={slug} />}
     </aside>
   );

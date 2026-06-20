@@ -88,7 +88,7 @@ const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
 const AXIOM = {
   eyebrow: "The Axiom",
   title: "Power decides, not righteousness.",
-  body: "Every fight you've ever lost, you lost while being right. That should tell you something. The question was never what's true. It's who gets to decide what's true, and act on it. Being right is what you tell yourself in defeat. Power is what changes the outcome. Everything below is how you stop confusing the two.",
+  body: "It feels like being correct should be enough, but politics doesn't reward correctness. It rewards effectiveness. These are not the same thing. The most basic question is not what is best, but who decides what is best. Power decides. Whoever decides what counts as true, wins. You've just been too busy being correct to notice you weren't deciding anything.",
   founding: {
     title: "The Losertarian Problem",
     href: "/the-losertarian-problem",
