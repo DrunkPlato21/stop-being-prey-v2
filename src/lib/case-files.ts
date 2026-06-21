@@ -288,6 +288,16 @@ export function getCaseFileBySlug(slug: string): CaseFile | null {
 }
 
 /**
+ * Case files marked `public_preview: true` — reachable to logged-out
+ * visitors as funnel surfaces. Highest-number-first (inherits the
+ * getAllCaseFiles sort). Used by the Rules unlock bridge to show a
+ * just-converted reader the doctrine drilled against a live kill.
+ */
+export function getPublicCaseFiles(): CaseFile[] {
+  return getAllCaseFiles().filter((cf) => cf.publicPreview);
+}
+
+/**
  * Reverse of `continuesFrom`. Given a case file slug, find the case
  * file that points back at it (if any). Used to render the "Continued
  * in Case File №N: … →" forward link on the predecessor's detail

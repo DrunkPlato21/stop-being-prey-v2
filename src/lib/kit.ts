@@ -14,6 +14,11 @@
 
 const KIT_API_BASE = "https://api.kit.com/v4";
 
+// Form 9402960 = "stopbeingprey.com" (verified via /v4/forms listing).
+// Single source of truth for the list ID, shared by /api/subscribe and
+// the Rules unlock action.
+const SBP_FORM_ID = 9402960;
+
 type KitCallResult = {
   ok: boolean;
   status: number;
@@ -85,6 +90,45 @@ async function applyTagInternal(
   }
 
   const attach = await postToKit(apiKey, `/tags/${tagId}/subscribers`, {
+    email_address: email,
+  });
+  if (!attach.ok) {
+    return {
+      ok: false,
+      reason: "tag_failed",
+      status: attach.status,
+      body: attach.body,
+    };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Subscribe an email to the SBP newsletter list. Kit's v4 form-subscribe
+ * endpoint requires the subscriber to exist first, so this is the same
+ * two-step dance as the tag helpers: upsert the subscriber, then attach
+ * to the form. Idempotent — safe to re-run for an already-subscribed
+ * email. Shared by /api/subscribe (the site-wide email forms) and the
+ * Rules unlock action.
+ */
+export async function subscribeToList(email: string): Promise<ApplyTagResult> {
+  const apiKey = process.env.KIT_API_KEY;
+  if (!apiKey) return { ok: false, reason: "not_configured" };
+
+  const upsert = await postToKit(apiKey, "/subscribers", {
+    email_address: email,
+  });
+  if (!upsert.ok) {
+    return {
+      ok: false,
+      reason: "upsert_failed",
+      status: upsert.status,
+      body: upsert.body,
+    };
+  }
+
+  const attach = await postToKit(apiKey, `/forms/${SBP_FORM_ID}/subscribers`, {
     email_address: email,
   });
   if (!attach.ok) {

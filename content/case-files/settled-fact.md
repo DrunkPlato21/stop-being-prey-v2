@@ -53,7 +53,7 @@ frame_shift: |
   person reasoning from first principles cannot make that error. A
   person running a script can.
 one_shot: "What you have is a script. What I have is sound logic and data."
-rules_applied: [4]
+rules_applied: [4, 6]
 outcome: |
   Frazell came back, but not with answers. The full demonstration
   ran in three beats: the audit, the deflection, the predator's
@@ -112,7 +112,7 @@ exhibit:
     Clay had called the move in round one: "I'll notice if you try
     to move goalposts, change topics, or run away with your tail
     between your legs." Round two was Frazell doing all three in
-    one sentence. The finishing reply named the demonstration and
+    one sentence. The finishing reply named the move and
     closed it with Rule VI grace.
   quote: |
     I'm your predator. But I'm a decent predator. I don't eat my prey. I protect them. There are a lot meaner predators than me out there. Be careful. I say this for your own good. God bless you. Stay safe.

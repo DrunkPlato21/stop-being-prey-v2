@@ -72,6 +72,7 @@ export const TRACK_SOURCES = [
   "tip",
   "gift",
   "pool",
+  "rules",
   "unknown",
 ] as const;
 export type TrackSource = (typeof TRACK_SOURCES)[number];

@@ -4,7 +4,12 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getAllFieldNotes, type FieldNoteMeta } from "@/lib/field-notes";
-import { getAllCaseFiles, type CaseFile } from "@/lib/case-files";
+import {
+  getAllCaseFiles,
+  getPublicCaseFiles,
+  RULE_SHORT_LABEL,
+  type CaseFile,
+} from "@/lib/case-files";
 import {
   CHARTER_CAP,
   FOUNDER_CAP,
@@ -12,6 +17,8 @@ import {
   getFounderClaimed,
 } from "@/lib/members";
 import { markOnboardingStep } from "@/lib/onboarding";
+import { RULES_UNLOCK_COOKIE } from "@/lib/rules-unlock";
+import { RulesGate } from "./RulesGate";
 
 // The Rules of Engagement — the public front door. The doctrine is the
 // lure; practice (the Case Files, the Guild, Clay's presence) is the
@@ -82,6 +89,34 @@ const RULES: Rule[] = [
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
+// Rules numbered at or below this are free to read; the rest are gated
+// behind the email-or-membership unlock. Rule I is the free taste: it
+// names the problem (you keep walking into traps) and proves the writing,
+// while the moves that pay it off stay locked.
+const FREE_RULES = 1;
+
+// Small engraved lock that marks a gated rule's title. Olive stroke to
+// match the numerals and crests, not a colorful emoji.
+function LockMark() {
+  return (
+    <svg
+      className="rule-lock"
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
 // The axiom sits above the rules: not a numbered rule, the premise the
 // seven rest on. Rendered as a distinct, weightier framed statement
 // between the hero and the rule list. Copy is the author's, verbatim.
@@ -114,11 +149,10 @@ export default async function RulesPage() {
   // Auth-aware: a signed-in member sees the enrichments (case files
   // demonstrating each rule, demonstrated-in field notes) and ticks the
   // onboarding step; a stranger sees the clean doctrine plus a join CTA.
+  const cookieStore = await cookies();
   let signedIn = false;
   try {
-    const session = await verifySession(
-      (await cookies()).get(SESSION_COOKIE)?.value
-    );
+    const session = await verifySession(cookieStore.get(SESSION_COOKIE)?.value);
     if (session?.email) {
       signedIn = true;
       // Visiting the Rules ticks that onboarding step. Cheap, and never
@@ -128,6 +162,15 @@ export default async function RulesPage() {
   } catch {
     // no-op
   }
+
+  // The doctrine gate. A member always sees everything; a stranger who
+  // dropped their email carries the unlock cookie. Either way `unlocked`
+  // means the full rule bodies render; otherwise only Rule I is free and
+  // II-VII show as locked titles above the unlock gate. emailUnlocked is
+  // tracked separately so a non-member who unlocked still gets the
+  // membership upsell at the foot of the page.
+  const emailUnlocked = cookieStore.get(RULES_UNLOCK_COOKIE)?.value === "1";
+  const unlocked = signedIn || emailUnlocked;
 
   // Live offer state for the stranger CTA only — members never see it,
   // so skip the Redis reads for them. Mirrors the /membership state
@@ -142,6 +185,53 @@ export default async function RulesPage() {
   const charterEligible = !founderEligible && charterClaimed < CHARTER_CAP;
   const founderRemaining = Math.max(0, FOUNDER_CAP - founderClaimed);
   const charterRemaining = Math.max(0, CHARTER_CAP - charterClaimed);
+
+  // The live seat pitch, shared by the unlock gate's membership path and
+  // the foot-of-page "Join to train" CTA so both track the same checkout
+  // state and never drift.
+  const seatLine = founderEligible ? (
+    <>
+      {founderRemaining} founder seat
+      {founderRemaining === 1 ? "" : "s"} left. $8/month locked for life. When
+      the last fills, $13 forever.
+    </>
+  ) : charterEligible ? (
+    <>
+      {charterRemaining} charter seat
+      {charterRemaining === 1 ? "" : "s"} left. $13/month floor, or pay what
+      it&apos;s worth. Your rate locked for life, with your slot number.
+    </>
+  ) : (
+    <>$13/month floor, or pay what it&apos;s worth. Locked for life.</>
+  );
+
+  // Membership path shown inside the unlock gate: the real key, beneath the
+  // free email key. Server-rendered so the seat pricing stays live.
+  const gateMembershipCta = (
+    <>
+      <p
+        className="font-serif text-ink-soft mb-3"
+        style={{ fontSize: "1rem", lineHeight: 1.6 }}
+      >
+        Or take a seat. Members get the doctrine plus the practice: every rule
+        drilled against a live kill in the Case Files, argued in the Guild,
+        with Clay in the room.
+      </p>
+      <p
+        className="font-serif text-ink-soft mb-4"
+        style={{ fontSize: "0.95rem", lineHeight: 1.6 }}
+      >
+        {seatLine}
+      </p>
+      <Link
+        href="/membership"
+        className="text-eye-deep hover:text-ink no-underline transition-colors"
+        style={{ fontWeight: 600 }}
+      >
+        Take the seat &rarr;
+      </Link>
+    </>
+  );
 
   const fieldNotesBySlug: Record<string, FieldNoteMeta> = Object.fromEntries(
     getAllFieldNotes().map((n) => [n.slug, n])
@@ -159,6 +249,13 @@ export default async function RulesPage() {
       caseFilesByRule.set(ruleNumber, bucket);
     }
   }
+
+  // The bridge for a just-unlocked (email) reader: the top public-preview
+  // case file, surfaced as "the doctrine drilled against a live kill." It
+  // turns the abstract membership pitch into concrete proof at the highest-
+  // intent moment in the funnel. Null if no case file is public yet.
+  const bridgeCase = getPublicCaseFiles()[0] ?? null;
+  const bridgeRule = bridgeCase?.rulesApplied[0];
 
   return (
     <div className="rules-paper">
@@ -254,6 +351,9 @@ export default async function RulesPage() {
             const demoCases = signedIn
               ? caseFilesByRule.get(rule.number) ?? []
               : [];
+            // Rule I is free; II-VII unlock with an email or membership.
+            const isFree = rule.number <= FREE_RULES;
+            const showBody = unlocked || isFree;
             return (
               <Fragment key={rule.number}>
                 {idx > 0 && (
@@ -264,7 +364,10 @@ export default async function RulesPage() {
                     <div className="rule-divider">·</div>
                   </li>
                 )}
-                <li id={`rule-${rule.number}`} className="rule-card">
+                <li
+                  id={`rule-${rule.number}`}
+                  className={`rule-card${showBody ? "" : " rule-card--locked"}`}
+                >
                   <div className="flex items-baseline gap-5 md:gap-8">
                     <span className="rule-numeral" aria-hidden="true">
                       {ROMAN[rule.number - 1]}
@@ -276,13 +379,16 @@ export default async function RulesPage() {
                         <span className="sr-only">
                           Rule {rule.number}:
                         </span>
-                        {rule.title}
+                        <span>{rule.title}</span>
+                        {!showBody && <LockMark />}
                       </h3>
-                      <div className="rule-body">
-                        {rule.body.split(/\n\n+/).map((para, i) => (
-                          <p key={i}>{para}</p>
-                        ))}
-                      </div>
+                      {showBody && (
+                        <>
+                          <div className="rule-body">
+                            {rule.body.split(/\n\n+/).map((para, i) => (
+                              <p key={i}>{para}</p>
+                            ))}
+                          </div>
                       {demoNote && (
                         <p className="rule-demo">
                           Demonstrated in:{" "}
@@ -347,6 +453,8 @@ export default async function RulesPage() {
                           </Link>
                         </p>
                       )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </li>
@@ -354,6 +462,15 @@ export default async function RulesPage() {
             );
           })}
         </ol>
+
+        {/* Stranger who hasn't unlocked: the unlock gate is the page's
+            ask — email (the free key) or a seat (the real key). Members
+            and email-unlocked readers never see it. */}
+        {!unlocked && (
+          <div className="mt-12">
+            <RulesGate membershipCta={gateMembershipCta} />
+          </div>
+        )}
 
         {/* Sign-off / Join CTA ===================================
             Members get the doctrine sign-off. Strangers get a "join to
@@ -377,14 +494,77 @@ export default async function RulesPage() {
               <br />~ Clay
             </p>
           </div>
-        ) : (
-          <div
-            className="mt-14 px-6 py-7 md:px-9 md:py-8"
-            style={{
-              background: "var(--paper-deep)",
-              borderLeft: "2px solid var(--eye-deep)",
-            }}
-          >
+        ) : unlocked ? (
+          <>
+            {/* Post-unlock bridge: doctrine just read -> proof it works ->
+                membership. Shows the top public case file as the live drill.
+                Copy is first-pass, Clay's to sharpen. */}
+            {bridgeCase && (
+              <div className="mt-14">
+                <p
+                  className="eyebrow mb-4"
+                  style={{
+                    fontSize: "0.86rem",
+                    letterSpacing: "0.28em",
+                    fontWeight: 600,
+                    color: "var(--eye-deep)",
+                  }}
+                >
+                  Now watch it work
+                </p>
+                <p
+                  className="font-serif text-ink mb-5"
+                  style={{ fontSize: "1.1rem", lineHeight: 1.65 }}
+                >
+                  You have the rules. Here&apos;s one used on a live target,
+                  taken apart move by move.
+                </p>
+                <Link
+                  href={`/case-files/${bridgeCase.slug}`}
+                  className="case-card no-underline block"
+                >
+                  <p
+                    className="eyebrow mb-2"
+                    style={{ fontSize: "0.62rem", letterSpacing: "0.28em" }}
+                  >
+                    Case File №{bridgeCase.number} &middot;{" "}
+                    {bridgeCase.archetype}
+                  </p>
+                  <p
+                    className="font-display text-ink mb-2"
+                    style={{
+                      fontSize: "1.3rem",
+                      fontWeight: 700,
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    {bridgeCase.title}
+                  </p>
+                  {bridgeRule && RULE_SHORT_LABEL[bridgeRule] && (
+                    <p
+                      className="font-serif italic text-ink-muted mb-3"
+                      style={{ fontSize: "0.95rem" }}
+                    >
+                      Rule {ROMAN[bridgeRule - 1]} in the field:{" "}
+                      {RULE_SHORT_LABEL[bridgeRule]}.
+                    </p>
+                  )}
+                  <span
+                    className="text-eye-deep"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Read the case file &rarr;
+                  </span>
+                </Link>
+              </div>
+            )}
+            <div
+              className="mt-10 px-6 py-7 md:px-9 md:py-8"
+              style={{
+                background: "var(--paper-deep)",
+                borderLeft: "2px solid var(--eye-deep)",
+              }}
+            >
             <p
               className="eyebrow mb-5"
               style={{
@@ -416,25 +596,7 @@ export default async function RulesPage() {
               className="font-serif text-ink-soft mb-5"
               style={{ fontSize: "1rem", lineHeight: 1.65 }}
             >
-              {founderEligible ? (
-                <>
-                  {founderRemaining} founder seat
-                  {founderRemaining === 1 ? "" : "s"} left. $8/month
-                  locked for life. When the last fills, $13 forever.
-                </>
-              ) : charterEligible ? (
-                <>
-                  {charterRemaining} charter seat
-                  {charterRemaining === 1 ? "" : "s"} left. $13/month
-                  floor, or pay what it&apos;s worth. Your rate locked
-                  for life, with your slot number.
-                </>
-              ) : (
-                <>
-                  $13/month floor, or pay what it&apos;s worth. Locked
-                  for life.
-                </>
-              )}
+              {seatLine}
             </p>
             <p>
               <Link
@@ -445,8 +607,9 @@ export default async function RulesPage() {
                 Take the seat &rarr;
               </Link>
             </p>
-          </div>
-        )}
+            </div>
+          </>
+        ) : null}
       </section>
     </div>
   );

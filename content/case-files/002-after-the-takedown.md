@@ -46,7 +46,7 @@ frame_shift: |
   not your wallet. That's still worth more than the time he was
   trying to drain.
 one_shot: "Don't reply. Open a wall."
-rules_applied: [6, 7]
+rules_applied: [5, 7]
 outcome: "Marek's second wall got no response from Clay. The wall closed at $400. Multiple readers brought prayers and Christian framings unprompted. The takedown became a doctrine demonstration without Clay writing another word."
 wall_screenshot_src: "/assets/case-files/marek-wall.png"
 wall_screenshot_alt: "Screenshot of the Marek Takedown wall on stopbeingprey.com showing $403 raised toward a $250 goal"

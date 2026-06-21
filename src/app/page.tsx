@@ -113,9 +113,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* === The Doctrine: seven-rule teaser === Funnels to the free
-          /rules page. Labels come from RULE_SHORT_LABEL so this never
-          drifts from the canonical rule copy. */}
+      {/* === The Doctrine: seven-rule teaser === Funnels to /rules, where
+          rule one reads free and the rest unlock by email or membership.
+          Labels come from RULE_SHORT_LABEL so this never drifts from the
+          canonical rule copy. */}
       <section className="bg-paper-deep border-b border-rule py-14 md:py-20">
         <div className="max-w-3xl mx-auto px-6">
           <p className="eyebrow mb-3 text-center">The Doctrine</p>
@@ -160,7 +161,7 @@ export default function Home() {
           </ol>
           <div className="mt-10 text-center">
             <Link href="/rules" className="btn-primary">
-              <span>Read all seven</span>
+              <span>Read the rules</span>
             </Link>
           </div>
         </div>
@@ -306,9 +307,9 @@ export default function Home() {
       )}
 
       {/* === The Rules email magnet === PLACEHOLDER framing: Clay to
-          finalize. The Rules are free to read at /rules; this captures
-          the email. NOTE: actually delivering the Rules by email on
-          signup is the separate "Rules as the email magnet" task. */}
+          finalize. The doctrine is gated at /rules (rule one free, the
+          rest unlock by email or membership). This block captures the
+          email; the Kit welcome email on the SBP form delivers the rules. */}
       <section
         id="join"
         className="bg-paper-deep border-t border-rule py-14 md:py-20"
@@ -326,7 +327,7 @@ export default function Home() {
             Get the Rules of Engagement.
           </h2>
           <p className="deck max-w-xl mx-auto mb-10">
-            The whole doctrine, free.{" "}
+            The first rule is open.{" "}
             <Link
               href="/rules"
               className="text-eye-deep hover:text-ink"
@@ -336,9 +337,9 @@ export default function Home() {
                 textUnderlineOffset: "3px",
               }}
             >
-              Read them now
+              Read it now
             </Link>
-            , or get them in your inbox with every new dispatch.
+            . Drop your email for the rest, plus every new dispatch.
           </p>
           <DualSubscribeBlock />
           <p className="text-xs italic text-ink-faint mt-8 text-center">

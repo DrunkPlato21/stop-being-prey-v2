@@ -544,12 +544,12 @@ export default async function CaseFilesPage() {
                   Rules Applied
                 </p>
                 <p className="rule-demo" style={{ margin: 0 }}>
-                  <Link href="/rules#rule-3">
-                    Rule III &middot; Identify the move
+                  <Link href="/rules#rule-4">
+                    Rule IV &middot; Name the move
                   </Link>
                   {"  ·  "}
                   <Link href="/rules#rule-6">
-                    Rule VI &middot; Make examples
+                    Rule VI &middot; Devastate, then grace
                   </Link>
                 </p>
               </li>
