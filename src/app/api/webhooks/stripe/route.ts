@@ -28,7 +28,7 @@ import {
   type MemberSubscriptionStatus,
   type Tier,
 } from "@/lib/members";
-import { applyMembersTag } from "@/lib/kit";
+import { applyMembersTag, subscribeToList } from "@/lib/kit";
 import { assignDefaultDisplayName, getProfile, isAdmin } from "@/lib/comments";
 import { splitFullName } from "@/lib/display-name";
 import {
@@ -482,9 +482,20 @@ async function handleMembershipCheckout(
     );
   }
 
-  // Kit "Members" tag. Failure here is logged but never fatal — a paid
-  // member with a missing list tag is a recoverable problem, a paid
-  // member with no Stripe record on file is not.
+  // Kit: subscribe to the SBP list AND apply the "Members" tag. We do both
+  // because the broadcast list and the Members segment are separate in Kit;
+  // the tag alone doesn't put them on the list. Failure here is logged but
+  // never fatal — a paid member missing from the list is a recoverable
+  // problem (reconcile with `npm run members:sync-kit`), a paid member with
+  // no Stripe record on file is not.
+  const list = await subscribeToList(email);
+  if (!list.ok && list.reason !== "not_configured") {
+    console.warn(
+      `[membership] kit list-subscribe failed for ${email}: ${list.reason}${
+        list.status ? ` (${list.status})` : ""
+      }`
+    );
+  }
   const kit = await applyMembersTag(email);
   if (!kit.ok) {
     if (kit.reason === "not_configured") {

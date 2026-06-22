@@ -9,6 +9,7 @@
     "coins:reset-dev": "node scripts/coins-reset-dev.mjs",
     "guild:seed-dev": "node scripts/guild-seed-dev.mjs",
     "guild:reset-dev": "node scripts/guild-reset-dev.mjs",
+    "members:sync-kit": "tsx scripts/sync-members-to-kit.mts",
     "test:seat-pool": "tsx scripts/seat-pool-test.mts"
   },
   "dependencies": {

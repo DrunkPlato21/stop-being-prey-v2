@@ -4409,12 +4409,12 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   opacity: 0.8;
 }
 
-/* Locked rules (stranger, pre-unlock). The title stays fully legible —
-   it's the hook — but the card is dimmed and its hover affordance is
-   killed so it reads as sealed, not clickable. The lock glyph sits
-   inline after the title in olive to match the numerals and crests. */
+/* Locked rules (stranger, pre-unlock). The title stays legible — it's the
+   hook — but the row is dimmed, its hover affordance killed, and a lock
+   glyph sits inline after the title so it reads as sealed. The bodies
+   aren't rendered at all until unlocked. */
 .rule-card--locked {
-  opacity: 0.66;
+  opacity: 0.6;
 }
 
 .rule-card--locked:hover {
@@ -4427,7 +4427,7 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   vertical-align: -2px;
   margin-left: 0.55rem;
   color: var(--eye-deep);
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
 /* === Case file archive cards =================================

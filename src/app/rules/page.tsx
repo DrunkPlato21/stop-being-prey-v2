@@ -18,7 +18,7 @@ import {
 } from "@/lib/members";
 import { markOnboardingStep } from "@/lib/onboarding";
 import { RULES_UNLOCK_COOKIE } from "@/lib/rules-unlock";
-import { RulesGate } from "./RulesGate";
+import { RulesUnlock } from "./RulesUnlock";
 
 // The Rules of Engagement — the public front door. The doctrine is the
 // lure; practice (the Case Files, the Guild, Clay's presence) is the
@@ -53,17 +53,17 @@ const RULES: Rule[] = [
   {
     number: 1,
     title: "Refuse their traps.",
-    body: "They've spent fifty years building the ground you keep losing on. The gotcha question. The fake position they put in your mouth so they can knock it down. The word your tribe handed them to end the conversation before it starts. Most of politics is good people walking into these one after another. That's what being prey is. Not weakness, just reacting to a trap you never saw coming. Learn to feel the trap before you step in it. The second you're defending something you never said, you've already lost. Don't pick up the rope.",
+    body: "They've spent fifty years building the ground you keep losing on. The gotcha question. The fake position they put in your mouth so they can knock it down. Most of politics is good people walking into these one after another. That's what being prey is. Not weakness, just reacting to a trap you never saw coming. The second you're defending something you never said, you've already lost. The trap only springs on prey that takes the bait. So don't.",
   },
   {
     number: 2,
     title: "Lay your own. Make them come to you.",
-    body: "Stop reacting. Start building. Set the ground, ask the question, drop the bait, and let them charge it. When they show up swinging, they're not attacking you. They're walking onto a stage you built, into a fight you already won. That's the whole difference between predator and prey. The prey waits to get hit. The predator decides where the fight happens. Welcome them to your territory.",
+    body: "Stop reacting. Start building. Set the ground, ask the question, drop the bait, and let them charge it. When they show up swinging, they're not attacking you. They're walking onto a stage you built, into a fight you already won. That's the whole difference between predator and prey. Prey fights on ground it didn't pick. The predator decides where the fight happens.",
   },
   {
     number: 3,
     title: "The audience is the prize. The opponent is the evidence.",
-    body: "You're not arguing to him. You'll probably never change his mind, and you don't need to. You're arguing to everyone reading in silence who hasn't picked a side. He's not your enemy. He's your evidence. Take him apart in the open and he becomes the exhibit, the proof of everything you're showing the room. He volunteered for it. Most of them do.",
+    body: "You're not arguing to the guy across from you. You'll probably never change his mind, and you don't need to. You're arguing to everyone reading in silence who hasn't picked a side. He's not your enemy. He's your evidence. Take him apart in the open and he becomes the exhibit, the proof of everything you're showing the room. He volunteered for it. Most of them do.",
   },
   {
     number: 4,
@@ -72,18 +72,18 @@ const RULES: Rule[] = [
   },
   {
     number: 5,
-    title: "Silence is a verdict. Walking away wins.",
-    body: "Some people pay no price for being wrong, so they'll argue forever. Your attention is the only thing they came for. Don't hand it over. Walking away from a bad-faith opponent isn't retreat. It's a public verdict on whether he was ever worth answering. The best proof of this rule is the reply they'll never get.",
+    title: "Silence is a verdict.",
+    body: "You don't fight everyone. Some people pay no price for being wrong, so they'll argue forever and never concede. They came to extract from you. To extract your energy, to push your buttons, to make you react, to borrow your audience. Answer, and you're in their trap. Walk away, and they get nothing.",
   },
   {
     number: 6,
     title: "Devastate, then grace.",
-    body: "Take the argument apart completely. Leave nothing standing. And then, from the position of total dominance, extend your hand. I say that with a smile. Have a blessed day. I'll pray for you. The grace isn't weakness and it isn't retreat. You've already won by the time you offer it. Anyone can be cruel. Anyone can be a pushover. A man who can devastate you and still wish you well is operating from a place you can't touch.",
+    body: "Take the argument apart completely. Leave nothing standing. And then, from the position of total dominance, extend your hand. The grace isn't weakness and it isn't retreat. You've already won by the time you offer it. Anyone can be cruel. Anyone can be a pushover. A man who can devastate you and still wish you well is operating from a place you can't touch.",
   },
   {
     number: 7,
     title: "Their hostility feeds you.",
-    body: "Every attack is a meal. They show up to take something from you, your time, your name, your peace, and you feed on it instead. The audience. The doctrine. The next chapter. Thank you for the demonstration. Your comment just paid for the next one. The prey that bites the predator only makes him stronger. The people who come to tear the work down are the ones who end up feeding it.",
+    body: "Every attack is a meal. They show up to take something from you, your time, your name, your peace, and you feed on it instead. It draws the audience, sharpens the doctrine, builds your name. The prey that bites the predator only makes him stronger. The people who come to tear the work down are the ones who end up feeding it.",
   },
 ];
 
@@ -95,8 +95,8 @@ const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
 // while the moves that pay it off stay locked.
 const FREE_RULES = 1;
 
-// Small engraved lock that marks a gated rule's title. Olive stroke to
-// match the numerals and crests, not a colorful emoji.
+// Small engraved lock marking each gated rule, olive to match the numerals
+// and crests rather than a colorful emoji.
 function LockMark() {
   return (
     <svg
@@ -189,21 +189,15 @@ export default async function RulesPage() {
   // The live seat pitch, shared by the unlock gate's membership path and
   // the foot-of-page "Join to train" CTA so both track the same checkout
   // state and never drift.
-  const seatLine = founderEligible ? (
-    <>
-      {founderRemaining} founder seat
-      {founderRemaining === 1 ? "" : "s"} left. $8/month locked for life. When
-      the last fills, $13 forever.
-    </>
-  ) : charterEligible ? (
-    <>
-      {charterRemaining} charter seat
-      {charterRemaining === 1 ? "" : "s"} left. $13/month floor, or pay what
-      it&apos;s worth. Your rate locked for life, with your slot number.
-    </>
-  ) : (
-    <>$13/month floor, or pay what it&apos;s worth. Locked for life.</>
-  );
+  const seatLine = founderEligible
+    ? `${founderRemaining} founder seat${
+        founderRemaining === 1 ? "" : "s"
+      } left. $8/month locked for life. When the last fills, $13 forever.`
+    : charterEligible
+      ? `${charterRemaining} charter seat${
+          charterRemaining === 1 ? "" : "s"
+        } left. $13/month floor, or pay what it's worth. Your rate locked for life, with your slot number.`
+      : "$13/month floor, or pay what it's worth. Locked for life.";
 
   // Membership path shown inside the unlock gate: the real key, beneath the
   // free email key. Server-rendered so the seat pricing stays live.
@@ -256,6 +250,123 @@ export default async function RulesPage() {
   // intent moment in the funnel. Null if no case file is public yet.
   const bridgeCase = getPublicCaseFiles()[0] ?? null;
   const bridgeRule = bridgeCase?.rulesApplied[0];
+
+  // Rule I reads free; II-VII unlock by email or membership. When unlocked
+  // (member or email), all seven render full in one list. When locked, only
+  // the free rules render full, and the locked ones move into the gate as a
+  // compact title list so the tease and the ask sit together, high on the
+  // page, instead of six tall cards burying the CTA at the foot.
+  const freeRules = RULES.filter((r) => r.number <= FREE_RULES);
+  const lockedRules = RULES.filter((r) => r.number > FREE_RULES);
+
+  // Full rule card (numeral, title, body, member enrichments). Shared by the
+  // unlocked all-seven list and the locked free-rules list.
+  const fullRuleCard = (rule: Rule, idx: number) => {
+    const demoNote =
+      signedIn && rule.demoSlug ? fieldNotesBySlug[rule.demoSlug] : undefined;
+    const demoCases = signedIn ? caseFilesByRule.get(rule.number) ?? [] : [];
+    return (
+      <Fragment key={rule.number}>
+        {idx > 0 && (
+          <li aria-hidden="true" className="rule-divider-li">
+            <div className="rule-divider">·</div>
+          </li>
+        )}
+        <li id={`rule-${rule.number}`} className="rule-card">
+          <div className="flex items-baseline gap-5 md:gap-8">
+            <span className="rule-numeral" aria-hidden="true">
+              {ROMAN[rule.number - 1]}
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="rule-title">
+                <span className="sr-only">Rule {rule.number}:</span>
+                {rule.title}
+              </h3>
+              <div className="rule-body">
+                {rule.body.split(/\n\n+/).map((para, i) => (
+                  <p key={i}>{para}</p>
+                ))}
+              </div>
+              {demoNote && (
+                <p className="rule-demo">
+                  Demonstrated in:{" "}
+                  <Link href={`/notes/field-notes/${demoNote.slug}`}>
+                    {demoNote.title}
+                  </Link>
+                </p>
+              )}
+              {demoCases.length > 0 && (
+                <div className="mt-5">
+                  <p
+                    className="eyebrow mb-2"
+                    style={{ fontSize: "0.62rem", letterSpacing: "0.28em" }}
+                  >
+                    Case files demonstrating this rule
+                  </p>
+                  <ul className="rule-demo list-none p-0 m-0 flex flex-col gap-1">
+                    {demoCases.map((cf) => (
+                      <li key={cf.slug}>
+                        <Link href={`/case-files/${cf.slug}`}>
+                          Case File №{cf.number} &middot; {cf.title}
+                        </Link>{" "}
+                        &rarr;
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {FOUNDING_LINK_BY_RULE[rule.number] && (
+                <p
+                  className="font-serif italic text-ink-muted leading-relaxed mt-8"
+                  style={{ fontSize: "0.98rem" }}
+                >
+                  Read the full essay:{" "}
+                  <Link
+                    href={FOUNDING_LINK_BY_RULE[rule.number].href}
+                    className="text-eye-deep hover:text-ink no-underline transition-colors not-italic"
+                    style={{ fontWeight: 600 }}
+                  >
+                    {FOUNDING_LINK_BY_RULE[rule.number].title} &rarr;
+                  </Link>
+                </p>
+              )}
+            </div>
+          </div>
+        </li>
+      </Fragment>
+    );
+  };
+
+  // Locked rule row (stranger, pre-unlock): numeral + title + lock, dimmed,
+  // no body. The titles flow down the page as the tease; the sticky bar
+  // carries the ask. idx drives the divider so II-VII sit under Rule I as
+  // one continuous list.
+  const lockedRuleCard = (rule: Rule, idx: number) => (
+    <Fragment key={rule.number}>
+      {idx > 0 && (
+        <li aria-hidden="true" className="rule-divider-li">
+          <div className="rule-divider">·</div>
+        </li>
+      )}
+      <li
+        id={`rule-${rule.number}`}
+        className="rule-card rule-card--locked"
+      >
+        <div className="flex items-baseline gap-5 md:gap-8">
+          <span className="rule-numeral" aria-hidden="true">
+            {ROMAN[rule.number - 1]}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="rule-title">
+              <span className="sr-only">Rule {rule.number}:</span>
+              <span>{rule.title}</span>
+              <LockMark />
+            </h3>
+          </div>
+        </div>
+      </li>
+    </Fragment>
+  );
 
   return (
     <div className="rules-paper">
@@ -340,136 +451,24 @@ export default async function RulesPage() {
       </section>
 
       <section className="max-w-3xl mx-auto px-6 py-14 md:py-20">
-        <ol className="rule-list" role="list">
-          {RULES.map((rule, idx) => {
-            const demoNote =
-              signedIn && rule.demoSlug
-                ? fieldNotesBySlug[rule.demoSlug]
-                : undefined;
-            // Case files are the paid "practice" layer — only surface
-            // them to members. Strangers see the doctrine clean.
-            const demoCases = signedIn
-              ? caseFilesByRule.get(rule.number) ?? []
-              : [];
-            // Rule I is free; II-VII unlock with an email or membership.
-            const isFree = rule.number <= FREE_RULES;
-            const showBody = unlocked || isFree;
-            return (
-              <Fragment key={rule.number}>
-                {idx > 0 && (
-                  <li
-                    aria-hidden="true"
-                    className="rule-divider-li"
-                  >
-                    <div className="rule-divider">·</div>
-                  </li>
-                )}
-                <li
-                  id={`rule-${rule.number}`}
-                  className={`rule-card${showBody ? "" : " rule-card--locked"}`}
-                >
-                  <div className="flex items-baseline gap-5 md:gap-8">
-                    <span className="rule-numeral" aria-hidden="true">
-                      {ROMAN[rule.number - 1]}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      {/* Hide the visible numeral from AT and provide
-                          an accessible label via the heading prefix. */}
-                      <h3 className="rule-title">
-                        <span className="sr-only">
-                          Rule {rule.number}:
-                        </span>
-                        <span>{rule.title}</span>
-                        {!showBody && <LockMark />}
-                      </h3>
-                      {showBody && (
-                        <>
-                          <div className="rule-body">
-                            {rule.body.split(/\n\n+/).map((para, i) => (
-                              <p key={i}>{para}</p>
-                            ))}
-                          </div>
-                      {demoNote && (
-                        <p className="rule-demo">
-                          Demonstrated in:{" "}
-                          <Link
-                            href={`/notes/field-notes/${demoNote.slug}`}
-                          >
-                            {demoNote.title}
-                          </Link>
-                        </p>
-                      )}
-                      {/* Case files that reference this rule. Members
-                          only (the paid drill layer), and omitted when
-                          no case files cite it yet so early rules don't
-                          render an empty block. Same .rule-demo styling
-                          as the field-note demo above so the reader
-                          sees one consistent "demonstrated in"
-                          vocabulary. */}
-                      {demoCases.length > 0 && (
-                        <div className="mt-5">
-                          <p
-                            className="eyebrow mb-2"
-                            style={{
-                              fontSize: "0.62rem",
-                              letterSpacing: "0.28em",
-                            }}
-                          >
-                            Case files demonstrating this rule
-                          </p>
-                          <ul className="rule-demo list-none p-0 m-0 flex flex-col gap-1">
-                            {demoCases.map((cf) => (
-                              <li key={cf.slug}>
-                                <Link href={`/case-files/${cf.slug}`}>
-                                  Case File №{cf.number} &middot;{" "}
-                                  {cf.title}
-                                </Link>{" "}
-                                &rarr;
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {/* Rules that expand into a founding-text essay
-                          get a quiet footnote pointer so a reader
-                          landing on the rule can pick up the longer
-                          piece. The founding essays are public, so this
-                          shows for strangers too. Driven by
-                          FOUNDING_LINK_BY_RULE so adding more
-                          cross-links later is a one-line edit. */}
-                      {FOUNDING_LINK_BY_RULE[rule.number] && (
-                        <p
-                          className="font-serif italic text-ink-muted leading-relaxed mt-8"
-                          style={{ fontSize: "0.98rem" }}
-                        >
-                          Read the full essay:{" "}
-                          <Link
-                            href={FOUNDING_LINK_BY_RULE[rule.number].href}
-                            className="text-eye-deep hover:text-ink no-underline transition-colors not-italic"
-                            style={{ fontWeight: 600 }}
-                          >
-                            {FOUNDING_LINK_BY_RULE[rule.number].title}{" "}
-                            &rarr;
-                          </Link>
-                        </p>
-                      )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              </Fragment>
-            );
-          })}
-        </ol>
-
-        {/* Stranger who hasn't unlocked: the unlock gate is the page's
-            ask — email (the free key) or a seat (the real key). Members
-            and email-unlocked readers never see it. */}
-        {!unlocked && (
-          <div className="mt-12">
-            <RulesGate membershipCta={gateMembershipCta} />
-          </div>
+        {unlocked ? (
+          // Member or email-unlocked: the whole doctrine, one continuous list.
+          <ol className="rule-list" role="list">
+            {RULES.map((rule, idx) => fullRuleCard(rule, idx))}
+          </ol>
+        ) : (
+          // Stranger: reads as a public page. Rule I full, then the unlock
+          // ask inline at the seam (right where intent peaks), then the
+          // other six as dimmed locked rows — the tease of what just unlocked.
+          <>
+            <ol className="rule-list" role="list">
+              {freeRules.map((rule, idx) => fullRuleCard(rule, idx))}
+            </ol>
+            <RulesUnlock />
+            <ol className="rule-list" role="list">
+              {lockedRules.map((rule, idx) => lockedRuleCard(rule, idx))}
+            </ol>
+          </>
         )}
 
         {/* Sign-off / Join CTA ===================================
@@ -609,7 +608,20 @@ export default async function RulesPage() {
             </p>
             </div>
           </>
-        ) : null}
+        ) : (
+          // Locked stranger: the membership path as an in-flow block at the
+          // foot (the paid alternative). The email unlock lives in the sticky
+          // bar below, always reachable.
+          <div
+            className="mt-14 px-6 py-7 md:px-9 md:py-8"
+            style={{
+              background: "var(--paper-deep)",
+              borderLeft: "2px solid var(--eye-deep)",
+            }}
+          >
+            {gateMembershipCta}
+          </div>
+        )}
       </section>
     </div>
   );
