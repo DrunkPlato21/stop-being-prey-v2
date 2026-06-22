@@ -43,6 +43,42 @@ async function postToKit(
   return { ok: response.ok, status: response.status, body: text };
 }
 
+/**
+ * Look up a subscriber by exact email and return their Kit state, or null
+ * if Kit has no record (or the lookup itself failed — callers treat null as
+ * "unknown, proceed"). Kit's v4 subscribers endpoint takes an exact
+ * email_address filter. We only care whether they're already "active",
+ * because re-adding an active subscriber to a form re-fires that form's
+ * incentive/welcome email — a confirmed bug (an existing subscriber got the
+ * welcome again on the Rules gate). So subscribeToList checks this first.
+ */
+async function getSubscriberState(
+  apiKey: string,
+  email: string
+): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${KIT_API_BASE}/subscribers?email_address=${encodeURIComponent(
+        email
+      )}`,
+      {
+        headers: { "X-Kit-Api-Key": apiKey, Accept: "application/json" },
+        cache: "no-store",
+      }
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      subscribers?: Array<{ email_address?: string; state?: string }>;
+    };
+    const match = data.subscribers?.find(
+      (s) => s.email_address?.toLowerCase() === email.toLowerCase()
+    );
+    return match?.state ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function isMembersTagConfigured(): boolean {
   return !!process.env.KIT_API_KEY && !!process.env.KIT_MEMBERS_TAG_ID;
 }
@@ -115,6 +151,14 @@ async function applyTagInternal(
 export async function subscribeToList(email: string): Promise<ApplyTagResult> {
   const apiKey = process.env.KIT_API_KEY;
   if (!apiKey) return { ok: false, reason: "not_configured" };
+
+  // Already on the list? Then the welcome already went out once, and the
+  // list-building goal is met. Re-adding them to the form would re-fire
+  // Kit's incentive/welcome email, so we stop here and report success.
+  // Non-active states (unconfirmed, bounced, cancelled) and unknowns fall
+  // through to a normal subscribe — re-adding is the correct move there.
+  const state = await getSubscriberState(apiKey, email);
+  if (state === "active") return { ok: true };
 
   const upsert = await postToKit(apiKey, "/subscribers", {
     email_address: email,
