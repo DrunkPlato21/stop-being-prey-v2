@@ -167,14 +167,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* === Seen in practice: essays as proof === The literature that
-          teaches the rules through real engagements. The lead essay,
-          then the archive. */}
+      {/* === The Essays === The literature: a lead essay, then the
+          archive. Framed as the writing itself, not as rule-by-rule
+          applications (that's what the case files are). */}
       {featured && (() => {
         const featuredAudioMin = audioRuntimeMinutes(featured);
         return (
           <section className="max-w-6xl mx-auto px-6 py-12 md:py-16">
-            <p className="eyebrow mb-10 text-center">Seen in practice</p>
+            <p className="eyebrow mb-10 text-center">The Essays</p>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-16 md:items-center">
               <div className="md:col-span-7">
                 <h2
