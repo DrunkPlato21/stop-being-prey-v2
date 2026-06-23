@@ -2,6 +2,7 @@
 title: "Some Random Kid"
 slug: "some-random-kid"
 date: "2026-06-11T15:00:00Z"
+cornerstone: true
 description: "What they did to Austin Metcalf after they buried him."
 subtitle: "What they did to Austin Metcalf after they buried him."
 spotifyEpisodeId: "1VtQ7rZ9q8huTBA4nISito"

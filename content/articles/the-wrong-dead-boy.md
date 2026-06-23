@@ -2,6 +2,7 @@
 title: "The Wrong Dead Boy"
 slug: "the-wrong-dead-boy"
 date: "2026-06-04T23:42:00Z"
+cornerstone: true
 description: "Cathy Newman called the fury over George Floyd 'people power.' She called the identical fury over Henry Nowak 'incitement.' Everything was the same except one thing."
 subtitle: "they get to decide which dead boys you're allowed to grieve. henry was the wrong one."
 spotifyEpisodeId: "0fbdKDyFrXQUP8tEWbaZNa"
