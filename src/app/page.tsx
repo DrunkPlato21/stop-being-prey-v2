@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
+import { HeroJoinCta } from "@/components/HeroJoinCta";
 import { AudioPill } from "@/components/AudioPill";
 import {
   getAllArticles,
@@ -26,9 +27,6 @@ export default function Home() {
   // takes the big slot, the rest follow.
   const cornerstones = getCornerstones();
   const featured = cornerstones[0] ?? getAllArticles()[0];
-  const otherCornerstones = cornerstones.filter(
-    (a) => a.slug !== featured?.slug
-  );
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-US", {
@@ -102,9 +100,10 @@ export default function Home() {
             <Link href="/rules" className="btn-primary">
               <span>Read the 7 Rules</span>
             </Link>
-            <Link href="/membership" className="btn-secondary">
-              Join the room
-            </Link>
+            {/* Shown only to readers already on the list (client-side flag) —
+                a cold stranger gets one job, a known subscriber gets the
+                next step. */}
+            <HeroJoinCta />
           </div>
         </div>
       </section>
@@ -239,33 +238,9 @@ export default function Home() {
         );
       })()}
 
-      {otherCornerstones.length > 0 && (
-        <section className="max-w-6xl mx-auto px-6 pb-12 md:pb-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {otherCornerstones.map((article) => (
-              <Link
-                key={article.slug}
-                href={`/${article.slug}`}
-                className="block border border-rule p-6 md:p-8 no-underline transition-colors hover:border-eye"
-              >
-                <p className="eyebrow mb-3">{formatDate(article.date)}</p>
-                <h3
-                  className="font-display text-ink text-2xl md:text-3xl mb-3 leading-tight tracking-tight"
-                  style={{ fontWeight: 700, letterSpacing: "-0.02em" }}
-                >
-                  {article.title}
-                </h3>
-                <p className="text-ink-muted text-sm italic leading-relaxed">
-                  {article.subtitle ?? article.description}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* A quiet path to the full archive, where the dispatch stream used
-          to live. */}
+          to live. The other cornerstones live there now — the homepage
+          shows one essay as proof, not a magazine spread. */}
       <div className="max-w-6xl mx-auto px-6 pb-14 md:pb-20 text-center">
         <Link
           href="/writing"
