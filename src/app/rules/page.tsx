@@ -471,29 +471,13 @@ export default async function RulesPage() {
           </>
         )}
 
-        {/* Sign-off / Join CTA ===================================
-            Members get the doctrine sign-off. Strangers get a "join to
-            train" CTA in the same visual register as the case-file
-            preview pitch — paper-deep callout, olive border, single
-            link to /membership — so the funnel reads as one voice.
-            The framing: the doctrine teaches, the practice is the room. */}
-        {signedIn ? (
-          <div className="mt-14 pt-10 border-t border-rule text-center">
-            <p
-              className="font-serif italic text-ink-muted leading-relaxed mb-3"
-              style={{ fontSize: "1.05rem" }}
-            >
-              seven rules. one operator class.
-            </p>
-            <p
-              className="font-display text-ink"
-              style={{ fontSize: "1rem", fontWeight: 500 }}
-            >
-              stay close,
-              <br />~ Clay
-            </p>
-          </div>
-        ) : unlocked ? (
+        {/* Join CTA ==============================================
+            Members get nothing here; they're already in, so the page just
+            ends after the doctrine. Strangers get a "join to train" CTA in
+            the same visual register as the case-file preview pitch
+            (paper-deep callout, olive border, single link to /membership)
+            so the funnel reads as one voice. */}
+        {signedIn ? null : unlocked ? (
           <>
             {/* Post-unlock bridge: doctrine just read -> proof it works ->
                 membership. Shows the top public case file as the live drill.
