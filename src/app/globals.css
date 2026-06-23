@@ -4051,34 +4051,6 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   font-style: italic;
 }
 
-/* Tiny formatting toolbar above the Guild composers. Three quiet buttons
-   (bold / italic / quote), not a word processor. */
-.guild-format-toolbar {
-  display: inline-flex;
-  gap: 0.25rem;
-  margin-bottom: 0.5rem;
-}
-.guild-format-toolbar button {
-  width: 1.85rem;
-  height: 1.85rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  background: transparent;
-  color: var(--ink-muted);
-  font-family: var(--font-source-serif), Georgia, serif;
-  font-size: 0.95rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-.guild-format-toolbar button:hover {
-  color: var(--eye-deep);
-  border-color: var(--eye-deep);
-}
-
 /* === Custom postscript block (per-article P.S. override) === */
 /* Used when an article's frontmatter carries a `postscript` field that
    overrides the default rotating P.S. variants. Matches the visual of

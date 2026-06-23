@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 // Tiny formatting toolbar for the Guild composers. Wraps the current
 // textarea selection in the markdown subset the body renderer understands
 // (**bold**, *italic*, and "> " quote lines). Three quiet buttons, not a
-// word processor — enough to lay out an argument or cite a line.
+// word processor. Styled inline on purpose so Tailwind's button reset
+// can't strip the borders.
 
 type Props = {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -13,7 +14,15 @@ type Props = {
   onChange: (next: string) => void;
 };
 
+const TOOLS = [
+  { key: "bold", glyph: "B", title: "Bold", glyphStyle: { fontWeight: 700 } },
+  { key: "italic", glyph: "I", title: "Italic", glyphStyle: { fontStyle: "italic" } },
+  { key: "quote", glyph: "”", title: "Quote", glyphStyle: { fontWeight: 700, fontSize: "1.25rem" } },
+] as const;
+
 export function FormatToolbar({ textareaRef, value, onChange }: Props) {
+  const [hovered, setHovered] = useState<string | null>(null);
+
   function restoreSelection(start: number, end: number) {
     requestAnimationFrame(() => {
       const ta = textareaRef.current;
@@ -23,7 +32,6 @@ export function FormatToolbar({ textareaRef, value, onChange }: Props) {
     });
   }
 
-  // Wrap the selection (or insert a placeholder) in inline markers.
   function wrap(marker: string) {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -31,17 +39,14 @@ export function FormatToolbar({ textareaRef, value, onChange }: Props) {
     const end = ta.selectionEnd;
     const selected = value.slice(start, end) || "text";
     const next =
-      value.slice(0, start) +
-      marker +
-      selected +
-      marker +
-      value.slice(end);
+      value.slice(0, start) + marker + selected + marker + value.slice(end);
     onChange(next);
-    restoreSelection(start + marker.length, start + marker.length + selected.length);
+    restoreSelection(
+      start + marker.length,
+      start + marker.length + selected.length
+    );
   }
 
-  // Prefix each selected line with "> ". Expands to the start of the first
-  // line so a quote always begins at a line boundary.
   function quote() {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -58,17 +63,50 @@ export function FormatToolbar({ textareaRef, value, onChange }: Props) {
     restoreSelection(lineStart, lineStart + quoted.length);
   }
 
+  function run(key: string) {
+    if (key === "bold") wrap("**");
+    else if (key === "italic") wrap("*");
+    else quote();
+  }
+
   return (
-    <div className="guild-format-toolbar" aria-label="Formatting">
-      <button type="button" onClick={() => wrap("**")} title="Bold">
-        <strong>B</strong>
-      </button>
-      <button type="button" onClick={() => wrap("*")} title="Italic">
-        <em>I</em>
-      </button>
-      <button type="button" onClick={quote} title="Quote">
-        &rdquo;
-      </button>
+    <div
+      style={{ display: "flex", gap: "0.4rem", marginBottom: "0.6rem" }}
+      aria-label="Formatting"
+    >
+      {TOOLS.map((t) => {
+        const isHover = hovered === t.key;
+        return (
+          <button
+            key={t.key}
+            type="button"
+            title={t.title}
+            aria-label={t.title}
+            onMouseEnter={() => setHovered(t.key)}
+            onMouseLeave={() => setHovered(null)}
+            onClick={() => run(t.key)}
+            style={{
+              width: "2.3rem",
+              height: "2.3rem",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: `1px solid ${isHover ? "var(--eye-deep)" : "var(--rule)"}`,
+              borderRadius: "5px",
+              background: isHover ? "var(--paper-deep)" : "var(--surface)",
+              color: isHover ? "var(--eye-deep)" : "var(--ink-muted)",
+              fontFamily: "var(--font-source-serif), Georgia, 'Times New Roman', serif",
+              fontSize: "1.05rem",
+              lineHeight: 1,
+              cursor: "pointer",
+              transition: "color .15s, border-color .15s, background .15s",
+              ...t.glyphStyle,
+            }}
+          >
+            {t.glyph}
+          </button>
+        );
+      })}
     </div>
   );
 }
