@@ -48,7 +48,7 @@ export default async function SupportersPage({
           </p>
           <p className="mt-8 fade-up stagger-4">
             <Link
-              href="/tip"
+              href="/wall#sign"
               className="font-display text-sm uppercase tracking-[0.22em] text-eye-deep hover:text-ink no-underline transition-colors"
               style={{ fontWeight: 600 }}
             >

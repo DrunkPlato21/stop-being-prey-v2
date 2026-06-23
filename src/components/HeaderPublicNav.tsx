@@ -51,8 +51,8 @@ export function HeaderPublicNav() {
         <span className="header-nav-sep" aria-hidden="true">
           ·
         </span>
-        <Link href="/tip" className={navLinkClass}>
-          Tip
+        <Link href="/wall" className={navLinkClass}>
+          The Wall
         </Link>
       </div>
     </nav>

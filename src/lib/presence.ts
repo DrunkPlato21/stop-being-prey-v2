@@ -126,6 +126,7 @@ export function sectionForPath(path: string): Section {
     "/writing",
     "/join",
     "/tip",
+    "/wall",
     "/welcome",
   ]);
   if (READING_EXACT.has(path)) return SECTION_BY_ID.reading;

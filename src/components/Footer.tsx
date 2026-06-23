@@ -83,8 +83,8 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/tip" className={navLinkClass}>
-                    Tip
+                  <Link href="/wall" className={navLinkClass}>
+                    The Wall
                   </Link>
                 </li>
                 <li>

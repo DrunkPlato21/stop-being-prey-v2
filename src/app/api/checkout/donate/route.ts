@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
           }
         : {}),
       success_url: `${baseUrl}/tip/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/tip`,
+      cancel_url: `${baseUrl}/wall`,
     });
 
     if (!session.url) {

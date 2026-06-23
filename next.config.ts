@@ -85,6 +85,14 @@ const nextConfig: NextConfig = {
         destination: "/founding/predator-or-prey",
         permanent: true,
       },
+      // /tip was reframed into the wall: same act (back the work), wall-first
+      // framing. EXACT match only — /tip/success is the Stripe return URL and
+      // must keep resolving to its own page.
+      {
+        source: "/tip",
+        destination: "/wall",
+        permanent: true,
+      },
     ];
   },
 };
