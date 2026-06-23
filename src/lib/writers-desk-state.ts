@@ -63,8 +63,15 @@ export type DeskRoomsSignal = {
   lounge: {
     /** Members active in the room within the presence window. */
     activeNow: number;
-    /** The newest post, for a one-line "what's being said" peek. */
-    latest: { firstName: string; body: string; createdAt: number } | null;
+    /** The most-recently-active post (bumped by replies), for a one-line
+        "what's being said" peek that reflects the live conversation, not
+        just the newest thread. */
+    latest: {
+      firstName: string;
+      body: string;
+      createdAt: number;
+      lastActivityAt: number;
+    } | null;
   };
 };
 
@@ -169,9 +176,15 @@ export async function getWritersDeskState(
       ? voiceMemoRaw
       : null;
 
+  // Pick the most-recently-active post (lastActivityAt bumps on replies),
+  // not the newest one, so the peek reflects the conversation that's alive
+  // right now instead of looking dead whenever the newest thread is quiet.
   let latestLoungePost: (typeof loungeLatest.posts)[number] | null = null;
   for (const p of loungeLatest.posts) {
-    if (!latestLoungePost || p.createdAt > latestLoungePost.createdAt) {
+    if (
+      !latestLoungePost ||
+      p.lastActivityAt > latestLoungePost.lastActivityAt
+    ) {
       latestLoungePost = p;
     }
   }
@@ -257,6 +270,7 @@ export async function getWritersDeskState(
               firstName: latestLoungePost.firstName,
               body: latestLoungePost.body,
               createdAt: latestLoungePost.createdAt,
+              lastActivityAt: latestLoungePost.lastActivityAt,
             }
           : null,
     },

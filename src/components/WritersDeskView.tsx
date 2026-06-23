@@ -500,6 +500,18 @@ export function WritersDeskView({
     isAdmin: viewerIsAdmin,
   } = data;
 
+  // "Lit" doorways: a room glows when it's warm. The Lounge is warm when
+  // members are present right now; the Guild when a thread saw activity in
+  // the last hour and a half. This is the room's open-sign, deliberately
+  // NOT the green presence lamp (that one is Clay's, one of one).
+  const GUILD_WARM_WINDOW_MS = 90 * 60 * 1000;
+  const loungeLit = rooms.lounge.activeNow > 0;
+  const guildWarmAt = Math.max(
+    rooms.guild.latest?.lastActivityAt ?? 0,
+    rooms.guild.questionOfWeek?.lastActivityAt ?? 0
+  );
+  const guildLit = guildWarmAt > 0 && now - guildWarmAt < GUILD_WARM_WINDOW_MS;
+
   // The preview override (dev-only) synthesizes a fresh, all-unchecked
   // panel so Clay can see the new-member experience without being one.
   const effectiveFirstRun: FirstRunState | null = previewFirstRun
@@ -660,7 +672,9 @@ export function WritersDeskView({
                 href="/guild"
                 className="group inline-flex items-center gap-2.5 no-underline"
               >
-                <GuildCrest size={26} />
+                <span className={guildLit ? "doorway doorway-lit" : "doorway"}>
+                  <GuildCrest size={26} />
+                </span>
                 <span
                   className="font-display text-ink group-hover:text-eye-deep transition-colors"
                   style={{ fontSize: "1.25rem", fontWeight: 600 }}
@@ -770,7 +784,9 @@ export function WritersDeskView({
                   href="/lounge"
                   className="group inline-flex items-center gap-2.5 no-underline"
                 >
-                  <LoungeMark size={26} />
+                  <span className={loungeLit ? "doorway doorway-lit" : "doorway"}>
+                    <LoungeMark size={26} />
+                  </span>
                   <span
                     className="font-display text-ink group-hover:text-eye-deep transition-colors"
                     style={{ fontSize: "1.25rem", fontWeight: 600 }}
@@ -785,14 +801,6 @@ export function WritersDeskView({
                     &rarr;
                   </span>
                 </Link>
-                {rooms.lounge.activeNow > 0 && (
-                  <span
-                    className="font-serif italic text-eye-deep"
-                    style={{ fontSize: "0.82rem" }}
-                  >
-                    {rooms.lounge.activeNow} here now
-                  </span>
-                )}
               </div>
               {rooms.lounge.latest ? (
                 <Link href="/lounge" className="group block no-underline mt-1.5">
@@ -807,7 +815,7 @@ export function WritersDeskView({
                     style={{ fontSize: "0.78rem" }}
                   >
                     {rooms.lounge.latest.firstName},{" "}
-                    {formatRelative(rooms.lounge.latest.createdAt, now)}
+                    {formatRelative(rooms.lounge.latest.lastActivityAt, now)}
                   </p>
                 </Link>
               ) : rooms.lounge.activeNow > 0 ? (

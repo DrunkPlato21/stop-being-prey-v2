@@ -3985,6 +3985,37 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   max-width: 100%;
 }
 
+/* Doorway "the room is lit" treatment for the Desk room peeks. When a room
+   is warm (the Lounge has people in it now, the Guild saw recent activity),
+   its doorway glyph glows like lamplight spilling under an open door. This
+   is deliberately NOT a clean pulse: that's the green presence lamp's job,
+   and it stays one of one. This is an irregular flicker, a pub's open sign,
+   a candle in the window. */
+.doorway {
+  display: inline-flex;
+}
+.doorway-lit {
+  filter:
+    drop-shadow(0 0 7px rgba(201, 162, 74, 0.7))
+    drop-shadow(0 0 3px rgba(201, 162, 74, 0.55));
+  animation: doorway-flicker 5s ease-in-out infinite;
+}
+@keyframes doorway-flicker {
+  0%, 100% { opacity: 1; }
+  14% { opacity: 0.84; }
+  18% { opacity: 1; }
+  43% { opacity: 0.92; }
+  47% { opacity: 1; }
+  64% { opacity: 0.8; }
+  69% { opacity: 1; }
+  87% { opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .doorway-lit {
+    animation: none;
+  }
+}
+
 /* === Custom postscript block (per-article P.S. override) === */
 /* Used when an article's frontmatter carries a `postscript` field that
    overrides the default rotating P.S. variants. Matches the visual of
