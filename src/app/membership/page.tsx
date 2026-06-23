@@ -18,7 +18,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Membership",
   description:
-    "Inside Stop Being Prey. Commenting access, the Field Notes archive, early access to every issue, and first in line for the book. Charter membership is open: your rate locked for life on the next 100.",
+    "Inside Stop Being Prey. Commenting access, the Field Notes archive, early access to every essay, and first in line for the book. Charter membership is open: your rate locked for life on the next 100.",
 };
 
 // Counter is rendered fresh on each request (no caching) so the
@@ -51,7 +51,7 @@ const BENEFITS: Benefit[] = [
   {
     eyebrow: "rules of engagement",
     body: [
-      "Eight rules. The doctrine of the operator class. The framework that turns losing arguments into public demonstrations.",
+      "Seven rules. The doctrine of the operator class. The framework that turns losing arguments into public demonstrations.",
     ],
   },
   {
@@ -90,20 +90,24 @@ type ReaderQuote = {
 // not invent or paraphrase.
 const READER_QUOTES: ReaderQuote[] = [
   {
-    body: "The losertarian piece, the personal arc you drew, really hit me... I like what you're doing, I like the way you think, and I want to join up.",
-    attribution: "Adam, founder",
+    body: "I am a grandmother, a mother, someone who has always been prey... You are the first writer that I have ever paid to listen to. The world I thought I knew has gone. I need to do something!!",
+    attribution: "Judy, New Zealand",
   },
   {
-    body: "I'm skeptical by nature but I have to tell you, this one got me. I'm in for the long haul with you Clay.",
-    attribution: "Sandy, founder",
+    body: "My state legislature has been wrestling with a minimum wage law... Thank you for giving me the proper ways to confront the 'feelings' arguments. Amazingly, no push back when confronted with the value of their labor approach.",
+    attribution: "Don, founder",
   },
   {
-    body: "By equipping us with the intellectual ammunition necessary to influence our local communities, you are helping us secure the small victories required to eventually shift the national tide.",
-    attribution: "Mike, UK reader",
+    body: "Ron Paul's former press secretary here. I am totally with you. You said very well what I have been struggling with since... 2018.",
+    attribution: "Rachel Mills",
   },
   {
-    body: "I've been a registered Libertarian since the party was founded. Your ideas and writings are profound and realistic. I'd like to become a part-time predator.",
-    attribution: "Reader email",
+    body: "Every once in a blue moon a writer comes along and articulates so well, the thoughts that I already have but can't put into words myself. You are one of those writers.",
+    attribution: "Sean, founder",
+  },
+  {
+    body: "I never subscribe to things online. Something always stops me... what made me want to be a founder is Clay's earnestness in his quest.",
+    attribution: "Trish, founder",
   },
 ];
 
@@ -115,7 +119,7 @@ type FAQEntry = {
 const FAQ: FAQEntry[] = [
   {
     q: "what does membership get me?",
-    a: "commenting access on every piece, the Field Notes archive, 24 to 48 hours of early access on new issues and walls, and the manuscript when the book lands.",
+    a: "commenting access on every piece, the Field Notes archive, 24 to 48 hours of early access on new essays and walls, and the manuscript when the book lands.",
   },
   {
     q: "what's the founder badge?",
@@ -309,7 +313,7 @@ export default async function MembershipLandingPage({
             >
               <span className="text-ink-muted">Inside:</span> the
               Writer&apos;s Desk, the comment room, the Lounge, Case Files,
-              early access to every issue, and the book as it&apos;s
+              early access to every essay, and the book as it&apos;s
               written.
             </p>
             <p
@@ -681,7 +685,7 @@ export default async function MembershipLandingPage({
 
       {/* Reader proof — verbatim testimonials between the feature
           beats and the pricing block. Italic serif body with non-
-          italic em-dash attribution beneath. Renders only when the
+          italic attribution beneath. Renders only when the
           array has entries so dev environments without testimonials
           don't ship a "From readers inside" stub. */}
       {READER_QUOTES.length > 0 && (
@@ -703,7 +707,7 @@ export default async function MembershipLandingPage({
                     className="font-serif text-ink-muted"
                     style={{ fontSize: "0.92rem" }}
                   >
-                    &mdash; {quote.attribution}
+                    {quote.attribution}
                   </p>
                 </li>
               ))}
@@ -787,10 +791,10 @@ export default async function MembershipLandingPage({
             style={{ fontSize: "1rem" }}
           >
             If you haven&apos;t read the founding piece yet, read it first.
-            The Charlie Kirk essay is where the doctrine landed in its
+            Predator and Prey is where the doctrine landed in its
             sharpest form.{" "}
             <Link
-              href="/founding/charlie-kirk"
+              href="/founding/predator-or-prey"
               className="text-eye-deep hover:text-ink no-underline transition-colors"
               style={{ fontWeight: 500 }}
             >

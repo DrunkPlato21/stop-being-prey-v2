@@ -3925,6 +3925,9 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   display: inline-block;
   width: auto;
   max-width: 100%;
+  /* When the embed opens, the wrap grows to the embed's width; centering
+     the inline pill keeps it sitting above the middle of the player. */
+  text-align: center;
 }
 
 .audio-pill {
@@ -3973,10 +3976,13 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
 }
 
 .audio-pill-embed {
-  margin-top: 1.5rem;
-  /* The embed is constrained to a sensible width when triggered from a
-     narrow column. .spotify-frame is full-width by default, so we cap. */
-  max-width: 36rem;
+  margin: 1.5rem auto 0;
+  /* The iframe is width:100%, and the inline-block wrap is shrink-to-fit,
+     so without an explicit width the player collapses to the pill's width
+     and looks crunched. Give it a real width (capped to the viewport on
+     small screens) so Spotify's title + controls have room to breathe. */
+  width: min(40rem, 92vw);
+  max-width: 100%;
 }
 
 /* === Custom postscript block (per-article P.S. override) === */

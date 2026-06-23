@@ -20,7 +20,6 @@ import {
 import { CommentForm } from "@/components/CommentForm";
 import { CommentItem } from "@/components/CommentItem";
 import { CommentsLiveRefresh } from "@/components/CommentsLiveRefresh";
-import { PaidCommentForm } from "@/components/PaidCommentForm";
 import {
   getCoinDataForComments,
   getSpentCommentId,
@@ -286,46 +285,35 @@ export async function Comments({ kind, slug }: Props) {
             />
           )
         ) : (
-          // Public visitors: read all approved comments above, choose
-          // one of two paths to add their own. The paid CTA is staged
-          // (step 3 wires Stripe); rendering it now keeps the layout
-          // stable when the live flow lands.
-          <div>
-            {/* Value prop. Members on top (free path), non-members
-                below (paid path with the live form). Membership CTA
-                sits beside the paid form so the upsell is always
-                visible to non-members who reconsider mid-typing. */}
-            <div className="text-center mb-8">
-              <p
-                className="font-serif text-ink leading-relaxed mb-2"
-                style={{ fontSize: "1rem" }}
+          // Public visitors: read every approved comment above, but
+          // commenting is a member thing. The old $1-per-comment path is
+          // gone (nobody used it); the ask is now membership, full stop.
+          <div className="text-center mb-8">
+            <p
+              className="font-serif text-ink leading-relaxed mb-2"
+              style={{ fontSize: "1rem" }}
+            >
+              The comments are for members.
+            </p>
+            <p
+              className="font-serif text-ink-muted leading-relaxed mb-5"
+              style={{ fontSize: "1rem" }}
+            >
+              Reading is open to everyone. Join to add your voice.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-x-6 gap-y-3">
+              <Link href="/membership?src=comments" className="cta-prestige">
+                <span>Become a member</span>
+                <span aria-hidden="true">&rarr;</span>
+              </Link>
+              <Link
+                href="/notes/sign-in"
+                className="font-serif italic text-ink-faint hover:text-eye-deep no-underline transition-colors"
+                style={{ fontSize: "0.85rem" }}
               >
-                Members comment free.
-              </p>
-              <p
-                className="font-serif text-ink-muted leading-relaxed mb-5"
-                style={{ fontSize: "1rem" }}
-              >
-                Non-members: $1 contribution to leave a comment.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-x-6 gap-y-3">
-                <Link href="/membership" className="cta-prestige">
-                  <span>Become a member</span>
-                  <span aria-hidden="true">&rarr;</span>
-                </Link>
-                <Link
-                  href="/notes/sign-in"
-                  className="font-serif italic text-ink-faint hover:text-eye-deep no-underline transition-colors"
-                  style={{ fontSize: "0.85rem" }}
-                >
-                  already a member? sign in
-                </Link>
-              </div>
+                already a member? sign in
+              </Link>
             </div>
-
-            {/* Inline paid form. Stays open by default — visitors who
-                want to comment now don't have to click twice. */}
-            <PaidCommentForm kind={kind} slug={slug} />
           </div>
         )}
       </div>

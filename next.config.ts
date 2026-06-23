@@ -77,6 +77,14 @@ const nextConfig: NextConfig = {
         destination: "/the-massie-problem",
         permanent: true,
       },
+      // The founding piece's slug was renamed from /founding/charlie-kirk
+      // to /founding/predator-or-prey. Keep old links (shares, anything
+      // indexed) working with a permanent redirect.
+      {
+        source: "/founding/charlie-kirk",
+        destination: "/founding/predator-or-prey",
+        permanent: true,
+      },
     ];
   },
 };

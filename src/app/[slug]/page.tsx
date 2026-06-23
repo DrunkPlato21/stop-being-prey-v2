@@ -6,7 +6,6 @@ import {
   getArticleBySlug,
   audioRuntimeMinutes,
   readingMinutes,
-  isCornerstone,
   type Article,
 } from "@/lib/articles";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
@@ -138,16 +137,6 @@ export default async function ArticlePage({
       description: a.description,
     }));
 
-  // "Podcast-only" pieces — articles that exist primarily as
-  // episodes, not numbered issues. Detected by: has a spotify
-  // episode id AND no issue number. These get the full Spotify
-  // player at the top (player IS the primary content), with the
-  // text as transcript-style support below. Issue-style articles
-  // keep the click-to-expand AudioPill in the masthead + the
-  // standalone Audio Edition embed at the bottom.
-  const isPodcastOnly =
-    !!article.spotifyEpisodeId && typeof article.issue !== "number";
-
   // Paying members (and the admin/author) are already on the list and in
   // the room, so suppress the email-capture surfaces for them — the inline
   // form and the end-of-piece "Two ways in" block. Everything else (read
@@ -273,7 +262,7 @@ export default async function ArticlePage({
             )}
           </div>
 
-          {article.spotifyEpisodeId && audioMinutes && !isPodcastOnly && (
+          {article.spotifyEpisodeId && audioMinutes && (
             <div className="mt-8 fade-up stagger-5 flex justify-center">
               <AudioPill
                 episodeId={article.spotifyEpisodeId}
@@ -284,33 +273,13 @@ export default async function ArticlePage({
         </div>
       </header>
 
-      {/* === Top-of-page audio embed for podcast-only pieces ===
-           For pieces where the podcast IS the primary content (no
-           issue number, spotifyEpisodeId set), the full player sits
-           directly under the masthead so it's reachable on first
-           paint — no click-to-expand. Bottom "Audio Edition" block
-           is suppressed below to avoid duplicate players on the page. */}
-      {isPodcastOnly && article.spotifyEpisodeId && (
-        <div className="max-w-2xl mx-auto px-6 pt-12 md:pt-16">
-          <SpotifyEmbed
-            episodeId={article.spotifyEpisodeId}
-            type="episode"
-            size="standard"
-          />
-        </div>
-      )}
-
       {/* === Article body ===
            Masthead's border-b carries the only separator. No
            decorative swash between subtitle and body — same
-           treatment now used on the founding pages. Top padding
-           drops when the podcast-only embed is already breathing
-           above us. */}
+           treatment now used on the founding pages. */}
       <div
         id="reading-region"
-        className={`max-w-4xl mx-auto px-6 ${
-          isPodcastOnly ? "pt-8 md:pt-10" : "pt-12 md:pt-16"
-        }`}
+        className="max-w-4xl mx-auto px-6 pt-12 md:pt-16"
       >
         {inlineSplit ? (
           <>
@@ -364,11 +333,7 @@ export default async function ArticlePage({
           end of #reading-region. Members get nothing; cold readers get
           the email-list form; known subscribers get the cadence-capped
           membership ask. */}
-      <FinisherAchievement
-        slug={article.slug}
-        isMember={hideCaptures}
-        isCornerstone={isCornerstone(article)}
-      />
+      <FinisherAchievement slug={article.slug} isMember={hideCaptures} />
 
       {/* === References (opt-in, populated when markdown ends with
           `## References` followed by a list). Sits with the article
@@ -405,10 +370,9 @@ export default async function ArticlePage({
       </div>
 
       {/* === Audio Edition: full embed for readers who want to queue
-          or revisit the spoken version. Suppressed on podcast-only
-          pieces — the player already lives at the top, no need for
-          a duplicate at the bottom. === */}
-      {article.spotifyEpisodeId && !isPodcastOnly && (
+          or revisit the spoken version. The masthead carries the quiet
+          "Listen" pill; this is the full player for those who want it. === */}
+      {article.spotifyEpisodeId && (
         <div className="max-w-2xl mx-auto px-6 mt-16">
           <div className="text-center mb-4">
             <p className="eyebrow">Audio Edition</p>

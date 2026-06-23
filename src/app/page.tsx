@@ -4,7 +4,6 @@ import { AudioPill } from "@/components/AudioPill";
 import {
   getAllArticles,
   getCornerstones,
-  getDispatches,
   audioRuntimeMinutes,
 } from "@/lib/articles";
 import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
@@ -23,16 +22,13 @@ import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
 const RULE_NUMBERS = [1, 2, 3, 4, 5, 6, 7];
 
 export default function Home() {
-  // Two tempos. Cornerstones (major essays) lead the proof section; the
-  // latest one takes the big slot. Dispatches (the shorter, frequent
-  // pieces) run as a stream below - the pulse that gives a reason to
-  // return between the big drops.
+  // Cornerstones (major essays) lead the proof section; the latest one
+  // takes the big slot, the rest follow.
   const cornerstones = getCornerstones();
   const featured = cornerstones[0] ?? getAllArticles()[0];
   const otherCornerstones = cornerstones.filter(
     (a) => a.slug !== featured?.slug
   );
-  const dispatches = getDispatches().slice(0, 5);
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-US", {
@@ -176,7 +172,7 @@ export default function Home() {
           <section className="max-w-6xl mx-auto px-6 py-12 md:py-16">
             <p className="eyebrow mb-10 text-center">The Essays</p>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-16 md:items-center">
-              <div className="md:col-span-7">
+              <div className={featured.leadQuote ? "md:col-span-7" : "md:col-span-12"}>
                 <h2
                   className="font-display tracking-tight mb-6 leading-[1.04]"
                   style={{
@@ -219,23 +215,25 @@ export default function Home() {
                 </div>
               </div>
 
-              <aside className="md:col-span-5">
-                <div className="md:sticky md:top-24">
-                  <p className="eyebrow mb-4">From the essay</p>
-                  <blockquote
-                    className="font-display italic text-ink leading-snug border-l-2 border-eye pl-6 py-2 my-2"
-                    style={{
-                      fontSize: "clamp(1.75rem, 3vw, 1.95rem)",
-                      fontWeight: 400,
-                    }}
-                  >
-                    &ldquo;
-                    {featured.leadQuote ??
-                      "We can model them. They can't model us."}
-                    &rdquo;
-                  </blockquote>
-                </div>
-              </aside>
+              {/* Only render when the featured essay supplies its OWN
+                  leadQuote — never a fallback, which would attribute another
+                  essay's line to this one. No quote set = no panel. */}
+              {featured.leadQuote && (
+                <aside className="md:col-span-5">
+                  <div className="md:sticky md:top-24">
+                    <p className="eyebrow mb-4">From the essay</p>
+                    <blockquote
+                      className="font-display italic text-ink leading-snug border-l-2 border-eye pl-6 py-2 my-2"
+                      style={{
+                        fontSize: "clamp(1.75rem, 3vw, 1.95rem)",
+                        fontWeight: 400,
+                      }}
+                    >
+                      &ldquo;{featured.leadQuote}&rdquo;
+                    </blockquote>
+                  </div>
+                </aside>
+              )}
             </div>
           </section>
         );
@@ -266,45 +264,16 @@ export default function Home() {
         </section>
       )}
 
-      {/* === Dispatches: the pulse === The shorter, more frequent pieces.
-          A reason to check back between the big essays. PLACEHOLDER label
-          ("Dispatches") - Clay to name. */}
-      {dispatches.length > 0 && (
-        <section className="max-w-3xl mx-auto px-6 pb-14 md:pb-20">
-          <p className="eyebrow mb-8 text-center">Dispatches</p>
-          <ul className="flex flex-col">
-            {dispatches.map((article, idx) => (
-              <li
-                key={article.slug}
-                className={idx > 0 ? "border-t border-rule" : undefined}
-              >
-                <Link
-                  href={`/${article.slug}`}
-                  className="group flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-6 py-4 no-underline"
-                >
-                  <span
-                    className="font-display text-ink group-hover:text-eye-deep transition-colors leading-snug"
-                    style={{ fontSize: "1.2rem", fontWeight: 600 }}
-                  >
-                    {article.title}
-                  </span>
-                  <span className="eyebrow shrink-0 whitespace-nowrap">
-                    {formatDate(article.date)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-8 text-center">
-            <Link
-              href="/writing"
-              className="eyebrow no-underline hover:text-ink transition-colors"
-            >
-              All writing →
-            </Link>
-          </div>
-        </section>
-      )}
+      {/* A quiet path to the full archive, where the dispatch stream used
+          to live. */}
+      <div className="max-w-6xl mx-auto px-6 pb-14 md:pb-20 text-center">
+        <Link
+          href="/writing"
+          className="eyebrow no-underline hover:text-ink transition-colors"
+        >
+          All writing →
+        </Link>
+      </div>
 
       {/* === The Rules email magnet === PLACEHOLDER framing: Clay to
           finalize. The doctrine is gated at /rules (rule one free, the

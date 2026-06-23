@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FoundingPageLayout } from "@/components/FoundingPageLayout";
 
-// /founding/charlie-kirk — Predator and Prey. The founding text of
+// /founding/predator-or-prey — Predator and Prey. The founding text of
 // Stop Being Prey. Written 2026-04-14, seven months after the
 // shooting at Utah Valley. Public, no auth required.
 
@@ -14,14 +14,14 @@ export const metadata: Metadata = {
   title: `${TITLE} | Stop Being Prey`,
   description: DECK,
   alternates: {
-    canonical: "/founding/charlie-kirk",
+    canonical: "/founding/predator-or-prey",
   },
   openGraph: {
     title: TITLE,
     description: DECK,
     type: "article",
     authors: ["Clay"],
-    url: "/founding/charlie-kirk",
+    url: "/founding/predator-or-prey",
   },
   twitter: {
     card: "summary_large_image",

@@ -39,7 +39,7 @@ export default function WePrayForOurPreyFoundingPage() {
       dateLine="Written April 7, 2026. The morning after Easter."
       companion={{
         title: "Predator and Prey",
-        href: "/founding/charlie-kirk",
+        href: "/founding/predator-or-prey",
       }}
     >
       {/* Essay body. Opening sentence carries the site-wide
@@ -54,84 +54,84 @@ export default function WePrayForOurPreyFoundingPage() {
         <p>
           That is the line I did not know I was going to write until this
           morning, and it is the one that explains everything I have been
-          trying to tell you for two weeks.
+          trying to say for weeks now.
         </p>
         <p>Here is what I mean.</p>
         <p>
           On Easter Sunday a man named Nathan showed up on my tribute to
-          Charlie Kirk and called a murdered father evil. On Easter Monday
-          he came back with more of the same. Louder this time. Meaner.
-          Three new names. Zero new evidence. When I dissected him in
-          public, he did not bring an argument. He brought more volume.
+          Charlie Kirk to call him evil, to scold my readers for mourning
+          such a horrible ‘racist’. On Easter Monday he came back with
+          more of the same. Louder this time. Meaner. Three new names.
+          Zero new evidence. When I dissected him in public, he didn’t
+          come back at me with an argument, he just turned up his volume.
         </p>
         <p>
-          At the end of my reply to him, I wrote one sentence:{" "}
-          &ldquo;I&apos;ll pray for you.&rdquo; I meant it. I still mean
-          it today.
+          At the end of my final reply to him, I wrote one sentence:{" "}
+          &ldquo;I&apos;ll pray for you.&rdquo; I meant it. I prayed for
+          him that night.
         </p>
-        <p>And that sentence is the whole thing.</p>
+        <p>And that sentence is now my doctrine.</p>
         <p>
-          We must become predators out of necessity. Charlie is dead.
-          Trump has been shot at. Strangers are walking into tribute
-          posts on Easter Sunday to sneer at the corpses of murdered
-          fathers, and mock the people mourning them. The old framework
-          of civility and debate died with the people who trusted it.
+          We must become predators out of necessity. I didn’t want to
+          publicly humiliate Nathan, but Charlie is dead and Trump has
+          been shot. Strangers are walking into my tribute posts on
+          Easter Sunday to sneer at the corpses of murdered fathers, and
+          mock my people for mourning them. The old framework of civility
+          and debate died when Tyler Robinson pulled that trigger.
           Someone has to teach what comes next. That is the work I am
           doing now.
         </p>
         <p>
-          But there is one thing that separates what we are becoming
-          from what they already are. One thing. It is not technique.
-          Technique can be learned by anyone. It is not intelligence.
-          Intelligence does not protect you from becoming a monster. It
-          is not even courage.
+          One thing that separates what we are becoming from what they
+          already are. One thing. It is not technique. Technique can be
+          learned by anyone. It is not intelligence. Intelligence does
+          not protect you from becoming a monster. It is not knowledge,
+          and it’s not even courage.
         </p>
         <p>It is grace.</p>
         <p>
-          We pray for them. They do not pray for us. They never will.
+          We pray for them. They do not pray for us and they never will.
         </p>
         <p>
-          That single beat, the prayer for the prey, is the difference
+          That single gesture, the prayer for the prey, is the difference
           between a monster with a weapon and a disciplined man with a
-          conscience who happens to know how to hunt.
+          conscience who happens to know how to hunt when he needs to.
         </p>
-        <p>Because we pray for them, we are free.</p>
+        <p>And because we pray for them, we are free.</p>
         <p>
-          Free from having to hate them. Free from needing their
-          approval, their agreement, their acknowledgment, or their
-          surrender. Free from spending our minds trying to convince
-          men who were never going to be convinced. When a Nathan shows
-          up and cannot cite a page, cannot defend a claim, cannot
-          change his mind under any evidence, you are not in a debate.
-          You are being recruited into a hunt, and your mind is the
-          bait.
+          Free from having to hate or be angry at them. Free from needing
+          their approval, their agreement, their acknowledgment, or even
+          their surrender. Free from spending our precious time and
+          energy trying to debate people who simply mean us harm. When a
+          Nathan shows up, nothing you say will reach him. Reaching him
+          was never on the table. You are being hunted, and your mind is
+          the bait.
         </p>
         <p>
-          You do not owe him your time. You do not owe him your energy.
-          You owe him exactly one thing, and it is the same thing you
-          owe the rest of them.
+          You do not owe him your time or your energy. You owe him
+          exactly one thing, and it is the same thing you owe the rest of
+          them.
         </p>
-        <p>A prayer. And nothing else.</p>
+        <p>A prayer… nothing else.</p>
         <p>
           And because we pray for them, when we do choose to engage, we
           engage without becoming them.
         </p>
         <p>
           When the fight is worth fighting, when the audience is worth
-          protecting, when the predator is hurting someone you love,
-          you do not walk away. You stay. But you do not match his
-          energy. You do something he is incapable of. You shine a
-          light on his trap, let the people watching see exactly what
-          he did, take him apart with composure, and walk away bigger
-          than you arrived. That is what I did to Nathan over Easter.
-          That is what I did to three more of them yesterday. Go look
-          at my page. The dismantlings are still live.
+          protecting, when the predator is hurting someone you love, you
+          do not walk away. You stay. But you do not match his energy.
+          You do something he is incapable of. You shine a light on his
+          trap, let the people watching see exactly what he did, take him
+          apart with composure, and walk away bigger than you arrived.
+          That is what I did to Nathan over Easter. It&apos;s what I do
+          most weeks, out in the open, in my comments.
         </p>
         <p>
-          And then, after all of it, you pray for him. Because that is
-          what makes you different from him. Because that is the thing
-          he cannot do. Because that is the thing he cannot understand,
-          and the thing he cannot answer.
+          And then, after all of it, you pray for them. That is what
+          makes you different, because that is the thing he cannot do. It
+          is the thing he cannot understand, and the thing he cannot
+          answer. Nathan is not your equal. Do you understand?
         </p>
         <p>This is what I am training you to become.</p>
         <p>

@@ -1,19 +1,45 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getCornerstones, getDispatches } from "@/lib/articles";
+import { getCornerstones, readingMinutes } from "@/lib/articles";
 
-// The writing archive, in two tempos: the major essays (cornerstones)
-// and the dispatches (shorter, more frequent pieces). Replaces the old
-// magazine "Issues" framing (Vol/No numbering is gone). Route, nav, and
-// heading all read "Writing"; the old /issues 301-redirects here (proxy).
-//
-// NOTE: section labels ("The major essays" / "Dispatches") are
-// placeholder - Clay to name in his voice.
+// The writing archive. Opens with a "Start Here" pair (the two founding
+// pieces, which live outside the articles system, so they're hardcoded
+// below), then one "The Essays" list of every cornerstone, date-sorted.
+// Replaces the old magazine "Issues" framing (Vol/No numbering is gone)
+// and the former second "Dispatches" tier. Route, nav, and heading all
+// read "Writing"; the old /issues 301-redirects here (proxy).
 
 export const metadata: Metadata = {
   title: "Writing",
   description:
     "The writing of Stop Being Prey. Major essays and dispatches on power, politics, and the apex class by Clay.",
+};
+
+// The founding pieces are JSX pages under /founding, not articles. Their
+// decks are pulled verbatim from the DECK constant in each founding page.
+// Numbered I / II because they're meant to be read in order, as the door in.
+const FOUNDING = [
+  {
+    numeral: "I",
+    title: "Predator or Prey",
+    href: "/founding/predator-or-prey",
+    deck: "The founding piece of Stop Being Prey. Written April 14, 2026, seven months after Charlie Kirk was killed.",
+  },
+  {
+    numeral: "II",
+    title: "We Pray For Our Prey",
+    href: "/founding/we-pray-for-our-prey",
+    deck: "The grace dimension of the predator/prey doctrine. Written April 7, 2026, the morning after Easter.",
+  },
+];
+
+// Section headers: the global `.eyebrow` (0.7rem) is too small to scan for
+// an older audience, so these two labels keep the eyebrow's brand styling
+// (cormorant, uppercase, olive, tracked) but bump the size locally. Scoped
+// here on purpose — the global class is untouched so other pages are safe.
+const sectionLabel = {
+  fontSize: "1.05rem",
+  letterSpacing: "0.24em",
 };
 
 const formatDate = (date: string) =>
@@ -26,7 +52,6 @@ const formatDate = (date: string) =>
 
 export default function EssaysPage() {
   const cornerstones = getCornerstones();
-  const dispatches = getDispatches();
 
   return (
     <div>
@@ -45,77 +70,113 @@ export default function EssaysPage() {
           </h1>
           <p className="font-serif italic text-ink-muted text-lg md:text-xl max-w-xl mx-auto leading-relaxed fade-up stagger-3">
             On power, politics, and the apex class.
-            <br />
-            The long essays and the quick ones.
           </p>
         </div>
       </section>
 
-      {/* === The major essays (cornerstones) === */}
-      <section className="max-w-3xl mx-auto px-6 pt-12 md:pt-16 pb-8">
-        <p className="eyebrow mb-10">The major essays</p>
+      {/* === Start Here: the two founding pieces, the entry point ===
+          Elevated above the essay list: a short olive beat, a larger
+          label, Roman-numeral order marks in olive, and bigger titles. */}
+      <section className="max-w-3xl mx-auto px-6 pt-14 md:pt-20 pb-12 md:pb-16">
+        <span
+          aria-hidden="true"
+          className="block mb-6"
+          style={{
+            width: "2.5rem",
+            height: "2px",
+            background: "var(--eye-deep)",
+          }}
+        />
+        <p className="eyebrow mb-10" style={sectionLabel}>
+          Start Here
+        </p>
+        <ol className="space-y-12 md:space-y-14">
+          {FOUNDING.map((piece) => (
+            <li key={piece.href}>
+              <Link
+                href={piece.href}
+                className="block border-b border-rule pb-10 no-underline group"
+              >
+                <p
+                  className="font-display mb-3"
+                  style={{
+                    color: "var(--eye-deep)",
+                    fontSize: "1.1rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.18em",
+                  }}
+                >
+                  {piece.numeral}
+                </p>
+                <h2
+                  className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep transition-colors"
+                  style={{
+                    fontSize: "clamp(2.1rem, 4.5vw, 3rem)",
+                    fontWeight: 700,
+                    letterSpacing: "-0.024em",
+                  }}
+                >
+                  {piece.title}
+                </h2>
+                <p className="font-serif italic text-ink-muted text-base md:text-lg leading-relaxed">
+                  {piece.deck}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* === The Essays (all cornerstones, date-sorted) === */}
+      <section className="max-w-3xl mx-auto px-6 pb-12 md:pb-16">
+        <p className="eyebrow mb-10" style={sectionLabel}>
+          The Essays
+        </p>
         {cornerstones.length === 0 ? (
           <p className="text-center text-ink-muted italic">
             Nothing here yet. Stay close.
           </p>
         ) : (
           <ol className="space-y-10">
-            {cornerstones.map((article) => (
-              <li key={article.slug}>
-                <Link
-                  href={`/${article.slug}`}
-                  className="block border-b border-rule pb-10 no-underline group"
-                >
-                  <p className="eyebrow mb-3">{formatDate(article.date)}</p>
-                  <h2
-                    className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep transition-colors"
-                    style={{
-                      fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)",
-                      fontWeight: 700,
-                      letterSpacing: "-0.022em",
-                    }}
+            {cornerstones.map((article) => {
+              const mins = readingMinutes(article);
+              return (
+                <li key={article.slug}>
+                  <Link
+                    href={`/${article.slug}`}
+                    className="block border-b border-rule pb-10 no-underline group"
                   >
-                    {article.title}
-                  </h2>
-                  <p className="font-serif italic text-ink-muted text-base md:text-lg leading-relaxed">
-                    {article.subtitle ?? article.description}
-                  </p>
-                </Link>
-              </li>
-            ))}
+                    <div className="flex items-baseline gap-3 mb-3">
+                      <span className="eyebrow">{formatDate(article.date)}</span>
+                      {mins != null && (
+                        <span
+                          className="font-serif text-ink-faint"
+                          style={{ fontSize: "0.78rem" }}
+                        >
+                          {mins} min read
+                        </span>
+                      )}
+                    </div>
+                    <h2
+                      className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep transition-colors"
+                      style={{
+                        fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)",
+                        fontWeight: 700,
+                        letterSpacing: "-0.022em",
+                      }}
+                    >
+                      {article.title}
+                    </h2>
+                    <p className="font-serif italic text-ink-muted text-base md:text-lg leading-relaxed">
+                      {article.subtitle ?? article.description}
+                    </p>
+                  </Link>
+                </li>
+              );
+            })}
           </ol>
         )}
       </section>
-
-      {/* === Dispatches (the shorter, frequent pieces) === */}
-      {dispatches.length > 0 && (
-        <section className="max-w-3xl mx-auto px-6 pb-12 md:pb-16">
-          <p className="eyebrow mb-6">Dispatches</p>
-          <ul className="flex flex-col">
-            {dispatches.map((article, idx) => (
-              <li
-                key={article.slug}
-                className={idx > 0 ? "border-t border-rule" : undefined}
-              >
-                <Link
-                  href={`/${article.slug}`}
-                  className="group flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-6 py-4 no-underline"
-                >
-                  <span
-                    className="font-display text-ink group-hover:text-eye-deep transition-colors leading-snug"
-                    style={{ fontSize: "1.2rem", fontWeight: 600 }}
-                  >
-                    {article.title}
-                  </span>
-                  <span className="eyebrow shrink-0 whitespace-nowrap">
-                    {formatDate(article.date)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       <section className="max-w-3xl mx-auto px-6 pb-16 text-center">
         <Link

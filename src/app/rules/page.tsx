@@ -579,17 +579,16 @@ export default async function RulesPage() {
               className="font-serif text-ink mb-4"
               style={{ fontSize: "1.1rem", lineHeight: 1.65 }}
             >
-              The doctrine is free. The practice is the room. Inside,
-              every rule is drilled against a live kill in the Case
-              Files, argued in the Guild, and put to work alongside
-              people training the same way.
+              These rules are free. Follow them, and you will never lose a
+              political argument again.
             </p>
             <p
               className="font-serif text-ink mb-5"
               style={{ fontSize: "1.05rem", lineHeight: 1.65 }}
             >
-              Plus the Writer&apos;s Desk, the Lounge, Field Notes, and
-              the book in progress.
+              Want help? Join my room. That&apos;s where we train. We take
+              apart real fights in the Case Files together. In a fight right
+              now, or see one coming? Bring it to me first.
             </p>
             <p
               className="font-serif text-ink-soft mb-5"
@@ -603,7 +602,7 @@ export default async function RulesPage() {
                 className="text-eye-deep hover:text-ink no-underline transition-colors"
                 style={{ fontWeight: 600 }}
               >
-                Take the seat &rarr;
+                Take a seat &rarr;
               </Link>
             </p>
             </div>
