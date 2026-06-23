@@ -10,6 +10,8 @@
     "guild:seed-dev": "node scripts/guild-seed-dev.mjs",
     "guild:reset-dev": "node scripts/guild-reset-dev.mjs",
     "members:sync-kit": "tsx scripts/sync-members-to-kit.mts",
+    "lounge:export": "node scripts/export-lounge.mjs",
+    "comments:export": "node scripts/export-comments.mjs",
     "test:seat-pool": "tsx scripts/seat-pool-test.mts"
   },
   "dependencies": {
