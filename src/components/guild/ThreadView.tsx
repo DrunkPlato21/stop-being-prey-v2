@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { GuildReply, GuildThread, ReactionSummary } from "@/lib/guild";
 import { EDIT_WINDOW_MS, MAX_BODY, MAX_REPLY, MAX_TITLE } from "@/lib/guild-constants";
@@ -20,7 +20,8 @@ import {
 import { ClayReadSeal } from "./ClayReadSeal";
 import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { authorName, formatRelative } from "./guild-format";
-import { Linkified } from "@/components/Linkified";
+import { formatGuildBody } from "@/components/guild/format-body";
+import { FormatToolbar } from "./FormatToolbar";
 import { GuildReactions } from "./GuildReactions";
 
 const INITIAL: GuildFormState = { ok: false };
@@ -98,7 +99,7 @@ function Body({ text }: { text: string }) {
         marginTop: "0.8rem",
       }}
     >
-      <Linkified text={text} />
+      {formatGuildBody(text)}
     </div>
   );
 }
@@ -120,6 +121,7 @@ function ReplyComposer({
 }) {
   const [state, formAction, pending] = useActionState(postReplyAction, INITIAL);
   const [body, setBody] = useState("");
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (state.ok) {
@@ -135,7 +137,13 @@ function ReplyComposer({
       {parentReplyId && (
         <input type="hidden" name="parentReplyId" value={parentReplyId} />
       )}
+      <FormatToolbar
+        textareaRef={bodyRef}
+        value={body}
+        onChange={(v) => setBody(v.slice(0, MAX_REPLY))}
+      />
       <textarea
+        ref={bodyRef}
         name="body"
         value={body}
         onChange={(e) => setBody(e.target.value.slice(0, MAX_REPLY))}
@@ -201,6 +209,7 @@ function EditThreadForm({
   const [state, formAction, pending] = useActionState(editThreadAction, INITIAL);
   const [title, setTitle] = useState(thread.title);
   const [body, setBody] = useState(thread.body);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (state.ok) onDone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -224,7 +233,13 @@ function EditThreadForm({
           outline: "none",
         }}
       />
+      <FormatToolbar
+        textareaRef={bodyRef}
+        value={body}
+        onChange={(v) => setBody(v.slice(0, MAX_BODY))}
+      />
       <textarea
+        ref={bodyRef}
         name="body"
         value={body}
         onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
@@ -284,6 +299,7 @@ function EditReplyForm({
 }) {
   const [state, formAction, pending] = useActionState(editReplyAction, INITIAL);
   const [body, setBody] = useState(reply.body);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (state.ok) onDone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -292,7 +308,13 @@ function EditReplyForm({
     <form action={formAction} style={{ marginTop: "0.5rem" }}>
       <input type="hidden" name="id" value={reply.id} />
       <input type="hidden" name="threadId" value={reply.threadId} />
+      <FormatToolbar
+        textareaRef={bodyRef}
+        value={body}
+        onChange={(v) => setBody(v.slice(0, MAX_REPLY))}
+      />
       <textarea
+        ref={bodyRef}
         name="body"
         value={body}
         onChange={(e) => setBody(e.target.value.slice(0, MAX_REPLY))}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { postThreadAction, type GuildFormState } from "@/app/guild/actions";
+import { FormatToolbar } from "./FormatToolbar";
 import {
   GUILD_CATEGORIES,
   MAX_BODY,
@@ -25,6 +26,7 @@ export function NewThreadComposer() {
   const [body, setBody] = useState("");
   // Required. Empty until the author picks, which gates the Post button.
   const [category, setCategory] = useState<GuildCategory | "">("");
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   if (!open) {
     return (
@@ -121,7 +123,13 @@ export function NewThreadComposer() {
           outline: "none",
         }}
       />
+      <FormatToolbar
+        textareaRef={bodyRef}
+        value={body}
+        onChange={(v) => setBody(v.slice(0, MAX_BODY))}
+      />
       <textarea
+        ref={bodyRef}
         name="body"
         value={body}
         onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
