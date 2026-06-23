@@ -8,7 +8,7 @@ import { FoundingPageLayout } from "@/components/FoundingPageLayout";
 
 const TITLE = "Predator and Prey";
 const DECK =
-  "The founding piece of Stop Being Prey. Written April 14, 2026, seven months after Charlie Kirk was killed.";
+  "The founding piece of Stop Being Prey. Seven months after Charlie Kirk was killed.";
 
 export const metadata: Metadata = {
   title: `${TITLE} | Stop Being Prey`,
@@ -35,7 +35,7 @@ export default function CharlieKirkFoundingPage() {
   return (
     <FoundingPageLayout
       title={TITLE}
-      dateLine="Written April 14, 2026. Seven months after Charlie Kirk was killed."
+      dateLine="Seven months after Charlie Kirk was killed."
       companion={{
         title: "We Pray For Our Prey",
         href: "/founding/we-pray-for-our-prey",

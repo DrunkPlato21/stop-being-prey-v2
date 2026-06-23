@@ -9,7 +9,7 @@ import { FoundingPageLayout } from "@/components/FoundingPageLayout";
 
 const TITLE = "We Pray For Our Prey";
 const DECK =
-  "The grace dimension of the predator/prey doctrine. Written April 7, 2026, the morning after Easter.";
+  "The grace dimension of the predator/prey doctrine. The morning after Easter.";
 
 export const metadata: Metadata = {
   title: `${TITLE} | Stop Being Prey`,
@@ -36,7 +36,7 @@ export default function WePrayForOurPreyFoundingPage() {
   return (
     <FoundingPageLayout
       title={TITLE}
-      dateLine="Written April 7, 2026. The morning after Easter."
+      dateLine="The morning after Easter."
       companion={{
         title: "Predator and Prey",
         href: "/founding/predator-or-prey",

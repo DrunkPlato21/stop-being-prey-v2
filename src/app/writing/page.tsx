@@ -23,13 +23,13 @@ const FOUNDING = [
     numeral: "I",
     title: "Predator or Prey",
     href: "/founding/predator-or-prey",
-    deck: "The founding piece of Stop Being Prey. Written April 14, 2026, seven months after Charlie Kirk was killed.",
+    deck: "The founding piece of Stop Being Prey. Seven months after Charlie Kirk was killed.",
   },
   {
     numeral: "II",
     title: "We Pray For Our Prey",
     href: "/founding/we-pray-for-our-prey",
-    deck: "The grace dimension of the predator/prey doctrine. Written April 7, 2026, the morning after Easter.",
+    deck: "The grace dimension of the predator/prey doctrine. The morning after Easter.",
   },
 ];
 
