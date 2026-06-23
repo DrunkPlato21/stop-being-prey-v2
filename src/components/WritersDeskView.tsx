@@ -391,6 +391,9 @@ export function WritersDeskView({
   // Dev-only preview: visit /desk?firstrun=preview to see the new-member
   // panel even as admin / an established member. Never fires in prod.
   const [previewFirstRun, setPreviewFirstRun] = useState(false);
+  // Dev-only: /desk?glow=preview forces both room doorways lit so the glow
+  // can be seen and tuned without gaming live presence.
+  const [glowPreview, setGlowPreview] = useState(false);
   // Latch the latest-update id we've seen so we can mount-trigger the
   // fresh-update highlight when polling brings in a new one.
   const lastUpdateId = useRef<string | null>(
@@ -407,12 +410,10 @@ export function WritersDeskView({
 
   useEffect(() => {
     try {
-      if (
-        process.env.NODE_ENV !== "production" &&
-        new URLSearchParams(window.location.search).get("firstrun") ===
-          "preview"
-      ) {
-        setPreviewFirstRun(true);
+      if (process.env.NODE_ENV !== "production") {
+        const sp = new URLSearchParams(window.location.search);
+        if (sp.get("firstrun") === "preview") setPreviewFirstRun(true);
+        if (sp.get("glow") === "preview") setGlowPreview(true);
       }
     } catch {
       // no-op
@@ -505,7 +506,9 @@ export function WritersDeskView({
   // the last hour and a half. This is the room's open-sign, deliberately
   // NOT the green presence lamp (that one is Clay's, one of one).
   const GUILD_WARM_WINDOW_MS = 90 * 60 * 1000;
-  const loungeLit = rooms.lounge.activeNow > 0;
+  // ?glow=preview lights only the Lounge so it sits next to the dark Guild
+  // door for an at-a-glance lit-vs-unlit comparison.
+  const loungeLit = glowPreview || rooms.lounge.activeNow > 0;
   const guildWarmAt = Math.max(
     rooms.guild.latest?.lastActivityAt ?? 0,
     rooms.guild.questionOfWeek?.lastActivityAt ?? 0

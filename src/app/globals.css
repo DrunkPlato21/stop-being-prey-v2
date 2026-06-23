@@ -3993,25 +3993,49 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
    a candle in the window. */
 .doorway {
   display: inline-flex;
+  position: relative;
+  isolation: isolate;
 }
+/* The light itself: a soft pool behind the glyph, hot near-white at the
+   core fading out to amber, so it reads as a lamp glowing rather than a
+   colored outline. The glyph sits in front of it (z-index), catching a
+   faint warm edge. */
 .doorway-lit {
-  filter:
-    drop-shadow(0 0 7px rgba(201, 162, 74, 0.7))
-    drop-shadow(0 0 3px rgba(201, 162, 74, 0.55));
+  /* The mark is drawn with var(--eye-deep) (olive). Override it locally so
+     the glyph itself warms to lamplight gold when the room is lit, like the
+     lamp turned on, rather than a colored blob behind a still-dark icon. */
+  --eye-deep: rgb(226, 168, 62);
+}
+.doorway-lit::before {
+  content: "";
+  position: absolute;
+  inset: -28%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 238, 198, 0.8) 0%,
+    rgba(243, 192, 92, 0.32) 42%,
+    transparent 68%
+  );
+  z-index: -1;
+  pointer-events: none;
   animation: doorway-flicker 5s ease-in-out infinite;
 }
+.doorway-lit svg {
+  filter: drop-shadow(0 0 2px rgba(255, 226, 150, 0.85));
+}
+/* Faint irregular wobble on the light pool: a candle in the window, not a
+   clean pulse (that's the green presence lamp's job). */
 @keyframes doorway-flicker {
   0%, 100% { opacity: 1; }
-  14% { opacity: 0.84; }
-  18% { opacity: 1; }
-  43% { opacity: 0.92; }
-  47% { opacity: 1; }
-  64% { opacity: 0.8; }
-  69% { opacity: 1; }
-  87% { opacity: 0.9; }
+  22% { opacity: 0.82; }
+  27% { opacity: 1; }
+  62% { opacity: 0.8; }
+  67% { opacity: 1; }
+  89% { opacity: 0.9; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .doorway-lit {
+  .doorway-lit::before {
     animation: none;
   }
 }
