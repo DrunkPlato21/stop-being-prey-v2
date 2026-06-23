@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { postThreadAction, type GuildFormState } from "@/app/guild/actions";
 import { FormatToolbar } from "./FormatToolbar";
+import { GuildImagePicker } from "./GuildImagePicker";
 import {
   GUILD_CATEGORIES,
   MAX_BODY,
@@ -26,6 +27,7 @@ export function NewThreadComposer() {
   const [body, setBody] = useState("");
   // Required. Empty until the author picks, which gates the Post button.
   const [category, setCategory] = useState<GuildCategory | "">("");
+  const [imageUploading, setImageUploading] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   if (!open) {
@@ -149,6 +151,7 @@ export function NewThreadComposer() {
           resize: "vertical",
         }}
       />
+      <GuildImagePicker onUploadingChange={setImageUploading} />
       {state.error && (
         <p style={{ color: "var(--blood)", fontSize: "0.85rem", marginTop: "0.6rem" }}>
           {state.error}
@@ -173,7 +176,13 @@ export function NewThreadComposer() {
         </button>
         <button
           type="submit"
-          disabled={pending || !title.trim() || !body.trim() || !category}
+          disabled={
+            pending ||
+            imageUploading ||
+            !title.trim() ||
+            !body.trim() ||
+            !category
+          }
           className="font-display uppercase tracking-[0.18em] transition-opacity"
           style={{
             background: "var(--eye-deep)",
@@ -185,7 +194,13 @@ export function NewThreadComposer() {
             fontWeight: 600,
             cursor: pending ? "default" : "pointer",
             opacity:
-              pending || !title.trim() || !body.trim() || !category ? 0.5 : 1,
+              pending ||
+              imageUploading ||
+              !title.trim() ||
+              !body.trim() ||
+              !category
+                ? 0.5
+                : 1,
           }}
         >
           {pending ? "Posting…" : "Post thread"}

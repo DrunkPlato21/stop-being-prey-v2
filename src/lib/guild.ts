@@ -77,6 +77,16 @@ const REPLY_COOLDOWN_SECONDS = 15;
 // Types
 // --------------------------------------------------------------------
 
+// One optional image on a thread (replies stay text). Lives in our own
+// Vercel Blob store — the client downscales + re-encodes to WebP before
+// upload, same pipeline as the Lounge.
+export type GuildImageMedia = {
+  type: "image";
+  url: string;
+  width: number;
+  height: number;
+};
+
 export type GuildThread = {
   id: string;
   authorEmail: string;
@@ -97,6 +107,8 @@ export type GuildThread = {
   // When Clay marked this thread read. null = unseen by the king.
   clayReadAt: number | null;
   deleted: boolean;
+  // Optional attached image. Absent/null on text-only and legacy threads.
+  media?: GuildImageMedia | null;
 };
 
 export type GuildReply = {
@@ -205,11 +217,36 @@ export type CreateThreadResult =
   | { ok: true; thread: GuildThread }
   | { ok: false; error: "storage_unavailable" | "rate_limited" | "invalid" };
 
+// An attached image must point at our own Blob store and have sane
+// dimensions. Anything else is dropped to null (the thread just posts
+// without an image) rather than rejected. Mirrors the Lounge's check.
+const BLOB_HOST_RE = /\.public\.blob\.vercel-storage\.com$/i;
+const MAX_MEDIA_DIM = 5000;
+
+function validateThreadImage(raw: unknown): GuildImageMedia | null {
+  if (!raw || typeof raw !== "object") return null;
+  const m = raw as Record<string, unknown>;
+  if (m.type !== "image") return null;
+  const url = typeof m.url === "string" ? m.url : "";
+  const w = typeof m.width === "number" ? m.width : 0;
+  const h = typeof m.height === "number" ? m.height : 0;
+  let host = "";
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return null;
+  }
+  if (!BLOB_HOST_RE.test(host)) return null;
+  if (!(w > 0 && w <= MAX_MEDIA_DIM && h > 0 && h <= MAX_MEDIA_DIM)) return null;
+  return { type: "image", url, width: Math.round(w), height: Math.round(h) };
+}
+
 export async function createThread(args: {
   authorEmail: string;
   title: string;
   body: string;
   category: string;
+  media?: unknown;
 }): Promise<CreateThreadResult> {
   const client = getClient();
   if (!client) return { ok: false, error: "storage_unavailable" };
@@ -217,6 +254,7 @@ export async function createThread(args: {
   const title = args.title.trim().slice(0, MAX_TITLE);
   const body = args.body.trim().slice(0, MAX_BODY);
   if (!title || !body) return { ok: false, error: "invalid" };
+  const media = validateThreadImage(args.media);
   // The composer forces a valid pick; a direct POST might not. Coerce
   // anything unrecognized to the default rather than reject.
   const category: GuildCategory = isGuildCategory(args.category)
@@ -241,6 +279,7 @@ export async function createThread(args: {
     pinned: false,
     clayReadAt: null,
     deleted: false,
+    media,
   };
   await client.set(`${THREAD_PREFIX}${thread.id}`, JSON.stringify(thread));
   await client.zadd(THREADS_INDEX, { score: now, member: thread.id });

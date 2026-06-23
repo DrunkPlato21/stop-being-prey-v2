@@ -72,11 +72,25 @@ export async function postThreadAction(
   const body = String(formData.get("body") ?? "");
   const category = String(formData.get("category") ?? "");
 
+  // Optional attached image: the composer uploads it client-side and posts
+  // the resulting Blob URL + dimensions as hidden fields. createThread
+  // re-validates the URL is from our own Blob store.
+  const mediaUrl = String(formData.get("mediaUrl") ?? "");
+  const media = mediaUrl
+    ? {
+        type: "image",
+        url: mediaUrl,
+        width: Number(formData.get("mediaWidth") ?? 0),
+        height: Number(formData.get("mediaHeight") ?? 0),
+      }
+    : null;
+
   const result = await createThread({
     authorEmail: session.email,
     title,
     body,
     category,
+    media,
   });
   if (!result.ok) return { ok: false, error: messageFor(result.error) };
 

@@ -22,6 +22,7 @@ import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { authorName, formatRelative } from "./guild-format";
 import { formatGuildBody } from "@/components/guild/format-body";
 import { FormatToolbar } from "./FormatToolbar";
+import { GuildImage } from "./GuildImage";
 import { GuildReactions } from "./GuildReactions";
 
 const INITIAL: GuildFormState = { ok: false };
@@ -656,6 +657,7 @@ export function ThreadView({
               {thread.clayReadAt && <ClayReadSeal at={thread.clayReadAt} />}
             </div>
             <Body text={thread.body} />
+            {thread.media && <GuildImage media={thread.media} />}
           </>
         )}
 
