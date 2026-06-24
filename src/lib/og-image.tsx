@@ -276,9 +276,9 @@ export async function generateMembershipOG(): Promise<ImageResponse> {
  */
 export async function generateAboutOG(): Promise<ImageResponse> {
   const eyebrow = "About · Stop Being Prey";
-  const title = "What this is.";
+  const title = "The fight I lost.";
   const deck =
-    "A note from Clay. Recovering libertarian, writing the playbook. The work that doesn't fit on Facebook. On power, politics, and the apex class.";
+    "The argument I lost in 2015, the Sowell page it built, and the doctrine I forged in the comments. How I stopped being prey.";
 
   const [cormorant700, sourceSerifItalic] = await Promise.all([
     loadFont("cormorant-garamond-700.ttf"),
@@ -383,6 +383,254 @@ export async function generateAboutOG(): Promise<ImageResponse> {
             }}
           >
             stopbeingprey.com/about
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      ...OG_SIZE,
+      fonts: fonts.length > 0 ? fonts : undefined,
+    }
+  );
+}
+
+/**
+ * Wall-themed OG card. Same chassis as the others (pattern replication).
+ * Title mirrors the page's own headline ("Add your name.").
+ */
+export async function generateWallOG(): Promise<ImageResponse> {
+  const eyebrow = "The Wall · Stop Being Prey";
+  const title = "Add your name.";
+  const deck =
+    "Stop Being Prey runs on readers, not ads or sponsors. Back it with a dollar and your name goes on the wall.";
+
+  const [cormorant700, sourceSerifItalic] = await Promise.all([
+    loadFont("cormorant-garamond-700.ttf"),
+    loadFont("source-serif-4-italic.ttf"),
+  ]);
+
+  const fonts: NonNullable<
+    ConstructorParameters<typeof ImageResponse>[1]
+  >["fonts"] = [];
+  if (cormorant700) {
+    fonts.push({
+      name: "Cormorant Garamond",
+      data: cormorant700,
+      weight: 700,
+      style: "normal",
+    });
+  }
+  if (sourceSerifItalic) {
+    fonts.push({
+      name: "Source Serif",
+      data: sourceSerifItalic,
+      weight: 400,
+      style: "italic",
+    });
+  }
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: "1200px",
+          height: "630px",
+          background: "#0c0a08",
+          display: "flex",
+          fontFamily: "Cormorant Garamond, serif",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            position: "absolute",
+            top: "96px",
+            left: "96px",
+            right: "96px",
+            bottom: "96px",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div
+              style={{
+                color: "#b8a82c",
+                fontSize: 22,
+                letterSpacing: "0.32em",
+                textTransform: "uppercase",
+                fontWeight: 700,
+                marginBottom: 48,
+              }}
+            >
+              {eyebrow}
+            </div>
+            <div
+              style={{
+                color: "#f5efe1",
+                fontSize: 104,
+                fontWeight: 700,
+                lineHeight: 1.02,
+                letterSpacing: "-0.025em",
+                marginBottom: 40,
+              }}
+            >
+              {title}
+            </div>
+            <div
+              style={{
+                color: "#d8cfb8",
+                fontSize: 33,
+                fontStyle: "italic",
+                lineHeight: 1.35,
+                fontFamily: "Source Serif, Cormorant Garamond, serif",
+                fontWeight: 400,
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: 3,
+                overflow: "hidden",
+                maxWidth: 980,
+              }}
+            >
+              {deck}
+            </div>
+          </div>
+
+          <div
+            style={{
+              color: "#8a7d20",
+              fontSize: 18,
+              letterSpacing: "0.28em",
+              textTransform: "uppercase",
+              fontWeight: 700,
+            }}
+          >
+            stopbeingprey.com/wall
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      ...OG_SIZE,
+      fonts: fonts.length > 0 ? fonts : undefined,
+    }
+  );
+}
+
+/**
+ * Rules / doctrine OG card. Same chassis as the others (pattern
+ * replication). The most-shared page — the doctrine front door.
+ */
+export async function generateRulesOG(): Promise<ImageResponse> {
+  const eyebrow = "The Doctrine · Stop Being Prey";
+  const title = "The 7 Rules.";
+  const deck =
+    "Power decides, not righteousness. Seven rules for everyone tired of being the prey. The first one's free.";
+
+  const [cormorant700, sourceSerifItalic] = await Promise.all([
+    loadFont("cormorant-garamond-700.ttf"),
+    loadFont("source-serif-4-italic.ttf"),
+  ]);
+
+  const fonts: NonNullable<
+    ConstructorParameters<typeof ImageResponse>[1]
+  >["fonts"] = [];
+  if (cormorant700) {
+    fonts.push({
+      name: "Cormorant Garamond",
+      data: cormorant700,
+      weight: 700,
+      style: "normal",
+    });
+  }
+  if (sourceSerifItalic) {
+    fonts.push({
+      name: "Source Serif",
+      data: sourceSerifItalic,
+      weight: 400,
+      style: "italic",
+    });
+  }
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: "1200px",
+          height: "630px",
+          background: "#0c0a08",
+          display: "flex",
+          fontFamily: "Cormorant Garamond, serif",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            position: "absolute",
+            top: "96px",
+            left: "96px",
+            right: "96px",
+            bottom: "96px",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div
+              style={{
+                color: "#b8a82c",
+                fontSize: 22,
+                letterSpacing: "0.32em",
+                textTransform: "uppercase",
+                fontWeight: 700,
+                marginBottom: 48,
+              }}
+            >
+              {eyebrow}
+            </div>
+            <div
+              style={{
+                color: "#f5efe1",
+                fontSize: 104,
+                fontWeight: 700,
+                lineHeight: 1.02,
+                letterSpacing: "-0.025em",
+                marginBottom: 40,
+              }}
+            >
+              {title}
+            </div>
+            <div
+              style={{
+                color: "#d8cfb8",
+                fontSize: 33,
+                fontStyle: "italic",
+                lineHeight: 1.35,
+                fontFamily: "Source Serif, Cormorant Garamond, serif",
+                fontWeight: 400,
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: 3,
+                overflow: "hidden",
+                maxWidth: 980,
+              }}
+            >
+              {deck}
+            </div>
+          </div>
+
+          <div
+            style={{
+              color: "#8a7d20",
+              fontSize: 18,
+              letterSpacing: "0.28em",
+              textTransform: "uppercase",
+              fontWeight: 700,
+            }}
+          >
+            stopbeingprey.com/rules
           </div>
         </div>
       </div>

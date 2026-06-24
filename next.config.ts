@@ -29,6 +29,10 @@ const nextConfig: NextConfig = {
     "/membership/twitter-image": ["assets/**/*"],
     "/about/opengraph-image": ["assets/**/*"],
     "/about/twitter-image": ["assets/**/*"],
+    "/wall/opengraph-image": ["assets/**/*"],
+    "/wall/twitter-image": ["assets/**/*"],
+    "/rules/opengraph-image": ["assets/**/*"],
+    "/rules/twitter-image": ["assets/**/*"],
     // The 404 page suggests a few essays, read from content/articles via
     // fs. Opt the dir into the not-found bundle so the suggestions render
     // in production (degrades to no suggestions if absent, never crashes).
