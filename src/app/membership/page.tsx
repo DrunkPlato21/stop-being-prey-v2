@@ -18,7 +18,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Membership",
   description:
-    "Inside Stop Being Prey. Commenting access, the Field Notes archive, early access to every essay, and first in line for the book. Charter membership is open: your rate locked for life on the next 100.",
+    "Inside Stop Being Prey. Commenting access, early access to every essay, and first in line for the book. Charter membership is open: your rate locked for life on the next 100.",
 };
 
 // Counter is rendered fresh on each request (no caching) so the
@@ -49,21 +49,15 @@ const BENEFITS: Benefit[] = [
     ],
   },
   {
-    eyebrow: "rules of engagement",
-    body: [
-      "Seven rules. The doctrine of the operator class. The framework that turns losing arguments into public demonstrations.",
-    ],
-  },
-  {
     eyebrow: "Case Files",
     body: [
       "Where the Rules come alive. Real comment-section battles dissected, with the actual lines you can deploy when it happens to you. You can submit your own.",
     ],
   },
   {
-    eyebrow: "Field Notes",
+    eyebrow: "the Guild",
     body: [
-      "The director's commentary on my work. The back story. The moves I made in real time that didn't make it into the essays. Annotated breakdowns of real engagements plus the off-platform writing the algorithms throttle.",
+      "The deep room, and the closest you can get to me. Bring a real fight: the argument you're losing, the comment battle you're stuck in, the idea you're working out. The room sharpens it, and I'm in there too. The Lounge is for talk. This is for the work.",
     ],
   },
   {
@@ -119,7 +113,7 @@ type FAQEntry = {
 const FAQ: FAQEntry[] = [
   {
     q: "what does membership get me?",
-    a: "commenting access on every piece, the Field Notes archive, 24 to 48 hours of early access on new essays and walls, and the manuscript when the book lands.",
+    a: "commenting access on every piece, 24 to 48 hours of early access on new essays and walls, and the manuscript when the book lands.",
   },
   {
     q: "what's the founder badge?",

@@ -23,13 +23,13 @@ const FOUNDING = [
     numeral: "I",
     title: "Predator or Prey",
     href: "/founding/predator-or-prey",
-    deck: "The founding piece of Stop Being Prey. Seven months after Charlie Kirk was killed.",
+    deck: "The founding piece of Stop Being Prey. Written seven months after Charlie Kirk was killed.",
   },
   {
     numeral: "II",
     title: "We Pray For Our Prey",
     href: "/founding/we-pray-for-our-prey",
-    deck: "The grace dimension of the predator/prey doctrine. The morning after Easter.",
+    deck: "The grace dimension of the predator/prey doctrine. Written the morning after Easter.",
   },
 ];
 
@@ -109,7 +109,7 @@ export default function EssaysPage() {
                   {piece.numeral}
                 </p>
                 <h2
-                  className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep transition-colors"
+                  className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep group-hover:translate-x-1.5 transition-all duration-300 ease-out"
                   style={{
                     fontSize: "clamp(2.1rem, 4.5vw, 3rem)",
                     fontWeight: 700,
@@ -158,7 +158,7 @@ export default function EssaysPage() {
                       )}
                     </div>
                     <h2
-                      className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep transition-colors"
+                      className="font-display text-ink leading-tight tracking-tight mb-3 group-hover:text-eye-deep group-hover:translate-x-1.5 transition-all duration-300 ease-out"
                       style={{
                         fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)",
                         fontWeight: 700,
