@@ -6,6 +6,7 @@ import {
   getAllArticles,
   getCornerstones,
   audioRuntimeMinutes,
+  readingMinutes,
 } from "@/lib/articles";
 import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
 
@@ -192,12 +193,10 @@ export default function Home() {
                   <span>By Clay</span>
                   <span className="text-rule">·</span>
                   <span>{formatDate(featured.date)}</span>
-                  {featured.wordCount && (
+                  {readingMinutes(featured) && (
                     <>
                       <span className="text-rule">·</span>
-                      <span>
-                        {featured.wordCount.toLocaleString("en-US")} words
-                      </span>
+                      <span>{readingMinutes(featured)} min read</span>
                     </>
                   )}
                 </div>

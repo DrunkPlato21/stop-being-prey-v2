@@ -3,7 +3,7 @@ title: "It's Just a Shot Away"
 slug: "its-just-a-shot-away"
 date: "2026-04-29"
 cornerstone: true
-description: "A 1969 warning shot, a murdered friend, and the drumbeat underneath it all. What's a shot away, and what's a kiss away."
+description: "A 1969 warning shot, a public assassination, and the drumbeat underneath it all. What's a shot away, and what's a kiss away."
 ---
 
 I go through phases with music...
