@@ -5,10 +5,25 @@ import { SignTheWall } from "@/components/SignTheWall";
 import { LightningCard } from "@/components/LightningCard";
 import { EyeDivider } from "@/components/Eyes";
 
+// See about/page.tsx: override social-card text or it inherits the generic
+// root copy. Card image comes from opengraph-image.tsx.
+const WALL_DESCRIPTION =
+  "Stop Being Prey runs on readers, not ads or sponsors. Add your name.";
+
 export const metadata: Metadata = {
   title: "The Wall",
-  description:
-    "Stop Being Prey runs on readers, not ads or sponsors. Add your name.",
+  description: WALL_DESCRIPTION,
+  openGraph: {
+    title: "The Wall · Stop Being Prey",
+    description: WALL_DESCRIPTION,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Wall · Stop Being Prey",
+    description: WALL_DESCRIPTION,
+    creator: "@stopbeingprey",
+  },
 };
 
 export const revalidate = 60;

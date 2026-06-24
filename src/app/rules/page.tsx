@@ -32,10 +32,25 @@ import { RulesUnlock } from "./RulesUnlock";
 // Lives at the top-level /rules (NOT under /notes/*), which the proxy
 // gates. Old members' links to /notes/rules get a 301 here in proxy.ts.
 
+// See about/page.tsx: override social-card text or it inherits the generic
+// root copy. Card image comes from opengraph-image.tsx.
+const RULES_DESCRIPTION =
+  "Seven rules. The predator-prey doctrine of engagement. They explain every political conversation you've ever lost.";
+
 export const metadata: Metadata = {
   title: "Rules of Engagement",
-  description:
-    "Seven rules. The predator-prey doctrine of engagement. They explain every political conversation you've ever lost.",
+  description: RULES_DESCRIPTION,
+  openGraph: {
+    title: "Rules of Engagement · Stop Being Prey",
+    description: RULES_DESCRIPTION,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Rules of Engagement · Stop Being Prey",
+    description: RULES_DESCRIPTION,
+    creator: "@stopbeingprey",
+  },
 };
 
 export const dynamic = "force-dynamic";

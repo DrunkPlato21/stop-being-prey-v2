@@ -4,10 +4,28 @@ import { EyeDivider } from "@/components/Eyes";
 import { AuthorBio } from "@/components/AuthorBio";
 import type { Metadata } from "next";
 
+// Social-card text. The root layout hardcodes openGraph/twitter title +
+// description, and a child that omits openGraph inherits the parent's verbatim
+// (Next 16 replaces the whole block, never merges). So override them here or the
+// /about share card falls back to the generic site copy. The image is wired
+// separately via opengraph-image.tsx.
+const ABOUT_DESCRIPTION =
+  "How I stopped being prey. The argument I lost in 2015, the Sowell page it built, and the doctrine I forged in the comments.";
+
 export const metadata: Metadata = {
   title: "About",
-  description:
-    "How I stopped being prey. The argument I lost in 2015, the Sowell page it built, and the doctrine I forged in the comments.",
+  description: ABOUT_DESCRIPTION,
+  openGraph: {
+    title: "About · Stop Being Prey",
+    description: ABOUT_DESCRIPTION,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About · Stop Being Prey",
+    description: ABOUT_DESCRIPTION,
+    creator: "@stopbeingprey",
+  },
 };
 
 // About is a narrative origin story, not a masthead — it argues the brand by
