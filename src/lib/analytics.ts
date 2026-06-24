@@ -73,6 +73,7 @@ export const TRACK_SOURCES = [
   "gift",
   "pool",
   "rules",
+  "about",
   "comments",
   "unknown",
 ] as const;

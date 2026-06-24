@@ -2,6 +2,8 @@ import Link from "next/link";
 import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
 import { EyeDivider } from "@/components/Eyes";
 import { AuthorBio } from "@/components/AuthorBio";
+import { ReadingTracker } from "@/components/ReadingTracker";
+import { TrackOnView } from "@/components/TrackOnView";
 import type { Metadata } from "next";
 
 // Social-card text. The root layout hardcodes openGraph/twitter title +
@@ -96,6 +98,11 @@ const STORY_CLOSE: string[] = [
 export default function AboutPage() {
   return (
     <div>
+      {/* Funnel: fires a `view` on load, then scroll milestones through the
+          story body (#reading-region), so /about gets the same landed ->
+          drop-off read as an article. Conversions attribute to source
+          "about" via the form below. Surfaced in /admin/analytics. */}
+      <ReadingTracker slug="about" />
       <section className="border-b border-rule">
         <div className="max-w-4xl mx-auto px-6 pt-16 md:pt-24 pb-12 text-center">
           <p className="eyebrow mb-6 fade-up stagger-1">Why this exists</p>
@@ -119,7 +126,7 @@ export default function AboutPage() {
         <AuthorBio priority />
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
+      <div id="reading-region" className="max-w-3xl mx-auto px-6 py-12 md:py-16">
         <div className="prose-article">
           {STORY_OPEN.map((para, i) => (
             <p key={`open-${i}`}>{para}</p>
@@ -205,7 +212,10 @@ export default function AboutPage() {
 
       <section className="max-w-3xl mx-auto px-6 py-16 text-center">
         <p className="eyebrow mb-8">Stay close</p>
-        <DualSubscribeBlock />
+        {/* form_seen fires when the signup actually scrolls into view, so the
+            dashboard separates "reached the form" from "never got there". */}
+        <TrackOnView event="form_seen" slug="about" source="about" />
+        <DualSubscribeBlock source="about" slug="about" />
       </section>
 
       <div className="text-center pb-16">

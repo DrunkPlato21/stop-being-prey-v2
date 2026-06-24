@@ -46,6 +46,13 @@ type Row = {
   c: EventCounts;
 };
 
+// Non-article pages instrumented with the same view/scroll/form_seen/sub
+// funnel (ReadingTracker + TrackOnView). They write to analytics:article:<slug>
+// like an article but aren't in getAllArticles(), so they get their own table.
+const STATIC_FUNNEL: { slug: string; title: string }[] = [
+  { slug: "about", title: "About" },
+];
+
 export default async function AnalyticsAdminPage({
   searchParams,
 }: {
@@ -56,14 +63,24 @@ export default async function AnalyticsAdminPage({
 
   const articles = getAllArticles();
   const slugs = articles.map((a) => a.slug);
-  const [counts, sources, channels, membership, engagement] =
+  const [counts, staticCounts, sources, channels, membership, engagement] =
     await Promise.all([
       getArticleCounts(slugs, dev),
+      getArticleCounts(
+        STATIC_FUNNEL.map((p) => p.slug),
+        dev
+      ),
       getSourceCounts(dev),
       getChannelCounts(dev),
       getMembershipStats(dev),
       getEngagementStats(),
     ]);
+
+  const staticRows: Row[] = STATIC_FUNNEL.map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    c: staticCounts.get(p.slug) ?? {},
+  }));
 
   const rows: Row[] = articles
     .map((a) => ({ slug: a.slug, title: a.title, c: counts.get(a.slug) ?? {} }))
@@ -230,6 +247,71 @@ export default async function AnalyticsAdminPage({
               );
             })}
             {rows.every((r) => n(r.c, "view") === 0) && (
+              <tr className="border-t border-rule">
+                <Td className="text-left text-ink-faint" colSpan={10}>
+                  No events recorded yet
+                  {dev ? "" : " (data starts after the next deploy gets traffic)"}.
+                </Td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Static pages — non-article surfaces instrumented with the same
+          funnel (e.g. /about). Same columns as the article table so the
+          landed -> form -> signup drop-off reads the same way. */}
+      <h2 className="eyebrow mt-12 mb-3">Static pages</h2>
+      <div className="overflow-x-auto border border-rule">
+        <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr className="text-left text-ink-faint uppercase tracking-wider">
+              <Th className="text-left">Page</Th>
+              <Th>Views</Th>
+              <Th>25%</Th>
+              <Th>50%</Th>
+              <Th>75%</Th>
+              <Th>100%</Th>
+              <Th>Form seen</Th>
+              <Th>Sub</Th>
+              <Th>Conf.</Th>
+              <Th>Conv.</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {staticRows.map((r) => {
+              const v = n(r.c, "view");
+              return (
+                <tr key={r.slug} className="border-t border-rule">
+                  <Td className="text-left">
+                    <Link
+                      href={`/${r.slug}`}
+                      className="text-ink hover:text-eye-deep font-medium"
+                    >
+                      {r.title}
+                    </Link>
+                  </Td>
+                  <Td>{v.toLocaleString()}</Td>
+                  <Td sub={pct(n(r.c, "scroll_25"), v)}>
+                    {n(r.c, "scroll_25").toLocaleString()}
+                  </Td>
+                  <Td sub={pct(n(r.c, "scroll_50"), v)}>
+                    {n(r.c, "scroll_50").toLocaleString()}
+                  </Td>
+                  <Td sub={pct(n(r.c, "scroll_75"), v)}>
+                    {n(r.c, "scroll_75").toLocaleString()}
+                  </Td>
+                  <Td sub={pct(n(r.c, "scroll_100"), v)}>
+                    {n(r.c, "scroll_100").toLocaleString()}
+                  </Td>
+                  <Td>{n(r.c, "form_seen").toLocaleString()}</Td>
+                  <Td>{n(r.c, "sub_submit").toLocaleString()}</Td>
+                  <Td>{n(r.c, "sub_success").toLocaleString()}</Td>
+                  <Td>{pct(n(r.c, "sub_success"), v)}</Td>
+                </tr>
+              );
+            })}
+            {staticRows.every((r) => n(r.c, "view") === 0) && (
               <tr className="border-t border-rule">
                 <Td className="text-left text-ink-faint" colSpan={10}>
                   No events recorded yet

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EmailSignup } from "@/components/EmailSignup";
 import { SubscriberCount } from "@/components/SubscriberCount";
 import { MemberCount } from "@/components/MemberCount";
+import type { TrackSource } from "@/lib/analytics";
 
 // Site-wide conversion surface. Replaces the older email-only
 // subscribe blocks: every "ask the reader to stay" moment now
@@ -22,10 +23,18 @@ import { MemberCount } from "@/components/MemberCount";
 //   - Stripe success / confirmation pages (decision already made)
 //   - Inline mid-essay tactical email asks (keep those focused)
 
+// `source`/`slug` flow through to the email form's funnel attribution so a
+// given placement (about page, a founding piece) can be measured on its own
+// instead of pooling into the shared "dual" bucket. Default stays "dual" so
+// existing call sites are unchanged.
 export function DualSubscribeBlock({
   className = "",
+  source = "dual",
+  slug,
 }: {
   className?: string;
+  source?: TrackSource;
+  slug?: string;
 }) {
   return (
     <div
@@ -41,7 +50,7 @@ export function DualSubscribeBlock({
           The writing, straight to your inbox. Free. Start here.
         </p>
         <SubscriberCount className="mb-3" />
-        <EmailSignup source="dual" />
+        <EmailSignup source={source} slug={slug} />
       </div>
 
       {/* BY MEMBERSHIP — paid path. Vertical olive rule on desktop
