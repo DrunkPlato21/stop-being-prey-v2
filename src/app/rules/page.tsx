@@ -17,8 +17,7 @@ import {
   getFounderClaimed,
 } from "@/lib/members";
 import { markOnboardingStep } from "@/lib/onboarding";
-import { RULES_UNLOCK_COOKIE } from "@/lib/rules-unlock";
-import { RulesUnlock } from "./RulesUnlock";
+import { EmailSignup } from "@/components/EmailSignup";
 
 // The Rules of Engagement — the public front door. The doctrine is the
 // lure; practice (the Case Files, the Guild, Clay's presence) is the
@@ -104,34 +103,6 @@ const RULES: Rule[] = [
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
-// Rules numbered at or below this are free to read; the rest are gated
-// behind the email-or-membership unlock. Rule I is the free taste: it
-// names the problem (you keep walking into traps) and proves the writing,
-// while the moves that pay it off stay locked.
-const FREE_RULES = 1;
-
-// Small engraved lock marking each gated rule, olive to match the numerals
-// and crests rather than a colorful emoji.
-function LockMark() {
-  return (
-    <svg
-      className="rule-lock"
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
 // The axiom sits above the rules: not a numbered rule, the premise the
 // seven rest on. Rendered as a distinct, weightier framed statement
 // between the hero and the rule list. Copy is the author's, verbatim.
@@ -178,14 +149,10 @@ export default async function RulesPage() {
     // no-op
   }
 
-  // The doctrine gate. A member always sees everything; a stranger who
-  // dropped their email carries the unlock cookie. Either way `unlocked`
-  // means the full rule bodies render; otherwise only Rule I is free and
-  // II-VII show as locked titles above the unlock gate. emailUnlocked is
-  // tracked separately so a non-member who unlocked still gets the
-  // membership upsell at the foot of the page.
-  const emailUnlocked = cookieStore.get(RULES_UNLOCK_COOKIE)?.value === "1";
-  const unlocked = signedIn || emailUnlocked;
+  // The doctrine is fully public now: every reader gets all seven rules,
+  // no email wall. The page still deepens when signed in (member
+  // enrichments below) and shows non-members the join + email asks at the
+  // foot, after the value, instead of as a tollbooth in front of it.
 
   // Live offer state for the stranger CTA only — members never see it,
   // so skip the Redis reads for them. Mirrors the /membership state
@@ -214,34 +181,6 @@ export default async function RulesPage() {
         } left. $13/month floor, or pay what it's worth. Your rate locked for life, with your slot number.`
       : "$13/month floor, or pay what it's worth. Locked for life.";
 
-  // Membership path shown inside the unlock gate: the real key, beneath the
-  // free email key. Server-rendered so the seat pricing stays live.
-  const gateMembershipCta = (
-    <>
-      <p
-        className="font-serif text-ink-soft mb-3"
-        style={{ fontSize: "1rem", lineHeight: 1.6 }}
-      >
-        Or take a seat. Members get the doctrine plus the practice: every rule
-        drilled against a live kill in the Case Files, argued in the Guild,
-        with Clay in the room.
-      </p>
-      <p
-        className="font-serif text-ink-soft mb-4"
-        style={{ fontSize: "0.95rem", lineHeight: 1.6 }}
-      >
-        {seatLine}
-      </p>
-      <Link
-        href="/membership"
-        className="text-eye-deep hover:text-ink no-underline transition-colors"
-        style={{ fontWeight: 600 }}
-      >
-        Take the seat &rarr;
-      </Link>
-    </>
-  );
-
   const fieldNotesBySlug: Record<string, FieldNoteMeta> = Object.fromEntries(
     getAllFieldNotes().map((n) => [n.slug, n])
   );
@@ -265,14 +204,6 @@ export default async function RulesPage() {
   // intent moment in the funnel. Null if no case file is public yet.
   const bridgeCase = getPublicCaseFiles()[0] ?? null;
   const bridgeRule = bridgeCase?.rulesApplied[0];
-
-  // Rule I reads free; II-VII unlock by email or membership. When unlocked
-  // (member or email), all seven render full in one list. When locked, only
-  // the free rules render full, and the locked ones move into the gate as a
-  // compact title list so the tease and the ask sit together, high on the
-  // page, instead of six tall cards burying the CTA at the foot.
-  const freeRules = RULES.filter((r) => r.number <= FREE_RULES);
-  const lockedRules = RULES.filter((r) => r.number > FREE_RULES);
 
   // Full rule card (numeral, title, body, member enrichments). Shared by the
   // unlocked all-seven list and the locked free-rules list.
@@ -351,37 +282,6 @@ export default async function RulesPage() {
       </Fragment>
     );
   };
-
-  // Locked rule row (stranger, pre-unlock): numeral + title + lock, dimmed,
-  // no body. The titles flow down the page as the tease; the sticky bar
-  // carries the ask. idx drives the divider so II-VII sit under Rule I as
-  // one continuous list.
-  const lockedRuleCard = (rule: Rule, idx: number) => (
-    <Fragment key={rule.number}>
-      {idx > 0 && (
-        <li aria-hidden="true" className="rule-divider-li">
-          <div className="rule-divider">·</div>
-        </li>
-      )}
-      <li
-        id={`rule-${rule.number}`}
-        className="rule-card rule-card--locked"
-      >
-        <div className="flex items-baseline gap-5 md:gap-8">
-          <span className="rule-numeral" aria-hidden="true">
-            {ROMAN[rule.number - 1]}
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="rule-title">
-              <span className="sr-only">Rule {rule.number}:</span>
-              <span>{rule.title}</span>
-              <LockMark />
-            </h3>
-          </div>
-        </div>
-      </li>
-    </Fragment>
-  );
 
   return (
     <div className="rules-paper">
@@ -466,37 +366,22 @@ export default async function RulesPage() {
       </section>
 
       <section className="max-w-3xl mx-auto px-6 py-14 md:py-20">
-        {unlocked ? (
-          // Member or email-unlocked: the whole doctrine, one continuous list.
-          <ol className="rule-list" role="list">
-            {RULES.map((rule, idx) => fullRuleCard(rule, idx))}
-          </ol>
-        ) : (
-          // Stranger: reads as a public page. Rule I full, then the unlock
-          // ask inline at the seam (right where intent peaks), then the
-          // other six as dimmed locked rows — the tease of what just unlocked.
-          <>
-            <ol className="rule-list" role="list">
-              {freeRules.map((rule, idx) => fullRuleCard(rule, idx))}
-            </ol>
-            <RulesUnlock />
-            <ol className="rule-list" role="list">
-              {lockedRules.map((rule, idx) => lockedRuleCard(rule, idx))}
-            </ol>
-          </>
-        )}
+        {/* The whole doctrine, public, one continuous list. Members get the
+            same seven plus the enrichments inside each card. */}
+        <ol className="rule-list" role="list">
+          {RULES.map((rule, idx) => fullRuleCard(rule, idx))}
+        </ol>
 
-        {/* Join CTA ==============================================
-            Members get nothing here; they're already in, so the page just
-            ends after the doctrine. Strangers get a "join to train" CTA in
-            the same visual register as the case-file preview pitch
-            (paper-deep callout, olive border, single link to /membership)
-            so the funnel reads as one voice. */}
-        {signedIn ? null : unlocked ? (
+        {/* Foot asks — non-members only; members are already in, so the page
+            ends after the doctrine. After the value, two asks: take a seat
+            (the paid room), or for those not ready, take the writing by
+            email. No wall in front of the doctrine, only an invitation
+            after it. */}
+        {signedIn ? null : (
           <>
-            {/* Post-unlock bridge: doctrine just read -> proof it works ->
-                membership. Shows the top public case file as the live drill.
-                Copy is first-pass, Clay's to sharpen. */}
+            {/* Bridge: doctrine just read -> proof it works -> membership.
+                Shows the top public case file as the live drill. Copy is
+                first-pass, Clay's to sharpen. */}
             {bridgeCase && (
               <div className="mt-14">
                 <p
@@ -605,20 +490,30 @@ export default async function RulesPage() {
               </Link>
             </p>
             </div>
+
+            {/* The softer ask, sitting under the seat: not ready to pay, but
+                moved. Take the writing free. Lower-key than the seat box so
+                the hierarchy reads seat-first, email-as-fallback. Signups
+                here attribute to source "rules". Copy is first-pass. */}
+            <div className="mt-10 text-center">
+              <p
+                className="font-serif text-ink mb-1"
+                style={{ fontSize: "1.1rem", lineHeight: 1.6 }}
+              >
+                Not ready for a seat? Stick to my writing.
+              </p>
+              <p
+                className="font-serif text-ink-muted mb-6"
+                style={{ fontSize: "1rem", lineHeight: 1.6 }}
+              >
+                I write nearly every day. It&apos;s free, straight to your
+                inbox.
+              </p>
+              <div className="flex justify-center">
+                <EmailSignup source="rules" submitLabel="Send it" />
+              </div>
+            </div>
           </>
-        ) : (
-          // Locked stranger: the membership path as an in-flow block at the
-          // foot (the paid alternative). The email unlock lives in the sticky
-          // bar below, always reachable.
-          <div
-            className="mt-14 px-6 py-7 md:px-9 md:py-8"
-            style={{
-              background: "var(--paper-deep)",
-              borderLeft: "2px solid var(--eye-deep)",
-            }}
-          >
-            {gateMembershipCta}
-          </div>
         )}
       </section>
     </div>
