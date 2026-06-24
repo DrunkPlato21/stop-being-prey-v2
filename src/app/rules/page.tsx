@@ -18,6 +18,7 @@ import {
 } from "@/lib/members";
 import { markOnboardingStep } from "@/lib/onboarding";
 import { EmailSignup } from "@/components/EmailSignup";
+import { SubscriberCount } from "@/components/SubscriberCount";
 
 // The Rules of Engagement — the public front door. The doctrine is the
 // lure; practice (the Case Files, the Guild, Clay's presence) is the
@@ -503,12 +504,15 @@ export default async function RulesPage() {
                 Not ready for a seat? Stick to my writing.
               </p>
               <p
-                className="font-serif text-ink-muted mb-6"
+                className="font-serif text-ink-muted mb-4"
                 style={{ fontSize: "1rem", lineHeight: 1.6 }}
               >
                 I write nearly every day. It&apos;s free, straight to your
                 inbox.
               </p>
+              {/* Audience proof, same live Kit count shown on the other email
+                  surfaces. Authority at 9k+, and keeps Rules consistent. */}
+              <SubscriberCount className="mb-4" />
               <div className="flex justify-center">
                 <EmailSignup source="rules" submitLabel="Send it" />
               </div>
