@@ -80,7 +80,7 @@ export default function AboutPage() {
     <div>
       <section className="border-b border-rule">
         <div className="max-w-4xl mx-auto px-6 pt-16 md:pt-24 pb-12 text-center">
-          <p className="eyebrow mb-6 fade-up stagger-1">A note from Clay</p>
+          <p className="eyebrow mb-6 fade-up stagger-1">Why this exists</p>
           <h1
             className="font-display text-ink leading-[1.0] tracking-tight mb-6 fade-up stagger-2"
             style={{
@@ -96,6 +96,10 @@ export default function AboutPage() {
           </p>
         </div>
       </section>
+
+      <div className="max-w-3xl mx-auto px-6 pt-12">
+        <AuthorBio priority />
+      </div>
 
       <div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
         <div className="prose-article">
@@ -185,12 +189,6 @@ export default function AboutPage() {
         <p className="eyebrow mb-8">Stay close</p>
         <DualSubscribeBlock />
       </section>
-
-      <EyeDivider />
-
-      <div className="max-w-3xl mx-auto px-6 py-12">
-        <AuthorBio />
-      </div>
 
       <div className="text-center pb-16">
         <Link
