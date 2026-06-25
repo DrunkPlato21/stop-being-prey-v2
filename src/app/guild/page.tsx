@@ -10,6 +10,7 @@ import {
   getTierBadge,
 } from "@/lib/members";
 import { getPinnedThread, listActiveThreads } from "@/lib/guild";
+import { markNavViewed } from "@/lib/nav-dots";
 import { GuildIndexView } from "@/components/guild/GuildIndexView";
 import type { GuildBadgeInfo } from "@/components/guild/GuildByline";
 
@@ -31,6 +32,8 @@ export default async function GuildPage() {
   const [pinned, page] = await Promise.all([
     getPinnedThread(),
     listActiveThreads({ limit: 50 }),
+    // Seeing the room clears its nav dot. Cheap single SET; never blocks.
+    markNavViewed("guild", session.email),
   ]);
 
   // Resolve author display names at read time (no denormalization on the

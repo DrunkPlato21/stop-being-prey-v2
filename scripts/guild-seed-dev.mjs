@@ -143,7 +143,7 @@ async function main() {
     authorEmail: admin,
     title: "What did this week show you about staying off the menu?",
     body:
-      "DEV PLACEHOLDER. One thing this week. A moment you caught yourself being handled, or caught yourself not being. Keep it concrete.\n\nClay replaces this with the real prompt at launch.",
+      "One thing this week. A moment you caught yourself being handled, or a moment you caught yourself refusing to be. Keep it concrete. No theory, no slogans. The specific beats the grand every time.\n\nI read every one of these.",
     createdAt: h(3),
     pinned: true,
   });
@@ -191,24 +191,99 @@ async function main() {
   await writeReply(reply1child);
   await writeReply(reply2);
 
-  // --- A field engagement (so the index shows more than one tag) ---
-  const field = mkThread({
-    authorEmail: "denise.dev@example.com",
-    title: "Cornered on 'do you even have a source' — here's the move",
-    category: "field",
+  // --- The Doctrine: Rule II, laid down by Clay (a seed-thread shape:
+  //     a rule stated plainly, ending in a real question) ---
+  const ruleII = mkThread({
+    authorEmail: admin,
+    title: "Rule II: the audience is the prize",
+    category: "doctrine",
     body:
-      "DEV PLACEHOLDER. He tried to make me the one defending while he risked nothing. I handed the burden back and asked him to show his own work first. He folded. Posting the exchange so we can break down why it worked.",
+      "You are almost never arguing with the person in front of you. You are performing for everyone watching who has not made up their mind yet. The man you think you are debating is usually lost already. He is a prop. Treat him like one.\n\nThe moment you start trying to convince him, you have lost the room. You look like you need something from him. Need is prey behavior.\n\nWhere do you still catch yourself playing to the opponent instead of the audience?",
+    createdAt: h(16),
+  });
+  const rIIr1 = mkReply({
+    threadId: ruleII.id,
+    authorEmail: "denise.dev@example.com",
+    body:
+      "This one rewired me. I stopped writing paragraphs at the guy and started writing for the lurkers. Shorter, colder, and it landed harder.",
     createdAt: h(9),
   });
-  await writeThread(field);
+  const rIIr2 = mkReply({
+    threadId: ruleII.id,
+    authorEmail: admin,
+    body: "Right. Quote him once for the record, then talk past him to the room.",
+    createdAt: h(3),
+    clayReadAt: h(3),
+  });
+  ruleII.replyCount = 2;
+  ruleII.lastActivityAt = rIIr2.createdAt;
+  ruleII.clayReadAt = h(3);
+  await writeThread(ruleII);
+  await writeReply(rIIr1);
+  await writeReply(rIIr2);
 
-  // --- An open-floor thread ---
+  // --- The Field: a clean breakdown, sealed by Clay ---
+  const field = mkThread({
+    authorEmail: "denise.dev@example.com",
+    title: "Cornered on 'do you even have a source'. Here's the move.",
+    category: "field",
+    body:
+      "Classic burden flip. He makes a sweeping claim, then the second you push back he demands that YOU produce a peer reviewed citation while he has produced nothing. Now you are on defense for his argument.\n\nThe move is to hand it back. You made the claim. Show your work first and I will match it. He folds, or he exposes that he has nothing. Either way the room sees it.\n\nLeaving the rest of the exchange below. Tell me if I left anything on the table.",
+    createdAt: h(11),
+  });
+  const fr1 = mkReply({
+    threadId: field.id,
+    authorEmail: admin,
+    body:
+      "Clean. Rule III, you named the move out loud. Rule II, you did it for the room and not for him.",
+    createdAt: h(6),
+    clayReadAt: h(6),
+  });
+  field.replyCount = 1;
+  field.lastActivityAt = fr1.createdAt;
+  field.clayReadAt = h(6);
+  await writeThread(field);
+  await writeReply(fr1);
+
+  // --- The Field: a live ask (present tense, the killer use) ---
+  const liveAsk = mkThread({
+    authorEmail: "marcus.dev@example.com",
+    title: "I'm in one right now. He keeps moving the goalposts. What's the play?",
+    category: "field",
+    body:
+      "Live, happening tonight. Every time I answer he shifts the standard. First it was show me data. I showed data. Now it is that the source is biased. Next it will be well it is more complicated. I can feel myself getting walked in a circle.\n\nDo I name the pattern and stop, or keep feeding it? I do not want to look like I ran.",
+    createdAt: h(4),
+  });
+  const lar1 = mkReply({
+    threadId: liveAsk.id,
+    authorEmail: "denise.dev@example.com",
+    body:
+      "Name it and stop. Say the standard has moved three times, that is not a search for truth it is a stall, and you are good. Then leave. That is Rule IV. Walking away is the win here.",
+    createdAt: h(3),
+  });
+  liveAsk.replyCount = 1;
+  liveAsk.lastActivityAt = lar1.createdAt;
+  await writeThread(liveAsk);
+  await writeReply(lar1);
+
+  // --- The Doctrine: a member working a rule (no replies yet, fresh) ---
+  const ruleVII = mkThread({
+    authorEmail: "denise.dev@example.com",
+    title: "Rule VII in practice: hostility funds the work",
+    category: "doctrine",
+    body:
+      "Took me a while to believe this one. Every furious reply, every quote post trying to bury you, hands you reach and proof you touched a nerve. The people working hardest to silence you turn into your best distribution.\n\nThe discipline is to stop flinching at the incoming and start reading it as fuel. Has anyone actually watched their loudest hater grow their audience? I want concrete stories, not theory.",
+    createdAt: h(7),
+  });
+  await writeThread(ruleVII);
+
+  // --- Open floor ---
   const open = mkThread({
     authorEmail: "marcus.dev@example.com",
     title: "Thinking out loud: is 'apex class' the right frame, or too tidy?",
     category: "open",
     body:
-      "DEV PLACEHOLDER. Half-formed. Sometimes the predator/prey frame clarifies, sometimes it flattens. Where does it stop being useful? Not trying to win anything here, just turning it over.",
+      "Half formed, bear with me. Some days the predator and prey frame cuts straight to the bone. Other days I worry it flattens people into roles and gives me an excuse to stop looking closer.\n\nWhere does it stop being useful? Not trying to win anything here. Just turning it over in the open.",
     createdAt: h(5),
   });
   await writeThread(open);

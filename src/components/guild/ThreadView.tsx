@@ -11,6 +11,7 @@ import {
   editThreadAction,
   markReplyReadAction,
   markThreadReadAction,
+  pinReplyAction,
   pinThreadAction,
   postReplyAction,
   restoreReplyAction,
@@ -33,17 +34,52 @@ const EMPTY_REACTIONS: ReactionSummary = {
   myReaction: null,
 };
 
-// Shared small-caps action link styling for the quiet control row.
+// Every action — member or admin — is the same small-caps link cut from
+// this one die: identical size, weight, tracking, and line-height, so a
+// row of them sits dead on one baseline. Only colour and position vary.
 const controlStyle: React.CSSProperties = {
   background: "transparent",
   border: 0,
   padding: 0,
+  margin: 0,
   cursor: "pointer",
+  fontFamily: "var(--font-display), Georgia, serif",
   fontSize: "0.64rem",
   fontWeight: 600,
+  lineHeight: 1,
   letterSpacing: "0.16em",
   textTransform: "uppercase",
   color: "var(--ink-faint)",
+  display: "inline-flex",
+  alignItems: "center",
+};
+
+// Admin links are the same die, just dimmed — separation is carried by the
+// row beneath, not by a smaller, mismatched size.
+const adminControlStyle: React.CSSProperties = {
+  ...controlStyle,
+  color: "var(--ink-faint)",
+};
+
+// Member actions: one clean line, everything centred on the same baseline.
+const memberRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "1.4rem",
+  flexWrap: "wrap",
+};
+
+// The presiding (admin) row lives BENEATH the member actions, set off by a
+// hairline and a quiet eyebrow — a separate register for the king's levers,
+// never jammed in beside Reply/React.
+const adminRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "1.4rem",
+  flexWrap: "wrap",
+  marginTop: "0.7rem",
+  paddingTop: "0.65rem",
+  borderTop: "1px solid var(--rule)",
 };
 
 // Two-step inline delete. The first click only arms it; a second
@@ -53,39 +89,38 @@ const controlStyle: React.CSSProperties = {
 function DeleteControl({
   action,
   hidden,
+  base = controlStyle,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   hidden: Record<string, string>;
+  // The row's link style, so Delete matches its neighbours exactly.
+  base?: React.CSSProperties;
 }) {
   const [armed, setArmed] = useState(false);
   if (!armed) {
     return (
-      <button type="button" onClick={() => setArmed(true)} style={controlStyle}>
+      <button type="button" onClick={() => setArmed(true)} style={base}>
         Delete
       </button>
     );
   }
   return (
-    <form action={action} className="flex items-center gap-3">
-      {Object.entries(hidden).map(([k, v]) => (
-        <input key={k} type="hidden" name={k} value={v} />
-      ))}
-      <span
-        style={{ ...controlStyle, cursor: "default", color: "var(--ink-muted)" }}
-      >
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "1.1rem" }}>
+      <span style={{ ...base, cursor: "default", color: "var(--ink-muted)" }}>
         Delete?
       </span>
-      <button type="submit" style={{ ...controlStyle, color: "var(--blood)" }}>
-        Confirm
-      </button>
-      <button
-        type="button"
-        onClick={() => setArmed(false)}
-        style={controlStyle}
-      >
+      <form action={action} style={{ display: "inline-flex" }}>
+        {Object.entries(hidden).map(([k, v]) => (
+          <input key={k} type="hidden" name={k} value={v} />
+        ))}
+        <button type="submit" style={{ ...base, color: "var(--blood)" }}>
+          Confirm
+        </button>
+      </form>
+      <button type="button" onClick={() => setArmed(false)} style={base}>
         Cancel
       </button>
-    </form>
+    </span>
   );
 }
 
@@ -113,16 +148,20 @@ function ReplyComposer({
   placeholder,
   onDone,
   compact,
+  textareaRef,
 }: {
   threadId: string;
   parentReplyId: string | null;
   placeholder: string;
   onDone?: () => void;
   compact?: boolean;
+  // Optional external handle so the OP's "Reply" button can focus this box.
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }) {
   const [state, formAction, pending] = useActionState(postReplyAction, INITIAL);
   const [body, setBody] = useState("");
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const internalRef = useRef<HTMLTextAreaElement>(null);
+  const bodyRef = textareaRef ?? internalRef;
 
   useEffect(() => {
     if (state.ok) {
@@ -378,6 +417,8 @@ function ReplyNode({
   mounted,
   nested,
   reactions,
+  isPinned,
+  pinnedSlot,
 }: {
   reply: GuildReply;
   childReplies?: GuildReply[];
@@ -390,6 +431,11 @@ function ReplyNode({
   mounted: boolean;
   nested?: boolean;
   reactions: Record<string, ReactionSummary>;
+  // Is this reply the one currently pinned to the top of the thread?
+  isPinned?: boolean;
+  // Rendered inside the pinned slot at the top (the slot supplies its own
+  // frame, so we drop the normal separators + author tint here).
+  pinnedSlot?: boolean;
 }) {
   const [replying, setReplying] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -401,134 +447,194 @@ function ReplyNode({
     ? "Clay"
     : authorName(reply.authorEmail, names);
 
+  // Which presiding controls apply — so the admin row (and its hairline)
+  // only appears when there's actually something for Clay to do here.
+  const showPin = isAdmin && !nested; // pin is top-level only
+  const showMarkRead = isAdmin && !reply.clayReadAt;
+  const showAdminDelete = isAdmin && mounted && !isOwner;
+
+  // Structure is carried by ONE signal only — indentation + a left branch
+  // rule means "nested". A top-level reply has neither, so it can never be
+  // mistaken for a child. (The pinned slot frames itself.)
+  const structureStyle: React.CSSProperties = pinnedSlot
+    ? { marginTop: "0.3rem" }
+    : nested
+    ? {
+        marginLeft: "1.6rem",
+        paddingLeft: "1.25rem",
+        borderLeft: "2px solid var(--rule)",
+        marginTop: "1.25rem",
+      }
+    : {
+        marginTop: "1.7rem",
+        paddingTop: "1.7rem",
+        borderTop: "1px solid var(--rule)",
+      };
+
+  // Authorship is a separate signal from structure: Clay's replies get a
+  // warm tint card (plus the AUTHOR badge in the byline), never a border
+  // that could read as a thread level.
+  const showClayCard = byClay && !pinnedSlot;
+  const cardStyle: React.CSSProperties = showClayCard
+    ? {
+        background: "var(--paper-deep)",
+        borderRadius: 4,
+        padding: "0.65rem 0.9rem",
+        marginTop: "0.2rem",
+      }
+    : {};
+
   return (
-    <div
-      id={`reply-${reply.id}`}
-      style={{
-        marginLeft: nested ? "1.5rem" : 0,
-        paddingLeft: nested ? "1.1rem" : byClay ? "0.9rem" : 0,
-        borderLeft: nested
-          ? "1px solid var(--rule)"
-          : byClay
-          ? "2px solid var(--eye-deep)"
-          : "none",
-        marginTop: "1.4rem",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem 0.8rem", fontSize: "0.8rem", color: "var(--ink-muted)" }}>
-        <GuildByline
-          email={reply.authorEmail}
-          names={names}
-          badges={badges}
-          adminEmail={adminEmail}
-          size="small"
-        />
-        <span suppressHydrationWarning style={{ color: "var(--ink-faint)" }}>
-          {formatRelative(reply.createdAt)}
-        </span>
-        {reply.editedAt && (
-          <span style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>edited</span>
-        )}
-        {reply.clayReadAt && <ClayReadSeal at={reply.clayReadAt} />}
-      </div>
-
-      {reply.deleted ? (
-        <div
-          style={{
-            marginTop: "0.5rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.9rem",
-            flexWrap: "wrap",
-          }}
-        >
-          <span style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>
-            [removed]
+    <div id={`reply-${reply.id}`} style={structureStyle}>
+      <div style={cardStyle}>
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem 0.8rem", fontSize: "0.8rem", color: "var(--ink-muted)" }}>
+          <GuildByline
+            email={reply.authorEmail}
+            names={names}
+            badges={badges}
+            adminEmail={adminEmail}
+            size="small"
+          />
+          <span suppressHydrationWarning style={{ color: "var(--ink-faint)" }}>
+            {formatRelative(reply.createdAt)}
           </span>
-          {isAdmin && (
-            <form action={restoreReplyAction}>
-              <input type="hidden" name="id" value={reply.id} />
-              <input type="hidden" name="threadId" value={threadId} />
-              <button
-                type="submit"
-                style={{ ...controlStyle, color: "var(--eye-deep)" }}
-              >
-                Restore
-              </button>
-            </form>
+          {reply.editedAt && (
+            <span style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>edited</span>
           )}
+          {reply.clayReadAt && <ClayReadSeal at={reply.clayReadAt} />}
         </div>
-      ) : editing ? (
-        <EditReplyForm reply={reply} onDone={() => setEditing(false)} />
-      ) : (
-        <Body text={reply.body} />
-      )}
 
-      {/* Control row */}
-      {!reply.deleted && (
-        <div style={{ display: "flex", alignItems: "center", gap: "1.1rem", marginTop: "0.6rem", flexWrap: "wrap" }}>
-          {/* Hidden while the composer is open — the open box has its
-              own Reply/Cancel, so showing this toggle too just doubles
-              the word "Reply" next to itself. */}
-          {!replying && (
-            <button
-              type="button"
-              onClick={() => setReplying(true)}
-              style={{ ...controlStyle, color: "var(--eye-deep)" }}
-            >
-              Reply
-            </button>
-          )}
-          {canEdit && (
-            <button type="button" onClick={() => setEditing((v) => !v)} style={controlStyle}>
-              Edit
-            </button>
-          )}
-          {mounted && (isOwner || isAdmin) && (
-            <DeleteControl
-              action={deleteReplyAction}
-              hidden={{ id: reply.id, threadId }}
+        {reply.deleted ? (
+          <div
+            style={{
+              marginTop: "0.5rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.9rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>
+              [removed]
+            </span>
+            {isAdmin && (
+              <form action={restoreReplyAction}>
+                <input type="hidden" name="id" value={reply.id} />
+                <input type="hidden" name="threadId" value={threadId} />
+                <button
+                  type="submit"
+                  style={{ ...adminControlStyle, color: "var(--eye-deep)" }}
+                >
+                  Restore
+                </button>
+              </form>
+            )}
+          </div>
+        ) : editing ? (
+          <EditReplyForm reply={reply} onDone={() => setEditing(false)} />
+        ) : (
+          <Body text={reply.body} />
+        )}
+
+        {/* Member actions on one line; the presiding row sits beneath. */}
+        {!reply.deleted && (
+          <div style={{ marginTop: "0.8rem" }}>
+            <div style={memberRowStyle}>
+              {/* Hidden while the composer is open — the open box has its
+                  own Reply/Cancel, so showing this toggle too just doubles
+                  the word "Reply" next to itself. */}
+              {!replying && (
+                <button
+                  type="button"
+                  onClick={() => setReplying(true)}
+                  style={{ ...controlStyle, color: "var(--eye-deep)" }}
+                >
+                  Reply
+                </button>
+              )}
+              {canEdit && (
+                <button type="button" onClick={() => setEditing((v) => !v)} style={controlStyle}>
+                  Edit
+                </button>
+              )}
+              {/* Your own reply: deleting it is a member action. */}
+              {mounted && isOwner && (
+                <DeleteControl
+                  action={deleteReplyAction}
+                  hidden={{ id: reply.id, threadId }}
+                />
+              )}
+              <GuildReactions
+                kind="reply"
+                targetId={reply.id}
+                threadId={threadId}
+                initial={reactions[reply.id] ?? EMPTY_REACTIONS}
+              />
+            </div>
+
+            {/* Presiding — Clay's levers, in their own register beneath. */}
+            {isAdmin && (showPin || showMarkRead || showAdminDelete) && (
+              <div style={adminRowStyle}>
+                {/* Pin only top-level replies — a nested reply lifted to the
+                    top would lose the context it answers. */}
+                {showPin && (
+                  <form action={pinReplyAction} style={{ display: "inline-flex" }}>
+                    <input type="hidden" name="id" value={reply.id} />
+                    <input type="hidden" name="threadId" value={threadId} />
+                    <input type="hidden" name="pinned" value={isPinned ? "1" : "0"} />
+                    <button
+                      type="submit"
+                      style={{ ...adminControlStyle, color: "var(--eye-deep)" }}
+                    >
+                      {isPinned ? "Unpin" : "Pin to top"}
+                    </button>
+                  </form>
+                )}
+                {showMarkRead && (
+                  <form action={markReplyReadAction} style={{ display: "inline-flex" }}>
+                    <input type="hidden" name="id" value={reply.id} />
+                    <input type="hidden" name="threadId" value={threadId} />
+                    <button type="submit" style={adminControlStyle}>
+                      Mark read
+                    </button>
+                  </form>
+                )}
+                {/* Someone else's reply: removing it is a presiding action.
+                    (Your own delete lives with the member actions above.) */}
+                {showAdminDelete && (
+                  <DeleteControl
+                    action={deleteReplyAction}
+                    hidden={{ id: reply.id, threadId }}
+                    base={adminControlStyle}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Anchored to the comment it answers: an olive left rule binds the
+            box to this reply and separates it from the next comment, so the
+            box never reads as belonging to the comment below it. */}
+        {replying && (
+          <div
+            style={{
+              marginTop: "0.8rem",
+              marginBottom: "0.4rem",
+              paddingLeft: "1.1rem",
+              borderLeft: "2px solid var(--eye-deep)",
+            }}
+          >
+            <ReplyComposer
+              threadId={threadId}
+              parentReplyId={reply.id}
+              placeholder={`Reply to ${replyToName}…`}
+              onDone={() => setReplying(false)}
+              compact
             />
-          )}
-          {isAdmin && !reply.clayReadAt && (
-            <form action={markReplyReadAction}>
-              <input type="hidden" name="id" value={reply.id} />
-              <input type="hidden" name="threadId" value={threadId} />
-              <button type="submit" style={{ ...controlStyle, color: "var(--eye-deep)" }}>
-                Mark read
-              </button>
-            </form>
-          )}
-          <GuildReactions
-            kind="reply"
-            targetId={reply.id}
-            threadId={threadId}
-            initial={reactions[reply.id] ?? EMPTY_REACTIONS}
-          />
-        </div>
-      )}
-
-      {/* Anchored to the comment it answers: an olive left rule binds the
-          box to this reply and separates it from the next comment, so the
-          box never reads as belonging to the comment below it. */}
-      {replying && (
-        <div
-          style={{
-            marginTop: "0.8rem",
-            marginBottom: "0.4rem",
-            paddingLeft: "1.1rem",
-            borderLeft: "2px solid var(--eye-deep)",
-          }}
-        >
-          <ReplyComposer
-            threadId={threadId}
-            parentReplyId={reply.id}
-            placeholder={`Reply to ${replyToName}…`}
-            onDone={() => setReplying(false)}
-            compact
-          />
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Nested children (one tier; the lib flattens anything deeper) */}
       {childReplies?.map((c) => (
@@ -575,6 +681,15 @@ export function ThreadView({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // The OP's "Reply" jumps the reader to the thread-level composer.
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  function focusComposer() {
+    const ta = composerRef.current;
+    if (!ta) return;
+    ta.scrollIntoView({ behavior: "smooth", block: "center" });
+    ta.focus({ preventScroll: true });
+  }
+
   const isOwner = viewerEmail.toLowerCase().trim() === thread.authorEmail;
   const canEdit =
     mounted && isOwner && Date.now() - thread.createdAt <= EDIT_WINDOW_MS;
@@ -588,6 +703,20 @@ export function ThreadView({
     }
   }
   const visibleCount = replies.filter((r) => !r.deleted).length;
+
+  // The pinned reply (if any) is lifted to a slot at the very top and
+  // dropped from its inline position, so it shows exactly once. Only a
+  // live, top-level reply qualifies (the lib enforces the same).
+  const pinnedId = thread.pinnedReplyId ?? null;
+  const pinnedReply =
+    (pinnedId &&
+      topLevel.find((r) => r.id === pinnedId && !r.deleted)) ||
+    null;
+  const inlineTopLevel = pinnedReply
+    ? topLevel.filter((r) => r.id !== pinnedReply.id)
+    : topLevel;
+  const pinnedByClay =
+    !!pinnedReply && !!adminEmail && pinnedReply.authorEmail === adminEmail;
 
   return (
     <div style={{ maxWidth: "44rem", margin: "0 auto", padding: "2.25rem 1.25rem 5rem" }}>
@@ -627,7 +756,7 @@ export function ThreadView({
                 <input type="hidden" name="id" value={thread.id} />
                 <button
                   type="submit"
-                  style={{ ...controlStyle, color: "var(--eye-deep)" }}
+                  style={{ ...adminControlStyle, color: "var(--eye-deep)" }}
                 >
                   Restore thread
                 </button>
@@ -661,60 +790,126 @@ export function ThreadView({
           </>
         )}
 
-        {/* Control row: owner edit/delete + Clay presiding (pin, read) */}
-        {!thread.deleted && (
-          <div style={{ display: "flex", alignItems: "center", gap: "1.1rem", marginTop: "1rem", flexWrap: "wrap" }}>
-            {canEdit && (
-              <button type="button" onClick={() => setEditing((v) => !v)} style={controlStyle}>
-                Edit
+        {/* Member actions on one line; the presiding row sits beneath. */}
+        {!thread.deleted && !editing && (
+          <div style={{ marginTop: "1.1rem" }}>
+            <div style={memberRowStyle}>
+              <button
+                type="button"
+                onClick={focusComposer}
+                style={{ ...controlStyle, color: "var(--eye-deep)" }}
+              >
+                Reply
               </button>
-            )}
-            {mounted && (isOwner || isAdmin) && (
-              <DeleteControl
-                action={deleteThreadAction}
-                hidden={{ id: thread.id }}
+              {canEdit && (
+                <button type="button" onClick={() => setEditing((v) => !v)} style={controlStyle}>
+                  Edit
+                </button>
+              )}
+              {mounted && isOwner && (
+                <DeleteControl
+                  action={deleteThreadAction}
+                  hidden={{ id: thread.id }}
+                />
+              )}
+              <GuildReactions
+                kind="thread"
+                targetId={thread.id}
+                threadId={thread.id}
+                initial={reactions[thread.id] ?? EMPTY_REACTIONS}
               />
-            )}
+            </div>
+
             {isAdmin && (
-              <>
-                <form action={pinThreadAction}>
+              <div style={adminRowStyle}>
+                <form action={pinThreadAction} style={{ display: "inline-flex" }}>
                   <input type="hidden" name="id" value={thread.id} />
                   <input type="hidden" name="pinned" value={thread.pinned ? "1" : "0"} />
-                  <button type="submit" style={{ ...controlStyle, color: "var(--eye-deep)" }}>
+                  <button type="submit" style={{ ...adminControlStyle, color: "var(--eye-deep)" }}>
                     {thread.pinned ? "Unpin" : "Pin as Question of the Week"}
                   </button>
                 </form>
                 {!thread.clayReadAt && (
-                  <form action={markThreadReadAction}>
+                  <form action={markThreadReadAction} style={{ display: "inline-flex" }}>
                     <input type="hidden" name="id" value={thread.id} />
-                    <button type="submit" style={{ ...controlStyle, color: "var(--eye-deep)" }}>
+                    <button type="submit" style={adminControlStyle}>
                       Mark read
                     </button>
                   </form>
                 )}
-              </>
+                {mounted && !isOwner && (
+                  <DeleteControl
+                    action={deleteThreadAction}
+                    hidden={{ id: thread.id }}
+                    base={adminControlStyle}
+                  />
+                )}
+              </div>
             )}
-            <GuildReactions
-              kind="thread"
-              targetId={thread.id}
-              threadId={thread.id}
-              initial={reactions[thread.id] ?? EMPTY_REACTIONS}
-            />
           </div>
         )}
       </article>
 
       {/* Replies */}
       <section style={{ marginTop: "2.75rem" }}>
-        <p className="eyebrow" style={{ letterSpacing: "0.28em", fontSize: "0.62rem", borderTop: "1px solid var(--rule)", paddingTop: "1.4rem" }}>
-          {visibleCount === 0
-            ? "No replies yet"
-            : visibleCount === 1
-            ? "1 reply"
-            : `${visibleCount} replies`}
-        </p>
+        <div style={{ borderTop: "1px solid var(--rule)", paddingTop: "1.5rem", display: "flex", alignItems: "baseline", gap: "0.55rem" }}>
+          <h2
+            className="font-display"
+            style={{ fontSize: "1.6rem", lineHeight: 1, fontWeight: 600, color: "var(--ink)", margin: 0 }}
+          >
+            {visibleCount === 0 ? "No replies yet" : visibleCount}
+          </h2>
+          {visibleCount > 0 && (
+            <span
+              className="font-display uppercase"
+              style={{ fontSize: "0.72rem", fontWeight: 600, letterSpacing: "0.18em", color: "var(--ink-muted)" }}
+            >
+              {visibleCount === 1 ? "Reply" : "Replies"}
+            </span>
+          )}
+        </div>
 
-        {topLevel.map((r) => (
+        {/* Pinned reply, lifted to the top under its own banner. */}
+        {pinnedReply && (
+          <div
+            style={{
+              marginTop: "1.4rem",
+              border: "1px solid var(--eye-deep)",
+              borderRadius: 6,
+              background: "var(--paper-deep)",
+              padding: "0.5rem 1.1rem 1.1rem",
+            }}
+          >
+            <p
+              className="font-display uppercase"
+              style={{
+                color: "var(--eye-deep)",
+                letterSpacing: "0.22em",
+                fontSize: "0.6rem",
+                fontWeight: 600,
+                margin: "0.7rem 0 0",
+              }}
+            >
+              {pinnedByClay ? "Pinned by Clay" : "Pinned"}
+            </p>
+            <ReplyNode
+              reply={pinnedReply}
+              childReplies={childrenOf[pinnedReply.id]}
+              names={names}
+              badges={badges}
+              adminEmail={adminEmail}
+              viewerEmail={viewerEmail}
+              isAdmin={isAdmin}
+              threadId={thread.id}
+              mounted={mounted}
+              reactions={reactions}
+              isPinned
+              pinnedSlot
+            />
+          </div>
+        )}
+
+        {inlineTopLevel.map((r) => (
           <ReplyNode
             key={r.id}
             reply={r}
@@ -737,6 +932,7 @@ export function ThreadView({
               threadId={thread.id}
               parentReplyId={null}
               placeholder="Add to the conversation…"
+              textareaRef={composerRef}
             />
           </div>
         )}

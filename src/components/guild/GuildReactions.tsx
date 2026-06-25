@@ -168,6 +168,7 @@ export function GuildReactions({
         style={{
           fontSize: "0.64rem",
           fontWeight: 600,
+          lineHeight: 1,
           background: "transparent",
           border: 0,
           color: triggerColor,

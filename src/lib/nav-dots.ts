@@ -2,10 +2,11 @@ import { Redis } from "@upstash/redis";
 import { getAllCaseFiles } from "@/lib/case-files";
 import { getAllFieldNotesWithActivity } from "@/lib/field-notes";
 import { getLastViewed as getLoungeLastViewed } from "@/lib/lounge";
+import { getGuildLatestActivityAt } from "@/lib/guild";
 import { latestReceivedCoinAt } from "@/lib/coins";
 
 // Per-section "new content since you were last here" indicators for the
-// members-area left nav. Three sections carry a dot today:
+// members-area left nav:
 //
 //   case-files   — fires when any case file's publish date is newer
 //                  than the member's last visit to /case-files.
@@ -16,6 +17,10 @@ import { latestReceivedCoinAt } from "@/lib/coins";
 //                  is newer than `lounge:lastviewed:<email>`. The
 //                  lounge page already maintains setLastViewed on
 //                  every render so we just read here.
+//   guild        — fires when the newest thread-or-reply activity in the
+//                  Guild is newer than the member's last visit to /guild.
+//   coins        — per-member: fires on a coin received since their last
+//                  visit to /notes/coins.
 //
 // Storage: per-member per-section "lastViewed" epoch ms strings under
 // `nav:viewed:<section>:<email>`. Lounge reuses its existing
@@ -24,12 +29,16 @@ import { latestReceivedCoinAt } from "@/lib/coins";
 
 const NAV_VIEWED_PREFIX = "nav:viewed:";
 
-export type DottedSection = "case-files" | "field-notes" | "coins";
+export type DottedSection = "case-files" | "field-notes" | "coins" | "guild";
 
 export type NavDotState = {
   caseFiles: boolean;
   fieldNotes: boolean;
   lounge: boolean;
+  // Fires when the newest thread-or-reply activity anywhere in the Guild is
+  // newer than this member's last visit to /guild. Shared content, like
+  // lounge — bumped by markNavViewed when they load the Guild index.
+  guild: boolean;
   // Per-member: fires when this member has received a coin newer than
   // their last visit to /notes/coins. Unlike the others, "newness" is
   // personal, not shared content.
@@ -40,6 +49,7 @@ const EMPTY: NavDotState = {
   caseFiles: false,
   fieldNotes: false,
   lounge: false,
+  guild: false,
   coins: false,
 };
 
@@ -125,19 +135,23 @@ export async function getNavDots(
     caseFilesAt,
     fieldNotesAt,
     loungeAt,
+    guildAt,
     coinsAt,
     viewedCaseFiles,
     viewedFieldNotes,
     viewedLounge,
+    viewedGuild,
     viewedCoins,
   ] = await Promise.all([
     getCaseFilesLatestAt(),
     getFieldNotesLatestAt(),
     getLoungeLatestActivityAt(),
+    getGuildLatestActivityAt().catch(() => 0),
     latestReceivedCoinAt(e).catch(() => 0),
     getNavViewed(e, "case-files"),
     getNavViewed(e, "field-notes"),
     getLoungeLastViewed(e).catch(() => null),
+    getNavViewed(e, "guild"),
     getNavViewed(e, "coins"),
   ]);
 
@@ -145,6 +159,7 @@ export async function getNavDots(
     caseFiles: caseFilesAt > viewedCaseFiles,
     fieldNotes: fieldNotesAt > viewedFieldNotes,
     lounge: loungeAt > (viewedLounge ?? 0),
+    guild: guildAt > viewedGuild,
     coins: coinsAt > viewedCoins,
   };
 }

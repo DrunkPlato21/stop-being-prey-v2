@@ -15,11 +15,13 @@ import {
   getThread,
   markReplyReadByClay,
   markThreadReadByClay,
+  pinReply,
   pinThread,
   restoreReply,
   restoreThread,
   softDeleteReply,
   softDeleteThread,
+  unpinReply,
   unpinThread,
 } from "@/lib/guild";
 import { createNotification } from "@/lib/notifications";
@@ -293,5 +295,21 @@ export async function markReplyReadAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const threadId = String(formData.get("threadId") ?? "");
   await markReplyReadByClay(id);
+  revalidatePath(`/guild/${threadId}`);
+}
+
+// Pin / unpin a single reply to the top of the thread (admin only). The
+// hidden "pinned" flag tells us which way the one toggle button is firing.
+export async function pinReplyAction(formData: FormData): Promise<void> {
+  const session = await currentSession();
+  if (!session || !isAdmin(session.email)) return;
+  const id = String(formData.get("id") ?? "");
+  const threadId = String(formData.get("threadId") ?? "");
+  const alreadyPinned = formData.get("pinned") === "1";
+  if (alreadyPinned) {
+    await unpinReply(threadId);
+  } else {
+    await pinReply(threadId, id);
+  }
   revalidatePath(`/guild/${threadId}`);
 }

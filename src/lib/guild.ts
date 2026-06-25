@@ -104,6 +104,10 @@ export type GuildThread = {
   // index can show "N replies" without fetching every reply.
   replyCount: number;
   pinned: boolean;
+  // The one reply Clay has pinned to the top of this thread, if any.
+  // null/absent = nothing pinned. One per thread — pinning replaces.
+  // Cleared automatically if the pinned reply is deleted.
+  pinnedReplyId?: string | null;
   // When Clay marked this thread read. null = unseen by the king.
   clayReadAt: number | null;
   deleted: boolean;
@@ -340,6 +344,25 @@ export async function listActiveThreads(args?: {
   return { threads, hasMore };
 }
 
+/**
+ * Wall-clock time (epoch ms) of the most recent thread-or-reply activity
+ * anywhere in the Guild, or 0 when empty. The threads index is re-scored to
+ * `now` on every new thread and every reply, so the top score is the
+ * freshest activity across the room — one zrange does it. Powers the nav
+ * "new activity" dot. Mirrors the Lounge's getLoungeLatestActivityAt.
+ */
+export async function getGuildLatestActivityAt(): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const result = await client
+    .zrange(THREADS_INDEX, 0, 0, { rev: true, withScores: true })
+    .catch(() => null);
+  // Upstash returns [member, score] with withScores; we asked for one.
+  if (!Array.isArray(result) || result.length < 2) return 0;
+  const score = Number(result[1]);
+  return Number.isFinite(score) ? score : 0;
+}
+
 export async function getPinnedThread(): Promise<GuildThread | null> {
   const client = getClient();
   if (!client) return null;
@@ -564,10 +587,13 @@ export async function softDeleteReply(
   if (!reply.deleted) {
     reply.deleted = true;
     await client.set(`${REPLY_PREFIX}${id}`, JSON.stringify(reply));
-    // Decrement the parent thread's visible reply count (floor at 0).
+    // Decrement the parent thread's visible reply count (floor at 0) and
+    // clear the pin if this was the pinned reply — a tombstone must never
+    // sit at the top of the thread.
     const thread = await getThread(reply.threadId);
-    if (thread && thread.replyCount > 0) {
-      thread.replyCount -= 1;
+    if (thread) {
+      if (thread.replyCount > 0) thread.replyCount -= 1;
+      if (thread.pinnedReplyId === id) thread.pinnedReplyId = null;
       await client.set(
         `${THREAD_PREFIX}${thread.id}`,
         JSON.stringify(thread)
@@ -655,6 +681,45 @@ export async function unpinThread(id: string): Promise<boolean> {
   }
   const pinned = await client.get<string>(PINNED_KEY);
   if (pinned === id) await client.del(PINNED_KEY);
+  return true;
+}
+
+// Pin one reply to the top of its thread. Clay's editorial lever: usually
+// his own answer, but any member reply he wants to crown. One pin per
+// thread — pinning replaces whatever was pinned before. Guarded admin-only
+// at the action layer. The reply must be a live, top-level reply of this
+// thread (nested replies don't carry their context to the top).
+export async function pinReply(
+  threadId: string,
+  replyId: string
+): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+  const [thread, reply] = await Promise.all([
+    getThread(threadId),
+    getReply(replyId),
+  ]);
+  if (!thread || thread.deleted) return false;
+  if (
+    !reply ||
+    reply.threadId !== threadId ||
+    reply.deleted ||
+    reply.parentReplyId !== null
+  ) {
+    return false;
+  }
+  thread.pinnedReplyId = replyId;
+  await client.set(`${THREAD_PREFIX}${threadId}`, JSON.stringify(thread));
+  return true;
+}
+
+export async function unpinReply(threadId: string): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+  const thread = await getThread(threadId);
+  if (!thread) return false;
+  thread.pinnedReplyId = null;
+  await client.set(`${THREAD_PREFIX}${threadId}`, JSON.stringify(thread));
   return true;
 }
 

@@ -23,6 +23,7 @@ export async function MemberNavServer() {
 
   const dots: MemberNavDots = {
     "/lounge": state.lounge,
+    "/guild": state.guild,
     "/case-files": state.caseFiles,
     "/notes/field-notes": state.fieldNotes,
     "/notes/coins": state.coins,
