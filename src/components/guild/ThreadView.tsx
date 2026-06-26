@@ -14,7 +14,6 @@ import {
   pinReplyAction,
   pinThreadAction,
   postReplyAction,
-  restoreReplyAction,
   restoreThreadAction,
   type GuildFormState,
 } from "@/app/guild/actions";
@@ -417,6 +416,7 @@ function ReplyNode({
   mounted,
   nested,
   reactions,
+  replyTargets,
   isPinned,
   pinnedSlot,
 }: {
@@ -431,6 +431,8 @@ function ReplyNode({
   mounted: boolean;
   nested?: boolean;
   reactions: Record<string, ReactionSummary>;
+  // reply id → the comment it answers (true target) + the name to show.
+  replyTargets: Record<string, { id: string; name: string }>;
   // Is this reply the one currently pinned to the top of the thread?
   isPinned?: boolean;
   // Rendered inside the pinned slot at the top (the slot supplies its own
@@ -484,6 +486,13 @@ function ReplyNode({
       }
     : {};
 
+  const replyTo = replyTargets[reply.id] ?? null;
+  const visibleChildren = (childReplies ?? []).filter((c) => !c.deleted);
+  // A deleted reply with nothing live hanging off it leaves no trace at all
+  // — no "[removed]", no Restore cruft. It survives only as a slim tombstone
+  // when live replies still need it to anchor their context.
+  if (reply.deleted && visibleChildren.length === 0) return null;
+
   return (
     <div id={`reply-${reply.id}`} style={structureStyle}>
       <div style={cardStyle}>
@@ -504,6 +513,32 @@ function ReplyNode({
           {reply.clayReadAt && <ClayReadSeal at={reply.clayReadAt} />}
         </div>
 
+        {/* Whom this answers. The one cue that survives flattening: even a
+            hoisted grandchild names the exact comment it replied to, and the
+            link jumps straight to it. No more guessing who's talking to who. */}
+        {replyTo && !reply.deleted && (
+          <a
+            href={`#reply-${replyTo.id}`}
+            className="no-underline"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              marginTop: "0.5rem",
+              fontSize: "0.78rem",
+              color: "var(--ink-faint)",
+            }}
+          >
+            <span aria-hidden>↳</span>
+            <span>
+              Replying to{" "}
+              <span style={{ color: "var(--eye-deep)", fontWeight: 600 }}>
+                {replyTo.name}
+              </span>
+            </span>
+          </a>
+        )}
+
         {reply.deleted ? (
           <div
             style={{
@@ -517,18 +552,6 @@ function ReplyNode({
             <span style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>
               [removed]
             </span>
-            {isAdmin && (
-              <form action={restoreReplyAction}>
-                <input type="hidden" name="id" value={reply.id} />
-                <input type="hidden" name="threadId" value={threadId} />
-                <button
-                  type="submit"
-                  style={{ ...adminControlStyle, color: "var(--eye-deep)" }}
-                >
-                  Restore
-                </button>
-              </form>
-            )}
           </div>
         ) : editing ? (
           <EditReplyForm reply={reply} onDone={() => setEditing(false)} />
@@ -628,7 +651,7 @@ function ReplyNode({
             <ReplyComposer
               threadId={threadId}
               parentReplyId={reply.id}
-              placeholder={`Reply to ${replyToName}…`}
+              placeholder={`Replying to ${replyToName}…`}
               onDone={() => setReplying(false)}
               compact
             />
@@ -649,6 +672,7 @@ function ReplyNode({
           threadId={threadId}
           mounted={mounted}
           reactions={reactions}
+          replyTargets={replyTargets}
           nested
         />
       ))}
@@ -681,14 +705,48 @@ export function ThreadView({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // The OP's "Reply" jumps the reader to the thread-level composer.
+  // Deep-link landing. A notification ("X replied to you") or a "Replying
+  // to" link points at /guild/<id>#reply-<replyId>. App Router's native
+  // hash scroll is unreliable for content this far down and a sticky header
+  // would hide the target anyway, so we own it: center the reply in the
+  // viewport and flash it, regardless of whether it's pinned or nested.
+  // Runs on mount (arriving from a notification) and on in-page hash
+  // changes (clicking a "Replying to" link in the same thread).
+  useEffect(() => {
+    function jumpToHash() {
+      const hash = window.location.hash;
+      if (!hash.startsWith("#reply-")) return;
+      const el = document.getElementById(hash.slice(1));
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.remove("reply-flash");
+      // Reflow so re-adding the class restarts the animation on repeat taps.
+      void el.offsetWidth;
+      el.classList.add("reply-flash");
+    }
+    // One frame so the server-rendered replies have settled into layout.
+    const raf = window.requestAnimationFrame(jumpToHash);
+    window.addEventListener("hashchange", jumpToHash);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("hashchange", jumpToHash);
+    };
+  }, []);
+
+  // The thread-level composer is deliberate, not always-open: it stays a
+  // quiet prompt until you choose to add a new point (the OP's "Reply" or
+  // the prompt at the foot both open it). Answering a specific person
+  // happens through that comment's own Reply, so the big bottom box can no
+  // longer be mistaken for "reply to the last comment".
   const composerRef = useRef<HTMLTextAreaElement>(null);
-  function focusComposer() {
+  const [composerOpen, setComposerOpen] = useState(false);
+  useEffect(() => {
+    if (!composerOpen) return;
     const ta = composerRef.current;
     if (!ta) return;
     ta.scrollIntoView({ behavior: "smooth", block: "center" });
     ta.focus({ preventScroll: true });
-  }
+  }, [composerOpen]);
 
   const isOwner = viewerEmail.toLowerCase().trim() === thread.authorEmail;
   const canEdit =
@@ -703,6 +761,24 @@ export function ThreadView({
     }
   }
   const visibleCount = replies.filter((r) => !r.deleted).length;
+
+  // reply id → the comment it answers and the name to label. Uses the true
+  // target (replyToId) so a hoisted grandchild still names the right person;
+  // falls back to the flattened parent for replies that predate the field.
+  const replyById: Record<string, GuildReply> = {};
+  for (const r of replies) replyById[r.id] = r;
+  const replyTargets: Record<string, { id: string; name: string }> = {};
+  for (const r of replies) {
+    const targetId = r.replyToId ?? r.parentReplyId;
+    if (!targetId) continue;
+    const target = replyById[targetId];
+    if (!target) continue;
+    const targetByClay = !!adminEmail && target.authorEmail === adminEmail;
+    replyTargets[r.id] = {
+      id: targetId,
+      name: targetByClay ? "Clay" : authorName(target.authorEmail, names),
+    };
+  }
 
   // The pinned reply (if any) is lifted to a slot at the very top and
   // dropped from its inline position, so it shows exactly once. Only a
@@ -796,7 +872,7 @@ export function ThreadView({
             <div style={memberRowStyle}>
               <button
                 type="button"
-                onClick={focusComposer}
+                onClick={() => setComposerOpen(true)}
                 style={{ ...controlStyle, color: "var(--eye-deep)" }}
               >
                 Reply
@@ -903,6 +979,7 @@ export function ThreadView({
               threadId={thread.id}
               mounted={mounted}
               reactions={reactions}
+              replyTargets={replyTargets}
               isPinned
               pinnedSlot
             />
@@ -922,18 +999,46 @@ export function ThreadView({
             threadId={thread.id}
             mounted={mounted}
             reactions={reactions}
+            replyTargets={replyTargets}
           />
         ))}
 
-        {/* Add to the conversation */}
+        {/* Add a new point to the thread. Deliberate: a quiet prompt that
+            opens the composer on click, so it can't be mistaken for a reply
+            to the comment above it. Replying to a person goes through that
+            comment's own Reply. */}
         {!thread.deleted && (
           <div style={{ marginTop: "2.25rem", borderTop: "1px solid var(--rule)", paddingTop: "1.5rem" }}>
-            <ReplyComposer
-              threadId={thread.id}
-              parentReplyId={null}
-              placeholder="Add to the conversation…"
-              textareaRef={composerRef}
-            />
+            {composerOpen ? (
+              <ReplyComposer
+                threadId={thread.id}
+                parentReplyId={null}
+                placeholder="Add a new point to this thread…"
+                textareaRef={composerRef}
+                onDone={() => setComposerOpen(false)}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setComposerOpen(true)}
+                className="font-display uppercase tracking-[0.18em]"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.55rem",
+                  background: "transparent",
+                  border: "1px solid var(--eye-deep)",
+                  color: "var(--eye-deep)",
+                  borderRadius: 2,
+                  padding: "0.7rem 1.3rem",
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Add to the conversation
+              </button>
+            )}
           </div>
         )}
       </section>

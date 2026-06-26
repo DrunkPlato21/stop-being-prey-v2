@@ -4695,6 +4695,31 @@ body[data-theme="admin-desk-dark"] .admin-persistent-nav {
   row-gap: 0.4rem;
 }
 
+/* === Guild: deep-link flash ===
+   When a notification (or a "Replying to" link) drops you on a specific
+   reply, this brief wash + ring marks exactly which comment was meant, so
+   the target is never lost in the thread — pinned or not. */
+.reply-flash {
+  border-radius: 5px;
+  animation: replyFlash 2.6s ease-out;
+}
+@keyframes replyFlash {
+  0%,
+  18% {
+    background-color: color-mix(in srgb, var(--eye-deep) 15%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--eye-deep) 22%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reply-flash {
+    animation: none;
+  }
+}
+
 .admin-persistent-nav-cell {
   display: inline-flex;
   align-items: baseline;

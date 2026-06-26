@@ -121,6 +121,12 @@ export type GuildReply = {
   // null = a top-level reply to the thread. Otherwise the reply this is
   // nested under. The page caps visual depth at two levels.
   parentReplyId: string | null;
+  // The comment whose Reply button was actually clicked — the TRUE target.
+  // Unlike parentReplyId (which we flatten to two visual tiers, so a
+  // grandchild's parent becomes its top-level ancestor), this survives the
+  // flatten, so the UI can always label "Replying to <the real person>".
+  // null on a top-level reply; absent on replies written before this field.
+  replyToId?: string | null;
   authorEmail: string;
   body: string;
   createdAt: number;
@@ -408,13 +414,19 @@ export async function createReply(args: {
   // which the page renders as a single nested tier. We only need to
   // guarantee the parent exists and belongs to this thread.
   let parentReplyId = args.parentReplyId;
+  let replyToId: string | null = null;
   if (parentReplyId) {
     const parent = await getReply(parentReplyId);
     if (!parent || parent.threadId !== args.threadId || parent.deleted) {
       parentReplyId = null;
-    } else if (parent.parentReplyId) {
-      // Grandchild — re-parent up one so nesting never exceeds two tiers.
-      parentReplyId = parent.parentReplyId;
+    } else {
+      // The comment they actually answered — kept verbatim for the
+      // "Replying to <name>" label, before any flattening below.
+      replyToId = parent.id;
+      if (parent.parentReplyId) {
+        // Grandchild — re-parent up one so nesting never exceeds two tiers.
+        parentReplyId = parent.parentReplyId;
+      }
     }
   }
 
@@ -427,6 +439,7 @@ export async function createReply(args: {
     id: randomUUID(),
     threadId: args.threadId,
     parentReplyId,
+    replyToId,
     authorEmail: normEmail(args.authorEmail),
     body,
     createdAt: now,
