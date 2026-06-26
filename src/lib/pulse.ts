@@ -32,6 +32,7 @@ export type PulseSource =
   | "issue"
   | "field-note"
   | "case-file"
+  | "guild"
   | "facebook"
   | "x"
   | "youtube";
@@ -144,6 +145,13 @@ async function fieldNotePulses(limit: number): Promise<PulseEvent[]> {
 // widget's relevance window, leave it in this array — it stops
 // surfacing organically once newer content pushes it out.
 const PINNED_EVENTS: PulseEvent[] = [
+  {
+    source: "guild",
+    at: Date.parse("2026-06-23T16:00:00Z"),
+    label: "The Guild",
+    body: "The deep room is open. Bring a real fight, or a real question.",
+    link: "/guild",
+  },
   {
     source: "case-file",
     at: Date.parse("2026-05-22T16:00:00Z"),
