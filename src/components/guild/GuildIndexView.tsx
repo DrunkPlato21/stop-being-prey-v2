@@ -37,6 +37,43 @@ function ReplyCount({ n }: { n: number }) {
   );
 }
 
+// Quiet "this thread carries an image" marker for the index meta line.
+// Monochrome, drawn in the same SVG register as the read-by-Clay seal so
+// it reads as a thread attribute, not a loud badge or a colour emoji.
+function ImageMark() {
+  return (
+    <span
+      className="font-display uppercase"
+      title="Has an image"
+      style={{
+        color: "var(--ink-muted)",
+        fontSize: "0.6rem",
+        fontWeight: 600,
+        letterSpacing: "0.18em",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.34rem",
+        whiteSpace: "nowrap",
+      }}
+    >
+      <svg
+        aria-hidden="true"
+        width="14"
+        height="14"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1"
+      >
+        <rect x="1.5" y="3" width="13" height="10" rx="1.5" />
+        <circle cx="5" cy="6.5" r="1.1" fill="currentColor" stroke="none" />
+        <path d="M2.5 12.5 L6 8.5 L8 10.5 L10.5 7 L13.5 12.5" strokeWidth="0.9" />
+      </svg>
+      image
+    </span>
+  );
+}
+
 function MetaLine({
   thread,
   names,
@@ -72,6 +109,12 @@ function MetaLine({
       </span>
       <span aria-hidden style={{ color: "var(--ink-faint)" }}>·</span>
       <ReplyCount n={thread.replyCount} />
+      {thread.media && (
+        <>
+          <span aria-hidden style={{ color: "var(--ink-faint)" }}>·</span>
+          <ImageMark />
+        </>
+      )}
       {thread.clayReadAt && (
         <>
           <span aria-hidden style={{ color: "var(--ink-faint)" }}>·</span>
