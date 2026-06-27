@@ -22,7 +22,7 @@ import {
   type ActiveWallSnapshot,
 } from "./active-wall";
 import { getLastVisited } from "./desk-visits";
-import { getPinnedThread, listActiveThreads } from "./guild";
+import { getLatestReply, getPinnedThread, listActiveThreads } from "./guild";
 import { countRoomPresence, listVisiblePosts } from "./lounge";
 
 // Voice memo widget cutoff: if Clay hasn't published a memo within this
@@ -55,8 +55,10 @@ export type DeskRoomsSignal = {
       title: string;
       replyCount: number;
       lastActivityAt: number;
-      /** Author's display name, or null if they haven't set one (e.g.
-          dev fixtures). Real members always have one. */
+      /** Display name of whoever posted the latest activity (the most
+          recent reply, or the thread author if there are no replies), so
+          the name agrees with lastActivityAt. Null if unset (dev fixtures);
+          real members always have one. */
       authorName: string | null;
     } | null;
   };
@@ -188,11 +190,27 @@ export async function getWritersDeskState(
       latestLoungePost = p;
     }
   }
-  // Resolve the latest thread author's display name so the Guild peek
-  // can show who started it. Null for fixtures with no profile set.
+  // The Guild peek's name must agree with its timestamp (latest activity),
+  // so attribute it to whoever posted the most recent reply — not who
+  // started the thread. Falls back to the thread's author when it has no
+  // replies yet (then the original post IS the latest activity).
   const latestThread = guildPage.threads[0] ?? null;
-  const guildProfiles = latestThread
-    ? await getProfilesByEmails([latestThread.authorEmail])
+  let guildActivityEmail = latestThread?.authorEmail ?? null;
+  if (latestThread && latestThread.replyCount > 0) {
+    const latestReply = await getLatestReply(latestThread.id);
+    if (latestReply) guildActivityEmail = latestReply.authorEmail;
+  }
+  const guildProfiles = guildActivityEmail
+    ? await getProfilesByEmails([guildActivityEmail])
+    : null;
+  // The admin/author has no member profile, so mirror the Guild byline's
+  // convention (email === admin → "Clay"); members resolve to their set
+  // display name. Without this, a thread whose latest reply is Clay's
+  // would show no name at all.
+  const guildLatestName = guildActivityEmail
+    ? isAdmin(guildActivityEmail)
+      ? "Clay"
+      : guildProfiles?.get(guildActivityEmail)?.displayName ?? null
     : null;
 
   // First-run onboarding inputs (members only; admin + anon skip).
@@ -257,8 +275,7 @@ export async function getWritersDeskState(
             title: latestThread.title,
             replyCount: latestThread.replyCount,
             lastActivityAt: latestThread.lastActivityAt,
-            authorName:
-              guildProfiles?.get(latestThread.authorEmail)?.displayName ?? null,
+            authorName: guildLatestName,
           }
         : null,
     },

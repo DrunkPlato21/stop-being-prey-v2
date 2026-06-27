@@ -491,6 +491,29 @@ export async function listReplies(threadId: string): Promise<GuildReply[]> {
     .filter((r): r is GuildReply => !!r);
 }
 
+/**
+ * The newest non-deleted reply in a thread, or null if there are none.
+ * Reads only a short tail of the (createdAt-scored) index so a just-
+ * deleted newest reply falls through to the next live one without
+ * pulling the whole reply set — this is called on the frequently-polled
+ * Desk peek, so it stays cheap on Redis.
+ */
+export async function getLatestReply(
+  threadId: string
+): Promise<GuildReply | null> {
+  const client = getClient();
+  if (!client) return null;
+  // Negative indices = the highest-scored (newest) members, ascending.
+  const ids = await client.zrange<string[]>(repliesIndexKey(threadId), -6, -1);
+  if (!ids.length) return null;
+  // Walk newest-first; return the first one that isn't a tombstone.
+  for (let i = ids.length - 1; i >= 0; i--) {
+    const reply = await getReply(ids[i]);
+    if (reply && !reply.deleted) return reply;
+  }
+  return null;
+}
+
 // --------------------------------------------------------------------
 // Edit (author-only, within the window)
 // --------------------------------------------------------------------
