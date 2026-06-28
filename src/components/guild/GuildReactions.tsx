@@ -50,11 +50,16 @@ export function GuildReactions({
   targetId,
   threadId,
   initial,
+  prominent,
 }: {
   kind: "thread" | "reply";
   targetId: string;
   threadId: string;
   initial: ReactionSummary;
+  // On the original post the trigger steps up a register so it isn't lost
+  // beside the Reply button: bigger, and olive even before you've reacted.
+  // Replies leave this off and stay whisper-quiet.
+  prominent?: boolean;
 }) {
   const [summary, setSummary] = useState<ReactionSummary>(initial);
   const [open, setOpen] = useState(false);
@@ -152,7 +157,11 @@ export function GuildReactions({
     }
   }
 
-  const triggerColor = hasReaction ? "var(--eye-deep)" : "var(--ink-faint)";
+  // Quiet by default (faint until you react); on the OP it reads olive from
+  // the start so it's a visible second action, not a footnote.
+  const triggerColor = hasReaction || prominent
+    ? "var(--eye-deep)"
+    : "var(--ink-faint)";
 
   return (
     <div
@@ -166,7 +175,7 @@ export function GuildReactions({
         onClick={() => setOpen((o) => !o)}
         className="font-display uppercase tracking-[0.16em] transition-colors"
         style={{
-          fontSize: "0.64rem",
+          fontSize: prominent ? "0.72rem" : "0.64rem",
           fontWeight: 600,
           lineHeight: 1,
           background: "transparent",

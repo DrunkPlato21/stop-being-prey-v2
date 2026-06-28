@@ -24,6 +24,7 @@ import { formatGuildBody } from "@/components/guild/format-body";
 import { FormatToolbar } from "./FormatToolbar";
 import { GuildImage } from "./GuildImage";
 import { GuildReactions } from "./GuildReactions";
+import { useAutoGrow } from "./useAutoGrow";
 
 const INITIAL: GuildFormState = { ok: false };
 
@@ -161,6 +162,7 @@ function ReplyComposer({
   const [body, setBody] = useState("");
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const bodyRef = textareaRef ?? internalRef;
+  useAutoGrow(bodyRef, body);
 
   useEffect(() => {
     if (state.ok) {
@@ -249,6 +251,7 @@ function EditThreadForm({
   const [title, setTitle] = useState(thread.title);
   const [body, setBody] = useState(thread.body);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(bodyRef, body);
   useEffect(() => {
     if (state.ok) onDone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -339,6 +342,7 @@ function EditReplyForm({
   const [state, formAction, pending] = useActionState(editReplyAction, INITIAL);
   const [body, setBody] = useState(reply.body);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(bodyRef, body);
   useEffect(() => {
     if (state.ok) onDone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -866,17 +870,48 @@ export function ThreadView({
           </>
         )}
 
-        {/* Member actions on one line; the presiding row sits beneath. */}
+        {/* Member actions on one line; the presiding row sits beneath. On
+            the OP the two primary actions carry real presence — Reply is the
+            outlined-olive pill (same vocabulary as the foot CTA, a touch more
+            confident), React steps up beside it — while the replies below
+            stay whisper-quiet so this row reads as the anchor. */}
         {!thread.deleted && !editing && (
-          <div style={{ marginTop: "1.1rem" }}>
-            <div style={memberRowStyle}>
+          <div style={{ marginTop: "1.25rem" }}>
+            <div style={{ ...memberRowStyle, gap: "1.1rem" }}>
               <button
                 type="button"
                 onClick={() => setComposerOpen(true)}
-                style={{ ...controlStyle, color: "var(--eye-deep)" }}
+                className="font-display uppercase tracking-[0.18em] transition-colors"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  background: "transparent",
+                  border: "1px solid var(--eye-deep)",
+                  color: "var(--eye-deep)",
+                  borderRadius: 2,
+                  padding: "0.6rem 1.5rem",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--eye-deep)";
+                  e.currentTarget.style.color = "var(--surface)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--eye-deep)";
+                }}
               >
                 Reply
               </button>
+              <GuildReactions
+                kind="thread"
+                targetId={thread.id}
+                threadId={thread.id}
+                initial={reactions[thread.id] ?? EMPTY_REACTIONS}
+                prominent
+              />
               {canEdit && (
                 <button type="button" onClick={() => setEditing((v) => !v)} style={controlStyle}>
                   Edit
@@ -888,12 +923,6 @@ export function ThreadView({
                   hidden={{ id: thread.id }}
                 />
               )}
-              <GuildReactions
-                kind="thread"
-                targetId={thread.id}
-                threadId={thread.id}
-                initial={reactions[thread.id] ?? EMPTY_REACTIONS}
-              />
             </div>
 
             {isAdmin && (

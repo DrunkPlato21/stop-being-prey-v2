@@ -4,6 +4,7 @@ import { useActionState, useRef, useState } from "react";
 import { postThreadAction, type GuildFormState } from "@/app/guild/actions";
 import { FormatToolbar } from "./FormatToolbar";
 import { GuildImagePicker } from "./GuildImagePicker";
+import { useAutoGrow } from "./useAutoGrow";
 import {
   GUILD_CATEGORIES,
   MAX_BODY,
@@ -29,6 +30,7 @@ export function NewThreadComposer() {
   const [category, setCategory] = useState<GuildCategory | "">("");
   const [imageUploading, setImageUploading] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(bodyRef, body);
 
   if (!open) {
     return (
