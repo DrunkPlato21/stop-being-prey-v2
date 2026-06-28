@@ -200,8 +200,8 @@ export default function AboutPage() {
           The doctrine is seven rules.
         </h2>
         <p className="deck max-w-xl mx-auto mb-8">
-          The first one&apos;s open to anyone. Read it, then decide if you
-          want the rest.
+          All seven are free to read. Start at the top, then decide how
+          far you want to go.
         </p>
         <Link href="/rules" className="btn-primary">
           <span>Read the 7 Rules</span>
