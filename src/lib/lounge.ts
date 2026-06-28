@@ -669,6 +669,32 @@ export async function listVisibleReplies(
   return out;
 }
 
+/**
+ * The newest non-deleted reply on a post, or null if there are none.
+ * Reads only a short newest tail of the (createdAt-scored) replies index
+ * so a just-deleted newest reply falls through to the next live one
+ * without pulling the whole set. This runs on the frequently-polled Desk
+ * peek, so it stays cheap on Redis. Mirrors guild.ts getLatestReply.
+ */
+export async function getLatestReply(
+  postId: string
+): Promise<LoungeReply | null> {
+  const client = getClient();
+  if (!client) return null;
+  // Negative indices = the highest-scored (newest) members, ascending.
+  const idsRaw = (await client
+    .zrange(`${POST_PREFIX}${postId}${POST_REPLIES_SUFFIX}`, -6, -1)
+    .catch(() => [] as unknown[])) as string[];
+  const ids = Array.isArray(idsRaw) ? idsRaw : [];
+  if (ids.length === 0) return null;
+  // Walk newest-first; return the first one that isn't a tombstone.
+  for (let i = ids.length - 1; i >= 0; i--) {
+    const reply = await getReply(ids[i]);
+    if (reply && !reply.deleted) return reply;
+  }
+  return null;
+}
+
 /* === Reactions ============================================ */
 
 export type ReactionTarget =

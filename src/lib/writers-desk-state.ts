@@ -23,7 +23,11 @@ import {
 } from "./active-wall";
 import { getLastVisited } from "./desk-visits";
 import { getLatestReply, getPinnedThread, listActiveThreads } from "./guild";
-import { countRoomPresence, listVisiblePosts } from "./lounge";
+import {
+  countRoomPresence,
+  getLatestReply as getLatestLoungeReply,
+  listVisiblePosts,
+} from "./lounge";
 
 // Voice memo widget cutoff: if Clay hasn't published a memo within this
 // window, the whole "Voice from the desk" section drops off the widget.
@@ -190,6 +194,33 @@ export async function getWritersDeskState(
       latestLoungePost = p;
     }
   }
+  // The Lounge peek must agree with itself: name, words, and time should all
+  // point at the same event. When the freshest post was bumped by a reply,
+  // that reply IS the latest activity — show its author + body + time. With
+  // no replies the post itself is the latest. (Mirrors the Guild peek fix:
+  // before this, a reply bumped a post to the top but the peek still showed
+  // the original author's words against the reply's timestamp.)
+  let loungeLatestPeek = latestLoungePost
+    ? {
+        firstName: latestLoungePost.firstName,
+        body: latestLoungePost.body,
+        createdAt: latestLoungePost.createdAt,
+        lastActivityAt: latestLoungePost.lastActivityAt,
+      }
+    : null;
+  if (latestLoungePost && latestLoungePost.replyCount > 0) {
+    const latestReply = await getLatestLoungeReply(latestLoungePost.id);
+    if (latestReply) {
+      loungeLatestPeek = {
+        firstName: latestReply.firstName,
+        body: latestReply.body,
+        // Keep the post's lastActivityAt (it bumps to the reply's time) so
+        // the "ago" stays the live-activity clock the feed sorts on.
+        createdAt: latestReply.createdAt,
+        lastActivityAt: latestLoungePost.lastActivityAt,
+      };
+    }
+  }
   // The Guild peek's name must agree with its timestamp (latest activity),
   // so attribute it to whoever posted the most recent reply — not who
   // started the thread. Falls back to the thread's author when it has no
@@ -282,12 +313,12 @@ export async function getWritersDeskState(
     lounge: {
       activeNow: loungeActiveNow,
       latest:
-        latestLoungePost && latestLoungePost.body.trim()
+        loungeLatestPeek && loungeLatestPeek.body.trim()
           ? {
-              firstName: latestLoungePost.firstName,
-              body: latestLoungePost.body,
-              createdAt: latestLoungePost.createdAt,
-              lastActivityAt: latestLoungePost.lastActivityAt,
+              firstName: loungeLatestPeek.firstName,
+              body: loungeLatestPeek.body,
+              createdAt: loungeLatestPeek.createdAt,
+              lastActivityAt: loungeLatestPeek.lastActivityAt,
             }
           : null,
     },
