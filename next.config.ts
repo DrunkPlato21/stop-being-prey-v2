@@ -76,6 +76,20 @@ const nextConfig: NextConfig = {
   // entry, sign-in redirects) working with a permanent redirect.
   async redirects() {
     return [
+      // Canonical host. www and the apex both served the app with no
+      // redirect between them, and the login session cookie is host-only
+      // (set without a `domain`), so a member who logged in on one host had
+      // no session on the other — they'd hit the members gate while "logged
+      // in" (incident: founder #6, 2026-06-29). Force every www request to
+      // the apex so sessions live on one host. Fires only for the www host,
+      // so the apex never matches (no loop) and preview/localhost are
+      // untouched. Path + query carry across via :path*.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.stopbeingprey.com" }],
+        destination: "https://stopbeingprey.com/:path*",
+        permanent: true,
+      },
       {
         source: "/the-massie-eulogy",
         destination: "/the-massie-problem",
