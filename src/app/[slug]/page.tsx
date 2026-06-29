@@ -22,6 +22,7 @@ import { FinisherAchievement } from "@/components/FinisherAchievement";
 import { ReadThisNext } from "@/components/ReadThisNext";
 import { splitForInlineCta, stripCtaMarker } from "@/lib/inline-cta";
 import { isPaidViewer } from "@/lib/viewer";
+import { CHARTER_CAP, getCharterClaimed } from "@/lib/members";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
 
@@ -143,6 +144,18 @@ export default async function ArticlePage({
   // time, comments, recirculation, tip) stays. Cheap: the page is already
   // dynamic via the layout's auth.
   const hideCaptures = await isPaidViewer();
+
+  // Live charter-seat count for the end-of-essay conversion block. Only read
+  // when we'll actually render captures (members skip it, saving the Redis
+  // hit). The founder tier is retired from the copy: the pitch now leads with
+  // charter seats remaining and the total already in the room, not a $8
+  // founder clock. No scarcity theater — the count is the real one, and it
+  // quietly drops to nothing once the charter cap fills.
+  let charterRemaining = 0;
+  if (!hideCaptures) {
+    const charterClaimed = await getCharterClaimed();
+    charterRemaining = Math.max(0, CHARTER_CAP - charterClaimed);
+  }
 
   // Inline mid-article email capture, on every article (essayStyle pieces
   // split at an Act heading; both halves keep the ea-essay class so the
@@ -304,20 +317,29 @@ export default async function ArticlePage({
           />
         )}
 
-        {/* Essay-style pieces close on a pull-quote meant to land on
-            silence. Give the P.S. below extra room to breathe. The old
-            static "get on the list" beat that lived in this gap was
-            retired when the end-of-read capture block (below) took over
-            that moment with a real form for cold readers. */}
-        {article.essayStyle && !article.postscriptHtml && (
-          <div className="mt-24 md:mt-32" aria-hidden="true" />
-        )}
-
-        {/* === P.S. directly under the article body, no drop cap.
-             If the article frontmatter carries a `postscript` field,
-             that custom markdown wins. Otherwise fall back to the
-             stable-hash rotation across the three default variants. === */}
-        <div className="max-w-[38rem] mx-auto mt-8">
+        {/* === P.S. directly under the article body, no drop cap. A quiet,
+             deliberate footer: a single intentional gap below the closing
+             quote, then the muted italic note — no orphaned "silence" band
+             between them. Essay-style pieces get a touch more breathing room
+             than standard articles (they close on a quote, not a paragraph),
+             but not the old 8rem void. If the frontmatter carries a
+             `postscript` field, that custom markdown wins; otherwise fall
+             back to the stable-hash rotation across the three variants. === */}
+        <div
+          className={`max-w-[38rem] mx-auto ${
+            article.essayStyle && !article.postscriptHtml
+              ? "mt-12 md:mt-16"
+              : "mt-8"
+          }`}
+        >
+          {/* Soft footer divider: the same short olive hairline the
+              blockquote captions use, so the P.S. reads as a deliberate
+              closing note rather than a floating line. */}
+          <div
+            aria-hidden="true"
+            className="mb-7"
+            style={{ width: "4rem", height: "1px", background: "var(--eye-deep)" }}
+          />
           {article.postscriptHtml ? (
             <div
               className="postscript-block"
@@ -328,12 +350,6 @@ export default async function ArticlePage({
           )}
         </div>
       </div>
-
-      {/* End-of-read capture. Mounts nothing until the reader reaches the
-          end of #reading-region. Members get nothing; cold readers get
-          the email-list form; known subscribers get the cadence-capped
-          membership ask. */}
-      <FinisherAchievement slug={article.slug} isMember={hideCaptures} />
 
       {/* === References (opt-in, populated when markdown ends with
           `## References` followed by a list). Sits with the article
@@ -349,12 +365,21 @@ export default async function ArticlePage({
         </div>
       )}
 
-      {/* === Share row, right after the work (under the P.S.), where the
-          "pass it on" impulse is strongest — not buried below the
-          comments and bio. === */}
+      {/* === Share row, directly under the P.S. where the "pass it on"
+          impulse is strongest. The P.S. often makes the share ask in
+          words ("send it to one person who'd get it"), so the buttons
+          follow the sentence. Kept ABOVE the email/membership capture so
+          the low-friction action lands before the heavier ask. === */}
       <div className="max-w-2xl mx-auto px-6 mt-12">
         <ShareButtons url={`/${article.slug}`} title={article.title} />
       </div>
+
+      {/* End-of-read capture. Mounts nothing until the reader reaches the
+          end of #reading-region. Members get nothing; cold readers get
+          the email-list form; known subscribers get the cadence-capped
+          membership ask. Sits after the share row so the "pass it on" beat
+          comes first. */}
+      <FinisherAchievement slug={article.slug} isMember={hideCaptures} />
 
       <EyeDivider />
 
@@ -385,14 +410,16 @@ export default async function ArticlePage({
         </div>
       )}
 
-      {/* === Tip nudge. Always present (independent of P.S. variant)
-          so the publication's funding model surfaces on every essay,
-          not just the third that gets variant C. === */}
+      {/* === Support nudge. The publication is reader-funded; the Wall is
+          where readers back the work and sign their name. Reframed from the
+          old "tip jar" line, which undercut the Wall's support-first
+          framing. Always present so the funding model surfaces on every
+          essay, not just the third that gets variant C. === */}
       <section className="max-w-2xl mx-auto px-6 mt-12 text-center">
         <p className="font-serif italic text-ink-muted leading-relaxed">
           Reader-supported.{" "}
           <Link
-            href="/tip"
+            href="/wall"
             className="text-eye-deep hover:text-ink"
             style={{
               textDecoration: "underline",
@@ -401,7 +428,7 @@ export default async function ArticlePage({
               textUnderlineOffset: "3px",
             }}
           >
-            The tip jar is here.
+            Add your name to the Wall.
           </Link>
         </p>
       </section>
@@ -414,6 +441,12 @@ export default async function ArticlePage({
           block below. === */}
       {!hideCaptures && (
       <section className="max-w-3xl mx-auto px-6 py-10 md:py-14">
+        {/* Single conversion surface after the work: the tailored closing
+            line, then the two paths (free email + paid). The old standalone
+            scarcity block was cut — it repeated the "room / book in the open"
+            pitch and gave a second button to the same place. The paid column
+            now carries the charter-seats-left scarcity and the live room
+            total, so the ask lands once, not three times. */}
         <p className="eyebrow mb-8 text-center">Two ways in</p>
         {/* Tailored membership ask in the piece's own voice, when set
             (frontmatter `closingCta`). Sits at the conversion surface,
@@ -425,7 +458,7 @@ export default async function ArticlePage({
             dangerouslySetInnerHTML={{ __html: article.closingCtaHtml }}
           />
         )}
-        <DualSubscribeBlock />
+        <DualSubscribeBlock charterSeatsLeft={charterRemaining} />
         {/* "The argument starts here" — pull engaged readers deeper into
             the series instead of bouncing (frontmatter `prequelSlug`). */}
         {article.prequelSlug && article.prequelLabel && (

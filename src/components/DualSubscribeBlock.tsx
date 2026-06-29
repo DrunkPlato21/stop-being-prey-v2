@@ -31,10 +31,15 @@ export function DualSubscribeBlock({
   className = "",
   source = "dual",
   slug,
+  charterSeatsLeft,
 }: {
   className?: string;
   source?: TrackSource;
   slug?: string;
+  // When set and > 0, the paid column names the live charter scarcity (the
+  // founder tier is retired). Omitted on call sites that don't pass a count
+  // (about / founding pages), which keep the plain room-total line.
+  charterSeatsLeft?: number;
 }) {
   return (
     <div
@@ -64,6 +69,14 @@ export function DualSubscribeBlock({
         >
           The room behind the work, where I actually talk back and the
           book gets built in the open.
+          {charterSeatsLeft && charterSeatsLeft > 0 ? (
+            <>
+              {" "}
+              {charterSeatsLeft} charter seat
+              {charterSeatsLeft === 1 ? "" : "s"} left at $13/mo, locked for
+              life.
+            </>
+          ) : null}
         </p>
         <MemberCount className="mb-3" />
         <div>

@@ -217,6 +217,24 @@ export function getDispatches(): ArticleMeta[] {
   return getAllArticles().filter((a) => !isCornerstone(a));
 }
 
+/**
+ * Off-site links open in a new tab so a source citation never navigates the
+ * reader out of the essay; on-site links (relative paths, or stopbeingprey.com)
+ * stay in the same tab. Runs on the rendered HTML, so it covers body links, the
+ * essayStyle citation captions, the references list, and the closing line
+ * alike. Adds rel="noopener noreferrer" — the security + perf hygiene that
+ * target="_blank" requires.
+ */
+function externalLinksInNewTab(htmlStr: string): string {
+  return htmlStr.replace(
+    /<a href="(https?:\/\/[^"]+)">/gi,
+    (full, href: string) =>
+      /^https?:\/\/(?:[^/]*\.)?stopbeingprey\.com(?:[/:?#]|$)/i.test(href)
+        ? full
+        : `<a href="${href}" target="_blank" rel="noopener noreferrer">`
+  );
+}
+
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
   const fullPath = path.join(articlesDirectory, `${slug}.md`);
   if (!fs.existsSync(fullPath)) return null;
@@ -235,22 +253,24 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   // skip the lead-incipit: their opening is an epigraph pull quote, and
   // the incipit would target the wrong paragraph (and break the token).
   // Everyone else gets the standard small-caps run-in lead.
-  const contentHtml = essayStyle
-    ? applyEssayTokens(rawContentHtml, {
-        uniformPanelQuotes: data.uniformQuotes === true,
-      })
-    : applyLeadIncipit(rawContentHtml);
+  const contentHtml = externalLinksInNewTab(
+    essayStyle
+      ? applyEssayTokens(rawContentHtml, {
+          uniformPanelQuotes: data.uniformQuotes === true,
+        })
+      : applyLeadIncipit(rawContentHtml)
+  );
 
   let postscriptHtml: string | null = null;
   if (typeof data.postscript === "string" && data.postscript.trim().length > 0) {
     const ps = await remark().use(html).process(data.postscript);
-    postscriptHtml = ps.toString().trim();
+    postscriptHtml = externalLinksInNewTab(ps.toString().trim());
   }
 
   let closingCtaHtml: string | null = null;
   if (typeof data.closingCta === "string" && data.closingCta.trim().length > 0) {
     const c = await remark().use(html).process(data.closingCta);
-    closingCtaHtml = c.toString().trim();
+    closingCtaHtml = externalLinksInNewTab(c.toString().trim());
   }
 
   return {
@@ -272,7 +292,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     audioMinutes:
       typeof data.audioMinutes === "number" ? data.audioMinutes : undefined,
     contentHtml,
-    referencesHtml,
+    referencesHtml: referencesHtml ? externalLinksInNewTab(referencesHtml) : null,
     postscriptHtml,
     closingCtaHtml,
     prequelSlug:

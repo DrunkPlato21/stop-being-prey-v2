@@ -299,7 +299,8 @@ export async function Comments({ kind, slug }: Props) {
               className="font-serif text-ink-muted leading-relaxed mb-5"
               style={{ fontSize: "1rem" }}
             >
-              Reading is open to everyone. Join to add your voice.
+              Reading is free for everyone. The room behind the work is where
+              members talk, and where I talk back.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-x-6 gap-y-3">
               <Link href="/membership?src=comments" className="cta-prestige">
