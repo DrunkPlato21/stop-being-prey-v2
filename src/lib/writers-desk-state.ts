@@ -73,6 +73,11 @@ export type DeskRoomsSignal = {
         "what's being said" peek that reflects the live conversation, not
         just the newest thread. */
     latest: {
+      /** The parent post's id, so the desk peek can deep-link into the
+          Lounge at that conversation (/lounge#post-<id>). When the latest
+          activity is a reply, this stays the parent post id — the Lounge
+          anchors on posts, and the reply lives inside that post. */
+      id: string;
       firstName: string;
       body: string;
       createdAt: number;
@@ -202,6 +207,9 @@ export async function getWritersDeskState(
   // the original author's words against the reply's timestamp.)
   let loungeLatestPeek = latestLoungePost
     ? {
+        // Deep-link target: always the parent post id (the Lounge anchors
+        // on posts), whether the latest activity is the post or a reply.
+        id: latestLoungePost.id,
         firstName: latestLoungePost.firstName,
         body: latestLoungePost.body,
         createdAt: latestLoungePost.createdAt,
@@ -212,6 +220,7 @@ export async function getWritersDeskState(
     const latestReply = await getLatestLoungeReply(latestLoungePost.id);
     if (latestReply) {
       loungeLatestPeek = {
+        id: latestLoungePost.id,
         firstName: latestReply.firstName,
         body: latestReply.body,
         // Keep the post's lastActivityAt (it bumps to the reply's time) so
@@ -315,6 +324,7 @@ export async function getWritersDeskState(
       latest:
         loungeLatestPeek && loungeLatestPeek.body.trim()
           ? {
+              id: loungeLatestPeek.id,
               firstName: loungeLatestPeek.firstName,
               body: loungeLatestPeek.body,
               createdAt: loungeLatestPeek.createdAt,

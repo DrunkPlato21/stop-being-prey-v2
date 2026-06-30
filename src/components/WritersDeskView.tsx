@@ -806,7 +806,10 @@ export function WritersDeskView({
                 </Link>
               </div>
               {rooms.lounge.latest ? (
-                <Link href="/lounge" className="group block no-underline mt-1.5">
+                <Link
+                  href={`/lounge#post-${rooms.lounge.latest.id}`}
+                  className="group block no-underline mt-1.5"
+                >
                   <p
                     className="font-serif italic text-ink leading-snug line-clamp-2 group-hover:text-eye-deep transition-colors"
                     style={{ fontSize: "1.02rem" }}
