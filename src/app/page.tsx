@@ -136,6 +136,7 @@ export default function Home() {
                     <AudioPill
                       episodeId={featured.spotifyEpisodeId}
                       minutes={featuredAudioMin}
+                      href={`/${featured.slug}#listen`}
                     />
                   )}
                 </div>
