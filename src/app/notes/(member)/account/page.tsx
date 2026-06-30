@@ -25,6 +25,7 @@ import {
   hasActiveGiftSeat,
 } from "@/lib/members";
 import { MemberBadge } from "@/components/MemberBadge";
+import { getPoolStats } from "@/lib/pool";
 
 export const metadata: Metadata = {
   title: "Account",
@@ -86,6 +87,11 @@ export default async function AccountPage() {
   const founderSlot = viewerIsAdmin ? null : getFounderSlot(member);
   const charterSlot = viewerIsAdmin ? null : getCharterSlot(member);
   const tierBadge = viewerIsAdmin ? null : getTierBadge(member);
+
+  // Live count for the pay-it-forward block. Reads this environment's own
+  // pool keyspace (prod on Vercel), so the "someone's waiting" line is the
+  // honest current number, never a dressed-up zero.
+  const poolWaiting = (await getPoolStats()).waiting;
 
   return (
     <div>
@@ -245,15 +251,38 @@ export default async function AccountPage() {
           )}
         </div>
 
-        {/* Pay it forward — member-side entry to the gift flow. */}
+        {/* Pay it forward — member-side entry to the gift flow. Two paths,
+            both on /membership/gift via its toggle: sponsor a stranger from
+            the waitlist (anonymous), or buy a guest pass for someone you
+            name. The live waiting count makes the first honest, never a
+            dressed-up zero. */}
         <div className="mb-12 pt-10 border-t border-rule">
           <p className="eyebrow mb-3">Pay it forward</p>
+          <p
+            className="font-serif text-ink-muted leading-relaxed mb-4"
+            style={{ fontSize: "1.02rem" }}
+          >
+            You can put someone in this room. Sponsor a seat for a reader
+            who can&apos;t afford one. They never learn it was you, and you
+            never learn who they were.
+            {poolWaiting > 0 && (
+              <>
+                {" "}
+                <span className="text-ink">
+                  {poolWaiting === 1
+                    ? "One person is waiting right now."
+                    : `${poolWaiting} people are waiting right now.`}
+                </span>
+              </>
+            )}
+          </p>
           <p
             className="font-serif text-ink-muted leading-relaxed mb-6"
             style={{ fontSize: "1.02rem" }}
           >
-            Know someone who needs to be in this room? Buy them a seat.
-            One charge, a fixed term, full membership.
+            Or buy a guest pass for someone you know. A family member, a
+            friend, anyone who needs to be here. One charge, a fixed term,
+            full membership.
           </p>
           <Link href="/membership/gift" className="btn-secondary">
             <span>Give someone a seat</span>
