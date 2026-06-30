@@ -1,20 +1,21 @@
 ---
 title: "Don't Give Thomas Sowell the Medal of Freedom"
 slug: "medal-of-freedom"
-date: "2026-06-29"
+date: "2026-06-30T11:34:00Z"
 description: "He doesn't need a ribbon. He needs an army."
 subtitle: "everyone wants sowell to get the medal. it's the most unserious thing we could ask for, and it's why our side keeps losing"
+spotifyEpisodeId: "7vYzEpKTNdMoaKbRL19oPu"
+# Real episode runtime (18 min); overrides the word-count estimate.
+audioMinutes: 18
 cornerstone: true
 essayStyle: true
 # Homepage "From the essay" pull quote shown when this is the lead.
 leadQuote: "Stop staring at the medal. It's time to stop begging, and start taking."
 # Tailored membership ask, shown above the end-of-essay subscribe block.
 closingCta: "If this cut against the grain of what you keep getting told, you're who I write for. The room behind the work is where the next piece lands first, and where the people serious about power actually talk."
-# Private release: paying members only. Signed-in members read it at the
-# direct URL; everyone else gets the join gate; hidden from homepage,
-# /writing, and RSS. Flip to `true` tomorrow to unlock it for everyone (it
-# becomes the lead cornerstone on the homepage the moment it goes public).
-published: false
+# Public: unlocked 2026-06-30 (after the members-only day). Now the lead
+# cornerstone on the homepage and visible on /writing + RSS.
+published: true
 ---
 
 {{PULL: "Thomas Sowell is a genius. Listen to him." | Charlie Kirk}}
