@@ -8,6 +8,7 @@ import {
   type PoolRequest,
 } from "@/lib/pool";
 import { getSourceCounts, type EventCounts } from "@/lib/analytics";
+import { markSectionSeen } from "@/lib/admin-nav-badges";
 
 // Community seat pool, admin view. Localhost only (proxy.ts 404s /admin
 // in prod), so it reads the PROD keyspace by default to show the real
@@ -46,6 +47,11 @@ export default async function PoolAdminPage({
   const params = await searchParams;
   const dev = params.ns === "dev";
   const prod = !dev;
+
+  // Clear the unread dot for the seat pool. Awaited so the seen mark lands
+  // in Redis before AdminPersistentNav re-fetches the layout's badges. The
+  // dot tracks pool:requests:all (prod), so a visit here clears it.
+  await markSectionSeen("pool").catch(() => null);
 
   const [stats, sources, waitlistIds, recentIds] = await Promise.all([
     getPoolStats({ prod }),

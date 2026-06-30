@@ -11,12 +11,17 @@ import { Redis } from "@upstash/redis";
 // "There's something new" is true when the most recent item in that
 // section's existing index has a higher timestamp than the seen mark.
 // Latest-item lookup reuses the indexes the section already maintains
-// (comments:all, lounge:posts, case-submissions), so this layer adds
-// 1 MGET + 3 ZRANGE calls per admin page render — cheap.
+// (comments:all, lounge:posts, case-submissions, pool:requests:all), so
+// this layer adds 1 MGET + 4 ZRANGE calls per admin page render — cheap.
 
 const SEEN_PREFIX = "admin:nav-seen:";
 
-export const NAV_SECTIONS = ["comments", "lounge", "case-submissions"] as const;
+export const NAV_SECTIONS = [
+  "comments",
+  "lounge",
+  "case-submissions",
+  "pool",
+] as const;
 export type NavBadgeSection = (typeof NAV_SECTIONS)[number];
 
 export type AdminNavBadges = Record<NavBadgeSection, boolean>;
@@ -25,6 +30,7 @@ const EMPTY_BADGES: AdminNavBadges = {
   comments: false,
   lounge: false,
   "case-submissions": false,
+  pool: false,
 };
 
 let cachedClient: Redis | null = null;
@@ -44,6 +50,7 @@ function seenKey(section: NavBadgeSection): string {
 function indexKeyFor(section: NavBadgeSection): string {
   if (section === "comments") return "comments:all";
   if (section === "lounge") return "lounge:posts";
+  if (section === "pool") return "pool:requests:all";
   return "case-submissions";
 }
 
@@ -63,8 +70,8 @@ async function latestScore(
 
 /**
  * Returns whether each section has unread activity for the admin.
- * Cheap: 1 MGET for the seen marks + 3 ZRANGEs (limit 1) for latest
- * timestamps. Total ~4 Redis commands per call.
+ * Cheap: 1 MGET for the seen marks + 4 ZRANGEs (limit 1) for latest
+ * timestamps. Total ~5 Redis commands per call.
  */
 export async function getAdminNavBadges(): Promise<AdminNavBadges> {
   const client = getClient();
