@@ -120,11 +120,24 @@ export async function postReplyAction(
   const body = String(formData.get("body") ?? "");
   if (!threadId) return { ok: false, error: "Missing thread." };
 
+  // Optional attached image, same hidden-field contract as postThreadAction.
+  // createReply re-validates the URL is from our own Blob store.
+  const mediaUrl = String(formData.get("mediaUrl") ?? "");
+  const media = mediaUrl
+    ? {
+        type: "image",
+        url: mediaUrl,
+        width: Number(formData.get("mediaWidth") ?? 0),
+        height: Number(formData.get("mediaHeight") ?? 0),
+      }
+    : null;
+
   const result = await createReply({
     authorEmail: session.email,
     threadId,
     parentReplyId,
     body,
+    media,
   });
   if (!result.ok) return { ok: false, error: messageFor(result.error) };
 
@@ -175,7 +188,7 @@ export async function postReplyAction(
           replyAuthorDisplayName: replierProfile?.displayName ?? "A member",
           threadTitle: thread.title,
           threadPath: `/guild/${threadId}#reply-${result.reply.id}`,
-          replyBody: result.reply.body,
+          replyBody: result.reply.body || "Shared a photo",
         });
       }
     }

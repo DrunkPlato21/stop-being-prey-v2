@@ -14,8 +14,12 @@ type Pending = { url: string; width: number; height: number };
 
 export function GuildImagePicker({
   onUploadingChange,
+  onImageChange,
 }: {
   onUploadingChange?: (uploading: boolean) => void;
+  // Fires true once an image is attached, false when it's cleared. Lets a
+  // composer enable "send" for an image-only post (used by reply boxes).
+  onImageChange?: (hasImage: boolean) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState<Pending | null>(null);
@@ -30,6 +34,7 @@ export function GuildImagePicker({
 
   function clear() {
     setImage(null);
+    onImageChange?.(false);
     setPreview((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return null;
@@ -66,6 +71,7 @@ export function GuildImagePicker({
         return;
       }
       setImage({ url: data.url, width, height });
+      onImageChange?.(true);
     } catch {
       setError("Couldn't read that photo. Try another one.");
       clear();

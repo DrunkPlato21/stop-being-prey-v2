@@ -133,6 +133,9 @@ export type GuildReply = {
   editedAt: number | null;
   clayReadAt: number | null;
   deleted: boolean;
+  // Optional attached image, same as a thread. Absent/null on text-only
+  // replies and on every reply written before images were allowed here.
+  media?: GuildImageMedia | null;
 };
 
 // --------------------------------------------------------------------
@@ -399,12 +402,16 @@ export async function createReply(args: {
   threadId: string;
   parentReplyId: string | null;
   body: string;
+  media?: unknown;
 }): Promise<CreateReplyResult> {
   const client = getClient();
   if (!client) return { ok: false, error: "storage_unavailable" };
 
   const body = args.body.trim().slice(0, MAX_REPLY);
-  if (!body) return { ok: false, error: "invalid" };
+  // A reply may be text, an image, or both — but not empty. Same Blob-host
+  // re-validation the thread composer uses.
+  const media = validateThreadImage(args.media);
+  if (!body && !media) return { ok: false, error: "invalid" };
 
   const thread = await getThread(args.threadId);
   if (!thread || thread.deleted) return { ok: false, error: "thread_missing" };
@@ -446,6 +453,7 @@ export async function createReply(args: {
     editedAt: null,
     clayReadAt: null,
     deleted: false,
+    media,
   };
   await client.set(`${REPLY_PREFIX}${reply.id}`, JSON.stringify(reply));
   await client.zadd(repliesIndexKey(args.threadId), {
@@ -570,7 +578,8 @@ export async function editReply(
     return { ok: false, error: "window_closed" };
   }
   const clean = body.trim().slice(0, MAX_REPLY);
-  if (!clean) return { ok: false, error: "invalid" };
+  // An image-only reply may keep an empty body; a text reply may not go blank.
+  if (!clean && !reply.media) return { ok: false, error: "invalid" };
   reply.body = clean;
   reply.editedAt = Date.now();
   await client.set(`${REPLY_PREFIX}${id}`, JSON.stringify(reply));
@@ -841,6 +850,24 @@ export async function getGuildReactions(
   targetIds.forEach((id, i) => {
     out[id] = summarize(hashes[i], viewerEmail);
   });
+  return out;
+}
+
+/** Who reacted to one target, and with what. Emails only; the caller
+    resolves display names. Used by the "see who reacted" popover. */
+export async function getGuildReactors(
+  targetId: string
+): Promise<Array<{ email: string; reaction: ReactionKey }>> {
+  const client = getClient();
+  if (!client) return [];
+  const hash = await client
+    .hgetall<Record<string, string>>(`${REACTIONS_PREFIX}${targetId}`)
+    .catch(() => null);
+  if (!hash) return [];
+  const out: Array<{ email: string; reaction: ReactionKey }> = [];
+  for (const [email, reaction] of Object.entries(hash)) {
+    if (isReactionKey(reaction)) out.push({ email, reaction });
+  }
   return out;
 }
 

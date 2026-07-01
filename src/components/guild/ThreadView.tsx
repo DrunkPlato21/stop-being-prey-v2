@@ -23,6 +23,7 @@ import { authorName, formatRelative } from "./guild-format";
 import { formatGuildBody } from "@/components/guild/format-body";
 import { FormatToolbar } from "./FormatToolbar";
 import { GuildImage } from "./GuildImage";
+import { GuildImagePicker } from "./GuildImagePicker";
 import { GuildReactions } from "./GuildReactions";
 import { useAutoGrow } from "./useAutoGrow";
 
@@ -160,13 +161,23 @@ function ReplyComposer({
 }) {
   const [state, formAction, pending] = useActionState(postReplyAction, INITIAL);
   const [body, setBody] = useState("");
+  // Image state. `hasImage` gates the send button (so an image-only reply
+  // can post); `imgUploading` blocks send mid-upload; bumping `pickerKey`
+  // on a successful post remounts the picker to clear its thumbnail.
+  const [hasImage, setHasImage] = useState(false);
+  const [imgUploading, setImgUploading] = useState(false);
+  const [pickerKey, setPickerKey] = useState(0);
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const bodyRef = textareaRef ?? internalRef;
   useAutoGrow(bodyRef, body);
 
+  const canSend = (body.trim().length > 0 || hasImage) && !imgUploading;
+
   useEffect(() => {
     if (state.ok) {
       setBody("");
+      setHasImage(false);
+      setPickerKey((k) => k + 1);
       onDone?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -204,6 +215,11 @@ function ReplyComposer({
           resize: "vertical",
         }}
       />
+      <GuildImagePicker
+        key={pickerKey}
+        onUploadingChange={setImgUploading}
+        onImageChange={setHasImage}
+      />
       {state.error && (
         <p style={{ color: "var(--blood)", fontSize: "0.82rem", marginTop: "0.4rem" }}>
           {state.error}
@@ -217,7 +233,7 @@ function ReplyComposer({
         )}
         <button
           type="submit"
-          disabled={pending || !body.trim()}
+          disabled={pending || !canSend}
           className="font-display uppercase tracking-[0.18em]"
           style={{
             background: "var(--eye-deep)",
@@ -228,7 +244,7 @@ function ReplyComposer({
             fontSize: "0.66rem",
             fontWeight: 600,
             cursor: pending ? "default" : "pointer",
-            opacity: pending || !body.trim() ? 0.5 : 1,
+            opacity: pending || !canSend ? 0.5 : 1,
           }}
         >
           {pending ? "Posting…" : "Reply"}
@@ -560,7 +576,10 @@ function ReplyNode({
         ) : editing ? (
           <EditReplyForm reply={reply} onDone={() => setEditing(false)} />
         ) : (
-          <Body text={reply.body} />
+          <>
+            <Body text={reply.body} />
+            {reply.media && <GuildImage media={reply.media} />}
+          </>
         )}
 
         {/* Member actions on one line; the presiding row sits beneath. */}

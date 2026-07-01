@@ -3464,8 +3464,16 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   background: rgba(184, 168, 44, 0.06);
   border-left-color: var(--eye-deep);
 }
+/* Items that were unread the moment the panel opened. Held at a stronger
+   olive band for the whole viewing so fresh alerts stay obvious and don't
+   blend into the read pile a second after open. Supersedes is-read even
+   after the mark-all-read flip. */
+.notifications-row.is-new {
+  background: rgba(184, 168, 44, 0.16);
+  border-left-color: var(--eye-deep);
+}
 .notifications-row.is-read {
-  opacity: 0.72;
+  opacity: 0.9;
 }
 .notifications-row:hover,
 .notifications-row:focus-visible {

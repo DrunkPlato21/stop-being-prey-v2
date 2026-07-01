@@ -28,6 +28,7 @@ import { MemberBadge } from "@/components/MemberBadge";
 import { InitialAvatar } from "@/components/InitialAvatar";
 import { Linkified } from "@/components/Linkified";
 import { LoungeMedia } from "@/components/LoungeMedia";
+import { ReactorsPopover } from "@/components/ReactorsPopover";
 import { resizeImageToWebp } from "@/lib/image-resize";
 import { extractYouTubeId, stripYouTubeUrls } from "@/lib/youtube";
 import { mentionTokenFor } from "@/lib/display-name";
@@ -275,6 +276,12 @@ export function LoungeView(props: Props) {
   const [replyDraft, setReplyDraft] = useState<string>("");
   const [replying, setReplying] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
+  // Attached image for the single active reply composer, mirroring the
+  // top-level compose image state. One reply box is open at a time, so a
+  // single set of state serves whichever post is being replied to.
+  const [replyImage, setReplyImage] = useState<LoungeImageMedia | null>(null);
+  const [replyPreview, setReplyPreview] = useState<string | null>(null);
+  const [replyUploadingImage, setReplyUploadingImage] = useState(false);
 
   // Expanded-replies set: by default show only the latest reply per
   // post — enough to surface what was last said in the thread so the
@@ -673,6 +680,63 @@ export function LoungeView(props: Props) {
     }
   }
 
+  function clearReplyImage() {
+    setReplyImage(null);
+    setReplyPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }
+
+  // Reply-side twin of onPickImage: same Blob upload, same WebP downscale,
+  // writing the reply image state instead of the compose state.
+  async function onPickReplyImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setReplyError("That doesn't look like an image.");
+      return;
+    }
+    setReplyError(null);
+    clearReplyImage();
+    setReplyUploadingImage(true);
+    const preview = URL.createObjectURL(file);
+    setReplyPreview(preview);
+    try {
+      const { blob, width, height } = await resizeImageToWebp(file);
+      const fd = new FormData();
+      fd.append("file", new File([blob], "image.webp", { type: "image/webp" }));
+      const res = await fetch("/api/lounge/upload", { method: "POST", body: fd });
+      const data: { ok?: boolean; url?: string; error?: string } = await res
+        .json()
+        .catch(() => ({}));
+      if (!res.ok || !data.ok || !data.url) {
+        setReplyError(
+          data.error === "daily_limit"
+            ? "You've hit today's image limit."
+            : "Image upload failed. Try again."
+        );
+        clearReplyImage();
+        return;
+      }
+      setReplyImage({ type: "image", url: data.url, width, height });
+    } catch {
+      setReplyError("Couldn't process that image.");
+      clearReplyImage();
+    } finally {
+      setReplyUploadingImage(false);
+    }
+  }
+
+  const replyImageCtl: ReplyImageCtl = {
+    preview: replyPreview,
+    uploading: replyUploadingImage,
+    hasImage: !!replyImage,
+    onPick: onPickReplyImage,
+    clear: clearReplyImage,
+  };
+
   async function submitPost(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const body = composeBody.trim();
@@ -706,14 +770,14 @@ export function LoungeView(props: Props) {
 
   async function submitReply(parentPostId: string) {
     const body = replyDraft.trim();
-    if (!body || replying) return;
+    if ((!body && !replyImage) || replying || replyUploadingImage) return;
     setReplying(true);
     setReplyError(null);
     try {
       const res = await fetch(`/api/lounge/${parentPostId}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, media: replyImage ?? undefined }),
       });
       const data: { ok?: boolean; reply?: LoungeReply } & ApiError = await res
         .json()
@@ -742,6 +806,7 @@ export function LoungeView(props: Props) {
         setPinned({ ...pinned, replyCount: pinned.replyCount + 1 });
       }
       setReplyDraft("");
+      clearReplyImage();
       setOpenReplyFor(null);
       setOpenUnderReplyId(null);
     } catch (err) {
@@ -1320,6 +1385,7 @@ export function LoungeView(props: Props) {
               setReplyDraft={setReplyDraft}
               replying={replying}
               replyError={replyError}
+              replyImageCtl={replyImageCtl}
               expandedReplies={expandedReplies}
               setExpandedReplies={setExpandedReplies}
               pickerOpenFor={pickerOpenFor}
@@ -1377,6 +1443,7 @@ export function LoungeView(props: Props) {
                 setReplyDraft={setReplyDraft}
                 replying={replying}
                 replyError={replyError}
+                replyImageCtl={replyImageCtl}
                 expandedReplies={expandedReplies}
                 setExpandedReplies={setExpandedReplies}
                 pickerOpenFor={pickerOpenFor}
@@ -1465,6 +1532,7 @@ export function LoungeView(props: Props) {
             };
             const cancelReply = () => {
               setReplyDraft("");
+              clearReplyImage();
               setOpenReplyFor(null);
               setOpenUnderReplyId(null);
             };
@@ -1767,13 +1835,6 @@ function ReactionControl({
   const mine = snapshot.myReaction;
   const hasReaction = mine !== null;
 
-  // Top-3 reaction keys by count for the summary cluster.
-  const topKeys: ReactionKey[] = REACTION_KEYS.filter(
-    (k) => snapshot.counts[k] > 0
-  )
-    .sort((a, b) => snapshot.counts[b] - snapshot.counts[a])
-    .slice(0, 3);
-
   // Hover-open / hover-close timers. Refs so re-renders don't wipe
   // the pending timeout id.
   const openTimerRef = useRef<number | null>(null);
@@ -1871,39 +1932,16 @@ function ReactionControl({
         <span>{hasReaction ? REACTION_LABEL[mine] : "React"}</span>
       </button>
 
-      {/* Summary cluster (top emoji + total). Hidden when the user
-          is the only reactor — the trigger already shows their
-          emoji + label, no point echoing it. */}
+      {/* Summary cluster (top emoji + total), tappable to see who reacted.
+          Hidden when the user is the only reactor — the trigger already
+          shows their emoji + label, no point echoing it. */}
       {snapshot.total > 0 && !(hasReaction && snapshot.total === 1) && (
-        <span
-          className="font-display"
-          style={{
-            marginLeft: "0.55rem",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.25rem",
-            color: "var(--ink-faint)",
-            fontSize: small ? "0.6rem" : "0.66rem",
-            fontWeight: 600,
-            letterSpacing: "0.02em",
-          }}
-        >
-          <span aria-hidden="true" style={{ display: "inline-flex" }}>
-            {topKeys.map((k) => (
-              <span
-                key={k}
-                style={{
-                  fontSize: small ? "0.85rem" : "0.95rem",
-                  lineHeight: 1,
-                  marginRight: "-0.2rem",
-                }}
-              >
-                {REACTION_EMOJI[k]}
-              </span>
-            ))}
-          </span>
-          <span style={{ marginLeft: "0.3rem" }}>{snapshot.total}</span>
-        </span>
+        <ReactorsPopover
+          endpoint={`/api/lounge/reactors?kind=${targetKind}&targetId=${targetId}`}
+          counts={snapshot.counts}
+          total={snapshot.total}
+          small={small}
+        />
       )}
 
       {/* Picker */}
@@ -2102,6 +2140,16 @@ function EditedMarker({ at, now }: { at: number; now: number }) {
 
 /* === Post card ============================================ */
 
+// Controls for the active reply composer's attached image, bundled so the
+// reply-side image plumbing rides on one prop instead of five.
+type ReplyImageCtl = {
+  preview: string | null;
+  uploading: boolean;
+  hasImage: boolean;
+  onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  clear: () => void;
+};
+
 type CardProps = {
   post: LoungePost;
   replies: LoungeReply[];
@@ -2122,6 +2170,7 @@ type CardProps = {
   setReplyDraft: (s: string) => void;
   replying: boolean;
   replyError: string | null;
+  replyImageCtl: ReplyImageCtl;
   expandedReplies: Set<string>;
   setExpandedReplies: (next: Set<string>) => void;
   pickerOpenFor: string | null;
@@ -2160,6 +2209,7 @@ function PostCard(props: CardProps) {
     setReplyDraft,
     replying,
     replyError,
+    replyImageCtl,
     expandedReplies,
     setExpandedReplies,
     pickerOpenFor,
@@ -2216,6 +2266,10 @@ function PostCard(props: CardProps) {
   // sibling reply on the parent post regardless of anchor.
   const replyCap = isAdmin ? MAX_BODY_ADMIN : MAX_BODY;
   const replyOver = isAdmin && replyDraft.length > MAX_BODY;
+  const replyImageInputRef = useRef<HTMLInputElement | null>(null);
+  const replyCanSend =
+    (replyDraft.trim().length > 0 || replyImageCtl.hasImage) &&
+    !replyImageCtl.uploading;
   const renderComposer = (replyingToName: string) => (
     <div id="lounge-active-reply" className="mt-4 pt-4 border-t border-rule">
       <MentionAutoResizingTextarea
@@ -2243,24 +2297,99 @@ function PostCard(props: CardProps) {
         }}
         autoFocus
       />
+      {/* Attached image preview (one per reply), with remove. */}
+      {replyImageCtl.preview && (
+        <div className="relative inline-block mt-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={replyImageCtl.preview}
+            alt=""
+            style={{
+              maxHeight: "6rem",
+              width: "auto",
+              display: "block",
+              border: "1px solid var(--border, #d8cfb8)",
+              opacity: replyImageCtl.uploading ? 0.6 : 1,
+            }}
+          />
+          <button
+            type="button"
+            onClick={replyImageCtl.clear}
+            aria-label="Remove image"
+            className="absolute -top-2 -right-2 bg-ink text-paper flex items-center justify-center"
+            style={{
+              width: "1.25rem",
+              height: "1.25rem",
+              borderRadius: "999px",
+              fontSize: "0.8rem",
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3 mt-2">
-        <span
-          className={`font-serif italic ${
-            replyOver ? "" : "text-ink-faint"
-          }`}
-          style={{
-            fontSize: "0.76rem",
-            ...(replyOver ? { color: WARN_INK, fontWeight: 600 } : {}),
-          }}
-        >
-          {replyDraft.length} / {MAX_BODY}
-          {replyOver && " — over recommended"}
-        </span>
+        <div className="flex items-center gap-3">
+          <input
+            ref={replyImageInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            hidden
+            onChange={replyImageCtl.onPick}
+          />
+          <button
+            type="button"
+            onClick={() => replyImageInputRef.current?.click()}
+            disabled={replying || replyImageCtl.uploading || replyImageCtl.hasImage}
+            aria-label="Add a photo"
+            title="Add a photo"
+            className="text-ink hover:text-eye-deep disabled:opacity-40 disabled:cursor-not-allowed transition-colors -ml-1 p-1 leading-none"
+          >
+            {replyImageCtl.uploading ? (
+              <span
+                className="font-serif italic text-ink-muted"
+                style={{ fontSize: "0.72rem" }}
+              >
+                uploading…
+              </span>
+            ) : (
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2.5" />
+                <circle cx="8.5" cy="9" r="1.6" />
+                <path d="M21 15.5 16 11 6.5 20.5" />
+              </svg>
+            )}
+          </button>
+          <span
+            className={`font-serif italic ${
+              replyOver ? "" : "text-ink-faint"
+            }`}
+            style={{
+              fontSize: "0.76rem",
+              ...(replyOver ? { color: WARN_INK, fontWeight: 600 } : {}),
+            }}
+          >
+            {replyDraft.length} / {MAX_BODY}
+            {replyOver && " — over recommended"}
+          </span>
+        </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => {
               setReplyDraft("");
+              replyImageCtl.clear();
               setOpenReplyFor(null);
               setOpenUnderReplyId(null);
             }}
@@ -2279,10 +2408,10 @@ function PostCard(props: CardProps) {
           <button
             type="button"
             onClick={() => onSubmitReply(post.id)}
-            disabled={replying || !replyDraft.trim()}
+            disabled={replying || !replyCanSend}
             className="btn-secondary"
             style={{
-              opacity: replying || !replyDraft.trim() ? 0.6 : 1,
+              opacity: replying || !replyCanSend ? 0.6 : 1,
               cursor: replying ? "wait" : "pointer",
             }}
           >
@@ -2849,12 +2978,17 @@ function ReplyRow({
       {isEditing ? (
         <EditBox edit={edit} cap={isAdmin ? MAX_BODY_ADMIN : MAX_BODY} />
       ) : (
-        <p
-          className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
-          style={{ fontSize: "0.95rem" }}
-        >
-          <Linkified text={reply.body} highlightMentions />
-        </p>
+        <>
+          {reply.body && (
+            <p
+              className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
+              style={{ fontSize: "0.95rem" }}
+            >
+              <Linkified text={reply.body} highlightMentions />
+            </p>
+          )}
+          {reply.media && <LoungeMedia media={reply.media} />}
+        </>
       )}
       {/* Editor's stamp below the reply body. Out of the header so it
           isn't misread as a timestamp for the read event. */}

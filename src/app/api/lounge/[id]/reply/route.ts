@@ -43,6 +43,8 @@ export async function POST(
   if (typeof rawBody !== "string") {
     return Response.json({ error: "missing_body" }, { status: 400 });
   }
+  // Optional attached image. Re-validated server-side in createReply.
+  const rawMedia = (body as { media?: unknown })?.media;
 
   const adminUser = isAdmin(session.email);
   const fallback = session.email.split("@")[0] || "Member";
@@ -64,6 +66,7 @@ export async function POST(
     isFounder,
     body: rawBody,
     isAdmin: adminUser,
+    media: rawMedia,
   });
 
   if (!result.ok) {
@@ -82,8 +85,11 @@ export async function POST(
   // delay the API response.
   void (async () => {
     const reply = result.reply;
-    const excerpt =
-      reply.body.length > 60 ? `${reply.body.slice(0, 60).trim()}…` : reply.body;
+    const excerpt = reply.body
+      ? reply.body.length > 60
+        ? `${reply.body.slice(0, 60).trim()}…`
+        : reply.body
+      : "Shared a photo";
 
     // Parent-author notification.
     try {

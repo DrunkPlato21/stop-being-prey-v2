@@ -307,6 +307,18 @@ export function NotificationsBell() {
     return () => window.clearInterval(t);
   }, [open]);
 
+  // Drop the frozen "new" set when the panel closes so the next open starts
+  // clean — by then those items are read server-side and render normally.
+  useEffect(() => {
+    if (!open) setNewIds(new Set());
+  }, [open]);
+
+  // Ids that were unread at the moment the panel opened. Drives the
+  // persistent "new" highlight: these rows stay emphasized for the whole
+  // viewing rather than fading a second after open when mark-all-read runs.
+  // Recomputed on each open, cleared on close (see effect below).
+  const [newIds, setNewIds] = useState<Set<string>>(() => new Set());
+
   async function openPanel() {
     if (open) {
       setOpen(false);
@@ -326,6 +338,11 @@ export function NotificationsBell() {
         setItems([]);
       } else {
         setItems(data.notifications);
+        setNewIds(
+          new Set(
+            data.notifications.filter((n) => !n.read).map((n) => n.id)
+          )
+        );
       }
     } catch {
       setError("Couldn't load notifications.");
@@ -420,7 +437,12 @@ export function NotificationsBell() {
               <ul className="flex flex-col">
                 {items.map((n) => (
                   <li key={n.id}>
-                    <Row notification={n} now={now} onNavigate={() => setOpen(false)} />
+                    <Row
+                      notification={n}
+                      now={now}
+                      highlightNew={newIds.has(n.id)}
+                      onNavigate={() => setOpen(false)}
+                    />
                   </li>
                 ))}
               </ul>
@@ -526,23 +548,35 @@ function BellIcon() {
 function Row({
   notification,
   now,
+  highlightNew,
   onNavigate,
 }: {
   notification: Notification;
   now: number;
+  // True while the panel is open for an item that was unread on open. Keeps
+  // the strong "new" treatment even after mark-all-read flips read=true.
+  highlightNew: boolean;
   onNavigate: () => void;
 }) {
   const isInternal = notification.linkUrl.startsWith("/");
+  // Emphasize new-this-viewing items and any still-unread item; the frozen
+  // "new" band wins over the faded read style for the whole open session.
+  const emphasized = highlightNew || !notification.read;
+  const stateClass = highlightNew
+    ? " is-new"
+    : notification.read
+      ? " is-read"
+      : " is-unread";
   const className =
     "notifications-row flex items-start gap-3 px-4 py-3 no-underline" +
-    (notification.read ? " is-read" : " is-unread");
+    stateClass;
   const inner = (
     <>
       <span
         aria-hidden="true"
         style={{
           flexShrink: 0,
-          color: notification.read ? "var(--ink-faint)" : "var(--eye-deep)",
+          color: emphasized ? "var(--eye-deep)" : "var(--ink-faint)",
           marginTop: "0.2rem",
         }}
       >
@@ -553,7 +587,7 @@ function Row({
           className="font-display text-ink"
           style={{
             fontSize: "0.95rem",
-            fontWeight: notification.read ? 500 : 700,
+            fontWeight: emphasized ? 700 : 500,
             letterSpacing: "-0.005em",
             lineHeight: 1.3,
           }}
@@ -562,7 +596,7 @@ function Row({
         </p>
         {notification.body && (
           <p
-            className="font-serif text-ink-muted mt-1 leading-snug truncate"
+            className="font-serif text-ink-soft mt-1 leading-snug truncate"
             style={{ fontSize: "0.82rem" }}
           >
             {notification.body}

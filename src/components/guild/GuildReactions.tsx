@@ -8,6 +8,7 @@ import {
   type ReactionKey,
 } from "@/lib/lounge";
 import type { ReactionSummary } from "@/lib/guild";
+import { ReactorsPopover } from "@/components/ReactorsPopover";
 
 // Reaction control for a Guild thread or reply. This is the Lounge's
 // ReactionControl, cloned: the same seven emoji, the same inline "React"
@@ -71,9 +72,6 @@ export function GuildReactions({
 
   const mine = summary.myReaction;
   const hasReaction = mine !== null;
-  const topKeys = REACTION_KEYS.filter((k) => (summary.counts[k] ?? 0) > 0)
-    .sort((a, b) => (summary.counts[b] ?? 0) - (summary.counts[a] ?? 0))
-    .slice(0, 3);
 
   function clearTimers() {
     if (openTimer.current !== null) {
@@ -202,30 +200,11 @@ export function GuildReactions({
       </button>
 
       {summary.total > 0 && !(hasReaction && summary.total === 1) && (
-        <span
-          className="font-display"
-          style={{
-            marginLeft: "0.55rem",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.25rem",
-            color: "var(--ink-faint)",
-            fontSize: "0.66rem",
-            fontWeight: 600,
-          }}
-        >
-          <span aria-hidden="true" style={{ display: "inline-flex" }}>
-            {topKeys.map((k) => (
-              <span
-                key={k}
-                style={{ fontSize: "0.95rem", lineHeight: 1, marginRight: "-0.2rem" }}
-              >
-                {REACTION_EMOJI[k]}
-              </span>
-            ))}
-          </span>
-          <span style={{ marginLeft: "0.3rem" }}>{summary.total}</span>
-        </span>
+        <ReactorsPopover
+          endpoint={`/api/guild/reactors?targetId=${targetId}`}
+          counts={summary.counts}
+          total={summary.total}
+        />
       )}
 
       {open && (

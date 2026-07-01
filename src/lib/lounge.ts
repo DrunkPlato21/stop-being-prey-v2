@@ -169,6 +169,9 @@ export type LoungeReply = {
   reactionCount: number;
   /** See LoungePost.editedAt. */
   editedAt: number | null;
+  /** Optional attached image, same as a post. Image only (no YouTube embed
+      on replies). Absent on legacy records and text-only replies. */
+  media?: LoungeImageMedia | null;
 };
 
 // One media item per post. An image lives in our own Vercel Blob store
@@ -553,6 +556,9 @@ export type CreateReplyInput = {
   isFounder: boolean;
   body: string;
   isAdmin: boolean;
+  /** Raw client-supplied image descriptor. Validated in createReply against
+      our own Blob store, same as a post. */
+  media?: unknown;
 };
 
 export type CreateReplyResult =
@@ -581,7 +587,10 @@ export async function createReply(
     input.body,
     input.isAdmin ? MAX_BODY_ADMIN : MAX_BODY
   );
-  if (!body) return { ok: false, error: "empty_body" };
+  // A reply may be text, an image, or both — but not empty. Image must point
+  // at our own Blob store (validateImageMedia); no YouTube embeds on replies.
+  const media = validateImageMedia(input.media);
+  if (!body && !media) return { ok: false, error: "empty_body" };
 
   const parent = await getPost(input.parentPostId);
   if (!parent) return { ok: false, error: "parent_not_found" };
@@ -611,6 +620,7 @@ export async function createReply(
     deleted: false,
     reactionCount: 0,
     editedAt: null,
+    media,
   };
 
   await client.set(`${REPLY_PREFIX}${id}`, JSON.stringify(reply));
@@ -740,6 +750,24 @@ function aggregateCounts(
     }
   }
   return { counts, total };
+}
+
+/** Who reacted to one target, and with what. Emails only; the caller
+    resolves display names. Used by the "see who reacted" popover. */
+export async function getLoungeReactors(
+  target: ReactionTarget
+): Promise<Array<{ email: string; reaction: ReactionKey }>> {
+  const client = getClient();
+  if (!client) return [];
+  const hash = await client
+    .hgetall<Record<string, unknown>>(reactionHashKeyFor(target))
+    .catch(() => null);
+  if (!hash) return [];
+  const out: Array<{ email: string; reaction: ReactionKey }> = [];
+  for (const [email, value] of Object.entries(hash)) {
+    if (isReactionKey(value)) out.push({ email, reaction: value });
+  }
+  return out;
 }
 
 /**
