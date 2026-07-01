@@ -133,6 +133,13 @@ export function PoolClaimForm() {
         <span className="eyebrow block mb-2">
           anything you want to say (optional)
         </span>
+        <span
+          className="block font-serif text-ink-muted mb-2"
+          style={{ fontSize: "0.82rem", lineHeight: 1.5 }}
+        >
+          anything you write may be shared anonymously to move a member to
+          sponsor a seat. never your name, never your email.
+        </span>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
@@ -163,7 +170,7 @@ export function PoolClaimForm() {
         className="font-serif italic text-ink-faint text-center mt-3"
         style={{ fontSize: "0.82rem" }}
       >
-        nobody sees that you asked.
+        your name and email never appear anywhere.
       </p>
 
       {state === "error" && error && (
