@@ -350,7 +350,17 @@ async function handleMembershipCheckout(
   let tier: Tier = "regular";
   let founderSlot: number | null = null;
   let charterSlot: number | null = null;
-  if (
+  if (metadata.reactivation === "true") {
+    // Reactivation: restore the member's prior standing rather than
+    // claiming a fresh slot. The whole point is that a lapsed founder
+    // returns at their locked rate with their original founder number
+    // intact — never re-run the (now-full) slot claim, which would drop
+    // them to charter/regular.
+    const priorForTier = await getMember(email).catch(() => null);
+    tier = priorForTier?.tier ?? "regular";
+    founderSlot = priorForTier?.founderSlot ?? null;
+    charterSlot = priorForTier?.charterSlot ?? null;
+  } else if (
     tierAtCheckout === "founder" &&
     Number.isFinite(founderGrant) &&
     founderGrant > 0

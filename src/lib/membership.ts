@@ -153,6 +153,35 @@ export async function emailHasActiveMembership(
   return { active: hasActive, customerId: customer.id };
 }
 
+/**
+ * True when the customer still has a subscription that a new card would
+ * revive (past_due / unpaid / incomplete) rather than one that's fully
+ * canceled. Such members must update the card on that existing sub, NOT
+ * start a second subscription — the reactivation flow guards on this so
+ * it can't double-bill a merely-lapsing member.
+ */
+export async function hasRecoverableSubscription(
+  customerId: string
+): Promise<boolean> {
+  const stripe = client();
+  if (!stripe) return false;
+  try {
+    const subs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      limit: 20,
+    });
+    return subs.data.some(
+      (s) =>
+        s.status === "past_due" ||
+        s.status === "unpaid" ||
+        s.status === "incomplete"
+    );
+  } catch {
+    return false;
+  }
+}
+
 /* === Dev member auto-grant =================================
    When DEV_AUTO_GRANT=1 in a non-production env, the magic-link
    endpoint mints a session without requiring a real Stripe sub.
@@ -407,6 +436,83 @@ export async function createMembershipCheckoutSession(args: {
         plan: args.plan,
         ...(args.source ? { source: args.source } : {}),
         ...(args.channel ? { channel: args.channel } : {}),
+      },
+    },
+  });
+
+  if (!session.url) return { error: "no_url_returned" };
+  return { url: session.url };
+}
+
+/**
+ * Checkout to REACTIVATE a lapsed member. Unlike the public signup this
+ * is tied to the member's EXISTING Stripe customer (so no duplicate
+ * customer is minted and their record links cleanly), bills their LOCKED
+ * price, and carries reactivation:true so the webhook preserves their
+ * founder slot + tier instead of recomputing/reclaiming. Auto-renews like
+ * any normal subscription — the card is collected here, then charged
+ * every cycle. This is the self-serve replacement for hand-building a
+ * subscription in the Stripe dashboard.
+ */
+export async function createReactivationCheckoutSession(args: {
+  customerId: string;
+  amountCents: number;
+  plan: MembershipPlan;
+}): Promise<{ url: string } | { error: CheckoutError }> {
+  const stripe = client();
+  if (!stripe) return { error: "stripe_not_configured" };
+
+  if (
+    typeof args.amountCents !== "number" ||
+    !Number.isFinite(args.amountCents) ||
+    args.amountCents <= 0
+  ) {
+    return { error: "invalid_amount" };
+  }
+
+  const productId = process.env.STRIPE_MEMBERSHIP_PRODUCT_ID;
+  if (!productId && process.env.NODE_ENV === "production") {
+    console.error(
+      "[membership] STRIPE_MEMBERSHIP_PRODUCT_ID is not set in production; refusing reactivation."
+    );
+    return { error: "stripe_not_configured" };
+  }
+  const productRef = productId
+    ? { product: productId }
+    : { product_data: { name: "Stop Being Prey Membership" } };
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    payment_method_types: ["card"],
+    // Bind to the existing customer so founder linkage + history survive
+    // and no duplicate customer is created.
+    customer: args.customerId,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: args.amountCents,
+          recurring: {
+            interval: args.plan === "monthly" ? "month" : "year",
+          },
+          ...productRef,
+        },
+      },
+    ],
+    success_url: `${baseUrl()}/membership/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl()}/reactivate`,
+    metadata: {
+      lane: "membership",
+      reactivation: "true",
+      plan: args.plan,
+      amount_cents: String(args.amountCents),
+    },
+    subscription_data: {
+      metadata: {
+        lane: "membership",
+        reactivation: "true",
+        plan: args.plan,
       },
     },
   });
