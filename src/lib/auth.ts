@@ -80,17 +80,20 @@ export type MagicLinkRecord = {
 };
 
 /**
- * Mint a single-use magic-link token. Stored in Redis with a 24-hour
- * TTL and a one-shot delete on consume.
+ * Mint a single-use magic-link token. Stored in Redis with a one-shot
+ * delete on consume. Defaults to a 24-hour TTL (the automated sign-in
+ * email); callers can pass a longer TTL for links handed out by hand
+ * (e.g. the admin "mint sign-in link" tool, 7 days).
  */
 export async function createMagicLink(
-  record: MagicLinkRecord
+  record: MagicLinkRecord,
+  ttlSeconds: number = MAGIC_LINK_TTL_SECONDS
 ): Promise<string | null> {
   const client = redis();
   if (!client) return null;
   const id = randomUUID();
   await client.set(`${MAGIC_PREFIX}${id}`, JSON.stringify(record), {
-    ex: MAGIC_LINK_TTL_SECONDS,
+    ex: ttlSeconds,
   });
   return id;
 }

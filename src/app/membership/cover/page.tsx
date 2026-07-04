@@ -1,26 +1,49 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { GiftForm } from "@/components/GiftForm";
+import { PoolChipIn } from "@/components/PoolChipIn";
+import { PoolCounter } from "@/components/PoolCounter";
 import { EyeDivider } from "@/components/Eyes";
 
-// Gift a seat to someone you KNOW: a named, personal pay-it-forward. One
-// charge, a fixed term, a redemption email with your name on it. The
-// anonymous side (cover a seat for a stranger, chip in toward the pool)
-// lives on its own page, /membership/cover — these are two different
-// acts and no longer share one screen. COPY IS PLACEHOLDER — Clay
-// finalizes in his voice. Framing is pay-it-forward, never "gift card".
+// Back the community pool: cover a seat for a reader who can't afford one.
+// Anonymous both ways, no named recipient. One module, any amount — a few
+// dollars pools toward a seat, $39 funds a whole one now (the old separate
+// "fund a full seat" form folded in, since with the pot a whole seat is
+// just a $39 contribution). The named, personal side lives on its own
+// page, /membership/gift. COPY IS PLACEHOLDER — Clay finalizes.
 
 export const metadata: Metadata = {
-  title: "Give someone a seat",
+  title: "Cover a seat",
   description:
-    "Pay it forward. Buy a seat inside Stop Being Prey for someone who needs to be in the room. One charge, no recurring billing.",
+    "Back the community pool. Put a reader who can't afford it inside Stop Being Prey. Any amount, anonymous, one charge.",
 };
 
+// Reads the live pot + counter, so render per request.
 export const dynamic = "force-dynamic";
 
-export default function GiftPage() {
+export default async function CoverSeatPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ chipped_in?: string }>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const chippedIn = sp.chipped_in === "1";
+
   return (
     <div>
+      {chippedIn && (
+        <div className="bg-surface border-b border-rule">
+          <div className="max-w-3xl mx-auto px-6 py-4 text-center">
+            <p
+              className="font-serif text-ink leading-relaxed"
+              style={{ fontSize: "1rem" }}
+            >
+              Your contribution is in the pot. Thank you for the push toward
+              the next seat.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Masthead */}
       <section className="border-b border-rule">
         <div className="max-w-3xl mx-auto px-6 pt-16 md:pt-24 pb-14 text-center">
@@ -33,42 +56,43 @@ export default function GiftPage() {
               letterSpacing: "-0.025em",
             }}
           >
-            Put someone in the room.
+            Cover a seat.
           </h1>
           <div className="max-w-xl mx-auto text-left fade-up stagger-3 space-y-5">
             <p
               className="font-serif text-ink leading-relaxed"
               style={{ fontSize: "1.08rem" }}
             >
-              You know someone who needs this. The friend who keeps losing
-              arguments they should win. The one who feels the game being
-              played on them but can&apos;t name the moves yet.
+              Someone out there needs this room and can&apos;t swing the
+              price. You don&apos;t know them. You never will. Put them in
+              it anyway.
             </p>
             <p
               className="font-serif text-ink leading-relaxed"
               style={{ fontSize: "1.08rem" }}
             >
-              Buy them a seat. One charge, a fixed term, full membership.
-              The comments, the Writer&apos;s Desk, the lounge, the Case
-              Files, all of it. No card asked of them, nothing recurring
-              on yours.
+              Put in what you can. A few dollars pools with other readers
+              toward a seat. A whole seat is thirty-nine dollars: a full
+              season, three months in the room. Either way it goes into the
+              pool and a reader who couldn&apos;t afford it claims it
+              privately. No names on any side.
             </p>
             <p
               className="font-serif text-ink leading-relaxed"
               style={{ fontSize: "1.08rem" }}
             >
-              That friend who can&apos;t name the moves yet? A season in
-              the room and they start naming them. That&apos;s what
-              you&apos;re really giving. Not a login. Sight.
+              This room exists because readers backed it before there was
+              proof it would work. This is the same move, one person down
+              the line.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Form — the named gift, and only that */}
+      {/* The one module: bar + amount */}
       <section className="max-w-3xl mx-auto px-6 py-14 md:py-20">
         <div className="text-center mb-10">
-          <p className="eyebrow mb-3">The seat</p>
+          <p className="eyebrow mb-3">Back a seat</p>
           <h2
             className="font-display text-ink leading-tight tracking-tight"
             style={{
@@ -77,30 +101,33 @@ export default function GiftPage() {
               letterSpacing: "-0.02em",
             }}
           >
-            Name them, and they&apos;re in.
+            Put in what you can.
           </h2>
         </div>
-        <GiftForm />
+        <PoolChipIn />
+        <div className="max-w-md mx-auto mt-10 pt-8 border-t border-rule">
+          <PoolCounter />
+        </div>
       </section>
 
-      {/* Cross-link to the anonymous side */}
+      {/* Cross-link to the named side */}
       <section className="max-w-md mx-auto px-6 pb-14">
         <div className="border-t border-rule pt-8 text-center">
           <p
             className="font-serif text-ink-muted leading-relaxed mb-3"
             style={{ fontSize: "0.98rem" }}
           >
-            No one specific in mind?
+            Know exactly who it&apos;s for?
           </p>
           <Link
-            href="/membership/cover"
+            href="/membership/gift"
             className="group inline-flex items-center gap-1.5 no-underline"
           >
             <span
               className="font-display text-ink group-hover:text-eye-deep transition-colors"
               style={{ fontSize: "1.05rem", fontWeight: 600 }}
             >
-              Cover a seat for a reader who can&apos;t afford one
+              Gift a seat to someone you know
             </span>
             <span
               className="text-eye-deep transition-transform group-hover:translate-x-0.5"
@@ -119,10 +146,10 @@ export default function GiftPage() {
         <p className="eyebrow mb-6 text-center">How it works</p>
         <ol className="space-y-5">
           {[
-            "You pay once and write a short note if you want.",
-            "They get an email with your name on it and a link to claim the seat.",
-            "One click and they're inside. Full membership for the term, nothing asked of them.",
-            "When the term nears its end, they choose whether to keep their seat on their own terms.",
+            "You put in what you can. Any amount from five dollars. A whole seat is thirty-nine dollars: a season, three months for one reader.",
+            "Contributions pool together. Each time the pot fills a seat, an anonymous seat drops into the pool.",
+            "A reader who can't afford the room claims it privately. They never see you, you never see them.",
+            "You get a note when your contribution lands, and again if it tips a seat over.",
           ].map((step, i) => (
             <li key={i} className="flex gap-4">
               <span
@@ -140,15 +167,6 @@ export default function GiftPage() {
             </li>
           ))}
         </ol>
-        <p
-          className="font-serif italic text-ink-muted leading-relaxed mt-8"
-          style={{ fontSize: "0.92rem" }}
-        >
-          If they already have a seat, the gift isn&apos;t wasted: a
-          gifted member gets their term extended, and a paying member can
-          pass the seat on to someone else. You&apos;ll hear about it
-          either way.
-        </p>
       </section>
 
       <div className="text-center pb-16">

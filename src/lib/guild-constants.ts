@@ -3,8 +3,11 @@
 // the Redis/crypto-backed guild.ts module into the client bundle.
 
 export const MAX_TITLE = 140;
-export const MAX_BODY = 6000;
-export const MAX_REPLY = 4000;
+// These are abuse ceilings, not writing constraints — the Guild is the
+// long-form room, so they sit high enough a real writer never hits them.
+// (Contrast the Lounge's 500 / notes' 150, which are deliberately short.)
+export const MAX_BODY = 50000;
+export const MAX_REPLY = 15000;
 
 // Authors may edit their own thread/reply for this long after posting.
 export const EDIT_WINDOW_MS = 15 * 60 * 1000;

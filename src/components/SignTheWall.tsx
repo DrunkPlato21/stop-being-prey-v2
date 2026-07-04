@@ -29,7 +29,7 @@ const ATTRIBUTION_OPTIONS: Array<{
 // status you're buying. $1 is genuinely enough.
 const PRESETS: ReadonlyArray<number> = [1, 5, 20, 50];
 
-const MESSAGE_MAX = 240;
+const MESSAGE_MAX = 250;
 const NAME_MAX = 80;
 const CITY_MAX = 80;
 
@@ -49,6 +49,10 @@ export function SignTheWall() {
     useState<AttributionPreference>("first");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True when the last edit hit the cap (typed or pasted past 240), so we
+  // can tell the writer their line was trimmed instead of silently dropping
+  // the overflow. Clears itself the moment they edit back under the limit.
+  const [messageTrimmed, setMessageTrimmed] = useState(false);
 
   const effectiveAmount = custom.trim() ? parseAmount(custom) : amount;
   const amountValid =
@@ -244,15 +248,55 @@ export function SignTheWall() {
         >
           Leave a line — optional
         </span>
+        {/* maxLength is deliberately omitted: with it, the browser truncates a
+            long paste BEFORE onChange fires, so we could never tell the writer
+            it happened. Instead we slice in JS and compare against the raw
+            length to detect (and announce) the trim. */}
         <textarea
           value={message}
-          onChange={(e) => setMessage(e.target.value.slice(0, MESSAGE_MAX))}
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (raw.length > MESSAGE_MAX) {
+              setMessage(raw.slice(0, MESSAGE_MAX));
+              setMessageTrimmed(true);
+            } else {
+              setMessage(raw);
+              setMessageTrimmed(false);
+            }
+          }}
           placeholder="What brought you here, if you feel like saying."
           rows={2}
-          maxLength={MESSAGE_MAX}
+          aria-describedby="wall-line-count wall-line-trim"
           className="w-full border border-border bg-paper px-3 py-2 outline-none focus:border-eye font-serif text-ink text-sm leading-relaxed resize-none transition-colors"
           aria-label="Leave a line (optional)"
         />
+        {/* Trim notice (left) + live counter (right). The counter shows the
+            limit from an empty box on, so the cap is never a surprise; it
+            turns warning-colored once the line is full. */}
+        <div className="flex items-baseline justify-between gap-3 mt-1.5">
+          <span
+            id="wall-line-trim"
+            aria-live="polite"
+            className="text-xs italic leading-snug"
+            style={{ color: "#7a3a2e" }}
+          >
+            {messageTrimmed
+              ? "That's the limit. Your line was trimmed to fit."
+              : ""}
+          </span>
+          <span
+            id="wall-line-count"
+            className="text-xs font-serif tabular-nums shrink-0"
+            style={{
+              color:
+                message.length >= MESSAGE_MAX
+                  ? "#7a3a2e"
+                  : "var(--ink-faint)",
+            }}
+          >
+            {message.length} / {MESSAGE_MAX}
+          </span>
+        </div>
       </label>
 
       <div className="flex justify-center">

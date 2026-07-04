@@ -59,6 +59,7 @@ export default async function GuildPage() {
     };
   }
   const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null;
+  const hostEmail = process.env.GUILD_HOST_EMAIL?.toLowerCase().trim() ?? null;
 
   return (
     <GuildIndexView
@@ -67,6 +68,7 @@ export default async function GuildPage() {
       names={names}
       badges={badges}
       adminEmail={adminEmail}
+      hostEmail={hostEmail}
     />
   );
 }

@@ -53,12 +53,17 @@ export const TRACK_EVENTS = [
   // they click the email confirm link, pool_claimed when a seat is
   // granted (immediately or to a waitlisted claimer when a seat funds),
   // pool_waitlisted when no seat was free and they joined the line.
+  // Chip-in (pot) sub-funnel: pool_contribution_started on the checkout
+  // create, pool_contributed on the webhook when an open-amount payment
+  // lands in the pot.
   "pool_fund_started",
   "pool_funded",
   "pool_requested",
   "pool_confirmed",
   "pool_claimed",
   "pool_waitlisted",
+  "pool_contribution_started",
+  "pool_contributed",
 ] as const;
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
 
@@ -95,6 +100,8 @@ const SOURCE_TRACKED_EVENTS: ReadonlySet<string> = new Set([
   "pool_confirmed",
   "pool_claimed",
   "pool_waitlisted",
+  "pool_contribution_started",
+  "pool_contributed",
 ]);
 
 // Events that also roll up into a per-CHANNEL counter (analytics:channel:*)

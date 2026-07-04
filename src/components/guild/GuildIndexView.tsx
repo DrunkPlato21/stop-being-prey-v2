@@ -79,11 +79,13 @@ function MetaLine({
   names,
   badges,
   adminEmail,
+  hostEmail,
 }: {
   thread: GuildThread;
   names: Record<string, string>;
   badges: Record<string, GuildBadgeInfo>;
   adminEmail: string | null;
+  hostEmail: string | null;
 }) {
   return (
     <div
@@ -102,6 +104,7 @@ function MetaLine({
         names={names}
         badges={badges}
         adminEmail={adminEmail}
+        hostEmail={hostEmail}
       />
       <span aria-hidden style={{ color: "var(--ink-faint)" }}>·</span>
       <span suppressHydrationWarning style={{ color: "var(--ink-faint)" }}>
@@ -131,12 +134,14 @@ export function GuildIndexView({
   names,
   badges,
   adminEmail,
+  hostEmail,
 }: {
   pinned: GuildThread | null;
   threads: GuildThread[];
   names: Record<string, string>;
   badges: Record<string, GuildBadgeInfo>;
   adminEmail: string | null;
+  hostEmail: string | null;
 }) {
   return (
     <div style={{ maxWidth: "44rem", margin: "0 auto", padding: "3rem 1.25rem 5rem" }}>
@@ -219,7 +224,7 @@ export function GuildIndexView({
             >
               {pinned.title}
             </h2>
-            <MetaLine thread={pinned} names={names} badges={badges} adminEmail={adminEmail} />
+            <MetaLine thread={pinned} names={names} badges={badges} adminEmail={adminEmail} hostEmail={hostEmail} />
           </div>
         </Link>
       )}
@@ -251,7 +256,7 @@ export function GuildIndexView({
                 >
                   {t.title}
                 </h3>
-                <MetaLine thread={t} names={names} badges={badges} adminEmail={adminEmail} />
+                <MetaLine thread={t} names={names} badges={badges} adminEmail={adminEmail} hostEmail={hostEmail} />
               </Link>
             </li>
           ))}

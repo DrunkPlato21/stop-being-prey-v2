@@ -324,7 +324,7 @@ export default function Home() {
           </p>
           <DualSubscribeBlock />
           <p className="text-xs italic text-ink-faint mt-8 text-center">
-            Unsubscribe anytime. We never share your email.
+            Unsubscribe anytime.
           </p>
         </div>
       </section>

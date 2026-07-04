@@ -41,7 +41,9 @@ type MemberRow = {
 async function loadMember(email: string): Promise<MemberRow> {
   const [profile, member] = await Promise.all([
     getProfile(email).catch(() => null),
-    getMember(email).catch(() => null),
+    // Read the live roster read-only, even from a sandboxed local dev
+    // box (KEY_PREFIX="" in production makes this a no-op there).
+    getMember(email, { prod: true }).catch(() => null),
   ]);
   return {
     email,
@@ -55,7 +57,7 @@ async function loadMember(email: string): Promise<MemberRow> {
 
 export default async function AdminMembersPage() {
   const [allEmails, flaggedEmails] = await Promise.all([
-    listAllMemberEmails(),
+    listAllMemberEmails({ prod: true }),
     listFlaggedProfiles(),
   ]);
 

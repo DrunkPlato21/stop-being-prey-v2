@@ -22,6 +22,11 @@
      predator/prey brand without reading as an error/alarm color. */
   --blood: #7a2e2e;
 
+  /* Ember --terracotta warmth for the Guild Host badge. Its own hue,
+     deliberately not the gold (--eye, reserved for the founder/author),
+     so "host" reads as hospitality, not rank. */
+  --ember: #a5602e;
+
   --vignette: inset 0 0 220px rgba(26, 23, 20, 0.06);
 }
 

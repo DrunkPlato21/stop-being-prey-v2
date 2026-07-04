@@ -679,6 +679,64 @@ export async function createPoolCheckoutSession(args: {
   return { url: session.url, sessionId: session.id };
 }
 
+/**
+ * One-time Stripe Checkout for a chip-in toward the pool: an OPEN amount
+ * that lands in the pot rather than buying one whole seat. The pot mints
+ * anonymous seats as it fills. The contribution record is pre-written via
+ * pool.createPoolContribution; the caller binds the session id back via
+ * attachContributionCheckout. Webhook lane `pool_contribution` flips the
+ * record to paid and adds the amount to the pot. */
+export async function createPoolContributionCheckoutSession(args: {
+  contributionId: string;
+  amountCents: number;
+}): Promise<{ url: string; sessionId: string } | { error: CheckoutError }> {
+  const stripe = client();
+  if (!stripe) return { error: "stripe_not_configured" };
+
+  if (
+    typeof args.amountCents !== "number" ||
+    !Number.isFinite(args.amountCents) ||
+    args.amountCents <= 0
+  ) {
+    return { error: "invalid_amount" };
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: Math.floor(args.amountCents),
+          product_data: {
+            // DRAFT copy — Clay finalizes.
+            name: "Chip in toward a seat",
+            description:
+              "A contribution toward a seat inside Stop Being Prey for someone who can't afford one. Pooled with other readers until it funds a whole seat. One charge, no recurring billing.",
+          },
+        },
+      },
+    ],
+    success_url: `${baseUrl()}/membership/cover?chipped_in=1`,
+    cancel_url: `${baseUrl()}/membership/cover`,
+    metadata: {
+      lane: "pool_contribution",
+      contribution_id: args.contributionId,
+    },
+    payment_intent_data: {
+      metadata: {
+        lane: "pool_contribution",
+        contribution_id: args.contributionId,
+      },
+    },
+  });
+
+  if (!session.url) return { error: "no_url_returned" };
+  return { url: session.url, sessionId: session.id };
+}
+
 /* === Paid (non-member) comment one-time payment ============== */
 
 /**

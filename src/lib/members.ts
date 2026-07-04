@@ -342,10 +342,19 @@ function parseMember(raw: unknown): MemberRecord | null {
   }
 }
 
-export async function getMember(email: string): Promise<MemberRecord | null> {
+export async function getMember(
+  email: string,
+  opts?: { prod?: boolean }
+): Promise<MemberRecord | null> {
   const client = getClient();
   if (!client) return null;
-  const raw = await client.get<string>(`${MEMBER_PREFIX}${normEmail(email)}`);
+  // opts.prod reads the unprefixed production key off the same client —
+  // read-only, no writes. Lets the /admin/members page show the real
+  // roster from a sandboxed local dev box without flipping the whole
+  // app's keyspace. In production KEY_PREFIX is already "" so this is a
+  // no-op. Mirrors the { prod } option on lib/pool.ts.
+  const prefix = opts?.prod ? "member:" : MEMBER_PREFIX;
+  const raw = await client.get<string>(`${prefix}${normEmail(email)}`);
   return parseMember(raw);
 }
 
@@ -452,11 +461,16 @@ export async function countAllMembers(): Promise<number> {
  * past a few thousand, paginate and write notifications in batches
  * off the request path.
  */
-export async function listAllMemberEmails(): Promise<string[]> {
+export async function listAllMemberEmails(
+  opts?: { prod?: boolean }
+): Promise<string[]> {
   const client = getClient();
   if (!client) return [];
+  // See getMember: opts.prod reads the unprefixed production index so the
+  // admin roster is visible from a sandboxed dev box. Read-only.
+  const indexKey = opts?.prod ? "members:all" : MEMBERS_ALL_INDEX;
   const raw = await client
-    .zrange(MEMBERS_ALL_INDEX, 0, -1, { rev: true })
+    .zrange(indexKey, 0, -1, { rev: true })
     .catch(() => [] as unknown[]);
   return Array.isArray(raw)
     ? (raw.filter((v): v is string => typeof v === "string"))

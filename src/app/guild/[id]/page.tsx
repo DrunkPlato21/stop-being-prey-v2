@@ -59,6 +59,7 @@ export default async function GuildThreadPage({
     };
   }
   const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null;
+  const hostEmail = process.env.GUILD_HOST_EMAIL?.toLowerCase().trim() ?? null;
 
   return (
     <ThreadView
@@ -67,6 +68,7 @@ export default async function GuildThreadPage({
       names={names}
       badges={badges}
       adminEmail={adminEmail}
+      hostEmail={hostEmail}
       viewerEmail={session.email}
       isAdmin={isAdmin(session.email)}
       reactions={reactions}

@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { WritersDeskState, FirstRunState } from "@/lib/writers-desk-state";
+import type {
+  WritersDeskState,
+  FirstRunState,
+  DeskPoolAsk,
+} from "@/lib/writers-desk-state";
 import type { PresenceState } from "@/lib/desk";
 import type { PulseEvent } from "@/lib/pulse";
 import type { Note } from "@/lib/notes";
@@ -150,6 +154,92 @@ function SectionHeader({
         {children}
       </h3>
       {action}
+    </div>
+  );
+}
+
+// The pool-ask band. Sits at the foot of the participate cluster (after
+// the rooms, before the low-value feeds): a waiting reader made real by
+// their own note, the live pot bar, and a door into /membership/cover.
+// Only renders when the state says to (someone waiting, viewer not a
+// charity-seat member) — the suppression lives server-side.
+function DeskPoolAskBand({ ask }: { ask: DeskPoolAsk }) {
+  const money = (c: number) =>
+    c % 100 === 0 ? `$${c / 100}` : `$${(c / 100).toFixed(2)}`;
+  const remaining = Math.max(0, ask.seatPriceCents - ask.potCents);
+  const pct = Math.max(
+    0,
+    Math.min(100, Math.round((ask.potCents / ask.seatPriceCents) * 100))
+  );
+  return (
+    <div className="mt-10 pt-8 border-t border-rule">
+      <SectionHeader>The seat pool</SectionHeader>
+      <p
+        className="font-serif text-ink leading-relaxed"
+        style={{ fontSize: "1.02rem" }}
+      >
+        {ask.waiting === 1
+          ? "Someone's waiting for a seat."
+          : `${ask.waiting} readers are waiting for a seat.`}
+      </p>
+      {ask.note && (
+        // A voice FROM the line, not the person you fund. The pool is
+        // anonymous and FIFO, so the quote humanizes the queue rather than
+        // promising a specific recipient — funding moves the line by one.
+        <p
+          className="font-serif italic text-ink-muted leading-relaxed mt-2"
+          style={{ fontSize: "1rem" }}
+        >
+          <span className="not-italic text-ink-faint">
+            {ask.waiting === 1 ? "They wrote: " : "One of them wrote: "}
+          </span>
+          &ldquo;{ask.note}&rdquo;
+        </p>
+      )}
+
+      <div
+        className="w-full mt-4 mb-2.5"
+        style={{
+          height: 8,
+          background: "var(--surface)",
+          border: "1px solid var(--rule)",
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="progress toward the next pooled seat"
+      >
+        <div
+          style={{
+            width: `${pct}%`,
+            height: "100%",
+            background: "var(--eye-deep)",
+            transition: "width 300ms ease",
+          }}
+        />
+      </div>
+      <p
+        className="font-serif text-ink-muted"
+        style={{ fontSize: "0.88rem" }}
+      >
+        {ask.potCents > 0 ? (
+          <>
+            Readers have put {money(ask.potCents)} toward the next seat.{" "}
+            {money(remaining)} to go.
+          </>
+        ) : (
+          <>A few readers together fund one. Start the next.</>
+        )}
+      </p>
+
+      <div className="mt-4">
+        <Link href="/membership/cover" className="btn-primary">
+          <span>Cover a seat</span>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -306,7 +396,7 @@ function FirstRunPanel({ firstRun }: { firstRun: FirstRunState }) {
         className="font-serif italic text-ink-muted mb-3"
         style={{ fontSize: "0.9rem" }}
       >
-        Four quick moves to settle in.
+        Three quick moves to settle in.
       </p>
       <ul className="flex flex-col">
         {firstRun.steps.map((s) => (
@@ -394,6 +484,15 @@ export function WritersDeskView({
   // Dev-only: /desk?glow=preview forces both room doorways lit so the glow
   // can be seen and tuned without gaming live presence.
   const [glowPreview, setGlowPreview] = useState(false);
+  // Dev-only: /desk?poolask=preview forces the seat-pool band with sample
+  // data so it can be seen without a live waiter in the dev pool.
+  const [previewPoolAsk, setPreviewPoolAsk] = useState(false);
+  // Persistent "view as a reader" mode (admin only). Flips every member-
+  // relative surface that's normally hidden for the author — the first-run
+  // checklist, the seat-pool band, NEW badges — on at once, so Clay sees
+  // his desk the way a reader does without stringing preview params
+  // together. Sticks across reloads (localStorage) and works in prod.
+  const [asReader, setAsReader] = useState(false);
   // Latch the latest-update id we've seen so we can mount-trigger the
   // fresh-update highlight when polling brings in a new one.
   const lastUpdateId = useRef<string | null>(
@@ -414,11 +513,37 @@ export function WritersDeskView({
         const sp = new URLSearchParams(window.location.search);
         if (sp.get("firstrun") === "preview") setPreviewFirstRun(true);
         if (sp.get("glow") === "preview") setGlowPreview(true);
+        if (sp.get("poolask") === "preview") setPreviewPoolAsk(true);
       }
     } catch {
       // no-op
     }
   }, []);
+
+  // Restore "view as a reader" for admin (persisted, or ?as=reader). Not
+  // dev-gated — Clay QAs the member view on the live desk too.
+  useEffect(() => {
+    if (!initialState.isAdmin) return;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const stored = window.localStorage.getItem("desk-as-reader") === "1";
+      if (sp.get("as") === "reader" || stored) setAsReader(true);
+    } catch {
+      // no-op
+    }
+  }, [initialState.isAdmin]);
+
+  function toggleAsReader() {
+    setAsReader((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("desk-as-reader", next ? "1" : "0");
+      } catch {
+        // no-op
+      }
+      return next;
+    });
+  }
 
   // Mark this visit as seen on the server after a short delay. We use
   // initialState here rather than `data` so this fires once per page
@@ -491,12 +616,12 @@ export function WritersDeskView({
     latestUpdate,
     awayNote,
     recentWork,
-    elsewhere,
     memberNotes,
     voiceMemo,
     activeWall,
     rooms,
     firstRun,
+    poolAsk,
     isSignedIn,
     isAdmin: viewerIsAdmin,
   } = data;
@@ -515,13 +640,13 @@ export function WritersDeskView({
   );
   const guildLit = guildWarmAt > 0 && now - guildWarmAt < GUILD_WARM_WINDOW_MS;
 
-  // The preview override (dev-only) synthesizes a fresh, all-unchecked
-  // panel so Clay can see the new-member experience without being one.
-  const effectiveFirstRun: FirstRunState | null = previewFirstRun
+  // The preview override (dev param or reader mode) synthesizes a fresh,
+  // all-unchecked panel so Clay sees the new-member experience.
+  const effectiveFirstRun: FirstRunState | null = previewFirstRun || asReader
     ? {
         steps: [
           { key: "name", label: "Set your name", href: "/notes/account", done: false },
-          { key: "rules", label: "Read the Rules", href: "/rules", done: false },
+          { key: "lounge", label: "Say hi in the Lounge", href: "/lounge", done: false },
           {
             key: "qotw",
             label: "Answer the Question of the Week",
@@ -530,14 +655,30 @@ export function WritersDeskView({
               : "/guild",
             done: false,
           },
-          { key: "lounge", label: "Say hi in the Lounge", href: "/lounge", done: false },
         ],
       }
     : firstRun;
 
+  // Seat-pool band: real data when there's a live waiter, otherwise a
+  // sample so the band is visible under the dev param or reader mode
+  // (where the author's own desk would otherwise show nothing).
+  const SAMPLE_POOL_ASK: DeskPoolAsk = {
+    waiting: 3,
+    note: "Old guy on SS who likes Sowell. Braver Angel with braverangels.org. Thanks 4 your work!",
+    potCents: 2700,
+    seatPriceCents: 3900,
+  };
+  const effectivePoolAsk: DeskPoolAsk | null = previewPoolAsk
+    ? SAMPLE_POOL_ASK
+    : poolAsk ?? (asReader ? SAMPLE_POOL_ASK : null);
+
   // First-time visitors (no stamp yet) and admins never see NEW
   // badges. Otherwise compare item timestamps to the frozen baseline.
   function isNewSinceLastVisit(at: number | null | undefined): boolean {
+    if (asReader) {
+      // Reader mode has no admin baseline, so treat the last week as new.
+      return !!at && at > now - 7 * 24 * 60 * 60 * 1000;
+    }
     if (viewerIsAdmin) return false;
     if (frozenLastVisitedAt === null) return false;
     if (!at) return false;
@@ -595,6 +736,26 @@ export function WritersDeskView({
           green.
         </p>
 
+        {viewerIsAdmin && (
+          <button
+            type="button"
+            onClick={toggleAsReader}
+            className="font-display uppercase tracking-[0.2em] text-eye-deep hover:text-ink transition-colors mb-5 block"
+            style={{
+              background: "transparent",
+              border: 0,
+              padding: 0,
+              fontSize: "0.62rem",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            {asReader
+              ? "● Viewing as a reader · back to admin"
+              : "View this as a reader"}
+          </button>
+        )}
+
         {effectiveFirstRun && <FirstRunPanel firstRun={effectiveFirstRun} />}
 
         {/* Status panel — the focal point of the widget. The lamp
@@ -648,9 +809,10 @@ export function WritersDeskView({
         </div>
 
         {/* Leave a note for Clay — sits right under his presence, since
-            the note is the direct line to him. Members only (Clay works
-            notes from /admin/notes). */}
-        {isSignedIn && !viewerIsAdmin && (
+            the note is the direct line to him. Members only on the normal
+            desk (Clay works notes from /admin/notes); it also appears for
+            admin under "view as a reader" as part of the member preview. */}
+        {isSignedIn && (!viewerIsAdmin || asReader) && (
           <div className="mt-6">
             <NotePaperPanel
               memberNotes={memberNotes}
@@ -704,34 +866,43 @@ export function WritersDeskView({
               {rooms.guild.questionOfWeek && (
                 <Link
                   href={`/guild/${rooms.guild.questionOfWeek.id}`}
-                  className="group block no-underline mt-2.5"
+                  className="group block no-underline mt-3.5"
                 >
                   <p
                     className="eyebrow"
                     style={{
                       color: "var(--eye-deep)",
-                      letterSpacing: "0.22em",
-                      fontSize: "0.58rem",
-                      marginBottom: "0.35rem",
+                      letterSpacing: "0.24em",
+                      fontSize: "0.6rem",
+                      marginBottom: "0.45rem",
                     }}
                   >
                     Question of the week
                   </p>
                   <p
-                    className="font-serif italic text-ink leading-snug group-hover:text-eye-deep transition-colors"
-                    style={{ fontSize: "1.02rem" }}
+                    className="font-display text-ink leading-[1.15] group-hover:text-eye-deep transition-colors"
+                    style={{
+                      fontSize: "1.35rem",
+                      fontWeight: 600,
+                      letterSpacing: "-0.015em",
+                    }}
                   >
                     {rooms.guild.questionOfWeek.title}
                   </p>
                   <p
-                    className="font-serif italic text-ink-faint mt-1"
+                    className="font-serif italic text-ink-faint mt-1 flex items-center gap-2"
                     style={{ fontSize: "0.78rem" }}
                   >
-                    {replyLabel(rooms.guild.questionOfWeek.replyCount)} &middot;{" "}
-                    {formatRelative(
-                      rooms.guild.questionOfWeek.lastActivityAt,
-                      now
-                    )}
+                    <span>
+                      {replyLabel(rooms.guild.questionOfWeek.replyCount)} &middot;{" "}
+                      {formatRelative(
+                        rooms.guild.questionOfWeek.lastActivityAt,
+                        now
+                      )}
+                    </span>
+                    {isNewSinceLastVisit(
+                      rooms.guild.questionOfWeek.lastActivityAt
+                    ) && <NewBadge />}
                   </p>
                 </Link>
               )}
@@ -817,11 +988,16 @@ export function WritersDeskView({
                     &ldquo;{clampText(rooms.lounge.latest.body, 150)}&rdquo;
                   </p>
                   <p
-                    className="font-serif italic text-ink-faint mt-1"
+                    className="font-serif italic text-ink-faint mt-1 flex items-center gap-2"
                     style={{ fontSize: "0.78rem" }}
                   >
-                    {rooms.lounge.latest.firstName},{" "}
-                    {formatRelative(rooms.lounge.latest.lastActivityAt, now)}
+                    <span>
+                      {rooms.lounge.latest.firstName},{" "}
+                      {formatRelative(rooms.lounge.latest.lastActivityAt, now)}
+                    </span>
+                    {isNewSinceLastVisit(
+                      rooms.lounge.latest.lastActivityAt
+                    ) && <NewBadge />}
                   </p>
                 </Link>
               ) : rooms.lounge.activeNow > 0 ? (
@@ -842,6 +1018,8 @@ export function WritersDeskView({
             </div>
           </div>
         )}
+
+        {effectivePoolAsk && <DeskPoolAskBand ask={effectivePoolAsk} />}
 
         {voiceMemo && (
           <div className="mt-10 pt-8 border-t border-rule">
@@ -888,54 +1066,6 @@ export function WritersDeskView({
                     event={event}
                     now={now}
                     isNew={isNewSinceLastVisit(event.at)}
-                  />
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Out in the world — social-channel echoes. Lower visual
-            weight on purpose: compact rows, dimmer source label,
-            tighter vertical padding. Sits directly below At Home and
-            shares the same airspace — no rule between them, the
-            typographic header carries the section break. */}
-        {elsewhere.length > 0 && (
-          <div
-            className={
-              recentWork.length > 0
-                ? "mt-9"
-                : "mt-10 pt-8 border-t border-rule"
-            }
-          >
-            <SectionHeader
-              action={
-                <Link
-                  href="/notes/elsewhere"
-                  className="font-display uppercase tracking-[0.22em] text-eye-deep hover:text-ink no-underline transition-colors"
-                  style={{ fontSize: "0.62rem", fontWeight: 600 }}
-                >
-                  View all &rarr;
-                </Link>
-              }
-            >
-              Out in the world
-            </SectionHeader>
-            <ul className="flex flex-col">
-              {elsewhere.map((event, idx) => (
-                <li
-                  key={`el-${event.source}-${event.at}-${idx}`}
-                  className={
-                    idx === 0
-                      ? "py-1.5"
-                      : "py-1.5 border-t border-rule"
-                  }
-                >
-                  <PulseRow
-                    event={event}
-                    now={now}
-                    isNew={isNewSinceLastVisit(event.at)}
-                    compact
                   />
                 </li>
               ))}

@@ -231,7 +231,7 @@ export function CommentForm({
           onValueChange={setBody}
           minRows={5}
           maxLength={1500}
-          placeholder="Make it count. Replies below are unlimited."
+          placeholder="Say your piece. Make it count."
           disabled={pending}
           className="w-full font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink"
           style={{ fontSize: "1rem", lineHeight: 1.55 }}

@@ -1435,6 +1435,8 @@ export async function sendGiftExpiryReminderEmail(args: {
    ALL COPY BELOW IS DRAFT. Clay finalizes the voice. (No em dashes.)
 
    sendPoolFundThankYouEmail  -> giver: you funded a seat for someone
+   sendPoolContributionThankYouEmail -> giver: your chip-in landed in the pot
+   sendPoolSeatClaimedEmail   -> giver: a seat you funded was just claimed
    sendPoolClaimConfirmEmail  -> claimer: confirm to claim your seat
    sendPoolWelcomeEmail       -> claimer: someone covered you, you're in */
 
@@ -1478,6 +1480,89 @@ export async function sendPoolFundThankYouEmail(args: {
     html,
     text,
     logTag: "pool fund thank-you",
+  });
+}
+
+export async function sendPoolContributionThankYouEmail(args: {
+  to: string;
+  amountCents: number;
+  /** Whole seats this chip-in tipped the pot over into (0 = moved the bar). */
+  seatsMinted: number;
+  /** Cents left in the pot after any seats minted. */
+  potCents: number;
+  seatPriceCents: number;
+}): Promise<SendResult> {
+  // DRAFT copy — Clay finalizes.
+  const money = (cents: number) =>
+    cents % 100 === 0
+      ? `$${cents / 100}`
+      : `$${(cents / 100).toFixed(2)}`;
+  const gave = money(args.amountCents);
+  const remaining = Math.max(0, args.seatPriceCents - args.potCents);
+  const minted = args.seatsMinted > 0;
+
+  const lead = minted
+    ? args.seatsMinted === 1
+      ? `your ${gave} tipped the pot over. a whole seat just dropped into the pool for someone who couldn't swing it, no names on any side.`
+      : `your ${gave} tipped the pot over. ${args.seatsMinted} whole seats just dropped into the pool for people who couldn't swing it, no names on any side.`
+    : `your ${gave} is in the pot. it pools with other readers until it funds a whole seat, then that seat goes to someone who couldn't swing it.`;
+  const tail = minted
+    ? `thank you for making the room bigger. the pot's already ${money(
+        remaining
+      )} from the next one.`
+    : `you moved the bar. the pot's ${money(
+        remaining
+      )} from the next seat. thank you for the push.`;
+
+  const subject = minted ? "you funded a seat" : "thanks for chipping in";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:24px;">
+                <p style="margin:0 0 18px 0;">${lead}</p>
+                <p style="margin:0;">${tail}</p>
+              </td>
+            </tr>`);
+  const text = [lead, "", tail, "", "stay close,", "~ Clay"].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "pool contribution thank-you",
+  });
+}
+
+export async function sendPoolSeatClaimedEmail(args: {
+  to: string;
+  termLabel: string;
+}): Promise<SendResult> {
+  // Loop-closer: the giver funded a seat days ago; now someone took it.
+  // Anonymous both ways, so this NEVER names or hints at the claimer.
+  // DRAFT copy — Clay finalizes.
+  const subject = "a seat you funded was claimed";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:24px;">
+                <p style="margin:0 0 18px 0;">the seat you funded was just claimed. someone's in the room for ${escapeHtml(
+                  args.termLabel
+                )} because you put it there.</p>
+                <p style="margin:0;">you'll never know who, and they'll never know you. that's the design. thank you for making a place for them.</p>
+              </td>
+            </tr>`);
+  const text = [
+    `the seat you funded was just claimed. someone's in the room for ${args.termLabel} because you put it there.`,
+    "",
+    "you'll never know who, and they'll never know you. that's the design. thank you for making a place for them.",
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "pool seat claimed",
   });
 }
 

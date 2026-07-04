@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis";
 import { randomUUID } from "crypto";
-import type { GiftTermMonths } from "./gifts";
+import { giftTermByMonths, type GiftTermMonths } from "./gifts";
 
 // Community Seat Pool — the anonymous sibling of the named gift seat.
 // Givers fund seats IN (no recipient); people who can't afford
@@ -53,6 +53,13 @@ function keysFor(prefix: string) {
     waitlist: `${prefix}pool:waitlist`,
     countFunded: `${prefix}pool:count:funded`,
     countClaimed: `${prefix}pool:count:claimed`,
+    // Chip-in ("pot") side: many small contributions accumulate here and
+    // mint a whole seat each time the balance crosses a seat's price.
+    contribution: `${prefix}pool:contribution:`,
+    contributionBySession: `${prefix}pool:contribution:by-session:`,
+    contributionsAll: `${prefix}pool:contributions:all`,
+    pot: `${prefix}pool:pot`, // STRING/int cents toward the next seat
+    countContributed: `${prefix}pool:count:contributed`, // lifetime cents in
   };
 }
 
@@ -62,6 +69,17 @@ const K = keysFor(KEY_PREFIX);
 export function isPoolProduction(): boolean {
   return KEY_PREFIX === "";
 }
+
+// Chip-in economics. A pot contribution is an open amount (>= floor,
+// <= ceiling) that accumulates until it crosses a seat's price, at which
+// point a whole anonymous seat mints into the pool. The fill target is
+// the 3-month seat so seats appear often and the progress bar moves;
+// derived from the gift terms so the two never drift.
+export const POOL_SEAT_FILL_TERM_MONTHS: GiftTermMonths = 3;
+export const POOL_SEAT_FILL_PRICE_CENTS =
+  giftTermByMonths(POOL_SEAT_FILL_TERM_MONTHS)?.amountCents ?? 3900;
+export const POOL_CONTRIBUTION_FLOOR_CENTS = 500; // $5
+export const POOL_CONTRIBUTION_CEIL_CENTS = 50000; // $500, fat-finger guard
 
 /* === Types ================================================== */
 
@@ -93,6 +111,28 @@ export type PoolFund = {
   /** The request that took this seat (set once matched + granted). */
   claimedByRequestId: string | null;
   claimedAt: number | null;
+};
+
+export type PoolContributionStatus = "pending" | "paid";
+
+/** A chip-in toward the pool: an open-amount payment that lands in the
+    pot rather than buying one whole seat. Many of these accumulate and
+    mint anonymous seats as the balance crosses a seat's price. */
+export type PoolContribution = {
+  id: string;
+  /** Collected by Stripe at checkout; known after the paid flip. */
+  buyerEmail: string | null;
+  buyerName: string | null;
+  amountCents: number;
+  status: PoolContributionStatus;
+  stripeSessionId: string | null;
+  stripePaymentIntentId: string | null;
+  createdAt: number;
+  updatedAt: number;
+  paidAt: number | null;
+  /** Whole seats this contribution's arrival tipped the pot over into
+      (0 when it just moved the bar). */
+  seatsMinted?: number;
 };
 
 export type PoolRequestStatus =
@@ -309,6 +349,186 @@ export async function markFundClaimed(
     claimedByRequestId: requestId,
     claimedAt: Date.now(),
   });
+}
+
+/* === Contributions + pot (chip-in side) ===================== */
+
+export async function createPoolContribution(args: {
+  amountCents: number;
+}): Promise<PoolContribution | null> {
+  const client = getClient();
+  if (!client) return null;
+  const now = Date.now();
+  const record: PoolContribution = {
+    id: randomUUID(),
+    buyerEmail: null,
+    buyerName: null,
+    amountCents: Math.floor(args.amountCents),
+    status: "pending",
+    stripeSessionId: null,
+    stripePaymentIntentId: null,
+    createdAt: now,
+    updatedAt: now,
+    paidAt: null,
+    seatsMinted: 0,
+  };
+  await client.set(`${K.contribution}${record.id}`, JSON.stringify(record));
+  await client.zadd(K.contributionsAll, { score: now, member: record.id });
+  return record;
+}
+
+export async function getPoolContribution(
+  id: string
+): Promise<PoolContribution | null> {
+  const client = getClient();
+  if (!client) return null;
+  return parseJson<PoolContribution>(
+    await client.get<string>(`${K.contribution}${id}`)
+  );
+}
+
+export async function getPoolContributionBySession(
+  sessionId: string
+): Promise<PoolContribution | null> {
+  const client = getClient();
+  if (!client) return null;
+  const id = await client.get<string>(`${K.contributionBySession}${sessionId}`);
+  if (!id) return null;
+  return getPoolContribution(typeof id === "string" ? id : String(id));
+}
+
+async function updatePoolContribution(
+  id: string,
+  fields: Partial<Omit<PoolContribution, "id" | "createdAt">>
+): Promise<PoolContribution | null> {
+  const client = getClient();
+  if (!client) return null;
+  const existing = await getPoolContribution(id);
+  if (!existing) return null;
+  const next: PoolContribution = {
+    ...existing,
+    ...fields,
+    id: existing.id,
+    createdAt: existing.createdAt,
+    updatedAt: Date.now(),
+  };
+  await client.set(`${K.contribution}${id}`, JSON.stringify(next));
+  return next;
+}
+
+/** Bind the Stripe session to the contribution (post-create, pre-redirect). */
+export async function attachContributionCheckout(
+  id: string,
+  sessionId: string
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  await client.set(`${K.contributionBySession}${sessionId}`, id);
+  await updatePoolContribution(id, { stripeSessionId: sessionId });
+}
+
+/** Flip a pending contribution to paid. Idempotency guard for the webhook:
+    a second delivery finds it already paid and skips the pot mutation. */
+export async function markContributionPaid(
+  id: string,
+  args: {
+    buyerEmail: string | null;
+    buyerName: string | null;
+    stripePaymentIntentId: string | null;
+  }
+): Promise<PoolContribution | null> {
+  return updatePoolContribution(id, {
+    status: "paid",
+    paidAt: Date.now(),
+    buyerEmail: args.buyerEmail ? normEmail(args.buyerEmail) : null,
+    buyerName: args.buyerName,
+    stripePaymentIntentId: args.stripePaymentIntentId,
+  });
+}
+
+export async function setContributionSeatsMinted(
+  id: string,
+  seatsMinted: number
+): Promise<void> {
+  await updatePoolContribution(id, { seatsMinted });
+}
+
+/**
+ * Add a contribution to the pot and report how many whole seats the new
+ * balance crosses. Atomic (single EVAL) so two contributions landing at
+ * once can't both mint off the same cents or leave the pot in a torn
+ * state. Also bumps the lifetime "contributed" counter. The caller mints
+ * `minted` seats and drops them into the pool; the pot keeps the change.
+ */
+export async function addToPot(
+  amountCents: number
+): Promise<{ minted: number; potCents: number }> {
+  const client = getClient();
+  if (!client) return { minted: 0, potCents: 0 };
+  const script = `
+    redis.call('INCRBY', KEYS[2], ARGV[1])
+    local pot = redis.call('INCRBY', KEYS[1], ARGV[1])
+    local price = tonumber(ARGV[2])
+    local minted = 0
+    while pot >= price do
+      redis.call('DECRBY', KEYS[1], price)
+      pot = pot - price
+      minted = minted + 1
+    end
+    return {minted, pot}
+  `;
+  const res = (await client.eval(
+    script,
+    [K.pot, K.countContributed],
+    [String(Math.floor(amountCents)), String(POOL_SEAT_FILL_PRICE_CENTS)]
+  )) as unknown[];
+  const minted = Array.isArray(res) ? Number(res[0]) || 0 : 0;
+  const potCents = Array.isArray(res) ? Number(res[1]) || 0 : 0;
+  return { minted, potCents };
+}
+
+/** Current cents sitting in the pot (progress toward the next seat). */
+export async function getPoolPot(): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  return readInt(client, K.pot);
+}
+
+/**
+ * Compact signal for the desk's pool-ask band: how many are waiting, the
+ * pot balance, and the best available waiter note (the front-of-line
+ * waiter who left one, so a blank note never becomes the thing on
+ * display). Reads the env's own keyspace like the public counter. Kept
+ * light (2 reads, plus one lookup only when someone's waiting) since the
+ * desk polls this frequently.
+ */
+export async function getDeskPoolSignal(): Promise<{
+  waiting: number;
+  potCents: number;
+  note: string | null;
+}> {
+  const client = getClient();
+  if (!client) return { waiting: 0, potCents: 0, note: null };
+  const [waitingRaw, potCents] = await Promise.all([
+    client.llen(K.waitlist).catch(() => 0),
+    readInt(client, K.pot),
+  ]);
+  const waiting = typeof waitingRaw === "number" ? waitingRaw : 0;
+  let note: string | null = null;
+  if (waiting > 0) {
+    // Front of line first; pick the longest-waiting requester who left a
+    // note. Cap the scan so a huge waitlist can't blow up the desk read.
+    const raw = (await client
+      .lrange(K.waitlist, 0, 11)
+      .catch(() => [])) as unknown[];
+    const ids = raw.filter((v): v is string => typeof v === "string");
+    if (ids.length) {
+      const reqs = await getPoolRequestsByIds(ids);
+      const noted = reqs.find((r) => r.note && r.note.trim().length > 0);
+      note = noted?.note?.trim() ?? null;
+    }
+  }
+  return { waiting, potCents, note };
 }
 
 /* === Requests (receive side) ================================ */
@@ -565,6 +785,8 @@ export type PoolStats = {
   claimed: number;
   available: number;
   waiting: number;
+  /** Cents accumulated in the chip-in pot toward the next seat. */
+  potCents: number;
 };
 
 async function readInt(client: Redis, key: string): Promise<number> {
@@ -581,21 +803,29 @@ async function readInt(client: Redis, key: string): Promise<number> {
  * mirroring getArticleCounts(slugs, dev=false) in analytics.ts.
  */
 export async function getPoolStats(opts?: { prod?: boolean }): Promise<PoolStats> {
-  const empty: PoolStats = { funded: 0, claimed: 0, available: 0, waiting: 0 };
+  const empty: PoolStats = {
+    funded: 0,
+    claimed: 0,
+    available: 0,
+    waiting: 0,
+    potCents: 0,
+  };
   const client = getClient();
   if (!client) return empty;
   const k = opts?.prod ? keysFor("") : K;
-  const [funded, claimed, available, waiting] = await Promise.all([
+  const [funded, claimed, available, waiting, potCents] = await Promise.all([
     readInt(client, k.countFunded),
     readInt(client, k.countClaimed),
     client.llen(k.available).catch(() => 0),
     client.llen(k.waitlist).catch(() => 0),
+    readInt(client, k.pot),
   ]);
   return {
     funded,
     claimed,
     available: typeof available === "number" ? available : 0,
     waiting: typeof waiting === "number" ? waiting : 0,
+    potCents,
   };
 }
 

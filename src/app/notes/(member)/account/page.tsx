@@ -251,18 +251,18 @@ export default async function AccountPage() {
           )}
         </div>
 
-        {/* Pay it forward — member-side entry to the gift flow. Two paths,
-            both on /membership/gift via its toggle: sponsor a stranger from
-            the waitlist (anonymous), or buy a guest pass for someone you
-            name. The live waiting count makes the first honest, never a
-            dressed-up zero. */}
+        {/* Pay it forward — member-side entry to the two give paths, now on
+            separate pages: cover a seat for a stranger (/membership/cover,
+            anonymous, any amount) or gift a named seat (/membership/gift).
+            The live waiting count makes the first honest, never a dressed-up
+            zero. */}
         <div className="mb-12 pt-10 border-t border-rule">
           <p className="eyebrow mb-3">Pay it forward</p>
           <p
             className="font-serif text-ink-muted leading-relaxed mb-4"
             style={{ fontSize: "1.02rem" }}
           >
-            You can put someone in this room. Sponsor a seat for a reader
+            You can put someone in this room. Cover a seat for a reader
             who can&apos;t afford one. They never learn it was you, and you
             never learn who they were.
             {poolWaiting > 0 && (
@@ -280,13 +280,18 @@ export default async function AccountPage() {
             className="font-serif text-ink-muted leading-relaxed mb-6"
             style={{ fontSize: "1.02rem" }}
           >
-            Or buy a guest pass for someone you know. A family member, a
-            friend, anyone who needs to be here. One charge, a fixed term,
-            full membership.
+            Or gift a seat to someone you know. A family member, a friend,
+            anyone who needs to be here. One charge, a fixed term, full
+            membership.
           </p>
-          <Link href="/membership/gift" className="btn-secondary">
-            <span>Give someone a seat</span>
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/membership/cover" className="btn-secondary">
+              <span>Cover a seat</span>
+            </Link>
+            <Link href="/membership/gift" className="btn-secondary">
+              <span>Gift a seat to someone</span>
+            </Link>
+          </div>
         </div>
 
         {/* Sign out */}

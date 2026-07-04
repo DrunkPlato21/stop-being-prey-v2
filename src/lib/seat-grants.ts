@@ -9,7 +9,7 @@ import {
   type PoolRequest,
 } from "./pool";
 import { createMagicLink } from "./auth";
-import { sendPoolWelcomeEmail } from "./email";
+import { sendPoolSeatClaimedEmail, sendPoolWelcomeEmail } from "./email";
 import { recordEvent } from "./analytics";
 
 // Shared "mint a prepaid seat" path for the two donor-funded lanes: a
@@ -113,6 +113,11 @@ export async function finalizePoolGrant(args: {
   /** Defaults to the welcome copy; the webhook overrides with "a seat
       opened for you" framing. DRAFT copy either way. */
   notification?: { title: string; body: string; linkUrl?: string };
+  /** Email the funder that their seat was claimed. Default true — this is
+      the loop-closer for the claimer-acts-first path. The webhook's
+      immediate-match path passes false, since the funder gets the fund
+      thank-you email moments later for the very same seat. */
+  notifyFunderClaimed?: boolean;
 }): Promise<number> {
   const termLabel = args.termMonths === 3 ? "3 months" : "1 year";
   const { record, expiresAt } = await grantPrepaidSeat({
@@ -127,7 +132,7 @@ export async function finalizePoolGrant(args: {
       linkUrl: "/desk",
     },
   });
-  await markFundClaimed(args.fundId, args.request.id);
+  const claimedFund = await markFundClaimed(args.fundId, args.request.id);
   await markRequestGranted(args.request.id, {
     seatFundId: args.fundId,
     termMonths: args.termMonths,
@@ -135,11 +140,27 @@ export async function finalizePoolGrant(args: {
   });
   await recordEvent("pool_claimed", { source: "pool" });
 
+  // Close the loop: tell the funder their seat landed, so a one-time gift
+  // becomes a repeat one. Anonymous both ways — the email never hints at
+  // the claimer. Suppressed on the webhook immediate-match path, where the
+  // fund thank-you email already covers this same seat.
+  if ((args.notifyFunderClaimed ?? true) && claimedFund?.buyerEmail) {
+    await sendPoolSeatClaimedEmail({
+      to: claimedFund.buyerEmail,
+      termLabel,
+    }).catch((err) => {
+      console.error(
+        `[pool] seat-claimed email failed for ${claimedFund.buyerEmail}:`,
+        err
+      );
+    });
+  }
+
   // First sign-in link, dispatched automatically (mirrors gift redeem).
   const linkId = await createMagicLink({
     email: args.request.email,
     customerId: record.stripeCustomerId,
-    next: "/welcome",
+    next: "/desk",
   });
   if (linkId) {
     const url = `${baseUrl()}/api/auth/callback?token=${encodeURIComponent(linkId)}`;

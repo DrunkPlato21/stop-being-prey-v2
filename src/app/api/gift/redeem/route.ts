@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
   const linkId = await createMagicLink({
     email,
     customerId: record.stripeCustomerId,
-    next: "/welcome",
+    next: "/desk",
   });
   if (linkId) {
     const url = `${baseUrl()}/api/auth/callback?token=${encodeURIComponent(linkId)}`;

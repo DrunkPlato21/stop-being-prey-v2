@@ -61,19 +61,27 @@ import {
   updateGift,
 } from "@/lib/gifts";
 import {
+  addToPot,
   createFundedPoolSeat,
+  getPoolContribution,
+  getPoolContributionBySession,
   getPoolFund,
   getPoolFundBySession,
   getPoolRequest,
+  markContributionPaid,
   markPoolFunded,
   placeFundedSeat,
+  POOL_SEAT_FILL_PRICE_CENTS,
+  POOL_SEAT_FILL_TERM_MONTHS,
   releaseFundedSeat,
+  setContributionSeatsMinted,
 } from "@/lib/pool";
 import { finalizePoolGrant } from "@/lib/seat-grants";
 import { emailHasActiveMembership } from "@/lib/membership";
 import {
   sendGiftEmail,
   sendGiftSelfRefundEmail,
+  sendPoolContributionThankYouEmail,
   sendPoolFundThankYouEmail,
 } from "@/lib/email";
 
@@ -156,6 +164,9 @@ export async function POST(request: NextRequest) {
       }
       if (metadata.lane === "pool") {
         return handlePoolFunding(session, metadata);
+      }
+      if (metadata.lane === "pool_contribution") {
+        return handlePoolContribution(session, metadata);
       }
       return handleTipDonation(session, metadata);
     }
@@ -890,6 +901,9 @@ async function grantPoolSeatToWaiter(
     fundId,
     termMonths,
     existing,
+    // Funded and claimed in the same instant: the fund thank-you email
+    // (sent just after this) already tells the funder. Skip the duplicate.
+    notifyFunderClaimed: false,
     notification: {
       // DRAFT copy — Clay finalizes.
       title: "A seat opened for you.",
@@ -897,6 +911,119 @@ async function grantPoolSeatToWaiter(
       linkUrl: "/desk",
     },
   });
+}
+
+/**
+ * Chip-in (pot) lane. An open-amount payment lands in the pool pot; the
+ * pot mints an anonymous seat each time it crosses a seat's price. Unlike
+ * a funded seat there's no single owner, so a pot-minted seat carries no
+ * buyerEmail and never triggers the "your seat was claimed" note. The
+ * contributor is thanked here instead.
+ */
+async function handlePoolContribution(
+  session: Stripe.Checkout.Session,
+  metadata: Record<string, string>
+): Promise<Response> {
+  const contributionId =
+    metadata.contribution_id && metadata.contribution_id.length > 0
+      ? metadata.contribution_id
+      : (await getPoolContributionBySession(session.id))?.id ?? null;
+  if (!contributionId) {
+    console.error(
+      `[pool] contribution webhook fired without contribution_id on session ${session.id}`
+    );
+    return new Response("missing contribution_id", { status: 500 });
+  }
+
+  const contribution = await getPoolContribution(contributionId);
+  if (!contribution) {
+    console.error(`[pool] no contribution record for ${contributionId}`);
+    return new Response("no contribution record", { status: 500 });
+  }
+
+  // Idempotency: anything past pending means this session was processed.
+  // Guards against a double webhook double-adding to the pot.
+  if (contribution.status !== "pending") {
+    return new Response("ok", { status: 200 });
+  }
+
+  const buyerEmail = (
+    session.customer_details?.email ??
+    session.customer_email ??
+    ""
+  )
+    .toLowerCase()
+    .trim();
+  const buyerName =
+    contribution.buyerName || session.customer_details?.name || "A reader";
+  const paymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null;
+
+  const paid = await markContributionPaid(contribution.id, {
+    buyerEmail: buyerEmail || null,
+    buyerName,
+    stripePaymentIntentId: paymentIntentId,
+  });
+  if (!paid) {
+    console.error(
+      `[pool] markContributionPaid failed for ${contribution.id}`
+    );
+    // 5xx so Stripe retries; status is still pending so retry re-enters.
+    return new Response("contribution flip failed", { status: 500 });
+  }
+
+  await recordEvent("pool_contributed", { source: "pool" });
+
+  // Add to the pot atomically; mint one anonymous seat for each whole
+  // seat-price the new balance crosses, and drop each into the pool
+  // (handed to the front waiter, or parked as available).
+  const { minted, potCents } = await addToPot(paid.amountCents);
+  for (let i = 0; i < minted; i++) {
+    const seat = await createFundedPoolSeat({
+      // Trace the seat to the contribution that tipped the pot over.
+      parentFundId: paid.id,
+      termMonths: POOL_SEAT_FILL_TERM_MONTHS,
+      amountCents: POOL_SEAT_FILL_PRICE_CENTS,
+      buyerEmail: null,
+      buyerName: null,
+      message: null,
+    });
+    if (!seat) {
+      console.error(
+        `[pool] pot minted a seat but createFundedPoolSeat returned null (contribution ${paid.id})`
+      );
+      continue;
+    }
+    const placement = await placeFundedSeat(seat.id);
+    if (placement.kind === "matched") {
+      await grantPoolSeatToWaiter(
+        placement.requestId,
+        seat.id,
+        POOL_SEAT_FILL_TERM_MONTHS
+      );
+    }
+  }
+  if (minted > 0) await setContributionSeatsMinted(paid.id, minted);
+
+  // Thank the giver (when Stripe captured an email).
+  if (buyerEmail) {
+    await sendPoolContributionThankYouEmail({
+      to: buyerEmail,
+      amountCents: paid.amountCents,
+      seatsMinted: minted,
+      potCents,
+      seatPriceCents: POOL_SEAT_FILL_PRICE_CENTS,
+    }).catch((err) => {
+      console.error(
+        `[pool] contribution thank-you email failed for ${buyerEmail}:`,
+        err
+      );
+    });
+  }
+
+  return new Response("ok", { status: 200 });
 }
 
 /* === Tip (existing) ======================================== */

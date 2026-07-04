@@ -430,6 +430,7 @@ function ReplyNode({
   names,
   badges,
   adminEmail,
+  hostEmail,
   viewerEmail,
   isAdmin,
   threadId,
@@ -445,6 +446,7 @@ function ReplyNode({
   names: Record<string, string>;
   badges: Record<string, GuildBadgeInfo>;
   adminEmail: string | null;
+  hostEmail: string | null;
   viewerEmail: string;
   isAdmin: boolean;
   threadId: string;
@@ -522,6 +524,7 @@ function ReplyNode({
             names={names}
             badges={badges}
             adminEmail={adminEmail}
+            hostEmail={hostEmail}
             size="small"
           />
           <span suppressHydrationWarning style={{ color: "var(--ink-faint)" }}>
@@ -690,6 +693,7 @@ function ReplyNode({
           names={names}
           badges={badges}
           adminEmail={adminEmail}
+          hostEmail={hostEmail}
           viewerEmail={viewerEmail}
           isAdmin={isAdmin}
           threadId={threadId}
@@ -711,6 +715,7 @@ export function ThreadView({
   names,
   badges,
   adminEmail,
+  hostEmail,
   viewerEmail,
   isAdmin,
   reactions,
@@ -720,6 +725,7 @@ export function ThreadView({
   names: Record<string, string>;
   badges: Record<string, GuildBadgeInfo>;
   adminEmail: string | null;
+  hostEmail: string | null;
   viewerEmail: string;
   isAdmin: boolean;
   reactions: Record<string, ReactionSummary>;
@@ -875,6 +881,7 @@ export function ThreadView({
                 names={names}
                 badges={badges}
                 adminEmail={adminEmail}
+                hostEmail={hostEmail}
               />
               <span suppressHydrationWarning style={{ color: "var(--ink-faint)" }}>
                 {formatRelative(thread.createdAt)}
@@ -1022,6 +1029,7 @@ export function ThreadView({
               names={names}
               badges={badges}
               adminEmail={adminEmail}
+              hostEmail={hostEmail}
               viewerEmail={viewerEmail}
               isAdmin={isAdmin}
               threadId={thread.id}
@@ -1042,6 +1050,7 @@ export function ThreadView({
             names={names}
             badges={badges}
             adminEmail={adminEmail}
+            hostEmail={hostEmail}
             viewerEmail={viewerEmail}
             isAdmin={isAdmin}
             threadId={thread.id}

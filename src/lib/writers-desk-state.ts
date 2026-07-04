@@ -7,11 +7,7 @@ import {
   type DeskUpdate,
   type PresenceState,
 } from "./desk";
-import {
-  getElsewhereEvents,
-  getRecentWorkEvents,
-  type PulseEvent,
-} from "./pulse";
+import { getRecentWorkEvents, type PulseEvent } from "./pulse";
 import { getProfile, getProfilesByEmails, isAdmin } from "./comments";
 import { getMember } from "./members";
 import { listByMember, type Note } from "./notes";
@@ -22,6 +18,7 @@ import {
   type ActiveWallSnapshot,
 } from "./active-wall";
 import { getLastVisited } from "./desk-visits";
+import { getDeskPoolSignal, POOL_SEAT_FILL_PRICE_CENTS } from "./pool";
 import { getLatestReply, getPinnedThread, listActiveThreads } from "./guild";
 import {
   countRoomPresence,
@@ -93,6 +90,17 @@ export type FirstRunState = {
   steps: { key: string; label: string; href: string; done: boolean }[];
 };
 
+/** The desk's pool-ask band: prompt an established member to cover a seat
+    for a waiting reader. Null suppresses the band entirely (nobody
+    waiting, or the viewer came in on a charity seat). */
+export type DeskPoolAsk = {
+  waiting: number;
+  /** Best available anonymized waiter note, or null (band shows plain). */
+  note: string | null;
+  potCents: number;
+  seatPriceCents: number;
+};
+
 export type WritersDeskState = {
   presence: DeskPresence;
   state: PresenceState;
@@ -101,8 +109,10 @@ export type WritersDeskState = {
   /** Site-content stream: essays, field notes, issues, case files.
       Drives the "Recent work" section. Capped at 5. */
   recentWork: PulseEvent[];
-  /** Social-channel stream: admin-curated X + Facebook posts.
-      Drives the "Elsewhere" section. Capped at 3. */
+  /** Retired from the desk (Jul 2026): always []. The social-echo feed
+      duplicated recentWork and pointed members off-platform. Kept on the
+      type so the polling endpoint contract is unchanged; the archive of
+      these events still renders at /notes/elsewhere. */
   elsewhere: PulseEvent[];
   // Member-side data — folded into the same snapshot so the widget's
   // polling loop keeps past notes (and Clay's reply when it lands)
@@ -121,6 +131,8 @@ export type WritersDeskState = {
   /** New-member onboarding checklist, or null when there's nothing to
       show (finished, dismissed, established member, admin, anon). */
   firstRun: FirstRunState | null;
+  /** Pool-ask band (cover a seat for a waiting reader), or null to hide. */
+  poolAsk: DeskPoolAsk | null;
   isSignedIn: boolean;
   isAdmin: boolean;
 };
@@ -138,7 +150,6 @@ export async function getWritersDeskState(
     updates,
     presence,
     recentWork,
-    elsewhere,
     memberNotes,
     voiceMemoRaw,
     activeWall,
@@ -151,7 +162,6 @@ export async function getWritersDeskState(
     listRecentUpdates(1),
     getPresence(),
     getRecentWorkEvents(),
-    getElsewhereEvents(),
     shouldLoadMemberNotes
       ? listByMember(viewerEmail!)
       : Promise.resolve([] as Note[]),
@@ -277,25 +287,45 @@ export async function getWritersDeskState(
       typeof memberRecord.createdAt === "number" &&
       now - memberRecord.createdAt < FIRST_RUN_WINDOW_MS;
     const nameDone = !!viewerProfile?.displayNameChangedAt;
-    const rulesDone = !!onboarding?.rules;
     const guildDone = !!onboarding?.guild;
     const loungeDone = !!onboarding?.lounge;
-    const allDone = nameDone && rulesDone && guildDone && loungeDone;
+    const allDone = nameDone && loungeDone && guildDone;
     if (joinedRecently && !onboarding?.dismissedAt && !allDone) {
       const qotwHref = pinnedThread ? `/guild/${pinnedThread.id}` : "/guild";
       firstRun = {
         steps: [
           { key: "name", label: "Set your name", href: "/notes/account", done: nameDone },
-          { key: "rules", label: "Read the Rules", href: "/rules", done: rulesDone },
+          { key: "lounge", label: "Say hi in the Lounge", href: "/lounge", done: loungeDone },
           {
             key: "qotw",
             label: "Answer the Question of the Week",
             href: qotwHref,
             done: guildDone,
           },
-          { key: "lounge", label: "Say hi in the Lounge", href: "/lounge", done: loungeDone },
         ],
       };
+    }
+  }
+
+  // Pool-ask band. Shown to a signed-in viewer when someone's actually
+  // waiting, and hidden for anyone who came in on a charity seat (gifted
+  // or pooled) — don't ask the just-helped to pay it forward on day one.
+  // Admin has no member record, so Clay sees it (useful as a live read).
+  let poolAsk: DeskPoolAsk | null = null;
+  if (viewerEmail) {
+    const viaCharity = !!(
+      memberRecord?.viaPoolFundId || memberRecord?.viaGiftId
+    );
+    if (!viaCharity) {
+      const sig = await getDeskPoolSignal();
+      if (sig.waiting > 0) {
+        poolAsk = {
+          waiting: sig.waiting,
+          note: sig.note,
+          potCents: sig.potCents,
+          seatPriceCents: POOL_SEAT_FILL_PRICE_CENTS,
+        };
+      }
     }
   }
 
@@ -340,13 +370,16 @@ export async function getWritersDeskState(
     latestUpdate: updates[0] ?? null,
     awayNote,
     recentWork,
-    elsewhere,
+    // Retired from the desk (redundant with recentWork + pointed members
+    // off-platform). The archive still lives at /notes/elsewhere.
+    elsewhere: [],
     memberNotes,
     voiceMemo,
     activeWall,
     lastVisitedAt,
     rooms,
     firstRun,
+    poolAsk,
     isSignedIn: !!viewerEmail,
     isAdmin: viewerIsAdmin,
   };

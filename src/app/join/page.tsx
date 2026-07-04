@@ -55,7 +55,7 @@ export default function JoinPage() {
           <EmailSignup source="join" />
         </div>
         <p className="text-xs italic text-ink-faint">
-          Unsubscribe anytime. We never share your email.
+          Unsubscribe anytime.
         </p>
       </section>
 
