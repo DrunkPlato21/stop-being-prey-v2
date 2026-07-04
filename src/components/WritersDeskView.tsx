@@ -10,7 +10,6 @@ import type {
 import type { PresenceState } from "@/lib/desk";
 import type { PulseEvent } from "@/lib/pulse";
 import type { Note } from "@/lib/notes";
-import type { EngagementSignal, Notification } from "@/lib/notifications";
 import { NotePaperPanel } from "@/components/NotePaperPanel";
 import { VoiceMemoCard } from "@/components/VoiceMemoCard";
 import { ActiveWallPanel } from "@/components/ActiveWallPanel";
@@ -241,78 +240,6 @@ function DeskPoolAskBand({ ask }: { ask: DeskPoolAsk }) {
           <span>Cover a seat</span>
         </Link>
       </div>
-    </div>
-  );
-}
-
-// "For you" — unread replies/reactions/mentions directed at the member,
-// surfaced high on the desk so the return question ("did anyone respond
-// to me?") is answered before the scroll. Hides entirely when there's
-// nothing unread. The bell/nav owns the full feed; this is the teaser.
-function PersonalSignalBlock({
-  signal,
-  now,
-}: {
-  signal: EngagementSignal;
-  now: number;
-}) {
-  return (
-    <div className="mt-6">
-      <p
-        className="eyebrow mb-2.5"
-        style={{
-          color: "var(--eye-deep)",
-          letterSpacing: "0.24em",
-          fontSize: "0.62rem",
-        }}
-      >
-        For you
-      </p>
-      <ul className="flex flex-col">
-        {signal.items.map((n, idx) => (
-          <li
-            key={n.id}
-            className={idx === 0 ? "py-1.5" : "py-1.5 border-t border-rule"}
-          >
-            <Link
-              href={n.linkUrl}
-              className="group block no-underline"
-            >
-              <div className="flex items-baseline justify-between gap-3">
-                <span
-                  className="font-serif text-ink leading-snug group-hover:text-eye-deep transition-colors"
-                  style={{ fontSize: "0.98rem" }}
-                >
-                  {n.title}
-                </span>
-                <span
-                  className="font-serif italic text-ink-faint shrink-0"
-                  style={{ fontSize: "0.75rem" }}
-                >
-                  {formatRelative(n.createdAt, now)}
-                </span>
-              </div>
-              {n.body && (
-                <span
-                  className="font-serif italic text-ink-faint leading-snug line-clamp-1 block mt-0.5"
-                  style={{ fontSize: "0.85rem" }}
-                >
-                  {n.body}
-                </span>
-              )}
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {signal.moreCount > 0 && (
-        <Link
-          href="/notifications"
-          className="inline-block mt-2 font-display uppercase tracking-[0.18em] text-eye-deep hover:text-ink no-underline transition-colors"
-          style={{ fontSize: "0.62rem", fontWeight: 600 }}
-        >
-          +{signal.moreCount} more &rarr;
-        </Link>
-      )}
     </div>
   );
 }
@@ -695,7 +622,6 @@ export function WritersDeskView({
     rooms,
     firstRun,
     poolAsk,
-    personalSignal,
     isSignedIn,
     isAdmin: viewerIsAdmin,
   } = data;
@@ -745,44 +671,6 @@ export function WritersDeskView({
   const effectivePoolAsk: DeskPoolAsk | null = previewPoolAsk
     ? SAMPLE_POOL_ASK
     : poolAsk ?? (asReader ? SAMPLE_POOL_ASK : null);
-
-  // "For you" signal: real for members; a sample under reader mode so
-  // Clay (who has no engagement notifications) can see the block.
-  const sampleNotif = (
-    over: Partial<Notification>
-  ): Notification => ({
-    id: over.id ?? "sample",
-    memberEmail: "",
-    type: over.type ?? "lounge_reply",
-    title: over.title ?? "",
-    body: over.body ?? "",
-    linkUrl: over.linkUrl ?? "/lounge",
-    read: false,
-    readAt: null,
-    createdAt: over.createdAt ?? now,
-  });
-  const SAMPLE_PERSONAL: EngagementSignal = {
-    items: [
-      sampleNotif({
-        id: "s1",
-        type: "lounge_reply",
-        title: "Colin replied to your post",
-        body: "That's exactly the distinction I was missing.",
-        createdAt: now - 22 * 60 * 1000,
-      }),
-      sampleNotif({
-        id: "s2",
-        type: "guild_reaction",
-        title: "Zak reacted in the Guild",
-        body: "It Starts in the Cities",
-        linkUrl: "/guild",
-        createdAt: now - 3 * 60 * 60 * 1000,
-      }),
-    ],
-    moreCount: 1,
-  };
-  const effectivePersonalSignal: EngagementSignal | null =
-    personalSignal ?? (asReader ? SAMPLE_PERSONAL : null);
 
   // First-time visitors (no stamp yet) and admins never see NEW
   // badges. Otherwise compare item timestamps to the frozen baseline.
@@ -919,10 +807,6 @@ export function WritersDeskView({
             )}
           </div>
         </div>
-
-        {effectivePersonalSignal && (
-          <PersonalSignalBlock signal={effectivePersonalSignal} now={now} />
-        )}
 
         {/* Leave a note for Clay — sits right under his presence, since
             the note is the direct line to him. Members only on the normal

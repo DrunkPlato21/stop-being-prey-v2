@@ -19,11 +19,6 @@ import {
 } from "./active-wall";
 import { getLastVisited } from "./desk-visits";
 import { getDeskPoolSignal, POOL_SEAT_FILL_PRICE_CENTS } from "./pool";
-import {
-  getEngagementSignal,
-  isNotificationsConfigured,
-  type EngagementSignal,
-} from "./notifications";
 import { getLatestReply, getPinnedThread, listActiveThreads } from "./guild";
 import {
   countRoomPresence,
@@ -142,9 +137,6 @@ export type WritersDeskState = {
   firstRun: FirstRunState | null;
   /** Pool-ask band (cover a seat for a waiting reader), or null to hide. */
   poolAsk: DeskPoolAsk | null;
-  /** "For you" signal: unread replies/reactions/mentions directed at the
-      member. Null when there's nothing unread (block hides). */
-  personalSignal: EngagementSignal | null;
   isSignedIn: boolean;
   isAdmin: boolean;
 };
@@ -356,15 +348,6 @@ export async function getWritersDeskState(
     }
   }
 
-  // "For you" signal: unread engagement (replies/reactions/mentions/coins
-  // directed at this member). Members only — admin has none; reader-mode
-  // preview injects a sample client-side.
-  let personalSignal: EngagementSignal | null = null;
-  if (isMember && isNotificationsConfigured()) {
-    const sig = await getEngagementSignal(viewerEmail!, 2);
-    if (sig.items.length > 0) personalSignal = sig;
-  }
-
   const rooms: DeskRoomsSignal = {
     guild: {
       questionOfWeek: pinnedThread
@@ -417,7 +400,6 @@ export async function getWritersDeskState(
     rooms,
     firstRun,
     poolAsk,
-    personalSignal,
     isSignedIn: !!viewerEmail,
     isAdmin: viewerIsAdmin,
   };

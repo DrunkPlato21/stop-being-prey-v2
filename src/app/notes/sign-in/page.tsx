@@ -85,6 +85,22 @@ export default async function SignInPage({
             See what&apos;s inside.
           </Link>
         </p>
+
+        <p className="mt-3 text-sm italic text-ink-muted leading-relaxed max-w-md mx-auto">
+          Card lapsed or membership canceled?{" "}
+          <Link
+            href="/reactivate"
+            className="text-eye-deep hover:text-ink"
+            style={{
+              textDecoration: "underline",
+              textDecorationColor: "var(--eye)",
+              textDecorationThickness: "1px",
+              textUnderlineOffset: "3px",
+            }}
+          >
+            Reactivate your seat.
+          </Link>
+        </p>
       </section>
     </div>
   );

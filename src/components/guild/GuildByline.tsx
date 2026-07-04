@@ -9,11 +9,11 @@ import type { TierBadge } from "@/lib/members";
 // and chip(s) as flat flex siblings so the parent meta row's `gap`
 // spaces them uniformly.
 //
-// The Guild Host (Trish) gets her own chip: her real display name plus a
-// terracotta HOST badge (--ember), a hue deliberately distinct from the
-// founder gold. The chip stands in for her tier badge so she carries one
-// clean identity. Resolved from GUILD_HOST_EMAIL, threaded in as
-// hostEmail exactly like adminEmail.
+// The Guild Host (Trish) gets an ADDITIONAL terracotta HOST chip
+// (--ember, a hue deliberately distinct from the founder gold) appended
+// to her normal standing — it does NOT replace her founder/charter/tier
+// badge. Resolved from GUILD_HOST_EMAIL, threaded in as hostEmail exactly
+// like adminEmail.
 
 export type GuildBadgeInfo = {
   founderSlot: number | null;
@@ -68,9 +68,18 @@ export function GuildByline({
   }
 
   if (isHost) {
+    const hb = badges[norm];
     return (
       <>
         <span style={{ fontWeight: 600 }}>{names[norm] || "A member"}</span>
+        {hb && (
+          <MemberBadge
+            founderSlot={hb.founderSlot}
+            charterSlot={hb.charterSlot}
+            tierBadge={hb.tierBadge}
+            size={size}
+          />
+        )}
         <span
           className="font-display uppercase"
           style={{
