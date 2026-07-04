@@ -25,6 +25,29 @@ function CategoryTag({ slug }: { slug: string }) {
   );
 }
 
+// "New since your last visit" tag, shown on a thread whose latest
+// activity postdates the member's prior Guild visit. Soft olive wash,
+// quiet — a scan cue, not a loud badge.
+function NewTag() {
+  return (
+    <span
+      className="font-display uppercase"
+      style={{
+        color: "var(--eye-deep)",
+        background: "rgba(184, 168, 44, 0.12)",
+        fontSize: "0.56rem",
+        fontWeight: 700,
+        letterSpacing: "0.14em",
+        padding: "0.12rem 0.42rem",
+        borderRadius: 2,
+        whiteSpace: "nowrap",
+      }}
+    >
+      New
+    </span>
+  );
+}
+
 // The Guild index: the king's pinned Question of the Week at the top,
 // then the library of member threads ordered by latest activity. Server
 // component; the only interactive island is the composer.
@@ -135,6 +158,7 @@ export function GuildIndexView({
   badges,
   adminEmail,
   hostEmail,
+  lastViewedAt,
 }: {
   pinned: GuildThread | null;
   threads: GuildThread[];
@@ -142,7 +166,13 @@ export function GuildIndexView({
   badges: Record<string, GuildBadgeInfo>;
   adminEmail: string | null;
   hostEmail: string | null;
+  /** The member's prior Guild visit (epoch ms, 0 if never). Threads with
+      later activity get a NEW marker. */
+  lastViewedAt: number;
 }) {
+  // First-ever visitors (0) never see NEW, so the list doesn't flood.
+  const isNew = (t: GuildThread) =>
+    lastViewedAt > 0 && t.lastActivityAt > lastViewedAt;
   return (
     <div style={{ maxWidth: "44rem", margin: "0 auto", padding: "3rem 1.25rem 5rem" }}>
       {/* Masthead — a frontispiece for the library: the crest, the
@@ -218,12 +248,22 @@ export function GuildIndexView({
             >
               Question of the Week
             </p>
-            <h2
-              className="font-display"
-              style={{ fontSize: "1.7rem", lineHeight: 1.15, margin: 0, color: "var(--ink)" }}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: "0.6rem",
+                flexWrap: "wrap",
+              }}
             >
-              {pinned.title}
-            </h2>
+              <h2
+                className="font-display"
+                style={{ fontSize: "1.7rem", lineHeight: 1.15, margin: 0, color: "var(--ink)" }}
+              >
+                {pinned.title}
+              </h2>
+              {isNew(pinned) && <NewTag />}
+            </div>
             <MetaLine thread={pinned} names={names} badges={badges} adminEmail={adminEmail} hostEmail={hostEmail} />
           </div>
         </Link>
@@ -250,12 +290,22 @@ export function GuildIndexView({
                 <div style={{ marginBottom: "0.3rem" }}>
                   <CategoryTag slug={t.category} />
                 </div>
-                <h3
-                  className="font-display"
-                  style={{ fontSize: "1.45rem", lineHeight: 1.2, margin: 0, color: "var(--ink)" }}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: "0.6rem",
+                    flexWrap: "wrap",
+                  }}
                 >
-                  {t.title}
-                </h3>
+                  <h3
+                    className="font-display"
+                    style={{ fontSize: "1.45rem", lineHeight: 1.2, margin: 0, color: "var(--ink)" }}
+                  >
+                    {t.title}
+                  </h3>
+                  {isNew(t) && <NewTag />}
+                </div>
                 <MetaLine thread={t} names={names} badges={badges} adminEmail={adminEmail} hostEmail={hostEmail} />
               </Link>
             </li>

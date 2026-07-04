@@ -10,7 +10,7 @@ import {
   getTierBadge,
 } from "@/lib/members";
 import { getPinnedThread, listActiveThreads } from "@/lib/guild";
-import { markNavViewed } from "@/lib/nav-dots";
+import { getGuildLastViewed, markNavViewed } from "@/lib/nav-dots";
 import { GuildIndexView } from "@/components/guild/GuildIndexView";
 import type { GuildBadgeInfo } from "@/components/guild/GuildByline";
 
@@ -28,6 +28,12 @@ export default async function GuildPage() {
   if (!session) {
     redirect("/notes/sign-in?next=/guild");
   }
+
+  // Capture the prior visit stamp BEFORE marking viewed, so the per-thread
+  // NEW markers compare against the last time they were here, not now.
+  const guildLastViewed = await getGuildLastViewed(session.email).catch(
+    () => 0
+  );
 
   const [pinned, page] = await Promise.all([
     getPinnedThread(),
@@ -69,6 +75,7 @@ export default async function GuildPage() {
       badges={badges}
       adminEmail={adminEmail}
       hostEmail={hostEmail}
+      lastViewedAt={guildLastViewed}
     />
   );
 }

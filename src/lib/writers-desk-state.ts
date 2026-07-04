@@ -19,6 +19,11 @@ import {
 } from "./active-wall";
 import { getLastVisited } from "./desk-visits";
 import { getDeskPoolSignal, POOL_SEAT_FILL_PRICE_CENTS } from "./pool";
+import {
+  getEngagementSignal,
+  isNotificationsConfigured,
+  type EngagementSignal,
+} from "./notifications";
 import { getLatestReply, getPinnedThread, listActiveThreads } from "./guild";
 import {
   countRoomPresence,
@@ -48,6 +53,10 @@ export type DeskRoomsSignal = {
       title: string;
       replyCount: number;
       lastActivityAt: number;
+      /** Display name of whoever posted the latest activity (most recent
+          reply, or the thread author if none), so the byline agrees with
+          lastActivityAt. "Clay" for the author; null in dev fixtures. */
+      authorName: string | null;
     } | null;
     /** The most-recently-active member thread (pinned excluded), so the
         peek also shows the life happening in response. */
@@ -133,6 +142,9 @@ export type WritersDeskState = {
   firstRun: FirstRunState | null;
   /** Pool-ask band (cover a seat for a waiting reader), or null to hide. */
   poolAsk: DeskPoolAsk | null;
+  /** "For you" signal: unread replies/reactions/mentions directed at the
+      member. Null when there's nothing unread (block hides). */
+  personalSignal: EngagementSignal | null;
   isSignedIn: boolean;
   isAdmin: boolean;
 };
@@ -250,18 +262,33 @@ export async function getWritersDeskState(
     const latestReply = await getLatestReply(latestThread.id);
     if (latestReply) guildActivityEmail = latestReply.authorEmail;
   }
-  const guildProfiles = guildActivityEmail
-    ? await getProfilesByEmails([guildActivityEmail])
+  // Same rule for the pinned Question of the Week: attribute it to whoever
+  // posted the most recent reply (or the thread author when there are no
+  // replies), so its byline agrees with its lastActivityAt exactly like
+  // the "Active now" thread and the Lounge peek do.
+  let qotwActivityEmail = pinnedThread?.authorEmail ?? null;
+  if (pinnedThread && pinnedThread.replyCount > 0) {
+    const latestReply = await getLatestReply(pinnedThread.id);
+    if (latestReply) qotwActivityEmail = latestReply.authorEmail;
+  }
+  const guildEmailsToResolve = [guildActivityEmail, qotwActivityEmail].filter(
+    (e): e is string => !!e
+  );
+  const guildProfiles = guildEmailsToResolve.length
+    ? await getProfilesByEmails(guildEmailsToResolve)
     : null;
   // The admin/author has no member profile, so mirror the Guild byline's
   // convention (email === admin → "Clay"); members resolve to their set
   // display name. Without this, a thread whose latest reply is Clay's
   // would show no name at all.
-  const guildLatestName = guildActivityEmail
-    ? isAdmin(guildActivityEmail)
-      ? "Clay"
-      : guildProfiles?.get(guildActivityEmail)?.displayName ?? null
-    : null;
+  const resolveGuildName = (email: string | null): string | null =>
+    email
+      ? isAdmin(email)
+        ? "Clay"
+        : guildProfiles?.get(email)?.displayName ?? null
+      : null;
+  const guildLatestName = resolveGuildName(guildActivityEmail);
+  const qotwActivityName = resolveGuildName(qotwActivityEmail);
 
   // First-run onboarding inputs (members only; admin + anon skip).
   const isMember = !!viewerEmail && !viewerIsAdmin;
@@ -329,6 +356,15 @@ export async function getWritersDeskState(
     }
   }
 
+  // "For you" signal: unread engagement (replies/reactions/mentions/coins
+  // directed at this member). Members only — admin has none; reader-mode
+  // preview injects a sample client-side.
+  let personalSignal: EngagementSignal | null = null;
+  if (isMember && isNotificationsConfigured()) {
+    const sig = await getEngagementSignal(viewerEmail!, 2);
+    if (sig.items.length > 0) personalSignal = sig;
+  }
+
   const rooms: DeskRoomsSignal = {
     guild: {
       questionOfWeek: pinnedThread
@@ -337,6 +373,7 @@ export async function getWritersDeskState(
             title: pinnedThread.title,
             replyCount: pinnedThread.replyCount,
             lastActivityAt: pinnedThread.lastActivityAt,
+            authorName: qotwActivityName,
           }
         : null,
       latest: latestThread
@@ -380,6 +417,7 @@ export async function getWritersDeskState(
     rooms,
     firstRun,
     poolAsk,
+    personalSignal,
     isSignedIn: !!viewerEmail,
     isAdmin: viewerIsAdmin,
   };

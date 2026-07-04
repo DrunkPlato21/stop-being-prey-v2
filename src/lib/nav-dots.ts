@@ -121,6 +121,15 @@ async function getNavViewed(
 }
 
 /**
+ * The member's last-visit stamp for the Guild index (epoch ms, 0 if
+ * never). Read BEFORE markNavViewed on the guild page so per-thread NEW
+ * markers can compare against the prior visit, not this one.
+ */
+export async function getGuildLastViewed(email: string): Promise<number> {
+  return getNavViewed(normEmail(email), "guild");
+}
+
+/**
  * Compute the dot state for the current member. Anonymous viewers and
  * missing-creds environments degrade to "no dots" so the nav still
  * renders cleanly.

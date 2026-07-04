@@ -327,6 +327,52 @@ export async function listForMember(
   return out;
 }
 
+// "Someone engaged with YOU" types — the personal signal the desk
+// surfaces. Excludes broadcasts (essay / voice_memo / case_published /
+// wall_opened, already shown elsewhere on the desk) and transactional
+// notices (payment_failed / founder_confirmed).
+const ENGAGEMENT_TYPES: ReadonlySet<NotificationType> = new Set([
+  "reaction",
+  "reply",
+  "comment_thread_reply",
+  "comment_mention",
+  "lounge_reply",
+  "lounge_reaction",
+  "lounge_mention",
+  "guild_reply",
+  "guild_reaction",
+  "coin_received",
+]);
+
+export type EngagementSignal = {
+  /** Newest unread engagement notifications, capped at `take`. */
+  items: Notification[];
+  /** Additional unread engagement notifications beyond `items`. */
+  moreCount: number;
+};
+
+/**
+ * The desk's "for you" signal: unread notifications where someone
+ * responded to the member (replies / reactions / mentions / coins).
+ * Returns the newest `take` plus a count of the rest, so the desk can
+ * show a line or two and a "+N more". Empty items = nothing to show.
+ */
+export async function getEngagementSignal(
+  email: string,
+  take = 2
+): Promise<EngagementSignal> {
+  // Pull a window and filter in memory: engagement is a subset and we
+  // only want unread, so one read resolves it even after a burst.
+  const recent = await listForMember(email, { limit: 40 });
+  const unreadEngagement = recent.filter(
+    (n) => !n.read && ENGAGEMENT_TYPES.has(n.type)
+  );
+  return {
+    items: unreadEngagement.slice(0, take),
+    moreCount: Math.max(0, unreadEngagement.length - take),
+  };
+}
+
 /**
  * Cheap unread count for the bell badge. Prunes first so stale
  * counters self-heal.
