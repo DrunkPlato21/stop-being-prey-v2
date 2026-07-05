@@ -144,6 +144,15 @@ export async function POST(request: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       const metadata = session.metadata ?? {};
 
+      // Origin guard. SBP and readsowell.com share one Stripe account, so
+      // this endpoint also receives readsowell's events. readsowell stamps
+      // `site: 'readsowell'`; reject anything marked as another site so a
+      // readsowell tip can never land in SBP's stores. Legacy SBP events
+      // (created before the marker shipped) have no `site` and pass through.
+      if (metadata.site && metadata.site !== "sbp") {
+        return new Response("ok", { status: 200 });
+      }
+
       if (
         typeof metadata.wall_slug === "string" &&
         metadata.wall_slug.length > 0

@@ -97,6 +97,9 @@ export async function POST(request: NextRequest) {
   // Booleans become "true"/"false" strings since Stripe metadata is
   // string-only.
   const metadata: Record<string, string> = {
+    // `site` scopes this event to SBP; the shared Stripe account delivers
+    // every event to both sites' webhooks, so each filters on this marker.
+    site: "sbp",
     wall_slug: wallSlug,
     note,
     anonymous: anonymous ? "true" : "false",

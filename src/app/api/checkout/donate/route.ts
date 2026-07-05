@@ -80,7 +80,10 @@ export async function POST(request: NextRequest) {
   if (donorMessage) descriptionParts.push(donorMessage.slice(0, 180));
   const description = descriptionParts.join(" · ");
 
-  const donorMetadata: Record<string, string> = {};
+  // `site` scopes this event to SBP. SBP and readsowell.com share one
+  // Stripe account, so both webhook endpoints receive every event. The
+  // marker lets each webhook ignore the other site's checkouts.
+  const donorMetadata: Record<string, string> = { site: "sbp" };
   if (donorName) donorMetadata.donor_name = donorName;
   if (donorMessage) donorMetadata.donor_message = donorMessage;
   if (displayPublicly) {
