@@ -13,6 +13,7 @@ import {
 } from "@/lib/members";
 import { derivePresenceState, getPresence } from "@/lib/desk";
 import { isFounderAccessValid } from "@/lib/founder-access";
+import { testimonialsFor } from "@/lib/testimonials";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -74,36 +75,10 @@ const BENEFITS: Benefit[] = [
   },
 ];
 
-type ReaderQuote = {
-  body: string;
-  attribution: string;
-};
-
 // Real reader testimonials surfaced between the feature beats and the
-// pricing block. Each is verbatim from the email/comment trail; do
-// not invent or paraphrase.
-const READER_QUOTES: ReaderQuote[] = [
-  {
-    body: "I am a grandmother, a mother, someone who has always been prey... You are the first writer that I have ever paid to listen to. The world I thought I knew has gone. I need to do something!!",
-    attribution: "Judy, New Zealand",
-  },
-  {
-    body: "My state legislature has been wrestling with a minimum wage law... Thank you for giving me the proper ways to confront the 'feelings' arguments. Amazingly, no push back when confronted with the value of their labor approach.",
-    attribution: "Don, founder",
-  },
-  {
-    body: "Ron Paul's former press secretary here. I am totally with you. You said very well what I have been struggling with since... 2018.",
-    attribution: "Rachel Mills",
-  },
-  {
-    body: "Every once in a blue moon a writer comes along and articulates so well, the thoughts that I already have but can't put into words myself. You are one of those writers.",
-    attribution: "Sean, founder",
-  },
-  {
-    body: "I never subscribe to things online. Something always stops me... what made me want to be a founder is Clay's earnestness in his quest.",
-    attribution: "Trish, founder",
-  },
-];
+// pricing block. The shared pool (with attribution rules) lives in
+// lib/testimonials.ts; this page shows every quote tagged "membership".
+const READER_QUOTES = testimonialsFor("membership");
 
 type FAQEntry = {
   q: string;

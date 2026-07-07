@@ -1,27 +1,28 @@
-import { getSubscriberCount } from "@/lib/kit";
+"use client";
 
-// Live active-subscriber count from Kit, cached ~1h in getSubscriberCount
-// so render traffic never hammers the API. Falls back to a recent static
-// floor when Kit is unreachable, so the line always renders a believable
-// number. Self-corrects after list purges/growth without a hand-edit.
+import { formatCount, useSiteStats } from "@/components/useSiteStats";
+
+// Live active-subscriber count, fetched client-side from /api/stats so
+// the number is identical on every page (see useSiteStats). Falls back
+// to a recent static floor when the endpoint is unreachable, so the
+// line always renders a believable number. While loading it renders a
+// non-breaking space in the same element so the layout never shifts.
 const FALLBACK_COUNT = 9000;
-
-function formatCount(n: number): string {
-  return n.toLocaleString("en-US");
-}
 
 type SubscriberCountProps = {
   className?: string;
 };
 
-export async function SubscriberCount({
-  className = "",
-}: SubscriberCountProps) {
-  const live = await getSubscriberCount();
-  const count = live ?? FALLBACK_COUNT;
+export function SubscriberCount({ className = "" }: SubscriberCountProps) {
+  const stats = useSiteStats();
+  let text = " ";
+  if (stats !== undefined) {
+    const count = stats?.readers ?? FALLBACK_COUNT;
+    text = `Join ${formatCount(count)} readers.`;
+  }
   return (
     <p className={`eyebrow ${className}`} aria-live="polite">
-      Join {formatCount(count)} readers.
+      {text}
     </p>
   );
 }

@@ -8,6 +8,7 @@ import {
   readingMinutes,
 } from "@/lib/articles";
 import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
+import { testimonialsFor } from "@/lib/testimonials";
 
 // Writing-forward homepage. The doctrine hooks; the writing is the
 // centerpiece (it's the product the free email delivers); the seven-rule
@@ -76,14 +77,23 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
       />
 
-      {/* === Masthead === A thin identity line, not a manifesto. The
-          wordmark lives in the global header; this just orients a stranger
-          on what the site is, then hands straight off to the writing. The
-          doctrine now has its own nav home (/rules), so the homepage no
-          longer has to carry it up top. PLACEHOLDER COPY: Clay to sharpen. */}
+      {/* === Masthead === The site thesis as the front door: the kill line
+          a stranger feels in one second, with the identity line as support.
+          The kill line moved up here from the Doctrine section, which now
+          leads with its own line ("Being right was never the contest"). */}
       <section className="border-b border-rule">
-        <div className="max-w-3xl mx-auto px-6 pt-12 md:pt-16 pb-10 md:pb-12 text-center">
-          <p className="font-serif italic text-ink-muted text-lg md:text-xl leading-relaxed fade-up stagger-1">
+        <div className="max-w-4xl mx-auto px-6 pt-16 md:pt-24 pb-12 text-center">
+          <h1
+            className="font-display text-ink leading-[1.0] tracking-tight mb-6 fade-up stagger-1"
+            style={{
+              fontSize: "clamp(2.75rem, 6vw, 5rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.03em",
+            }}
+          >
+            You keep losing fights you were right about.
+          </h1>
+          <p className="font-serif italic text-ink-muted text-lg md:text-xl max-w-xl mx-auto leading-relaxed fade-up stagger-2">
             Original writing on power, politics, and the apex class.
           </p>
         </div>
@@ -238,11 +248,10 @@ export default function Home() {
               letterSpacing: "-0.025em",
             }}
           >
-            You keep losing fights you were right about.
+            Being right was never the contest. Power was.
           </h2>
           <p className="deck text-center max-w-xl mx-auto mb-10">
-            Being right was never the contest. Power was. Seven rules for
-            everyone tired of being prey. All of them free.
+            Seven rules for everyone tired of being prey.
           </p>
           <ol className="flex flex-col">
             {RULE_NUMBERS.map((n, idx) => (
@@ -283,6 +292,34 @@ export default function Home() {
             <Link href="/rules" className="btn-primary">
               <span>Read the rules</span>
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* === Reader proof === A thin strip of real reader words directly
+          above the ask, so the praise lands at the moment of decision.
+          Quotes come from the shared pool in lib/testimonials.ts (tagged
+          "home"); attribution rules live there. */}
+      <section className="py-14 md:py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <p className="eyebrow mb-10 text-center">What readers say</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
+            {testimonialsFor("home").map((quote) => (
+              <figure key={quote.attribution} className="border-t border-rule pt-5">
+                <blockquote
+                  className="font-serif italic text-ink leading-relaxed mb-4"
+                  style={{ fontSize: "1.05rem" }}
+                >
+                  &ldquo;{quote.body}&rdquo;
+                </blockquote>
+                <figcaption
+                  className="font-serif text-ink-muted"
+                  style={{ fontSize: "0.92rem" }}
+                >
+                  {quote.attribution}
+                </figcaption>
+              </figure>
+            ))}
           </div>
         </div>
       </section>

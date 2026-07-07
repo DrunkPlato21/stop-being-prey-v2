@@ -142,6 +142,16 @@ export function Footer() {
                   </a>
                 </li>
                 <li>
+                  <a
+                    href="https://www.readsowell.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={navLinkClass}
+                  >
+                    ReadSowell
+                  </a>
+                </li>
+                <li>
                   <a href="/feed.xml" className={navLinkClass}>
                     RSS
                   </a>

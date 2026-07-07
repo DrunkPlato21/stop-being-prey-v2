@@ -22,7 +22,6 @@ import { FinisherAchievement } from "@/components/FinisherAchievement";
 import { ReadThisNext } from "@/components/ReadThisNext";
 import { splitForInlineCta, stripCtaMarker } from "@/lib/inline-cta";
 import { isPaidViewer } from "@/lib/viewer";
-import { CHARTER_CAP, getCharterClaimed } from "@/lib/members";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
 
@@ -144,18 +143,6 @@ export default async function ArticlePage({
   // time, comments, recirculation, tip) stays. Cheap: the page is already
   // dynamic via the layout's auth.
   const hideCaptures = await isPaidViewer();
-
-  // Live charter-seat count for the end-of-essay conversion block. Only read
-  // when we'll actually render captures (members skip it, saving the Redis
-  // hit). The founder tier is retired from the copy: the pitch now leads with
-  // charter seats remaining and the total already in the room, not a $8
-  // founder clock. No scarcity theater — the count is the real one, and it
-  // quietly drops to nothing once the charter cap fills.
-  let charterRemaining = 0;
-  if (!hideCaptures) {
-    const charterClaimed = await getCharterClaimed();
-    charterRemaining = Math.max(0, CHARTER_CAP - charterClaimed);
-  }
 
   // Inline mid-article email capture, on every article (essayStyle pieces
   // split at an Act heading; both halves keep the ea-essay class so the
@@ -458,7 +445,10 @@ export default async function ArticlePage({
             dangerouslySetInnerHTML={{ __html: article.closingCtaHtml }}
           />
         )}
-        <DualSubscribeBlock charterSeatsLeft={charterRemaining} />
+        {/* The paid column's charter-seat count now arrives client-side
+            from /api/stats (CharterSeatsInline), so it always matches the
+            live membership page even when this page serves from cache. */}
+        <DualSubscribeBlock showCharterSeats />
         {/* "The argument starts here" — pull engaged readers deeper into
             the series instead of bouncing (frontmatter `prequelSlug`). */}
         {article.prequelSlug && article.prequelLabel && (

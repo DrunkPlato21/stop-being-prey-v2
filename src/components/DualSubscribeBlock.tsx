@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EmailSignup } from "@/components/EmailSignup";
 import { SubscriberCount } from "@/components/SubscriberCount";
 import { MemberCount } from "@/components/MemberCount";
+import { CharterSeatsInline } from "@/components/CharterSeats";
 import type { TrackSource } from "@/lib/analytics";
 
 // Site-wide conversion surface. Replaces the older email-only
@@ -31,15 +32,17 @@ export function DualSubscribeBlock({
   className = "",
   source = "dual",
   slug,
-  charterSeatsLeft,
+  showCharterSeats = false,
 }: {
   className?: string;
   source?: TrackSource;
   slug?: string;
-  // When set and > 0, the paid column names the live charter scarcity (the
-  // founder tier is retired). Omitted on call sites that don't pass a count
-  // (about / founding pages), which keep the plain room-total line.
-  charterSeatsLeft?: number;
+  // When true, the paid column names the live charter scarcity (the
+  // founder tier is retired). The count itself comes client-side from
+  // /api/stats via CharterSeatsInline, so it can never go stale with the
+  // page. Off on call sites that never showed it (about / founding
+  // pages), which keep the plain room-total line.
+  showCharterSeats?: boolean;
 }) {
   return (
     <div
@@ -69,14 +72,7 @@ export function DualSubscribeBlock({
         >
           The room behind the work, where I actually talk back and the
           book gets built in the open.
-          {charterSeatsLeft && charterSeatsLeft > 0 ? (
-            <>
-              {" "}
-              {charterSeatsLeft} charter seat
-              {charterSeatsLeft === 1 ? "" : "s"} left at $13/mo, locked for
-              life.
-            </>
-          ) : null}
+          {showCharterSeats && <CharterSeatsInline />}
         </p>
         <MemberCount className="mb-3" />
         <div>
