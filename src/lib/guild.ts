@@ -100,6 +100,13 @@ export type GuildThread = {
   // Bumped to the newest reply's createdAt so the active index surfaces
   // threads with live conversation. Equals createdAt for a fresh thread.
   lastActivityAt: number;
+  // The newest live reply's id and author, denormalized on every reply
+  // (and recomputed on delete/restore) so the index can attribute "last
+  // reply from <name>" and deep-link to it without fetching the reply set.
+  // Both absent on a thread with no replies and on legacy threads written
+  // before this was tracked — the index falls back to the plain byline.
+  lastReplyId?: string | null;
+  lastReplyAuthorEmail?: string | null;
   // Count of non-deleted replies. Maintained on create/delete so the
   // index can show "N replies" without fetching every reply.
   replyCount: number;
@@ -462,9 +469,12 @@ export async function createReply(args: {
   });
 
   // Bump the thread's activity + reply count and re-score the index so
-  // the thread floats to the top of the active list.
+  // the thread floats to the top of the active list. Denormalize the new
+  // reply as the thread's "last reply" so the index can attribute it.
   thread.replyCount += 1;
   thread.lastActivityAt = now;
+  thread.lastReplyId = reply.id;
+  thread.lastReplyAuthorEmail = reply.authorEmail;
   await client.set(`${THREAD_PREFIX}${thread.id}`, JSON.stringify(thread));
   await client.zadd(THREADS_INDEX, { score: now, member: thread.id });
 
@@ -639,6 +649,21 @@ export async function softDeleteReply(
     if (thread) {
       if (thread.replyCount > 0) thread.replyCount -= 1;
       if (thread.pinnedReplyId === id) thread.pinnedReplyId = null;
+      // If we just removed the thread's newest reply, roll the denormalized
+      // "last reply" (and the activity time + index score) back to the next
+      // live reply, so the index never attributes a tombstone or shows a
+      // time that no longer has a post behind it. reply.deleted is already
+      // persisted above, so getLatestReply skips it.
+      if (thread.lastReplyId === id) {
+        const latest = await getLatestReply(thread.id);
+        thread.lastReplyId = latest ? latest.id : null;
+        thread.lastReplyAuthorEmail = latest ? latest.authorEmail : null;
+        thread.lastActivityAt = latest ? latest.createdAt : thread.createdAt;
+        await client.zadd(THREADS_INDEX, {
+          score: thread.lastActivityAt,
+          member: thread.id,
+        });
+      }
       await client.set(
         `${THREAD_PREFIX}${thread.id}`,
         JSON.stringify(thread)
@@ -686,6 +711,20 @@ export async function restoreReply(id: string): Promise<EditResult> {
     const thread = await getThread(reply.threadId);
     if (thread) {
       thread.replyCount += 1;
+      // The restored reply may once again be the newest live one — recompute
+      // the denormalized "last reply", activity time, and index score from
+      // the current live tail so the index reflects it. reply.deleted is
+      // already cleared above, so getLatestReply now considers it.
+      const latest = await getLatestReply(thread.id);
+      if (latest) {
+        thread.lastReplyId = latest.id;
+        thread.lastReplyAuthorEmail = latest.authorEmail;
+        thread.lastActivityAt = latest.createdAt;
+        await client.zadd(THREADS_INDEX, {
+          score: thread.lastActivityAt,
+          member: thread.id,
+        });
+      }
       await client.set(`${THREAD_PREFIX}${thread.id}`, JSON.stringify(thread));
     }
   }

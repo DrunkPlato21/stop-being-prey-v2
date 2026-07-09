@@ -97,6 +97,71 @@ function ImageMark() {
   );
 }
 
+// The freshest-voice cue: "Last · <name> · <time>", a deep link to the
+// newest reply's anchor on the thread page (which auto-scrolls to it). This
+// is what resolves the old byline/time mismatch — the starter's name no
+// longer carries a timestamp it didn't earn; the time now sits with the
+// person who actually posted last. Clay speaking last gets the olive
+// treatment, the one scent worth surfacing. No badge here (one per row).
+function LastReplyLink({
+  thread,
+  names,
+  adminEmail,
+}: {
+  thread: GuildThread;
+  names: Record<string, string>;
+  adminEmail: string | null;
+}) {
+  const norm = (thread.lastReplyAuthorEmail ?? "").toLowerCase().trim();
+  const isClay = !!adminEmail && norm === adminEmail;
+  const name = isClay ? "Clay" : names[norm] || "A member";
+  return (
+    <Link
+      href={`/guild/${thread.id}#reply-${thread.lastReplyId}`}
+      className="no-underline"
+      style={{
+        position: "relative",
+        zIndex: 1,
+        display: "inline-flex",
+        alignItems: "baseline",
+        gap: "0.4rem",
+        color: "var(--ink-muted)",
+      }}
+    >
+      <span
+        className="font-display uppercase"
+        style={{
+          color: "var(--ink-faint)",
+          fontSize: "0.58rem",
+          fontWeight: 600,
+          letterSpacing: "0.16em",
+        }}
+      >
+        Last
+      </span>
+      {/* Name + time underlined together as one clickable token, so it
+          reads as a single link rather than a stray underlined word. */}
+      <span
+        style={{
+          textDecoration: "underline",
+          textDecorationColor: "var(--ink-soft)",
+          textUnderlineOffset: "2px",
+          textDecorationThickness: "1px",
+        }}
+      >
+        <span
+          style={{ fontWeight: 600, color: isClay ? "var(--eye-deep)" : "var(--ink)" }}
+        >
+          {name}
+        </span>{" "}
+        <span suppressHydrationWarning style={{ color: "var(--ink-faint)" }}>
+          {formatRelative(thread.lastActivityAt)}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
 function MetaLine({
   thread,
   names,
@@ -110,6 +175,14 @@ function MetaLine({
   adminEmail: string | null;
   hostEmail: string | null;
 }) {
+  const Dot = () => (
+    <span aria-hidden style={{ color: "var(--ink-faint)" }}>·</span>
+  );
+  // A thread has a "last reply" cue once it carries a denormalized newest
+  // reply (post-feature threads with at least one live reply). Legacy or
+  // reply-less threads fall back to the plain time + byline.
+  const hasLastReply =
+    thread.replyCount > 0 && !!thread.lastReplyId && !!thread.lastReplyAuthorEmail;
   return (
     <div
       style={{
@@ -129,21 +202,34 @@ function MetaLine({
         adminEmail={adminEmail}
         hostEmail={hostEmail}
       />
-      <span aria-hidden style={{ color: "var(--ink-faint)" }}>·</span>
-      <span suppressHydrationWarning style={{ color: "var(--ink-faint)" }}>
-        {formatRelative(thread.lastActivityAt)}
-      </span>
-      <span aria-hidden style={{ color: "var(--ink-faint)" }}>·</span>
+      {/* No replies yet: the starter IS the last voice, so the time stays on
+          the byline. With replies, the time moves to the last-reply cue so
+          it names its true author. */}
+      {!hasLastReply && (
+        <>
+          <Dot />
+          <span suppressHydrationWarning style={{ color: "var(--ink-faint)" }}>
+            {formatRelative(thread.lastActivityAt)}
+          </span>
+        </>
+      )}
+      <Dot />
       <ReplyCount n={thread.replyCount} />
+      {hasLastReply && (
+        <>
+          <Dot />
+          <LastReplyLink thread={thread} names={names} adminEmail={adminEmail} />
+        </>
+      )}
       {thread.media && (
         <>
-          <span aria-hidden style={{ color: "var(--ink-faint)" }}>·</span>
+          <Dot />
           <ImageMark />
         </>
       )}
       {thread.clayReadAt && (
         <>
-          <span aria-hidden style={{ color: "var(--ink-faint)" }}>·</span>
+          <Dot />
           <ClayReadSeal at={thread.clayReadAt} />
         </>
       )}
@@ -221,20 +307,23 @@ export function GuildIndexView({
         </p>
       </header>
 
-      {/* Pinned Question of the Week */}
+      {/* Pinned Question of the Week. The card is no longer one big anchor:
+          the title links to the thread top while the meta line carries its
+          own deep link to the newest reply, so the two never nest. */}
       {pinned && (
-        <Link
-          href={`/guild/${pinned.id}`}
-          className="no-underline"
-          style={{ display: "block", marginBottom: "2.5rem" }}
+        <div
+          style={{
+            borderLeft: "3px solid var(--eye-deep)",
+            background: "var(--surface)",
+            padding: "1.25rem 1.4rem",
+            borderRadius: 2,
+            marginBottom: "2.5rem",
+          }}
         >
-          <div
-            style={{
-              borderLeft: "3px solid var(--eye-deep)",
-              background: "var(--surface)",
-              padding: "1.25rem 1.4rem",
-              borderRadius: 2,
-            }}
+          <Link
+            href={`/guild/${pinned.id}`}
+            className="no-underline"
+            style={{ display: "block" }}
           >
             <p
               className="font-display uppercase"
@@ -264,9 +353,9 @@ export function GuildIndexView({
               </h2>
               {isNew(pinned) && <NewTag />}
             </div>
-            <MetaLine thread={pinned} names={names} badges={badges} adminEmail={adminEmail} hostEmail={hostEmail} />
-          </div>
-        </Link>
+          </Link>
+          <MetaLine thread={pinned} names={names} badges={badges} adminEmail={adminEmail} hostEmail={hostEmail} />
+        </div>
       )}
 
       {/* Compose */}
@@ -286,6 +375,9 @@ export function GuildIndexView({
               key={t.id}
               style={{ borderTop: "1px solid var(--rule)", padding: "1.4rem 0" }}
             >
+              {/* Title links to the thread top; the meta line's last-reply
+                  cue is its own deep link. Kept as siblings so no anchor
+                  nests inside another. */}
               <Link href={`/guild/${t.id}`} className="no-underline" style={{ display: "block" }}>
                 <div style={{ marginBottom: "0.3rem" }}>
                   <CategoryTag slug={t.category} />
@@ -306,8 +398,8 @@ export function GuildIndexView({
                   </h3>
                   {isNew(t) && <NewTag />}
                 </div>
-                <MetaLine thread={t} names={names} badges={badges} adminEmail={adminEmail} hostEmail={hostEmail} />
               </Link>
+              <MetaLine thread={t} names={names} badges={badges} adminEmail={adminEmail} hostEmail={hostEmail} />
             </li>
           ))}
         </ul>

@@ -185,6 +185,8 @@ async function main() {
 
   founding.replyCount = 3;
   founding.lastActivityAt = reply2.createdAt;
+  founding.lastReplyId = reply2.id;
+  founding.lastReplyAuthorEmail = reply2.authorEmail;
   founding.clayReadAt = h(1); // seal shows on the index + thread
   await writeThread(founding);
   await writeReply(reply1);
@@ -217,6 +219,8 @@ async function main() {
   });
   ruleII.replyCount = 2;
   ruleII.lastActivityAt = rIIr2.createdAt;
+  ruleII.lastReplyId = rIIr2.id;
+  ruleII.lastReplyAuthorEmail = rIIr2.authorEmail;
   ruleII.clayReadAt = h(3);
   await writeThread(ruleII);
   await writeReply(rIIr1);
@@ -241,6 +245,8 @@ async function main() {
   });
   field.replyCount = 1;
   field.lastActivityAt = fr1.createdAt;
+  field.lastReplyId = fr1.id;
+  field.lastReplyAuthorEmail = fr1.authorEmail;
   field.clayReadAt = h(6);
   await writeThread(field);
   await writeReply(fr1);
@@ -263,6 +269,8 @@ async function main() {
   });
   liveAsk.replyCount = 1;
   liveAsk.lastActivityAt = lar1.createdAt;
+  liveAsk.lastReplyId = lar1.id;
+  liveAsk.lastReplyAuthorEmail = lar1.authorEmail;
   await writeThread(liveAsk);
   await writeReply(lar1);
 

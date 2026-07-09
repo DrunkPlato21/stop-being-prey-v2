@@ -43,10 +43,17 @@ export default async function GuildPage() {
   ]);
 
   // Resolve author display names at read time (no denormalization on the
-  // records), so a rename anywhere is reflected here automatically.
+  // records), so a rename anywhere is reflected here automatically. Includes
+  // each thread's last-reply author so the "last reply from <name>" cue on
+  // the index resolves too. De-duped since starters and repliers overlap.
   const emails = [
-    ...(pinned ? [pinned.authorEmail] : []),
-    ...page.threads.map((t) => t.authorEmail),
+    ...new Set(
+      [
+        pinned?.authorEmail,
+        pinned?.lastReplyAuthorEmail,
+        ...page.threads.flatMap((t) => [t.authorEmail, t.lastReplyAuthorEmail]),
+      ].filter((e): e is string => !!e)
+    ),
   ];
   const [profiles, memberMap] = await Promise.all([
     getProfilesByEmails(emails),
