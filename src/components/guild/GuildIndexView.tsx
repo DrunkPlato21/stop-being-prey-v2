@@ -244,6 +244,7 @@ export function GuildIndexView({
   badges,
   adminEmail,
   hostEmail,
+  isHost,
   lastViewedAt,
 }: {
   pinned: GuildThread | null;
@@ -252,6 +253,9 @@ export function GuildIndexView({
   badges: Record<string, GuildBadgeInfo>;
   adminEmail: string | null;
   hostEmail: string | null;
+  /** True when the current viewer is the Guild Host — surfaces the quiet
+      link to her host tools (the weekly note). */
+  isHost: boolean;
   /** The member's prior Guild visit (epoch ms, 0 if never). Threads with
       later activity get a NEW marker. */
   lastViewedAt: number;
@@ -306,6 +310,29 @@ export function GuildIndexView({
           The Lounge is for talk. This is for the work.
         </p>
       </header>
+
+      {/* Host-only: a quiet doorway to the weekly-note tool. Invisible to
+          everyone else. */}
+      {isHost && (
+        <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+          <Link
+            href="/guild/host"
+            className="font-display uppercase tracking-[0.2em]"
+            style={{
+              display: "inline-block",
+              color: "var(--ember)",
+              border: "1px solid var(--ember)",
+              borderRadius: 2,
+              padding: "0.55rem 1.3rem",
+              fontSize: "0.66rem",
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            Host tools · Send the weekly note
+          </Link>
+        </div>
+      )}
 
       {/* Pinned Question of the Week. The card is no longer one big anchor:
           the title links to the thread top while the meta line carries its

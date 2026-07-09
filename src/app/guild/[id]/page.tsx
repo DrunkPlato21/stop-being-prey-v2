@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getProfilesByEmails, isAdmin } from "@/lib/comments";
+import { getProfilesByEmails, isAdmin, isGuildHost } from "@/lib/comments";
 import {
   getCharterSlot,
   getFounderSlot,
@@ -71,6 +71,7 @@ export default async function GuildThreadPage({
       hostEmail={hostEmail}
       viewerEmail={session.email}
       isAdmin={isAdmin(session.email)}
+      canPinThread={isAdmin(session.email) || isGuildHost(session.email)}
       reactions={reactions}
     />
   );
