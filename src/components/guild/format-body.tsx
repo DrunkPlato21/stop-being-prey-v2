@@ -12,7 +12,12 @@ import { Linkified } from "@/components/Linkified";
 
 // One token = a bold span OR an italic span. Bold is tried first so "**x**"
 // doesn't get mistaken for two italics. The inner text has no markers.
-const INLINE_RE = /(\*\*[^*\n]+?\*\*|\*[^*\n]+?\*)/g;
+// Bold may cross a soft line break: members use it as a two-line heading —
+// a label, then its gloss — so "**Rule II:\nI lay my traps.**" has to bold
+// across the newline. Italic stays single-line on purpose: a lone "*" is
+// easy to type by accident, and letting one span paragraphs would swallow
+// whole blocks between two unrelated stars.
+const INLINE_RE = /(\*\*[^*]+?\*\*|\*[^*\n]+?\*)/g;
 
 function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   const out: React.ReactNode[] = [];
