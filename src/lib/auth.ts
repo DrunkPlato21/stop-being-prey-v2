@@ -73,6 +73,50 @@ export async function verifySession(
   }
 }
 
+// Billing-recovery tokens live longer than a magic link (Stripe's dunning
+// retries span multiple days) and grant NO site access — only a Stripe
+// customer-portal session for one customer. See signBillingToken below.
+const BILLING_TOKEN_TTL_DAYS = 30;
+
+/**
+ * Sign a stateless billing-recovery token. Unlike a session, it grants no
+ * access to the site — it only lets the holder open the Stripe customer
+ * portal for this one customer (to fix a failed payment) via the public
+ * /billing/fix route. Reusable until expiry so a member can click the same
+ * email link across Stripe's multi-day retry window, and self-contained
+ * (no Redis) so it can't be locked out by a storage blip. Carries a
+ * distinct `purpose` so it can never be mistaken for a session JWT.
+ */
+export async function signBillingToken(customerId: string): Promise<string> {
+  return new SignJWT({ purpose: "billing-recovery", customerId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${BILLING_TOKEN_TTL_DAYS}d`)
+    .sign(authSecret());
+}
+
+/**
+ * Verify a billing-recovery token. Returns the customerId on success,
+ * null on failure (bad signature, expired, or wrong purpose).
+ */
+export async function verifyBillingToken(
+  token: string | undefined | null
+): Promise<string | null> {
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, authSecret());
+    if (
+      payload.purpose === "billing-recovery" &&
+      typeof payload.customerId === "string"
+    ) {
+      return payload.customerId;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export type MagicLinkRecord = {
   email: string;
   customerId: string;

@@ -557,13 +557,14 @@ export async function getCheckoutSessionInfo(sessionId: string): Promise<{
  * portal handles cancel, update card, billing history.
  */
 export async function createCustomerPortalSession(
-  customerId: string
+  customerId: string,
+  returnPath: string = "/membership/account"
 ): Promise<{ url: string } | { error: string }> {
   const stripe = client();
   if (!stripe) return { error: "stripe_not_configured" };
   const portal = await stripe.billingPortal.sessions.create({
     customer: customerId,
-    return_url: `${baseUrl()}/membership/account`,
+    return_url: `${baseUrl()}${returnPath}`,
   });
   return { url: portal.url };
 }

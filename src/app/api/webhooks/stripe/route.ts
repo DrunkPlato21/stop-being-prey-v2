@@ -52,6 +52,7 @@ import {
   sendPaymentFailedEmail,
 } from "@/lib/email";
 import { createNotification } from "@/lib/notifications";
+import { signBillingToken } from "@/lib/auth";
 import { asTrackChannel, asTrackSource, recordEvent } from "@/lib/analytics";
 import {
   getGift,
@@ -234,7 +235,15 @@ export async function POST(request: NextRequest) {
           const baseUrl = (
             process.env.NEXT_PUBLIC_BASE_URL ?? "https://stopbeingprey.com"
           ).replace(/\/$/, "");
-          const billingUrl = `${baseUrl}/notes/account`;
+          // No-login recovery link. Many members subscribe purely to
+          // support and never sign in — and a past_due member can't even
+          // request a fresh sign-in link — so the email must not point at
+          // the login-gated /notes/account. This signed token lets them
+          // open the Stripe card-update portal in one click, no sign-in.
+          const recoveryToken = await signBillingToken(customerId);
+          const billingUrl = `${baseUrl}/billing/fix?token=${encodeURIComponent(
+            recoveryToken
+          )}`;
           await createNotification({
             memberEmail: member.email,
             type: "payment_failed",
