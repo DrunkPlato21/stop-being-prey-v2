@@ -6,7 +6,7 @@ import {
   emailHasActiveMembership,
   ensureDevMemberRecord,
 } from "@/lib/membership";
-import { getMember } from "@/lib/members";
+import { getMember, type MemberSubscriptionStatus } from "@/lib/members";
 import { isAdmin } from "@/lib/comments";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
@@ -119,11 +119,28 @@ export async function POST(req: NextRequest) {
   // by-email search missed). Trust the record; fall back to the Stripe
   // lookup only when there's no record yet — a just-completed checkout
   // race, or the DEV_AUTO_GRANT path.
+  //
+  // Statuses that still entitle a member to sign in. active/trialing are
+  // the obvious case. past_due / unpaid / incomplete are members whose
+  // CARD JUST FAILED — the exact people who most need to get in (to fix
+  // the card), yet the old gate silently refused them: it fell through to
+  // the active-only Stripe check below, hit the silent 200, and NOTHING
+  // was sent (nothing in Resend, because sendMagicLink was never called).
+  // Two real members were trapped this way. A failed payment must never
+  // lock a member out of their own account. Fully-dead states (canceled /
+  // incomplete_expired / paused) still fall through to /reactivate.
+  const SIGN_IN_STATUSES: MemberSubscriptionStatus[] = [
+    "active",
+    "trialing",
+    "past_due",
+    "unpaid",
+    "incomplete",
+  ];
   let customerId: string | null = null;
   const member = await getMember(email).catch(() => null);
   if (
     member &&
-    (member.status === "active" || member.status === "trialing") &&
+    SIGN_IN_STATUSES.includes(member.status) &&
     member.stripeCustomerId
   ) {
     customerId = member.stripeCustomerId;
