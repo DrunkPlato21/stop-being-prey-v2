@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getProfilesByEmails, isGuildHost } from "@/lib/comments";
+import { getProfilesByEmails } from "@/lib/comments";
 import {
   getCharterSlot,
   getFounderSlot,
@@ -82,7 +82,6 @@ export default async function GuildPage() {
       badges={badges}
       adminEmail={adminEmail}
       hostEmail={hostEmail}
-      isHost={isGuildHost(session.email)}
       lastViewedAt={guildLastViewed}
     />
   );

@@ -718,7 +718,6 @@ export function ThreadView({
   hostEmail,
   viewerEmail,
   isAdmin,
-  canPinThread,
   reactions,
 }: {
   thread: GuildThread;
@@ -729,9 +728,6 @@ export function ThreadView({
   hostEmail: string | null;
   viewerEmail: string;
   isAdmin: boolean;
-  // Admin OR the Guild Host. Gates ONLY the "Pin as Question of the Week"
-  // button; every other admin control still checks isAdmin.
-  canPinThread: boolean;
   reactions: Record<string, ReactionSummary>;
 }) {
   const [editing, setEditing] = useState(false);
@@ -955,10 +951,8 @@ export function ThreadView({
               )}
             </div>
 
-            {canPinThread && (
+            {isAdmin && (
               <div style={adminRowStyle}>
-                {/* Pin is shared with the Guild Host; the rest of this row is
-                    admin-only (checked individually below). */}
                 <form action={pinThreadAction} style={{ display: "inline-flex" }}>
                   <input type="hidden" name="id" value={thread.id} />
                   <input type="hidden" name="pinned" value={thread.pinned ? "1" : "0"} />
@@ -966,7 +960,7 @@ export function ThreadView({
                     {thread.pinned ? "Unpin" : "Pin as Question of the Week"}
                   </button>
                 </form>
-                {isAdmin && !thread.clayReadAt && (
+                {!thread.clayReadAt && (
                   <form action={markThreadReadAction} style={{ display: "inline-flex" }}>
                     <input type="hidden" name="id" value={thread.id} />
                     <button type="submit" style={adminControlStyle}>
@@ -974,7 +968,7 @@ export function ThreadView({
                     </button>
                   </form>
                 )}
-                {isAdmin && mounted && !isOwner && (
+                {mounted && !isOwner && (
                   <DeleteControl
                     action={deleteThreadAction}
                     hidden={{ id: thread.id }}

@@ -205,20 +205,6 @@ export function isAdmin(email: string | null | undefined): boolean {
   return admin.toLowerCase().trim() === email.toLowerCase().trim();
 }
 
-/**
- * Whether the given email is the Guild Host (Trish) — a scoped helper role,
- * NOT full admin. Driven by GUILD_HOST_EMAIL (same env var that already
- * grants her the HOST byline chip). The host can pin threads (the Question
- * of the Week) and send the weekly members' note; she cannot delete, restore,
- * or mark-read. Those stay with isAdmin. Kept deliberately narrow.
- */
-export function isGuildHost(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const host = process.env.GUILD_HOST_EMAIL;
-  if (!host) return false;
-  return host.toLowerCase().trim() === email.toLowerCase().trim();
-}
-
 function normEmail(email: string): string {
   return email.toLowerCase().trim();
 }

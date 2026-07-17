@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getProfile, isAdmin, isGuildHost, notifyOnReply } from "@/lib/comments";
+import { getProfile, isAdmin, notifyOnReply } from "@/lib/comments";
 import {
   claimReplyEmailCooldown,
   createReply,
@@ -281,11 +281,7 @@ export async function restoreReplyAction(formData: FormData): Promise<void> {
 
 export async function pinThreadAction(formData: FormData): Promise<void> {
   const session = await currentSession();
-  // Thread-pin (the Question of the Week) is the one moderation power the
-  // Guild Host shares with the admin. Everything else in this file stays
-  // admin-only.
-  if (!session || !(isAdmin(session.email) || isGuildHost(session.email)))
-    return;
+  if (!session || !isAdmin(session.email)) return;
   const id = String(formData.get("id") ?? "");
   const pinned = formData.get("pinned") === "1";
   if (pinned) {

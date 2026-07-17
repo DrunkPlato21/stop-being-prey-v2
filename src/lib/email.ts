@@ -1507,7 +1507,9 @@ export async function sendPoolContributionThankYouEmail(args: {
       : `your ${gave} tipped the pot over. ${args.seatsMinted} whole seats just dropped into the pool for people who couldn't swing it, no names on any side.`
     : `your ${gave} is in the pot. it pools with other readers until it funds a whole seat, then that seat goes to someone who couldn't swing it.`;
   const tail = minted
-    ? `thank you for making the room bigger.`
+    ? `thank you for making the room bigger. the pot's already ${money(
+        remaining
+      )} from the next one.`
     : `you moved the bar. the pot's ${money(
         remaining
       )} from the next seat. thank you for the push.`;
@@ -1854,129 +1856,6 @@ export async function sendPaymentFailedEmail(args: {
     return { ok: true, id: result.data?.id ?? "" };
   } catch (err) {
     console.error("[email] Resend threw on payment-failed:", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "send_failed",
-    };
-  }
-}
-
-/* === Guild Host: the weekly members' note ==========================
-   Trish composes a plain-text note in the host panel. The real send goes to
-   paid members through Kit (see sendMemberBroadcast), which supplies the
-   template + unsubscribe footer. These Resend helpers cover the two side
-   channels: the test-send to herself (a content proof before she commits)
-   and the always-on copy to Clay. Both are wrapped in a simple branded shell
-   with a labelled banner so neither is mistaken for the member broadcast. */
-
-/**
- * Turn the host's plain-text note into safe HTML for email: blank lines
- * split paragraphs, single newlines become <br>. Everything is escaped
- * first, so a stray "<" or "&" can never break the markup or inject
- * anything. Shared by the Kit broadcast body and the Resend previews so all
- * three renderings match.
- */
-export function renderMemberNoteBodyHtml(text: string): string {
-  const paras = text
-    .replace(/\r\n/g, "\n")
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map(
-      (p) =>
-        `<p style="margin:0 0 18px 0;font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;">${escapeHtml(
-          p
-        ).replace(/\n/g, "<br />")}</p>`
-    )
-    .join("\n");
-  return paras || `<p style="margin:0 0 18px 0;"></p>`;
-}
-
-function renderMemberNoteShell(args: {
-  bodyHtml: string;
-  banner: string;
-}): string {
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Stop Being Prey</title>
-  </head>
-  <body style="margin:0;padding:0;background:#f5efe1;font-family:Georgia,'Times New Roman',serif;color:#1a1714;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5efe1;padding:48px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fbf6e9;border:1px solid #c9bfa3;padding:36px 32px;">
-            <tr>
-              <td style="text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.7rem;letter-spacing:0.32em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding-bottom:20px;">
-                Stop Being Prey &middot; The Guild
-              </td>
-            </tr>
-            <tr>
-              <td style="background:#efe6cf;border:1px solid #d8cba6;padding:12px 16px;font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#6b5f2e;font-style:italic;margin-bottom:8px;">
-                ${escapeHtml(args.banner)}
-              </td>
-            </tr>
-            <tr>
-              <td style="padding-top:24px;">
-                ${args.bodyHtml}
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
-}
-
-/**
- * Send one of the Resend side-channel copies of the host note (the
- * test-to-self, or the copy-to-Clay). Same shell, different banner and
- * recipient. Soft-fails when Resend isn't configured, like every other
- * sender here.
- */
-export async function sendMemberNotePreview(args: {
-  to: string;
-  subject: string;
-  bodyHtml: string;
-  banner: string;
-  logTag: string;
-}): Promise<SendResult> {
-  const resend = client();
-  if (!resend) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(
-        `[email] RESEND_API_KEY not set, ${args.logTag} skipped. To: ${args.to}`
-      );
-    }
-    return { ok: false, error: "email_not_configured" };
-  }
-
-  const html = renderMemberNoteShell({
-    bodyHtml: args.bodyHtml,
-    banner: args.banner,
-  });
-
-  try {
-    const result = await resend.emails.send({
-      from: FROM_ADDRESS,
-      to: args.to,
-      subject: args.subject,
-      html,
-      replyTo: REPLY_TO,
-    });
-    if (result.error) {
-      console.error(`[email] Resend rejected ${args.logTag}:`, {
-        to: args.to,
-        error: result.error,
-      });
-      return { ok: false, error: result.error.message };
-    }
-    return { ok: true, id: result.data?.id ?? "" };
-  } catch (err) {
-    console.error(`[email] Resend threw on ${args.logTag}:`, err);
     return {
       ok: false,
       error: err instanceof Error ? err.message : "send_failed",
