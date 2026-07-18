@@ -2473,6 +2473,8 @@ function PostCard(props: CardProps) {
               letterSpacing: "-0.005em",
               color: byAuthor ? "var(--eye-deep)" : "var(--ink)",
               maxWidth: "100%",
+              minWidth: 0,
+              overflowWrap: "anywhere",
             }}
           >
             {byAuthor ? "Clay" : post.firstName}
@@ -2922,6 +2924,8 @@ function ReplyRow({
               letterSpacing: "-0.005em",
               color: byAuthor ? "var(--eye-deep)" : "var(--ink)",
               maxWidth: "100%",
+              minWidth: 0,
+              overflowWrap: "anywhere",
             }}
           >
             {byAuthor ? "Clay" : reply.firstName}

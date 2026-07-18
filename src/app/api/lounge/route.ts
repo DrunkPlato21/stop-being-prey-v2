@@ -38,13 +38,10 @@ import { markOnboardingStep } from "@/lib/onboarding";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function firstWord(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  const space = trimmed.search(/\s/);
-  return space === -1 ? trimmed : trimmed.slice(0, space);
-}
-
+// The Lounge shows the member's chosen display name in full, same as the
+// Guild, comments, and presence line. (`firstName` on a post is a legacy
+// field name — it now carries the whole display name, not just the first
+// word.) createPost/createReply cap the stored value at 30 chars.
 async function resolveIdentity(email: string): Promise<{
   firstName: string;
   isFounder: boolean;
@@ -56,7 +53,7 @@ async function resolveIdentity(email: string): Promise<{
     const profile = await getProfile(email).catch(() => null);
     const displayName = profile?.displayName?.trim() || fallback;
     return {
-      firstName: firstWord(displayName) || fallback,
+      firstName: displayName,
       isFounder: false,
       isAdmin: true,
     };
@@ -67,7 +64,7 @@ async function resolveIdentity(email: string): Promise<{
   ]);
   const displayName = profile?.displayName?.trim() || fallback;
   return {
-    firstName: firstWord(displayName) || fallback,
+    firstName: displayName,
     isFounder: member?.tier === "founder" && typeof member.founderSlot === "number",
     isAdmin: false,
   };
