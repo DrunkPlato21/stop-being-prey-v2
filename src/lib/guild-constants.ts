@@ -13,6 +13,38 @@ export const MAX_REPLY = 15000;
 export const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 // --------------------------------------------------------------------
+// Images
+// --------------------------------------------------------------------
+
+// One attached image. Lives in our own Vercel Blob store; the client
+// downscales + re-encodes to WebP before upload (same pipeline as the
+// Lounge). Defined here (no server deps) so client composers and the
+// renderer share the type without pulling the Redis-backed guild.ts in.
+export type GuildImageMedia = {
+  type: "image";
+  url: string;
+  width: number;
+  height: number;
+};
+
+// A thread or reply may carry up to this many images. Higher and the
+// grid stops reading as a considered post and starts reading as a dump.
+export const MAX_IMAGES = 4;
+
+// Collapse the two storage shapes to one array. New posts write the
+// `mediaList` array; posts written before multi-image wrote a single
+// `media`. Everything downstream (render, index mark, empty-checks) reads
+// through this so legacy single-image posts keep working with no
+// migration. Prefers the array when present, else lifts the lone image.
+export function postImages(x: {
+  media?: GuildImageMedia | null;
+  mediaList?: GuildImageMedia[] | null;
+}): GuildImageMedia[] {
+  if (x.mediaList && x.mediaList.length) return x.mediaList;
+  return x.media ? [x.media] : [];
+}
+
+// --------------------------------------------------------------------
 // Categories
 // --------------------------------------------------------------------
 

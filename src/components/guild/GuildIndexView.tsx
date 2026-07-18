@@ -5,7 +5,7 @@ import { ClayReadSeal } from "./ClayReadSeal";
 import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { GuildCrest } from "./GuildCrest";
 import { formatRelative } from "./guild-format";
-import { guildCategoryLabel } from "@/lib/guild-constants";
+import { guildCategoryLabel, postImages } from "@/lib/guild-constants";
 
 // Small uppercase category tag. Reuses the eyebrow vocabulary so it reads
 // as a kicker above the thread title, not a loud badge.
@@ -221,7 +221,7 @@ function MetaLine({
           <LastReplyLink thread={thread} names={names} adminEmail={adminEmail} />
         </>
       )}
-      {thread.media && (
+      {postImages(thread).length > 0 && (
         <>
           <Dot />
           <ImageMark />

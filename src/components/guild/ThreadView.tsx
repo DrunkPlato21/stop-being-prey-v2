@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { GuildReply, GuildThread, ReactionSummary } from "@/lib/guild";
-import { EDIT_WINDOW_MS, MAX_BODY, MAX_REPLY, MAX_TITLE } from "@/lib/guild-constants";
+import { EDIT_WINDOW_MS, MAX_BODY, MAX_REPLY, MAX_TITLE, postImages } from "@/lib/guild-constants";
 import {
   deleteReplyAction,
   deleteThreadAction,
@@ -22,7 +22,7 @@ import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { authorName, formatRelative } from "./guild-format";
 import { formatGuildBody } from "@/components/guild/format-body";
 import { FormatToolbar } from "./FormatToolbar";
-import { GuildImage } from "./GuildImage";
+import { GuildGallery } from "./GuildGallery";
 import { GuildImagePicker } from "./GuildImagePicker";
 import { GuildReactions } from "./GuildReactions";
 import { useAutoGrow } from "./useAutoGrow";
@@ -581,7 +581,7 @@ function ReplyNode({
         ) : (
           <>
             <Body text={reply.body} />
-            {reply.media && <GuildImage media={reply.media} />}
+            <GuildGallery images={postImages(reply)} />
           </>
         )}
 
@@ -892,7 +892,7 @@ export function ThreadView({
               {thread.clayReadAt && <ClayReadSeal at={thread.clayReadAt} />}
             </div>
             <Body text={thread.body} />
-            {thread.media && <GuildImage media={thread.media} />}
+            <GuildGallery images={postImages(thread)} />
           </>
         )}
 

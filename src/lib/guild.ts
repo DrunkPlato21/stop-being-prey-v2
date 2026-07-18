@@ -5,9 +5,12 @@ import {
   EDIT_WINDOW_MS,
   isGuildCategory,
   MAX_BODY,
+  MAX_IMAGES,
   MAX_REPLY,
   MAX_TITLE,
+  postImages,
   type GuildCategory,
+  type GuildImageMedia,
 } from "./guild-constants";
 // Reactions reuse the Lounge's exact set, emoji, and labels so the two
 // rooms are identical.
@@ -77,15 +80,10 @@ const REPLY_COOLDOWN_SECONDS = 15;
 // Types
 // --------------------------------------------------------------------
 
-// One optional image on a thread (replies stay text). Lives in our own
-// Vercel Blob store — the client downscales + re-encodes to WebP before
-// upload, same pipeline as the Lounge.
-export type GuildImageMedia = {
-  type: "image";
-  url: string;
-  width: number;
-  height: number;
-};
+// The image shape + the multi-image read helper live in guild-constants
+// (no server deps) so client composers/renderers share them. Re-exported
+// here for the many server-side consumers that import from this module.
+export { postImages, type GuildImageMedia };
 
 export type GuildThread = {
   id: string;
@@ -118,7 +116,11 @@ export type GuildThread = {
   // When Clay marked this thread read. null = unseen by the king.
   clayReadAt: number | null;
   deleted: boolean;
-  // Optional attached image. Absent/null on text-only and legacy threads.
+  // Attached images (up to MAX_IMAGES). New posts write this array. Read
+  // via postImages(), never these fields directly.
+  mediaList?: GuildImageMedia[] | null;
+  // Legacy single image, written before multi-image. Kept for read-through
+  // (postImages lifts it into an array); never written going forward.
   media?: GuildImageMedia | null;
 };
 
@@ -140,8 +142,9 @@ export type GuildReply = {
   editedAt: number | null;
   clayReadAt: number | null;
   deleted: boolean;
-  // Optional attached image, same as a thread. Absent/null on text-only
-  // replies and on every reply written before images were allowed here.
+  // Attached images (up to MAX_IMAGES), same as a thread. Read via
+  // postImages(); mediaList is the new array, media the legacy single.
+  mediaList?: GuildImageMedia[] | null;
   media?: GuildImageMedia | null;
 };
 
@@ -261,6 +264,21 @@ function validateThreadImage(raw: unknown): GuildImageMedia | null {
   return { type: "image", url, width: Math.round(w), height: Math.round(h) };
 }
 
+// Validate a whole attachment list: each item runs the single-image check,
+// invalid ones are dropped (never rejects the post), and the list is capped
+// at MAX_IMAGES. Tolerates a bare object (a legacy/direct single-image POST)
+// by treating it as a one-element list. Returns [] when there's nothing valid.
+function validateImages(raw: unknown): GuildImageMedia[] {
+  const items = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const out: GuildImageMedia[] = [];
+  for (const item of items) {
+    const v = validateThreadImage(item);
+    if (v) out.push(v);
+    if (out.length >= MAX_IMAGES) break;
+  }
+  return out;
+}
+
 export async function createThread(args: {
   authorEmail: string;
   title: string;
@@ -274,7 +292,7 @@ export async function createThread(args: {
   const title = args.title.trim().slice(0, MAX_TITLE);
   const body = args.body.trim().slice(0, MAX_BODY);
   if (!title || !body) return { ok: false, error: "invalid" };
-  const media = validateThreadImage(args.media);
+  const images = validateImages(args.media);
   // The composer forces a valid pick; a direct POST might not. Coerce
   // anything unrecognized to the default rather than reject.
   const category: GuildCategory = isGuildCategory(args.category)
@@ -299,7 +317,7 @@ export async function createThread(args: {
     pinned: false,
     clayReadAt: null,
     deleted: false,
-    media,
+    mediaList: images.length ? images : null,
   };
   await client.set(`${THREAD_PREFIX}${thread.id}`, JSON.stringify(thread));
   await client.zadd(THREADS_INDEX, { score: now, member: thread.id });
@@ -415,10 +433,10 @@ export async function createReply(args: {
   if (!client) return { ok: false, error: "storage_unavailable" };
 
   const body = args.body.trim().slice(0, MAX_REPLY);
-  // A reply may be text, an image, or both — but not empty. Same Blob-host
-  // re-validation the thread composer uses.
-  const media = validateThreadImage(args.media);
-  if (!body && !media) return { ok: false, error: "invalid" };
+  // A reply may be text, image(s), or both — but not empty. Same Blob-host
+  // re-validation the thread composer uses, per image.
+  const images = validateImages(args.media);
+  if (!body && images.length === 0) return { ok: false, error: "invalid" };
 
   const thread = await getThread(args.threadId);
   if (!thread || thread.deleted) return { ok: false, error: "thread_missing" };
@@ -460,7 +478,7 @@ export async function createReply(args: {
     editedAt: null,
     clayReadAt: null,
     deleted: false,
-    media,
+    mediaList: images.length ? images : null,
   };
   await client.set(`${REPLY_PREFIX}${reply.id}`, JSON.stringify(reply));
   await client.zadd(repliesIndexKey(args.threadId), {
@@ -589,7 +607,7 @@ export async function editReply(
   }
   const clean = body.trim().slice(0, MAX_REPLY);
   // An image-only reply may keep an empty body; a text reply may not go blank.
-  if (!clean && !reply.media) return { ok: false, error: "invalid" };
+  if (!clean && postImages(reply).length === 0) return { ok: false, error: "invalid" };
   reply.body = clean;
   reply.editedAt = Date.now();
   await client.set(`${REPLY_PREFIX}${id}`, JSON.stringify(reply));

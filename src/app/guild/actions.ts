@@ -44,6 +44,20 @@ async function currentSession() {
   return verifySession(cookieStore.get(SESSION_COOKIE)?.value);
 }
 
+// The composer serializes its attached-image list into one hidden "media"
+// field as a JSON array. Parse it back to an unknown the guild lib will
+// re-validate (host + dimensions + count) — a malformed value just posts
+// without images rather than erroring.
+function parseMediaField(formData: FormData): unknown {
+  const raw = formData.get("media");
+  if (typeof raw !== "string" || !raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
 function messageFor(error: string): string {
   switch (error) {
     case "rate_limited":
@@ -74,18 +88,11 @@ export async function postThreadAction(
   const body = String(formData.get("body") ?? "");
   const category = String(formData.get("category") ?? "");
 
-  // Optional attached image: the composer uploads it client-side and posts
-  // the resulting Blob URL + dimensions as hidden fields. createThread
-  // re-validates the URL is from our own Blob store.
-  const mediaUrl = String(formData.get("mediaUrl") ?? "");
-  const media = mediaUrl
-    ? {
-        type: "image",
-        url: mediaUrl,
-        width: Number(formData.get("mediaWidth") ?? 0),
-        height: Number(formData.get("mediaHeight") ?? 0),
-      }
-    : null;
+  // Optional attached images: the composer uploads them client-side and
+  // posts the resulting list (Blob URL + dimensions per image) as one JSON
+  // hidden field. createThread re-validates each URL is from our own Blob
+  // store and caps the count.
+  const media = parseMediaField(formData);
 
   const result = await createThread({
     authorEmail: session.email,
@@ -120,17 +127,9 @@ export async function postReplyAction(
   const body = String(formData.get("body") ?? "");
   if (!threadId) return { ok: false, error: "Missing thread." };
 
-  // Optional attached image, same hidden-field contract as postThreadAction.
-  // createReply re-validates the URL is from our own Blob store.
-  const mediaUrl = String(formData.get("mediaUrl") ?? "");
-  const media = mediaUrl
-    ? {
-        type: "image",
-        url: mediaUrl,
-        width: Number(formData.get("mediaWidth") ?? 0),
-        height: Number(formData.get("mediaHeight") ?? 0),
-      }
-    : null;
+  // Optional attached images, same hidden-field contract as postThreadAction.
+  // createReply re-validates each URL is from our own Blob store.
+  const media = parseMediaField(formData);
 
   const result = await createReply({
     authorEmail: session.email,
