@@ -96,6 +96,10 @@ type Props = {
   viewerEmail: string;
   lastVisitedAt: number | null;
   isAdmin: boolean;
+  /** False when the viewer has no display name yet — the post + reply
+      composers reveal an inline name field, required before posting (the
+      server gate enforces it too). Always true for the admin. */
+  viewerHasDisplayName: boolean;
   activeNow: ActiveNowSnapshot;
   /** "Who's in the room" indicator (count + names), or null when the
       room is below the admin-set floor and the line should hide.
@@ -225,13 +229,63 @@ function formatRelative(ms: number, now: number): string {
 }
 
 function rateLimitMessage(err: ApiError, kind: "post" | "reply"): string {
-  if (err.error !== "rate_limited") {
-    return err.error === "empty_body"
-      ? "Add something to post."
-      : "Couldn't send. Try again.";
+  if (err.error === "rate_limited") {
+    const s = err.secondsRemaining ?? 30;
+    return `Wait ${s} seconds before ${kind === "post" ? "posting" : "replying"} again.`;
   }
-  const s = err.secondsRemaining ?? 30;
-  return `Wait ${s} seconds before ${kind === "post" ? "posting" : "replying"} again.`;
+  switch (err.error) {
+    // Display-name gate (first post/reply from a member with no name yet).
+    case "display_name_required":
+      return "Pick a display name to post.";
+    case "invalid_display_name":
+      return "That display name isn't allowed.";
+    case "reserved":
+      return "That name is reserved. Try another.";
+    case "profanity":
+      return "That name isn't allowed. Try another.";
+    case "name_taken":
+      return "Someone's already using that name. Try another.";
+    case "empty_body":
+      return "Add something to post.";
+    default:
+      return "Couldn't send. Try again.";
+  }
+}
+
+// Inline display-name field shown in the post + reply composers to a
+// member who hasn't set a name yet. First post turns it into their profile
+// (see the gate in /api/lounge). Kept deliberately quiet so it reads as a
+// one-time setup line, not a wall.
+function LoungeNameField({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1 mb-2">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value.slice(0, 30))}
+        maxLength={30}
+        placeholder="Pick a display name (30 char max)"
+        disabled={disabled}
+        aria-label="Display name"
+        className="font-serif text-ink bg-paper border border-border px-4 py-2 outline-none focus:border-ink"
+        style={{ fontSize: "0.95rem" }}
+      />
+      <p
+        className="font-serif italic text-ink-faint"
+        style={{ fontSize: "0.76rem" }}
+      >
+        Set once. You can change it later from your account.
+      </p>
+    </div>
+  );
 }
 
 export function LoungeView(props: Props) {
@@ -253,6 +307,13 @@ export function LoungeView(props: Props) {
   const [composeBody, setComposeBody] = useState("");
   const [composing, setComposing] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
+  // First-post display-name gate. `needsName` starts true for a member with
+  // no name yet (admin is always named); the post + reply composers reveal
+  // an inline field, and the name rides the first post/reply to the server
+  // gate. Flipped false once any post or reply succeeds, so the field
+  // disappears everywhere without waiting for a reload.
+  const [needsName, setNeedsName] = useState(!props.viewerHasDisplayName);
+  const [nameDraft, setNameDraft] = useState("");
   // Attached image (one per post). pendingImage is the validated,
   // uploaded descriptor sent with the post; pendingPreview is a local
   // object URL for an instant thumbnail while/after it uploads.
@@ -741,13 +802,21 @@ export function LoungeView(props: Props) {
     e.preventDefault();
     const body = composeBody.trim();
     if ((!body && !pendingImage) || composing || uploadingImage) return;
+    if (needsName && !nameDraft.trim()) {
+      setComposeError("Pick a display name to post.");
+      return;
+    }
     setComposing(true);
     setComposeError(null);
     try {
       const res = await fetch("/api/lounge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body, media: pendingImage ?? undefined }),
+        body: JSON.stringify({
+          body,
+          media: pendingImage ?? undefined,
+          ...(needsName ? { displayName: nameDraft.trim() } : {}),
+        }),
       });
       const data: { ok?: boolean; post?: LoungePost } & ApiError = await res
         .json()
@@ -760,6 +829,11 @@ export function LoungeView(props: Props) {
       setReplies((prev) => ({ ...prev, [data.post!.id]: [] }));
       setReactions((prev) => ({ ...prev, [data.post!.id]: emptySnapshot() }));
       setComposeBody("");
+      // Name is set now — drop the field everywhere.
+      if (needsName) {
+        setNeedsName(false);
+        setNameDraft("");
+      }
       clearPendingImage();
     } catch (err) {
       setComposeError(err instanceof Error ? err.message : "send_failed");
@@ -771,13 +845,21 @@ export function LoungeView(props: Props) {
   async function submitReply(parentPostId: string) {
     const body = replyDraft.trim();
     if ((!body && !replyImage) || replying || replyUploadingImage) return;
+    if (needsName && !nameDraft.trim()) {
+      setReplyError("Pick a display name to post.");
+      return;
+    }
     setReplying(true);
     setReplyError(null);
     try {
       const res = await fetch(`/api/lounge/${parentPostId}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body, media: replyImage ?? undefined }),
+        body: JSON.stringify({
+          body,
+          media: replyImage ?? undefined,
+          ...(needsName ? { displayName: nameDraft.trim() } : {}),
+        }),
       });
       const data: { ok?: boolean; reply?: LoungeReply } & ApiError = await res
         .json()
@@ -785,6 +867,11 @@ export function LoungeView(props: Props) {
       if (!res.ok || !data.ok || !data.reply) {
         setReplyError(rateLimitMessage(data, "reply"));
         return;
+      }
+      // Name is set now — drop the field everywhere.
+      if (needsName) {
+        setNeedsName(false);
+        setNameDraft("");
       }
       const newReply = data.reply!;
       // Stamp so the poll's reply merge won't clobber this until the
@@ -1386,6 +1473,9 @@ export function LoungeView(props: Props) {
               replying={replying}
               replyError={replyError}
               replyImageCtl={replyImageCtl}
+              needsName={needsName}
+              nameDraft={nameDraft}
+              setNameDraft={setNameDraft}
               expandedReplies={expandedReplies}
               setExpandedReplies={setExpandedReplies}
               pickerOpenFor={pickerOpenFor}
@@ -1444,6 +1534,9 @@ export function LoungeView(props: Props) {
                 replying={replying}
                 replyError={replyError}
                 replyImageCtl={replyImageCtl}
+                needsName={needsName}
+                nameDraft={nameDraft}
+                setNameDraft={setNameDraft}
                 expandedReplies={expandedReplies}
                 setExpandedReplies={setExpandedReplies}
                 pickerOpenFor={pickerOpenFor}
@@ -1627,6 +1720,13 @@ export function LoungeView(props: Props) {
           onSubmit={submitPost}
           className="lounge-compose-dock"
         >
+          {needsName && (
+            <LoungeNameField
+              value={nameDraft}
+              onChange={setNameDraft}
+              disabled={composing}
+            />
+          )}
           <label className="block">
             <MentionAutoResizingTextarea
               value={composeBody}
@@ -2171,6 +2271,12 @@ type CardProps = {
   replying: boolean;
   replyError: string | null;
   replyImageCtl: ReplyImageCtl;
+  // First-post name gate, threaded from LoungeView so the reply composer
+  // can reveal the inline name field and share the single draft with the
+  // top-level post composer.
+  needsName: boolean;
+  nameDraft: string;
+  setNameDraft: (s: string) => void;
   expandedReplies: Set<string>;
   setExpandedReplies: (next: Set<string>) => void;
   pickerOpenFor: string | null;
@@ -2210,6 +2316,9 @@ function PostCard(props: CardProps) {
     replying,
     replyError,
     replyImageCtl,
+    needsName,
+    nameDraft,
+    setNameDraft,
     expandedReplies,
     setExpandedReplies,
     pickerOpenFor,
@@ -2267,11 +2376,20 @@ function PostCard(props: CardProps) {
   const replyCap = isAdmin ? MAX_BODY_ADMIN : MAX_BODY;
   const replyOver = isAdmin && replyDraft.length > MAX_BODY;
   const replyImageInputRef = useRef<HTMLInputElement | null>(null);
+  const replyNameMissing = needsName && !nameDraft.trim();
   const replyCanSend =
     (replyDraft.trim().length > 0 || replyImageCtl.hasImage) &&
-    !replyImageCtl.uploading;
+    !replyImageCtl.uploading &&
+    !replyNameMissing;
   const renderComposer = (replyingToName: string) => (
     <div id="lounge-active-reply" className="mt-4 pt-4 border-t border-rule">
+      {needsName && (
+        <LoungeNameField
+          value={nameDraft}
+          onChange={setNameDraft}
+          disabled={replying}
+        />
+      )}
       <MentionAutoResizingTextarea
         value={replyDraft}
         onValueChange={(v) => setReplyDraft(v.slice(0, replyCap))}

@@ -18,7 +18,14 @@ const INITIAL: GuildFormState = { ok: false };
 // one tap opens it. Low friction: a title, a body, post. On success the
 // action redirects into the new thread, so there's no success state to
 // handle here.
-export function NewThreadComposer() {
+export function NewThreadComposer({
+  // True when the viewer has no display name yet: reveal an inline name
+  // field (the server action requires it before the thread lands). Never
+  // set for the admin. See the first-post gate in guild/actions.ts.
+  needsDisplayName = false,
+}: {
+  needsDisplayName?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(
     postThreadAction,
@@ -26,9 +33,14 @@ export function NewThreadComposer() {
   );
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  // First-post display name. Only used (and only gates the button) when
+  // needsDisplayName; the input carries name="displayName" so it rides the
+  // form action straight to the gate.
+  const [displayName, setDisplayName] = useState("");
   // Required. Empty until the author picks, which gates the Post button.
   const [category, setCategory] = useState<GuildCategory | "">("");
   const [imageUploading, setImageUploading] = useState(false);
+  const nameMissing = needsDisplayName && !displayName.trim();
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(bodyRef, body);
 
@@ -109,6 +121,47 @@ export function NewThreadComposer() {
           : "Pick what kind of thread this is."}
       </p>
       <input type="hidden" name="category" value={category} />
+      {needsDisplayName && (
+        <div style={{ marginBottom: "1rem" }}>
+          <label
+            htmlFor="guild-thread-display-name"
+            className="eyebrow"
+            style={{ letterSpacing: "0.22em", fontSize: "0.62rem" }}
+          >
+            Display name
+          </label>
+          <input
+            id="guild-thread-display-name"
+            name="displayName"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value.slice(0, 30))}
+            maxLength={30}
+            placeholder="How you'll appear (30 char max)"
+            className="w-full"
+            style={{
+              background: "transparent",
+              border: "1px solid var(--rule)",
+              borderRadius: 2,
+              fontFamily: "var(--font-source-serif), Georgia, serif",
+              fontSize: "1rem",
+              color: "var(--ink)",
+              padding: "0.55rem 0.7rem",
+              marginTop: "0.4rem",
+              outline: "none",
+            }}
+          />
+          <p
+            style={{
+              margin: "0.4rem 0 0",
+              fontSize: "0.8rem",
+              fontStyle: "italic",
+              color: "var(--ink-faint)",
+            }}
+          >
+            Set once. You can change it later from your account.
+          </p>
+        </div>
+      )}
       <input
         name="title"
         value={title}
@@ -183,7 +236,8 @@ export function NewThreadComposer() {
             imageUploading ||
             !title.trim() ||
             !body.trim() ||
-            !category
+            !category ||
+            nameMissing
           }
           className="font-display uppercase tracking-[0.18em] transition-opacity"
           style={{
@@ -200,7 +254,8 @@ export function NewThreadComposer() {
               imageUploading ||
               !title.trim() ||
               !body.trim() ||
-              !category
+              !category ||
+              nameMissing
                 ? 0.5
                 : 1,
           }}

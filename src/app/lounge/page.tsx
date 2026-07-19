@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { isAdmin } from "@/lib/comments";
+import { getProfile, isAdmin } from "@/lib/comments";
 import {
   bumpActiveNow,
   countLoungeAuthors,
@@ -160,6 +160,15 @@ export default async function LoungePage() {
   const adminEmailNormalized =
     process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null;
 
+  // Does the viewer have a display name yet? The composer reveals an inline
+  // name field when not (and the server gate requires it). Admin is always
+  // treated as named — his posts render as "Clay".
+  const viewerProfile = adminUser
+    ? null
+    : await getProfile(session.email).catch(() => null);
+  const viewerHasDisplayName =
+    adminUser || !!viewerProfile?.displayName?.trim();
+
   // Bump last-viewed after the snapshot is built so the current
   // request's NEW indicators still reflect the prior visit.
   await setLastViewed(session.email).catch(() => null);
@@ -185,6 +194,7 @@ export default async function LoungePage() {
       initialWatchEnabled={watchEnabled}
       authorCount={authorCount}
       launchIso={MEMBER_AREA_LAUNCH_ISO}
+      viewerHasDisplayName={viewerHasDisplayName}
     />
   );
 }

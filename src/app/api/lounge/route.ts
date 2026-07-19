@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getProfile, isAdmin } from "@/lib/comments";
+import { ensureDisplayName, getProfile, isAdmin } from "@/lib/comments";
 import {
   getCharterSlot,
   getFounderSlot,
@@ -42,30 +42,44 @@ export const dynamic = "force-dynamic";
 // Guild, comments, and presence line. (`firstName` on a post is a legacy
 // field name — it now carries the whole display name, not just the first
 // word.) createPost/createReply cap the stored value at 30 chars.
-async function resolveIdentity(email: string): Promise<{
-  firstName: string;
-  isFounder: boolean;
-  isAdmin: boolean;
-}> {
+//
+// A member with no display name yet is gated through ensureDisplayName:
+// the composer sends a `displayName` and it becomes their profile before
+// the post lands. No profile + no submitted name → `display_name_required`
+// so the composer can reveal its name field. The admin (Clay) is exempt —
+// his posts render as "Clay" regardless — so he keeps the old fallback.
+type ResolvedIdentity =
+  | { ok: true; firstName: string; isFounder: boolean; isAdmin: boolean }
+  | {
+      ok: false;
+      error:
+        | "display_name_required"
+        | "invalid_display_name"
+        | "reserved"
+        | "profanity"
+        | "name_taken"
+        | "storage_unavailable";
+    };
+
+async function resolveIdentity(
+  email: string,
+  submittedName: string | null
+): Promise<ResolvedIdentity> {
   const adminUser = isAdmin(email);
-  const fallback = email.split("@")[0] || "Member";
   if (adminUser) {
     const profile = await getProfile(email).catch(() => null);
-    const displayName = profile?.displayName?.trim() || fallback;
-    return {
-      firstName: displayName,
-      isFounder: false,
-      isAdmin: true,
-    };
+    const displayName =
+      profile?.displayName?.trim() || email.split("@")[0] || "Member";
+    return { ok: true, firstName: displayName, isFounder: false, isAdmin: true };
   }
-  const [profile, member] = await Promise.all([
-    getProfile(email).catch(() => null),
-    getMember(email).catch(() => null),
-  ]);
-  const displayName = profile?.displayName?.trim() || fallback;
+  const named = await ensureDisplayName(email, submittedName);
+  if (!named.ok) return { ok: false, error: named.error };
+  const member = await getMember(email).catch(() => null);
   return {
-    firstName: displayName,
-    isFounder: member?.tier === "founder" && typeof member.founderSlot === "number",
+    ok: true,
+    firstName: named.displayName,
+    isFounder:
+      member?.tier === "founder" && typeof member.founderSlot === "number",
     isAdmin: false,
   };
 }
@@ -240,7 +254,23 @@ export async function POST(req: NextRequest) {
   // YouTube is re-derived from the body, never trusted from the client).
   const rawMedia = (body as { media?: unknown })?.media;
 
-  const identity = await resolveIdentity(session.email);
+  // First-timers send a display name alongside the body; the gate turns
+  // it into their profile. A missing/blocked name comes back as an error
+  // the composer maps to its inline name field.
+  const submittedName = (body as { displayName?: unknown })?.displayName;
+  const identity = await resolveIdentity(
+    session.email,
+    typeof submittedName === "string" ? submittedName : null
+  );
+  if (!identity.ok) {
+    const status =
+      identity.error === "name_taken"
+        ? 409
+        : identity.error === "storage_unavailable"
+          ? 503
+          : 400;
+    return Response.json({ error: identity.error }, { status });
+  }
   const result = await createPost({
     memberEmail: session.email,
     firstName: identity.firstName,

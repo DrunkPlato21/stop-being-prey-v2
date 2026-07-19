@@ -432,6 +432,35 @@ export async function setProfile(
   return { ok: true, profile };
 }
 
+export type EnsureDisplayNameResult =
+  | { ok: true; displayName: string }
+  | { ok: false; error: "display_name_required" | SetProfileError };
+
+/**
+ * Poster gate shared by the Lounge and the Guild. If the member already
+ * has a display name, returns it. If not, a submitted name is required
+ * and is persisted through setProfile (reserved/profanity/uniqueness
+ * checks apply) before the poster is let through. This is the same
+ * first-post gate /api/comments enforces — lifting it here means no
+ * member can post nameless on any surface, so nobody renders as the
+ * "A member" / email-local-part fallback anymore. Callers exempt the
+ * admin (Clay), whose posts render as "Clay" regardless of profile.
+ */
+export async function ensureDisplayName(
+  email: string,
+  submittedName: string | null | undefined
+): Promise<EnsureDisplayNameResult> {
+  const existing = await getProfile(email);
+  const current = existing?.displayName?.trim();
+  if (current) return { ok: true, displayName: current };
+  if (typeof submittedName !== "string" || submittedName.trim().length === 0) {
+    return { ok: false, error: "display_name_required" };
+  }
+  const result = await setProfile(email, submittedName);
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, displayName: result.profile.displayName };
+}
+
 /**
  * Update only the reply-notification preference. Creates a minimal
  * profile (empty displayName) if none exists yet — lets a member

@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getProfilesByEmails, isAdmin } from "@/lib/comments";
+import {
+  getProfile,
+  getProfilesByEmails,
+  isAdmin,
+} from "@/lib/comments";
 import {
   getCharterSlot,
   getFounderSlot,
@@ -61,6 +65,18 @@ export default async function GuildThreadPage({
   const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null;
   const hostEmail = process.env.GUILD_HOST_EMAIL?.toLowerCase().trim() ?? null;
 
+  // First-reply name gate: a member with no display name yet gets an inline
+  // name field in the reply composer (the server action requires it). Admin
+  // is exempt — Clay posts as "Clay". Reuse the batched profiles map when the
+  // viewer already appears in it (thread/reply author), else one small read.
+  const viewerHasName = isAdmin(session.email)
+    ? true
+    : !!(
+        profiles.get(session.email.toLowerCase().trim())?.displayName?.trim() ||
+        (await getProfile(session.email).catch(() => null))?.displayName?.trim()
+      );
+  const needsDisplayName = !viewerHasName;
+
   return (
     <ThreadView
       thread={thread}
@@ -72,6 +88,7 @@ export default async function GuildThreadPage({
       viewerEmail={session.email}
       isAdmin={isAdmin(session.email)}
       reactions={reactions}
+      needsDisplayName={needsDisplayName}
     />
   );
 }

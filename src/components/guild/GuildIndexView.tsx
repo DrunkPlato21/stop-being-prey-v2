@@ -245,6 +245,7 @@ export function GuildIndexView({
   adminEmail,
   hostEmail,
   lastViewedAt,
+  needsDisplayName,
 }: {
   pinned: GuildThread | null;
   threads: GuildThread[];
@@ -255,6 +256,9 @@ export function GuildIndexView({
   /** The member's prior Guild visit (epoch ms, 0 if never). Threads with
       later activity get a NEW marker. */
   lastViewedAt: number;
+  /** Viewer has no display name yet — the composer reveals an inline name
+      field, required before the thread posts. Never set for the admin. */
+  needsDisplayName: boolean;
 }) {
   // First-ever visitors (0) never see NEW, so the list doesn't flood.
   const isNew = (t: GuildThread) =>
@@ -360,7 +364,7 @@ export function GuildIndexView({
 
       {/* Compose */}
       <div style={{ marginBottom: "2.5rem" }}>
-        <NewThreadComposer />
+        <NewThreadComposer needsDisplayName={needsDisplayName} />
       </div>
 
       {/* The library */}

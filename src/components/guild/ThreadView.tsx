@@ -150,6 +150,7 @@ function ReplyComposer({
   onDone,
   compact,
   textareaRef,
+  needsDisplayName = false,
 }: {
   threadId: string;
   parentReplyId: string | null;
@@ -158,9 +159,16 @@ function ReplyComposer({
   compact?: boolean;
   // Optional external handle so the OP's "Reply" button can focus this box.
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
+  // Viewer has no display name yet — reveal an inline name field, required
+  // before the reply posts (the server action enforces it too). Never set
+  // for the admin.
+  needsDisplayName?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(postReplyAction, INITIAL);
   const [body, setBody] = useState("");
+  // First-post display name. Carries name="displayName" so it rides the
+  // form action to the gate; only gates the button when needsDisplayName.
+  const [displayName, setDisplayName] = useState("");
   // Image state. `hasImage` gates the send button (so an image-only reply
   // can post); `imgUploading` blocks send mid-upload; bumping `pickerKey`
   // on a successful post remounts the picker to clear its thumbnail.
@@ -171,7 +179,9 @@ function ReplyComposer({
   const bodyRef = textareaRef ?? internalRef;
   useAutoGrow(bodyRef, body);
 
-  const canSend = (body.trim().length > 0 || hasImage) && !imgUploading;
+  const nameMissing = needsDisplayName && !displayName.trim();
+  const canSend =
+    (body.trim().length > 0 || hasImage) && !imgUploading && !nameMissing;
 
   useEffect(() => {
     if (state.ok) {
@@ -188,6 +198,45 @@ function ReplyComposer({
       <input type="hidden" name="threadId" value={threadId} />
       {parentReplyId && (
         <input type="hidden" name="parentReplyId" value={parentReplyId} />
+      )}
+      {needsDisplayName && (
+        <div style={{ marginBottom: "0.7rem" }}>
+          <label
+            className="eyebrow"
+            style={{ letterSpacing: "0.22em", fontSize: "0.6rem" }}
+          >
+            Display name
+          </label>
+          <input
+            name="displayName"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value.slice(0, 30))}
+            maxLength={30}
+            placeholder="How you'll appear (30 char max)"
+            className="w-full"
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--rule)",
+              borderRadius: 2,
+              fontFamily: "var(--font-source-serif), Georgia, serif",
+              fontSize: "0.95rem",
+              color: "var(--ink)",
+              padding: "0.5rem 0.7rem",
+              marginTop: "0.35rem",
+              outline: "none",
+            }}
+          />
+          <p
+            style={{
+              margin: "0.35rem 0 0",
+              fontSize: "0.78rem",
+              fontStyle: "italic",
+              color: "var(--ink-faint)",
+            }}
+          >
+            Set once. You can change it later from your account.
+          </p>
+        </div>
       )}
       <FormatToolbar
         textareaRef={bodyRef}
@@ -440,6 +489,7 @@ function ReplyNode({
   replyTargets,
   isPinned,
   pinnedSlot,
+  needsDisplayName,
 }: {
   reply: GuildReply;
   childReplies?: GuildReply[];
@@ -460,6 +510,9 @@ function ReplyNode({
   // Rendered inside the pinned slot at the top (the slot supplies its own
   // frame, so we drop the normal separators + author tint here).
   pinnedSlot?: boolean;
+  // Viewer has no display name yet — the inline reply composer reveals a
+  // name field, required before the reply posts.
+  needsDisplayName: boolean;
 }) {
   const [replying, setReplying] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -680,6 +733,7 @@ function ReplyNode({
               placeholder={`Replying to ${replyToName}…`}
               onDone={() => setReplying(false)}
               compact
+              needsDisplayName={needsDisplayName}
             />
           </div>
         )}
@@ -700,6 +754,7 @@ function ReplyNode({
           mounted={mounted}
           reactions={reactions}
           replyTargets={replyTargets}
+          needsDisplayName={needsDisplayName}
           nested
         />
       ))}
@@ -719,6 +774,7 @@ export function ThreadView({
   viewerEmail,
   isAdmin,
   reactions,
+  needsDisplayName,
 }: {
   thread: GuildThread;
   replies: GuildReply[];
@@ -729,6 +785,10 @@ export function ThreadView({
   viewerEmail: string;
   isAdmin: boolean;
   reactions: Record<string, ReactionSummary>;
+  // Viewer has no display name yet — every reply composer in the thread
+  // reveals an inline name field, required before a reply posts. Never set
+  // for the admin.
+  needsDisplayName: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -1036,6 +1096,7 @@ export function ThreadView({
               mounted={mounted}
               reactions={reactions}
               replyTargets={replyTargets}
+              needsDisplayName={needsDisplayName}
               isPinned
               pinnedSlot
             />
@@ -1057,6 +1118,7 @@ export function ThreadView({
             mounted={mounted}
             reactions={reactions}
             replyTargets={replyTargets}
+            needsDisplayName={needsDisplayName}
           />
         ))}
 
@@ -1073,6 +1135,7 @@ export function ThreadView({
                 placeholder="Add a new point to this thread…"
                 textareaRef={composerRef}
                 onDone={() => setComposerOpen(false)}
+                needsDisplayName={needsDisplayName}
               />
             ) : (
               <button

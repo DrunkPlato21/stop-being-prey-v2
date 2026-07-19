@@ -169,6 +169,7 @@ export default async function AdminLoungePage() {
         viewerEmail={session.email}
         lastVisitedAt={lastVisitedAt}
         isAdmin={true}
+        viewerHasDisplayName={true}
         activeNow={activeNow}
         authorCount={authorCount}
         launchIso={MEMBER_AREA_LAUNCH_ISO}

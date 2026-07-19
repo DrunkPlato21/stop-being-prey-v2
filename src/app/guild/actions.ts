@@ -4,7 +4,12 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getProfile, isAdmin, notifyOnReply } from "@/lib/comments";
+import {
+  ensureDisplayName,
+  getProfile,
+  isAdmin,
+  notifyOnReply,
+} from "@/lib/comments";
 import {
   claimReplyEmailCooldown,
   createReply,
@@ -70,9 +75,35 @@ function messageFor(error: string): string {
       return "That thread is no longer here.";
     case "storage_unavailable":
       return "The Guild is briefly unavailable. Try again.";
+    // Display-name gate (first post/reply from a member with no name yet).
+    case "display_name_required":
+      return "Pick a display name to post.";
+    case "invalid_display_name":
+      return "That display name isn't allowed.";
+    case "reserved":
+      return "That name is reserved. Try another.";
+    case "profanity":
+      return "That name isn't allowed. Try another.";
+    case "name_taken":
+      return "Someone's already using that name. Try another.";
     default:
       return "Something went wrong. Try again.";
   }
+}
+
+// Gate a would-be Guild poster to a real display name. Admin (Clay) is
+// exempt — his posts render as "Clay". Returns an inline error message on
+// failure, or null to proceed. The submitted name (the composer's inline
+// field) becomes the member's profile via ensureDisplayName.
+async function guildNameGate(
+  email: string,
+  formData: FormData
+): Promise<string | null> {
+  if (isAdmin(email)) return null;
+  const submittedName = String(formData.get("displayName") ?? "");
+  const named = await ensureDisplayName(email, submittedName);
+  if (named.ok) return null;
+  return messageFor(named.error);
 }
 
 // --- Compose: thread -------------------------------------------------
@@ -83,6 +114,9 @@ export async function postThreadAction(
 ): Promise<GuildFormState> {
   const session = await currentSession();
   if (!session) return { ok: false, error: "Sign in to post." };
+
+  const nameError = await guildNameGate(session.email, formData);
+  if (nameError) return { ok: false, error: nameError };
 
   const title = String(formData.get("title") ?? "");
   const body = String(formData.get("body") ?? "");
@@ -119,6 +153,9 @@ export async function postReplyAction(
 ): Promise<GuildFormState> {
   const session = await currentSession();
   if (!session) return { ok: false, error: "Sign in to reply." };
+
+  const nameError = await guildNameGate(session.email, formData);
+  if (nameError) return { ok: false, error: nameError };
 
   const threadId = String(formData.get("threadId") ?? "");
   const parentReplyId = formData.get("parentReplyId")

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getProfilesByEmails } from "@/lib/comments";
+import { getProfile, getProfilesByEmails, isAdmin } from "@/lib/comments";
 import {
   getCharterSlot,
   getFounderSlot,
@@ -74,6 +74,15 @@ export default async function GuildPage() {
   const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null;
   const hostEmail = process.env.GUILD_HOST_EMAIL?.toLowerCase().trim() ?? null;
 
+  // First-post name gate: a member with no display name yet gets an inline
+  // name field in the composer (the server action requires it). Admin is
+  // exempt — Clay posts as "Clay".
+  const viewerProfile = isAdmin(session.email)
+    ? null
+    : await getProfile(session.email).catch(() => null);
+  const needsDisplayName =
+    !isAdmin(session.email) && !viewerProfile?.displayName?.trim();
+
   return (
     <GuildIndexView
       pinned={pinned}
@@ -83,6 +92,7 @@ export default async function GuildPage() {
       adminEmail={adminEmail}
       hostEmail={hostEmail}
       lastViewedAt={guildLastViewed}
+      needsDisplayName={needsDisplayName}
     />
   );
 }

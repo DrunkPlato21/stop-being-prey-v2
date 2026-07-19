@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getProfile, isAdmin } from "@/lib/comments";
+import { ensureDisplayName, getProfile, isAdmin } from "@/lib/comments";
 import { getMember } from "@/lib/members";
 import {
   createReply,
@@ -11,13 +11,6 @@ import { createNotification } from "@/lib/notifications";
 import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
 
 export const runtime = "nodejs";
-
-function firstWord(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  const space = trimmed.search(/\s/);
-  return space === -1 ? trimmed : trimmed.slice(0, space);
-}
 
 export async function POST(
   req: NextRequest,
@@ -48,14 +41,41 @@ export async function POST(
 
   const adminUser = isAdmin(session.email);
   const fallback = session.email.split("@")[0] || "Member";
-  const [profile, member] = await Promise.all([
-    getProfile(session.email).catch(() => null),
-    adminUser
-      ? Promise.resolve(null)
-      : getMember(session.email).catch(() => null),
-  ]);
-  const displayName = profile?.displayName?.trim() || fallback;
-  const firstName = firstWord(displayName) || fallback;
+
+  // Same display-name gate as the top-level post route: a member with no
+  // name yet must send one (the composer's inline field) and it becomes
+  // their profile before the reply lands. Clay is exempt — his replies
+  // render as "Clay" regardless — so he keeps the local-part fallback.
+  let displayName: string;
+  if (adminUser) {
+    const profile = await getProfile(session.email).catch(() => null);
+    displayName = profile?.displayName?.trim() || fallback;
+  } else {
+    const submittedName = (body as { displayName?: unknown })?.displayName;
+    const named = await ensureDisplayName(
+      session.email,
+      typeof submittedName === "string" ? submittedName : null
+    );
+    if (!named.ok) {
+      const status =
+        named.error === "name_taken"
+          ? 409
+          : named.error === "storage_unavailable"
+            ? 503
+            : 400;
+      return Response.json({ error: named.error }, { status });
+    }
+    displayName = named.displayName;
+  }
+  const member = adminUser
+    ? null
+    : await getMember(session.email).catch(() => null);
+  // Store the full display name (createReply caps at 30), same as posts,
+  // comments, the Guild, and the presence line. This used to keep only the
+  // first word, which left replies reading "Mary" while the same member's
+  // posts read "Mary Jane". Only affects new replies (the name is stamped
+  // at write time).
+  const firstName = displayName || fallback;
   const isFounder =
     !!member && member.tier === "founder" && typeof member.founderSlot === "number";
 
