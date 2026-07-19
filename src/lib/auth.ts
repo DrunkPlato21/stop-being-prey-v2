@@ -13,6 +13,17 @@ const MAGIC_PREFIX = "magic:";
 
 export const SESSION_COOKIE = SESSION_COOKIE_NAME;
 
+// The session cookie's max-age, kept in lockstep with the JWT's own expiry
+// (signSession) so the cookie and the token it carries die together.
+export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * SESSION_DURATION_DAYS;
+
+// Rolling refresh: a still-valid session older than this is re-signed with
+// a fresh 30-day window on the next page view (see maybeRefreshSession + the
+// proxy). One day means an active member is re-upped at most once a day and
+// effectively never gets logged out mid-use, while an idle session still
+// expires 30 days after its last visit.
+const SESSION_REFRESH_AFTER_SECONDS = 60 * 60 * 24;
+
 let cachedRedis: Redis | null = null;
 function redis(): Redis | null {
   if (cachedRedis) return cachedRedis;
@@ -68,6 +79,51 @@ export async function verifySession(
       return { email: payload.email, customerId: payload.customerId };
     }
     return null;
+  } catch {
+    return null;
+  }
+}
+
+// The session cookie's flags live here alone so the sign-in callback and
+// the rolling-refresh proxy always write a byte-identical cookie.
+export function sessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: SESSION_MAX_AGE_SECONDS,
+  };
+}
+
+/**
+ * Rolling-session refresh. Given the current session cookie value, returns
+ * a freshly signed token when the existing one is still valid but older than
+ * SESSION_REFRESH_AFTER_SECONDS, so the 30-day window slides forward on an
+ * active member and they never get logged out mid-use. Returns null when the
+ * token is missing, invalid/expired, or still fresh enough that re-issuing
+ * would just churn the cookie. Never throws; the caller sets the cookie only
+ * when a new token comes back.
+ */
+export async function maybeRefreshSession(
+  token: string | undefined | null
+): Promise<string | null> {
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, authSecret());
+    if (
+      typeof payload.email !== "string" ||
+      typeof payload.customerId !== "string" ||
+      typeof payload.iat !== "number"
+    ) {
+      return null;
+    }
+    const ageSeconds = Math.floor(Date.now() / 1000) - payload.iat;
+    if (ageSeconds < SESSION_REFRESH_AFTER_SECONDS) return null;
+    return await signSession({
+      email: payload.email,
+      customerId: payload.customerId,
+    });
   } catch {
     return null;
   }

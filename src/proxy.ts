@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { maybeRefreshSession, sessionCookieOptions } from "@/lib/auth";
 
 // Next.js 16 renamed middleware to proxy. One file only. This module
 // dispatches by path:
@@ -103,10 +104,21 @@ async function notesGate(req: NextRequest): Promise<NextResponse> {
 
   try {
     await jwtVerify(token, secret);
-    return NextResponse.next();
   } catch {
     return redirectToSignIn(req);
   }
+
+  // Session is valid: let the request through. Rolling refresh — if the
+  // token is aging, re-sign it with a fresh 30-day window and set the
+  // cookie on the way out, so a member who keeps using the site never gets
+  // logged out mid-use (and never has to chase a fresh magic link). A still-
+  // fresh token returns null here and the cookie is left as-is.
+  const response = NextResponse.next();
+  const refreshed = await maybeRefreshSession(token);
+  if (refreshed) {
+    response.cookies.set(SESSION_COOKIE, refreshed, sessionCookieOptions());
+  }
+  return response;
 }
 
 export async function proxy(request: NextRequest) {

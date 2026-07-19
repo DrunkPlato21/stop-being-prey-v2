@@ -4,6 +4,7 @@ import {
   signSession,
   safeNextPath,
   SESSION_COOKIE,
+  sessionCookieOptions,
 } from "@/lib/auth";
 
 // GET /api/auth/callback?token=xxx
@@ -11,8 +12,6 @@ import {
 // Resolves a magic-link token to an authenticated session. Single-use:
 // the token is deleted on consume. Sets the session cookie and 302s to
 // the original `next` path encoded in the token record.
-
-const SESSION_DAYS = 30;
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
@@ -37,13 +36,7 @@ export async function GET(req: NextRequest) {
 
   const next = safeNextPath(record.next);
   const response = NextResponse.redirect(new URL(next, req.url));
-  response.cookies.set(SESSION_COOKIE, jwt, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * SESSION_DAYS,
-  });
+  response.cookies.set(SESSION_COOKIE, jwt, sessionCookieOptions());
   return response;
 }
 
