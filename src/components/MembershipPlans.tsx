@@ -46,6 +46,19 @@ type Props = {
       "tip"). Rides along in the checkout POST so the webhook can credit
       the surface that sent the buyer. */
   source?: string;
+  /** Preset ordering. "ascending" (default) leads with the floor, which
+      is the /membership frame: here is the cheapest way in. "descending"
+      leads with the largest amounts, for /patronage, where the ask is the
+      point and the floor is the fallback. Same presets either way — no
+      amount is added or removed. */
+  presetOrder?: "ascending" | "descending";
+  /** The live badge-preview card. On by default (/membership sells the
+      badge). /patronage turns it off: a badge is a feature, and features
+      are fine print there. */
+  showBadgePreview?: boolean;
+  /** Verb on the submit button, rendered as "<verb> at $13/mo". Defaults
+      to the subscription frame. /patronage passes a patronage verb. */
+  ctaVerb?: string;
 };
 
 const FOUNDER_MONTHLY_CENTS = 800;
@@ -182,6 +195,9 @@ export function MembershipPlans({
   accessToken,
   privateFounderAccess = false,
   source,
+  presetOrder = "ascending",
+  showBadgePreview = true,
+  ctaVerb = "subscribe",
 }: Props) {
   const [plan, setPlan] = useState<Plan>("monthly");
   const [cents, setCents] = useState<number>(() =>
@@ -297,9 +313,15 @@ export function MembershipPlans({
     privateFounderAccess
   );
 
-  const visiblePresets = PRESETS.filter(
+  const eligiblePresets = PRESETS.filter(
     (p) => founderEligible || !p.founderOnly
   );
+  // Same set either way. Only the reading order flips, so the matching /
+  // floor / checkout logic below is untouched.
+  const visiblePresets =
+    presetOrder === "descending"
+      ? [...eligiblePresets].reverse()
+      : eligiblePresets;
   const matchedPreset = visiblePresets.find(
     (p) => presetCentsFor(p, plan) === cents
   );
@@ -511,6 +533,7 @@ export function MembershipPlans({
           Updates as the selected tier changes. Shows even at the
           $13 / no-badge case (a no-chip preview makes the contrast
           obvious when the user toggles up to $25+). */}
+      {showBadgePreview && (
       <div className="badge-preview mb-8" aria-live="polite">
         <p className="eyebrow mb-3" style={{ textAlign: "center" }}>
           Preview
@@ -542,6 +565,7 @@ export function MembershipPlans({
           </div>
         </div>
       </div>
+      )}
 
       {/* Subscribe */}
       <button
@@ -558,7 +582,7 @@ export function MembershipPlans({
         <span>
           {loading
             ? "redirecting..."
-            : `subscribe at ${formatDollars(cents)}${intervalLabel}`}
+            : `${ctaVerb} at ${formatDollars(cents)}${intervalLabel}`}
         </span>
       </button>
 

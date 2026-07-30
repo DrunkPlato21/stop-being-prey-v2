@@ -27,6 +27,8 @@ const nextConfig: NextConfig = {
     "/join/twitter-image": ["assets/**/*"],
     "/membership/opengraph-image": ["assets/**/*"],
     "/membership/twitter-image": ["assets/**/*"],
+    "/patronage/opengraph-image": ["assets/**/*"],
+    "/patronage/twitter-image": ["assets/**/*"],
     "/about/opengraph-image": ["assets/**/*"],
     "/about/twitter-image": ["assets/**/*"],
     "/wall/opengraph-image": ["assets/**/*"],

@@ -164,6 +164,17 @@ export async function proxy(request: NextRequest) {
     url.search = "";
     return NextResponse.redirect(url, 301);
   }
+  // Short share URL for the patronage page. Real 301 to /patronage, not a
+  // rewrite: one indexable URL for the offer. Lives here rather than in
+  // next.config's redirects() because `permanent: true` there emits a
+  // 308, not a 301. EXACT match only, so a future /patron/* never gets
+  // swallowed.
+  if (pathname === "/patron" || pathname === "/patron/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/patronage";
+    return NextResponse.redirect(url, 301);
+  }
+
   if (pathname === "/den" || pathname === "/den/") {
     const url = request.nextUrl.clone();
     url.pathname = "/desk";
@@ -248,5 +259,6 @@ export const config = {
     "/den/:path*",
     "/podcast",
     "/issues",
+    "/patron",
   ],
 };
