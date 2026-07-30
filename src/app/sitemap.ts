@@ -25,6 +25,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // The doctrine front door — public lure, key conversion + SEO surface.
     { url: `${BASE}/rules`, lastModified: newest, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/writing`, lastModified: newest, changeFrequency: "weekly", priority: 0.7 },
+    // The patronage page. Canonical of the three URLs that render it, so
+    // it is the one that has to be indexable and listed here.
+    { url: `${BASE}/patronage`, changeFrequency: "monthly", priority: 0.7 },
+    // /membership renders the same page and canonicals to /patronage. Kept
+    // listed for now: it is the historically indexed URL and the one most
+    // inbound links point at. /support-donate is deliberately absent — it
+    // only exists to catch old email traffic.
     { url: `${BASE}/membership`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/about`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE}/join`, changeFrequency: "monthly", priority: 0.6 },

@@ -59,6 +59,23 @@ type Props = {
   /** Verb on the submit button, rendered as "<verb> at $13/mo". Defaults
       to the subscription frame. /patronage passes a patronage verb. */
   ctaVerb?: string;
+  /** The one-line clarity sentence above the presets. Defaults to the
+      membership wording, which explains tiers in terms of what the
+      membership includes. /patronage passes its own. */
+  clarityLine?: string;
+  /** Social-proof line under the submit button. Defaults to the
+      membership wording ("join N readers inside"). Pass a finished
+      sentence — the count is already known server-side, and a formatter
+      function can't cross the server/client boundary. Pass null to drop
+      the line entirely, which /patronage does: it renders that sentence
+      itself, at the head of the wall-proof unit below the widget. */
+  socialProofLine?: string | null;
+  /** Replaces the whole founder/charter sentence under the price when
+      those branches fire. /membership leaves it unset and keeps its
+      seat-count wording; /patronage passes a rate-lock sentence, because
+      under patronage nobody is competing for a seat — only the locked
+      rate is finite. Tier-badge lines are unaffected either way. */
+  rateScarcityLine?: string;
 };
 
 const FOUNDER_MONTHLY_CENTS = 800;
@@ -127,9 +144,19 @@ function describeAmount(
   founderRemaining: number,
   charterEligible: boolean,
   charterRemaining: number,
-  privateFounderAccess: boolean
+  privateFounderAccess: boolean,
+  rateScarcityLine?: string
 ): string {
   const monthly = monthlyEquivalentCents(cents, plan);
+  // Caller-supplied replacement for both scarcity branches below. Only
+  // swaps the sentence — the branch conditions, and every tier-badge
+  // line further down, are untouched.
+  const scarcityBranch =
+    (founderEligible && monthly < STANDARD_MONTHLY) ||
+    (charterEligible && monthly === STANDARD_MONTHLY);
+  if (rateScarcityLine && scarcityBranch) {
+    return rateScarcityLine;
+  }
   // Founder rate: only when the user is below the standard floor AND
   // founder slots are still open. A founder choosing $25+ gets the
   // tier description instead — they'll still receive the founder slot
@@ -198,6 +225,9 @@ export function MembershipPlans({
   presetOrder = "ascending",
   showBadgePreview = true,
   ctaVerb = "subscribe",
+  clarityLine,
+  socialProofLine,
+  rateScarcityLine,
 }: Props) {
   const [plan, setPlan] = useState<Plan>("monthly");
   const [cents, setCents] = useState<number>(() =>
@@ -300,7 +330,10 @@ export function MembershipPlans({
   const billingLine =
     plan === "monthly"
       ? "billed monthly. cancel anytime."
-      : "billed annually. two months on the house.";
+      // Annual carried the discount but not the reassurance, so the
+      // bigger commitment was the one missing "cancel anytime" — exactly
+      // backwards. Both cadences say it now.
+      : "billed annually. two months on the house. cancel anytime.";
   const remaining = Math.max(0, 100 - founderClaimed);
   const charterRemaining = Math.max(0, 100 - charterClaimed);
   const tierLine = describeAmount(
@@ -310,7 +343,8 @@ export function MembershipPlans({
     remaining,
     charterEligible,
     charterRemaining,
-    privateFounderAccess
+    privateFounderAccess,
+    rateScarcityLine
   );
 
   const eligiblePresets = PRESETS.filter(
@@ -480,10 +514,14 @@ export function MembershipPlans({
         className="font-serif italic text-ink-muted text-center mb-3"
         style={{ fontSize: "0.82rem", letterSpacing: "0.01em" }}
       >
-        every tier gets the same membership.{" "}
-        <span className="whitespace-nowrap">
-          tiers above $13 add a public badge.
-        </span>
+        {clarityLine ?? (
+          <>
+            every tier gets the same membership.{" "}
+            <span className="whitespace-nowrap">
+              tiers above $13 add a public badge.
+            </span>
+          </>
+        )}
       </p>
 
       {/* Preset buttons. Grid keeps them centered on mobile; flex on
@@ -599,12 +637,15 @@ export function MembershipPlans({
           count the scarcity strip shows up top, rendered here as a
           quiet italic line so it reinforces at the decision moment
           without competing with the button. */}
-      {totalMembers > 0 && (
+      {socialProofLine !== null && totalMembers > 0 && (
         <p
           className="font-serif italic text-ink-muted text-center mt-3"
           style={{ fontSize: "0.88rem" }}
         >
-          join {totalMembers} {totalMembers === 1 ? "reader" : "readers"} inside.
+          {socialProofLine ??
+            `join ${totalMembers} ${
+              totalMembers === 1 ? "reader" : "readers"
+            } inside.`}
         </p>
       )}
     </div>

@@ -43,7 +43,7 @@ function MembershipAsk() {
     <div className="finisher-ask">
       <p className="finisher-ask-line">{MEMBER_BODY}</p>
       <Link
-        href="/membership?src=finisher"
+        href="/patronage?src=finisher"
         className="btn-primary finisher-ask-cta"
       >
         <span>{ASK_CTA}</span>

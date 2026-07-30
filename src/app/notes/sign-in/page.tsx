@@ -73,7 +73,7 @@ export default async function SignInPage({
         <p className="mt-12 text-sm italic text-ink-muted leading-relaxed max-w-md mx-auto">
           Not a member yet?{" "}
           <Link
-            href="/membership"
+            href="/patronage"
             className="text-eye-deep hover:text-ink"
             style={{
               textDecoration: "underline",
