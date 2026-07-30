@@ -36,7 +36,8 @@ export const metadata: Metadata = {
 // the "7 Rules" link are rendered explicitly. Conversion triggers: the inline
 // Rules link at peak intent, and a doctrine-first close.
 
-const STORY_OPEN: string[] = [
+// Opening runs to the "And none of that mattered." pulled line (Anchor A).
+const STORY_OPEN_1: string[] = [
   "The year was 2015, and there I was in my house, feeling utter dread as I saw another text alert come in from my cousin on my phone. It was the length of an essay. I stared at it for a while, I didn't even want to open it. We were in a political argument that had been going on for days at this point, and it was only elevating in its intensity.",
   "Let me tell you a little about my cousin. I'll call him Matt. Growing up, Matt was like a brother to me. One of my best friends. Regular sleepovers, hangouts and brutal mini-stick hockey tournaments. Every family event was a treat because I knew he'd be there, and we'd have the best time getting into trouble together.",
   "As we grew older, into our late teens and early adulthood, we always remained close but not quite as close as those childhood years. In all honesty, Matt was just a more ambitious guy than I was. He's an impressive person, ridiculously competent at anything he puts his mind to. Even when it comes to guitar, both of us played since our teens… but he is leagues ahead of me in terms of skill.",
@@ -46,7 +47,10 @@ const STORY_OPEN: string[] = [
   "So back to that text he sent me. Can you see why I was feeling intimidated? Why I was staring at the notification dreading what was waiting for me when I clicked?",
   "Well, I eventually worked up the courage to click the damn thing, and there it was. Another essay that he clearly banged out one-handed on his lunch break.",
   "That was the thing about Matt. He would fire back at me within the hour, and it'd take me the whole day to answer him. And I mean the whole day. I wouldn't work, I barely slept, I stressed. I googled things, I'd go deep into statistics, economics and philosophy. If I noticed a contradiction, it'd keep me up at night until I'd felt I resolved it.",
-  "And none of that mattered.",
+];
+
+// Resumes after Anchor A, runs to the stats paragraph (rendered explicitly).
+const STORY_OPEN_2: string[] = [
   "He could bat down my facts in a heartbeat, and move the conversation towards whatever he wanted it to be about. He would shame me for my opinions, and put me on defense where I felt I had to constantly defend myself. I was literally losing money, not working, obsessing over how I was going to respond to him.",
   "\"I'm right about this!\" I'd tell myself. \"He's wrong!\" \"Why am I losing!?\"",
   "I didn't figure it out. I took the L. In the end, I ghosted him. I just stopped replying. He was in the process of shaming me for believing I should legally be able to put more than five rounds in my rifle, and I'd had enough.",
@@ -56,12 +60,16 @@ const STORY_OPEN: string[] = [
   "That moment really stuck with me. That little shrug. The dismissal. That's the thing I never let go of. That shrug is the reason all of this exists. It's the reason you're reading this story right now, and the reason I run the largest Thomas Sowell Quotes page on Facebook.",
   "I couldn't stop thinking about how I'd folded. The more I sat with it, the more I felt ashamed of myself for it.",
   "Sowell never did that. He never let anyone put words in his mouth, or get away with shrugging off one of his points. Nobody could wave him off the way Matt had waved me off. He wouldn't let his opponents intimidate him, shame him or take control of the conversation. He was an example of how to win. That's what I wanted!",
-  "So I started relentlessly consuming everything he ever wrote and posting his words on Facebook. I wanted to see if there was anyone else out there who saw what I saw, and it turns out there's quite a few of you. As of writing this, I'm up to about 200,000 followers on the page and growing. I regularly reach upwards of 20 million impressions per month.",
+];
+
+// After the stats paragraph, runs to the prey/predator line (rendered explicitly).
+const STORY_OPEN_3: string[] = [
   "My God Matt, what have you unleashed?",
   "But here's the thing, for all those years, the page was only ever his words. Never mine. I was just the megaphone, I was not a voice.",
-  "It took me ten years to see what really happened in that fight with Matt. Every time he pushed, I backed down. Every time he reframed it, I let him. I folded. In the end, I went quiet, tucked my tail between my legs and ran. I behaved like prey. Matt operated like a predator.",
-  "I'd love to tell you that I went on a hero's journey in those ten years. But I didn't. Mostly, those years were filled with confusion, frustration, and getting things wrong. Not the ideas. The ideas I had were mostly right. After all, I was spending a huge chunk of my time reading all the great economists from the last century. But that wasn't enough. It had nothing to do with why I'd lost that fight to Matt.",
-  "While I was buried in economics books and political philosophy, Matt was out there conquering the world, building relationships. He was acquiring real power and status. I was learning how to see the world correctly. Two totally different things.",
+];
+
+// After the compressed middle, leads into the Kirk block.
+const STORY_OPEN_4: string[] = [
   "But then, last September, something happened. Charlie Kirk was assassinated. I wrote this on the Sowell quotes page that day.",
 ];
 
@@ -81,7 +89,11 @@ const STORY_MID: string[] = [
   "I started noticing patterns. They were behaving exactly the same way Matt behaved with me.",
   "And so, once I felt I understood them, I stepped in. I started engaging, testing everything I'd spent a decade learning against the real thing. Every exchange was an experiment.",
   "I began to quickly realize I was onto something. I was able to see all of their traps immediately, navigate around them, name exactly what they're doing with precision and put them on defense.",
-  "And it wasn't a one-off. It became a constant. Hundreds of these exchanges, all of them public, all of them still there to read. This is where my doctrine actually got built, not in a book. In live combat, in the comments. I was getting my reps in.",
+  "And it wasn't a one-off. It became a constant. Hundreds of these exchanges, all of them public, all of them still there to read. I was getting my reps in.",
+];
+
+// Anchor C: the doctrine line, pulled out of the prose above and set apart.
+const STORY_MID_TAIL: string[] = [
   "Now, I can argue their side better than they can. I can make the case for a $20 minimum wage stronger than the professor who teaches it. But ask one of them to honestly argue my side? They can't. They have no idea how someone like me actually thinks. For all their talk about empathy, they've never spent a second developing it for the people they disagree with politically. They never had to. The orthodoxy does their thinking for them. This is their Achilles heel.",
 ];
 
@@ -128,8 +140,67 @@ export default function AboutPage() {
 
       <div id="reading-region" className="max-w-3xl mx-auto px-6 py-12 md:py-16">
         <div className="prose-article">
-          {STORY_OPEN.map((para, i) => (
-            <p key={`open-${i}`}>{para}</p>
+          {STORY_OPEN_1.map((para, i) => (
+            <p key={`open1-${i}`}>{para}</p>
+          ))}
+
+          {/* Anchor A: a one-line beat, enlarged to break the long opening
+              stretch and give a skimmer a first handhold. */}
+          <p
+            className="font-display text-ink text-center leading-tight"
+            style={{
+              fontSize: "clamp(1.5rem, 3vw, 2rem)",
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              margin: "2.5rem 0",
+            }}
+          >
+            And none of that mattered.
+          </p>
+
+          {STORY_OPEN_2.map((para, i) => (
+            <p key={`open2-${i}`}>{para}</p>
+          ))}
+
+          {/* Stats paragraph: the figures are the strongest proof on the page,
+              bolded so a scanner catches them without reading the narrative. */}
+          <p>
+            So I started relentlessly consuming everything he ever wrote and
+            posting his words on Facebook. I wanted to see if there was anyone
+            else out there who saw what I saw, and it turns out there's quite a
+            few of you. As of writing this, I'm up to about{" "}
+            <strong>200,000 followers</strong> on the page and growing. I
+            regularly reach upwards of{" "}
+            <strong>20 million impressions per month.</strong>
+          </p>
+
+          {STORY_OPEN_3.map((para, i) => (
+            <p key={`open3-${i}`}>{para}</p>
+          ))}
+
+          {/* Prey/predator crystallization: the brand name explained. Bolded
+              inline (sits too close to the Kirk block for a full pull). */}
+          <p>
+            It took me ten years to see what really happened in that fight with
+            Matt. Every time he pushed, I backed down. Every time he reframed it,
+            I let him. I folded. In the end, I went quiet, tucked my tail between
+            my legs and ran.{" "}
+            <strong>I behaved like prey. Matt operated like a predator.</strong>
+          </p>
+
+          {/* Compressed middle (was two paragraphs that made one point twice). */}
+          <p>
+            I'd love to tell you I went on a hero's journey in those ten years. I
+            didn't. Mostly they were confusion, frustration, and getting things
+            wrong. Not the ideas. The ideas were mostly right. I was buried in
+            the great economists of the last century. But that had nothing to do
+            with why I lost to Matt. While I was learning to see the world
+            correctly, he was out in it, building relationships, acquiring real
+            power and status. Two totally different things.
+          </p>
+
+          {STORY_OPEN_4.map((para, i) => (
+            <p key={`open4-${i}`}>{para}</p>
           ))}
 
           {/* The Kirk-day post — his words, set apart from the prose. */}
@@ -160,6 +231,25 @@ export default function AboutPage() {
 
           {STORY_MID.map((para, i) => (
             <p key={`mid-${i}`}>{para}</p>
+          ))}
+
+          {/* Anchor C: the strongest credibility line in the second half,
+              pulled from the prose above and set apart for the skimmer. */}
+          <p
+            className="font-display text-ink text-center leading-tight"
+            style={{
+              fontSize: "clamp(1.5rem, 3vw, 2rem)",
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              margin: "2.5rem 0",
+            }}
+          >
+            The doctrine got built here. Not in a book. In live combat, in the
+            comments.
+          </p>
+
+          {STORY_MID_TAIL.map((para, i) => (
+            <p key={`midtail-${i}`}>{para}</p>
           ))}
 
           {/* Inline conversion trigger at peak intent: the doctrine is named,
