@@ -3,7 +3,7 @@ title: "The Desecration of Charlie Kirk"
 slug: "desecration-of-charlie-kirk"
 date: "2026-07-31"
 description: "Tyler Robinson pulled the trigger. He didn't decide Charlie Kirk had to die. That verdict came from something with no leader, no orders, and no one to answer for it."
-subtitle: "tyler robinson pulled the trigger. he didn't decide charlie kirk had to die"
+subtitle: "They have to kill him twice."
 cornerstone: true
 essayStyle: true
 # Homepage "From the essay" pull quote once this is the lead cornerstone.
