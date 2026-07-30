@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
-import { getMember } from "@/lib/members";
+import { getMember, hasLiveSeat } from "@/lib/members";
 import { StickyNav } from "@/components/StickyNav";
 
 // Server-side wrapper for the sticky scroll bar. Resolves session +
@@ -24,8 +24,6 @@ export async function StickyNavServer() {
   }
 
   const member = await getMember(session.email).catch(() => null);
-  const isPaidMember =
-    !!member && (member.status === "active" || member.status === "trialing");
 
-  return <StickyNav signedIn={true} isPaidMember={isPaidMember} />;
+  return <StickyNav signedIn={true} isPaidMember={hasLiveSeat(member)} />;
 }

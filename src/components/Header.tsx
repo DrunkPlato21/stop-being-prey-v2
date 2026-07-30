@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getProfile, isAdmin } from "@/lib/comments";
-import { getMember, getTierBadge } from "@/lib/members";
+import { getMember, getTierBadge, hasLiveSeat } from "@/lib/members";
 import { derivePresenceState, getPresence } from "@/lib/desk";
 import { IdentityMenu, type IdentityMenuProps } from "@/components/IdentityMenu";
 import { NotificationsBell } from "@/components/NotificationsBell";
@@ -74,8 +74,7 @@ async function resolveIdentity(email: string): Promise<IdentityResolution> {
       : member?.tier === "charter" && typeof member.charterSlot === "number"
         ? "charter"
         : "member";
-  const isPaidMember =
-    !!member && (member.status === "active" || member.status === "trialing");
+  const isPaidMember = hasLiveSeat(member);
 
   return {
     identity: {

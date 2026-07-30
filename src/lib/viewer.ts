@@ -2,7 +2,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
-import { getMember } from "@/lib/members";
+import { getMember, hasLiveSeat } from "@/lib/members";
 
 // True when the current viewer is a paying member (or the admin/author).
 // Used to suppress email-capture surfaces for people who are already on
@@ -20,7 +20,5 @@ export const isPaidViewer = cache(async (): Promise<boolean> => {
   if (!session?.email) return false;
   if (isAdmin(session.email)) return true;
   const member = await getMember(session.email).catch(() => null);
-  return (
-    !!member && (member.status === "active" || member.status === "trialing")
-  );
+  return hasLiveSeat(member);
 });

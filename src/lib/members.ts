@@ -94,6 +94,24 @@ export type MemberRecord = {
 };
 
 /**
+ * The single definition of "this record entitles a live seat". The site
+ * chrome, the paid-viewer helper, and the sign-in gate all read this, so
+ * they can't drift into disagreeing about who is signed in — a viewer the
+ * header treats as logged-out must not be treated as logged-in by the
+ * sign-in page, or the two deadlock with no way out.
+ *
+ * Deliberately narrower than "has a record": past_due, canceled, unpaid
+ * and friends all read false. Those members can still hold a valid
+ * session (see SIGN_IN_STATUSES in api/auth/request-link) — holding a
+ * session and holding a seat are different questions.
+ */
+export function hasLiveSeat(record: MemberRecord | null | undefined): boolean {
+  return (
+    !!record && (record.status === "active" || record.status === "trialing")
+  );
+}
+
+/**
  * Resolve canceledAt for a status transition: stamp it the first time a
  * member goes canceled, clear it when they come back active/trialing,
  * and leave it untouched for in-between states (past_due, etc.).
