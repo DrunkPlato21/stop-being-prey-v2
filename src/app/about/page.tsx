@@ -162,30 +162,24 @@ export default function AboutPage() {
             <p key={`open2-${i}`}>{para}</p>
           ))}
 
-          {/* Stats paragraph: the figures are the strongest proof on the page,
-              bolded so a scanner catches them without reading the narrative. */}
           <p>
             So I started relentlessly consuming everything he ever wrote and
             posting his words on Facebook. I wanted to see if there was anyone
-            else out there who saw what I saw, and it turns out there's quite a
-            few of you. As of writing this, I'm up to about{" "}
-            <strong>200,000 followers</strong> on the page and growing. I
-            regularly reach upwards of{" "}
-            <strong>20 million impressions per month.</strong>
+            else out there who saw what I saw, and it turns out there&apos;s
+            quite a few of you. As of writing this, I&apos;m up to about 200,000
+            followers on the page and growing. I regularly reach upwards of 20
+            million impressions per month.
           </p>
 
           {STORY_OPEN_3.map((para, i) => (
             <p key={`open3-${i}`}>{para}</p>
           ))}
 
-          {/* Prey/predator crystallization: the brand name explained. Bolded
-              inline (sits too close to the Kirk block for a full pull). */}
           <p>
             It took me ten years to see what really happened in that fight with
             Matt. Every time he pushed, I backed down. Every time he reframed it,
             I let him. I folded. In the end, I went quiet, tucked my tail between
-            my legs and ran.{" "}
-            <strong>I behaved like prey. Matt operated like a predator.</strong>
+            my legs and ran. I behaved like prey. Matt operated like a predator.
           </p>
 
           {/* Compressed middle (was two paragraphs that made one point twice). */}
