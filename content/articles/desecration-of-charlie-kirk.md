@@ -94,7 +94,7 @@ And those were the polite ones.
 
 The Sacramento Bee said Charlie "called for the lynching of trans people" while he was still alive. They were forced to apologize after he challenged it.
 
-Called for the lynching of trans people. Quite an accusation.
+*Called for the lynching of trans people.* Quite an accusation.
 
 So, is there any truth to it? Did Charlie hate trans people?
 
@@ -446,7 +446,7 @@ At her burial, John stood up and spoke to her. This is part of what he said.
 >
 > \~ John, at his mother's burial
 
-A Soldier of God.
+*A Soldier of God.*
 
 Bear your cross, soldier.
 

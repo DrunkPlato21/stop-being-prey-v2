@@ -281,7 +281,7 @@ a.no-underline {
    costs a phone reader roughly half what it used to. The ratio holds at
    both ends of the clamp. */
 .prose-article.ea-essay h2 {
-  margin-top: clamp(3.25rem, 1.6rem + 6.6vw, 5.9rem);
+  margin-top: clamp(4rem, 2.25rem + 7.4vw, 7rem);
   margin-bottom: clamp(2.2rem, 1.1rem + 4.4vw, 3.9rem);
 }
 /* The opening heading (Prologue) sits directly under the masthead, which
