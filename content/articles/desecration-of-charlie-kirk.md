@@ -20,8 +20,6 @@ prequelLabel: "The Losertarian Problem"
 published: false
 ---
 
-## Intro
-
 Tyler Robinson didn't kill Charlie Kirk. He just pulled the trigger.
 
 The truth is, Charlie was already marked for death by a class of people. The same people who marked Donald Trump for death. The same people who will mark you and those you love for death, if you become too much of a problem for them.
@@ -39,8 +37,6 @@ What you're not allowed to have is power. Charlie got a little too close, and so
 It's not personal. It's politics.
 
 ## Act 1
-
-{{IMAGE: the Kierkegaard post as it ran on the Sowell page the day Charlie was killed}}
 
 > "The tyrant dies and his rule is over, the martyr dies and his rule begins."
 >
@@ -90,7 +86,7 @@ Every year, those campuses produce the next generation of the progressive militi
 
 But then there was this damn kid, and his damn card table, setting up shop right in the middle of their territory… and he just would not go away.
 
-## Act 2 · The Assassination
+## Act 2
 
 Transphobe. Racist. Far-right Extremist. White Supremacist. Fascist.
 
@@ -108,8 +104,6 @@ A few months before Charlie was killed, a young woman named Sebastian did exactl
 
 Charlie stopped them.
 
-{{IMAGE: clip of Charlie quieting his own crowd for Sebastian}}
-
 > "Please give our speaker some uninterrupted speaking time."
 >
 > \~ Charlie Kirk
@@ -123,8 +117,6 @@ Sebastian didn't push back. She agreed with him. "I get that", she said. "I'm sc
 And she told him. She'd known since the third grade, she said. She was nineteen now, almost twenty. She'd been going by a different name since middle school. But she didn't know what was true about the medical side of it. She'd heard a hundred different opinions from a hundred different people… and she wanted to hear Charlie's.
 
 "First of all" Charlie said, "thank you so much for that." And then he gave her the hard truth, gently. He told her he was about to say something that almost no one in her life would ever tell her… and he asked her to think and pray about it.
-
-{{IMAGE: clip of Charlie's answer to Sebastian}}
 
 > "I actually want to see you be comfortable in how you were born. I know you might not feel that way, but I think that's something you can achieve. I think that with the right team and the right people, you don't have to wage war on your body. You can learn to love your body."
 >
@@ -157,8 +149,6 @@ Everybody knows Charlie is a hateful person.
 Stephen King knew it. Your aunt who shares NPR articles knew it. The HR lady at your office knew it. Your kid's teacher with the rainbow flag on her desk knew it. The barista with the pronoun pin knew it. The people celebrating his murder knew it.
 
 Tyler Robinson knew it.
-
-{{IMAGE: the engraved shell casing recovered at the scene}}
 
 > "Hey fascist, catch"
 >
@@ -296,8 +286,6 @@ Well, that offended some people. AOC, a sitting Congresswoman, voted no on the r
 
 She called the murder horrific and vile. Then, with his body barely cold, she read the charges.
 
-{{IMAGE: AOC at the microphone during the House resolution}}
-
 > "We should be clear about who Charlie Kirk was; a man who believed that the Civil Rights Act that granted Black Americans the right to vote was a mistake."
 >
 > \~ Alexandria Ocasio-Cortez
@@ -311,8 +299,6 @@ She wasn't there to be fair. She was there, at the hour meant to mourn him, to d
 Death was not enough.
 
 Three weeks later, Congresswoman Ilhan Omar sat down with Don Lemon and said this.
-
-{{IMAGE: Ilhan Omar with Don Lemon}}
 
 > "But there is no legacy to honor. It was a legacy filled with bigotry, hatred, and White supremacy. And as a Black woman and as a Muslim in this country, I refuse to join the chorus that changes the history of what is on the record from this man."
 >
@@ -370,8 +356,6 @@ She's not curious. She's casting doubt. Building a defense, not just for the kil
 
 She looked at Tyler, confessed, his own father turning him in, motive carved into the bullets, his DNA on the towel the rifle was wrapped in, and called him innocent. She offered to help his defense.
 
-{{IMAGE: Candace Owens offering to supply the defense}}
-
 > "If Tyler Robinson's defense would like to contact me, I'd be happy to supply them the folder of the maroon boys that I began archiving when I noticed the bizarre fashion trend."
 >
 > \~ Candace Owens
@@ -394,8 +378,6 @@ It's not curiosity. It's politics.
 
 ## Act 5
 
-{{IMAGE: Charlie in the 2016 interview}}
-
 > "You can tell a lot about a person by how they react when someone dies."
 >
 > \~ Charlie Kirk, 2016
@@ -405,8 +387,6 @@ Not long before he was murdered, Charlie Kirk sat down for an interview. He had 
 The last question: What is a quote that you live by?
 
 He talks about his faith, then he says this:
-
-{{IMAGE: clip of Charlie's final interview answer}}
 
 > "There is a God, and I am not him, and I surrender to His will."
 >
@@ -438,8 +418,6 @@ What made Charlie dangerous is that he was converting that energy into power. Th
 
 The magic was in what Charlie was building. The machinery. That's what scared the flock.
 
-{{IMAGE: Charlie on building an institution}}
-
 > "This is not a flash-in-the-pan movement. We're going to become an institution."
 >
 > \~ Charlie Kirk
@@ -452,7 +430,7 @@ And now, the flock moves on to its next targets. His family. His supporters. His
 
 You can keep moving forward, but you will be punished. Shamed. If you become too effective, you will be shot at. That's the game. That's your "marketplace of ideas."
 
-{{PULL: "If nobody wants you dead, you're not playing."}}
+If nobody wants you dead, you're not playing.
 
 You are in a spiritual war against a thing that rules America and answers to nobody in it. There is no court above it. There is no election that removes it.
 

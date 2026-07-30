@@ -269,16 +269,20 @@ a.no-underline {
   margin: 1.25rem auto 0;
 }
 
-/* Act dividers on the early-access essays (/the-massie-problem). Scoped
-   to .ea-essay so site-wide article/field-note h2 spacing is untouched.
-   Only the surrounding whitespace changes here. the hairlines, caps,
-   letter-spacing, font, and color all stay as the base h2 above defines
-   them. More space above than below so an act reads as the start of a
-   new movement, not a paragraph break. Top is ~2.2x the base 5rem,
-   bottom ~1.5x the base 2.5rem. */
+/* Act dividers on the essayStyle pieces. Scoped to .ea-essay so
+   site-wide article/field-note h2 spacing is untouched. Only the
+   surrounding whitespace lives here. the hairlines, caps, letter-
+   spacing, font, and color all stay as the base h2 above defines them.
+
+   The break belongs to the act that FOLLOWS it, so it stays top-heavy
+   (60/40). Was a fixed 11rem/3.75rem, which held 236px at every width:
+   over a third of a phone viewport spent on nothing. Total is now ~9.8rem
+   at desktop and ~5.45rem at 375px, scaling on vw between so the gap
+   costs a phone reader roughly half what it used to. The ratio holds at
+   both ends of the clamp. */
 .prose-article.ea-essay h2 {
-  margin-top: 11rem;
-  margin-bottom: 3.75rem;
+  margin-top: clamp(3.25rem, 1.6rem + 6.6vw, 5.9rem);
+  margin-bottom: clamp(2.2rem, 1.1rem + 4.4vw, 3.9rem);
 }
 /* The opening heading (Prologue) sits directly under the masthead, which
    already separates it with its border and padding. Don't open an
