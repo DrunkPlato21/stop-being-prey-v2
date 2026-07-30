@@ -151,7 +151,13 @@ export function getAllArticleSlugs(): string[] {
     .map((f) => f.replace(/\.md$/, ""));
 }
 
-export function getAllArticles(): ArticleMeta[] {
+/**
+ * Every article on disk, drafts included, newest first. Internal: the
+ * public catalog goes through getAllArticles, which drops drafts. Only
+ * surfaces that deliberately show unpublished work (the members-only
+ * early-access card) should reach past that filter.
+ */
+function readAllArticleMeta(): ArticleMeta[] {
   const slugs = getAllArticleSlugs();
   const articles = slugs.map((slug) => {
     const fullPath = path.join(articlesDirectory, `${slug}.md`);
@@ -187,13 +193,27 @@ export function getAllArticles(): ArticleMeta[] {
         typeof data.audioMinutes === "number" ? data.audioMinutes : undefined,
     } as ArticleMeta;
   });
+  return articles.sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+export function getAllArticles(): ArticleMeta[] {
   // Drop unpublished drafts from the public catalog. This single filter
   // removes a draft from the homepage lead, /writing, and the
   // issue-number identity in one place; the detail page reads the file
   // directly via getArticleBySlug, so its URL still resolves for previews.
-  return articles
-    .filter((a) => a.published !== false)
-    .sort((a, b) => (a.date < b.date ? 1 : -1));
+  return readAllArticleMeta().filter((a) => a.published !== false);
+}
+
+/**
+ * The newest unpublished article, or null. Drives the members-only
+ * early-access card on the Writer's Desk: a `published: false` piece is
+ * readable by members at its URL but is deliberately absent from every
+ * catalog, so without a surface like this no member ever learns it
+ * exists. Returns meta only — the gate on the article page itself is
+ * what actually controls access.
+ */
+export function getEarlyAccessArticle(): ArticleMeta | null {
+  return readAllArticleMeta().find((a) => a.published === false) ?? null;
 }
 
 /**
