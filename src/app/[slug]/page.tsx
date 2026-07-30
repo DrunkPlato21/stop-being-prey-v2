@@ -246,8 +246,15 @@ export default async function ArticlePage({
             {article.title}
           </h1>
 
+          {/* Deck. `subtitle` is the editorial line, `description` is the
+              search/share blurb, and they're often written differently. The
+              homepage lead and /writing already preferred subtitle while this
+              page used description, so the same essay introduced itself two
+              different ways depending on where you met it. All three read
+              subtitle-first now, falling back to description when a piece
+              doesn't carry one. */}
           <p className="deck max-w-2xl mx-auto mb-10 fade-up stagger-3">
-            {article.description}
+            {article.subtitle ?? article.description}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 gap-y-2 text-xs italic text-ink-faint fade-up stagger-4 uppercase tracking-[0.15em] not-italic">
