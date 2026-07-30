@@ -164,6 +164,17 @@ export async function proxy(request: NextRequest) {
     url.search = "";
     return NextResponse.redirect(url, 301);
   }
+  // Short share URL for the Desecration cornerstone. A real 301 to the
+  // canonical slug, deliberately NOT a rewrite: serving the same essay at
+  // two indexable paths would split the ranking signal for a piece that's
+  // going to be shared hard. EXACT match only, so a future /desecration/*
+  // never gets swallowed.
+  if (pathname === "/desecration" || pathname === "/desecration/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/desecration-of-charlie-kirk";
+    return NextResponse.redirect(url, 301);
+  }
+
   // Short share URL for the patronage page. Real 301 to /patronage, not a
   // rewrite: one indexable URL for the offer. Lives here rather than in
   // next.config's redirects() because `permanent: true` there emits a
@@ -259,6 +270,7 @@ export const config = {
     "/den/:path*",
     "/podcast",
     "/issues",
+    "/desecration",
     "/patron",
   ],
 };
