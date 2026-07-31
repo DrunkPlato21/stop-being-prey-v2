@@ -55,3 +55,6 @@ next-env.d.ts
 
 # Local data dumps (Kit broadcast exports, member content)
 export/
+
+# Local scratch handoff note, not part of the project.
+HANDOFF.md
