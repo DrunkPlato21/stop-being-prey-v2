@@ -47,6 +47,8 @@ It's not personal. It's politics.
 
 ## Act 1
 
+> {{EPIGRAPH}}
+>
 > "The tyrant dies and his rule is over, the martyr dies and his rule begins."
 >
 > \~ Soren Kierkegaard, journals, 1848
@@ -201,7 +203,7 @@ Because there's nothing to stop. The flock isn't physical, it's spiritual.
 
 You can shoot a bird out of the sky. You can't shoot a belief. Kill the man who holds it, and it just moves to the man beside him. That's why the flock never breaks. You took Robinson out of it and it didn't even flinch.
 
-The flock took out its most effective enemy general, and your reward is locking up one confused young man who happened to pull the trigger. And even that, for you, is a struggle. You are tormented for months. Hoping you can get some small hint of justice… eventually.
+The flock took out our most effective general, and your reward is locking up one confused young man who happened to pull the trigger. And even that, for you, is a struggle. You are tormented for months. Hoping you can get some small hint of justice… eventually.
 
 This isn't the system failing you. It's the system telling you the truth. It's letting you know your place.
 
@@ -219,7 +221,7 @@ Charlie threatened the vibe, so the vibe killed him.
 
 Charlie didn't just threaten the vibe. He was pulling people out of the flock. And it gets worse for them…
 
-The martyr dies, and his rule begins.
+*The martyr dies, and his rule begins.*
 
 Nobody knows the power of a martyr better than our friends, the progressives.
 
@@ -387,6 +389,8 @@ It's not curiosity. It's politics.
 
 ## Act 5
 
+> {{EPIGRAPH}}
+>
 > "You can tell a lot about a person by how they react when someone dies."
 >
 > \~ Charlie Kirk, 2016

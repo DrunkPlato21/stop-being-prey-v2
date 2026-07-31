@@ -471,6 +471,70 @@ a.no-underline {
   letter-spacing: 0.1em;
   color: var(--eye-deep);
 }
+/* === Epigraph =====================================================
+   The standing inscription that opens an Act. Deliberately NOT the
+   pull-quote panel: an epigraph is an outside voice framing what
+   follows, a pull quote is a receipt inside the argument, and at a
+   glance they must not be confusable.
+
+   Applied via the {{EPIGRAPH}} marker in the markdown (see
+   lib/early-access.ts), never by position.
+
+   Differences from figure.ea-blockquote, all intentional:
+     - centered, not left-aligned
+     - italic
+     - no oversized opening quotation glyph
+     - no rule above the attribution
+     - attribution centered, smaller and quieter
+     - roughly double the vertical space around it                   */
+.prose-article figure.ea-epigraph {
+  margin: 4.25rem auto;
+  max-width: 32rem;
+  text-align: center;
+}
+
+.prose-article figure.ea-epigraph blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 1.12rem;
+  line-height: 1.6;
+  color: var(--ink);
+  /* Even the line lengths. Centered two-line epigraphs otherwise drop a
+     single word onto the second line ("begins." alone under a full first
+     line), which reads as a mistake rather than a break. Unsupported
+     browsers just get the normal greedy wrap. */
+  text-wrap: balance;
+}
+
+.prose-article figure.ea-epigraph blockquote p {
+  margin: 0;
+}
+
+.prose-article figure.ea-epigraph blockquote p + p {
+  margin-top: 0.9rem;
+}
+
+.prose-article figure.ea-epigraph figcaption {
+  margin-top: 1rem;
+  text-align: center;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-variant: small-caps;
+  font-style: normal;
+  font-size: 0.76rem;
+  letter-spacing: 0.09em;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 640px) {
+  .prose-article figure.ea-epigraph {
+    margin: 3.25rem auto;
+  }
+}
+
 .prose-article figure.ea-blockquote figcaption::before {
   content: "";
   display: block;

@@ -170,6 +170,33 @@ export function applyEssayTokens(
           quoteInner = body.slice(0, body.lastIndexOf(last)).trimEnd();
         }
       }
+      // {{EPIGRAPH}} as the first paragraph inside the blockquote marks
+      // this quote as an epigraph: the standing-inscription kind that
+      // opens an Act, not a receipt quoted inside the narrative. Explicit
+      // marker, never positional — "first quote in a section" would catch
+      // the wrong quotes the moment an Act is reordered or a receipt moves
+      // to the top. The marker paragraph is consumed, never rendered.
+      let isEpigraph = false;
+      {
+        const firstP = quoteInner.match(/^\s*<p>\s*\{\{\s*EPIGRAPH\s*\}\}\s*<\/p>/i);
+        if (firstP) {
+          isEpigraph = true;
+          quoteInner = quoteInner.slice(firstP[0].length).trimStart();
+        }
+      }
+      if (isEpigraph) {
+        // Its own figure class, not a modifier on ea-blockquote: the
+        // epigraph shares none of the panel's ornament (no oversized
+        // glyph, no rule above the attribution), so inheriting them just
+        // to unset them again invites drift.
+        const strippedEpi = quoteInner
+          .replace(/^(\s*<p>\s*(?:<em>\s*)?)["“]/, "$1")
+          .replace(/["”](\s*(?:<\/em>\s*)?<\/p>\s*)$/, "$1");
+        const epiAttr = attr.replace(/,\s+(?!\d{4})/g, " • ");
+        const epiCap = attr ? `<figcaption>${epiAttr}</figcaption>` : "";
+        return `<figure class="ea-epigraph"><blockquote>${strippedEpi}</blockquote>${epiCap}</figure>`;
+      }
+
       // Short, unattributed one-liner -> light treatment (no panel).
       // Suppressed when uniformPanelQuotes is on: the piece wants every
       // quote in the glyph panel, so don't peel short ones off into the
