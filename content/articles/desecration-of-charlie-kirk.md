@@ -95,7 +95,9 @@ He filled arenas with the same kids the experts swore were gone for good. He tur
 
 Every year, those campuses produce the next generation of the progressive militia. The teachers, the journalists, the bureaucrats, the politicians, the judges… whoever holds this territory writes the future, and it was theirs, unchallenged for sixty years.
 
-But then there was this damn kid, and his damn card table, setting up shop right in the middle of their territory… and he just would not go away.
+But then there was this damn kid, and his damn card table, setting up shop right in the middle of their territory…
+
+And he just would not go away.
 
 ## Act 2
 
@@ -139,7 +141,7 @@ But the Sacramento Bee was far from alone…
 
 The day after Charlie was murdered, Stephen King said Charlie "advocated stoning gays to death". He too was later forced to apologize.
 
-One of the best selling authors in human history, repeating a lie about a man to his massive audience. What was he thinking? Only Stephen can answer that for himself.
+One of the best selling authors in human history, repeating a lie about a dead man to his massive audience. What was he thinking? Only Stephen can answer that for himself.
 
 I can speculate.
 
@@ -299,7 +301,7 @@ She called the murder horrific and vile. Then she read the charges.
 >
 > \~ Alexandria Ocasio-Cortez, House floor, September 19, 2025
 
-The Civil Rights Act didn't grant anyone the right to vote. That was the Voting Rights Act, a year later. She didn't do a basic fact check, she just uncritically fused two laws together to put the worst possible case against Charlie into the public record.
+She's got the wrong law. The voting one came a year later, and it's called the Voting Rights Act. She didn't do a basic fact check, she just uncritically fused two laws together to put the worst possible case against Charlie into the public record.
 
 His body was barely cold.
 
