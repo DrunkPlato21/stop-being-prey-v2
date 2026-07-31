@@ -365,6 +365,22 @@ function CheckDisc({ done }: { done: boolean }) {
  * Deliberately heavier than the other panels (gold rule, larger title):
  * this is the marquee, not another row in a list.
  */
+/* The members-first window is the only time the thread under a
+   cornerstone is empty. Comments seeded now are what the public reads
+   first when it opens up, so the card asks for one explicitly rather
+   than leaving "Read it now" to imply it.
+
+   Option A is wired. Clay picks:
+     A  The comments are open, and empty. Leave the first one.
+     B  Leave a comment before the rest of the world gets here.
+     C  Be the first comment on this one.                            */
+const EARLY_ACCESS_COMMENT_LINE =
+  "The comments are open, and empty. Leave the first one.";
+// const EARLY_ACCESS_COMMENT_LINE =
+//   "Leave a comment before the rest of the world gets here.";
+// const EARLY_ACCESS_COMMENT_LINE =
+//   "Be the first comment on this one.";
+
 function EarlyAccessPanel({ piece }: { piece: DeskEarlyAccess }) {
   return (
     <div
@@ -402,6 +418,13 @@ function EarlyAccessPanel({ piece }: { piece: DeskEarlyAccess }) {
         style={{ fontSize: "0.95rem" }}
       >
         {piece.description}
+      </p>
+
+      <p
+        className="font-serif text-ink leading-relaxed mb-4"
+        style={{ fontSize: "0.95rem" }}
+      >
+        {EARLY_ACCESS_COMMENT_LINE}
       </p>
 
       <div className="flex items-baseline justify-between gap-4 flex-wrap">
