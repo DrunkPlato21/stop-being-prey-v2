@@ -197,6 +197,11 @@ const IDLE_POLL_MS = 20_000;
 // reply the server list doesn't have yet until this grace expires
 // (by which point the server list includes it and dedupes it).
 const REPLY_MERGE_GRACE_MS = 10_000;
+// How long a just-saved edit is protected from being overwritten by a
+// poll carrying a pre-edit read. Generous on purpose: the write has to
+// land in Redis AND the next read has to see it, and a poll already in
+// flight when you hit save will always come back stale.
+const EDIT_MERGE_GRACE_MS = 15_000;
 
 const LIVE_WINDOW_MS = 10 * 60 * 1000;
 // Window during which a member may edit or delete their own post/reply.
@@ -426,6 +431,11 @@ export function LoungeView(props: Props) {
   // the poll's reply merge can protect a just-posted reply from a
   // racing read until the server list catches up.
   const optimisticReplyAt = useRef<Record<string, number>>({});
+  // Per-target timestamp of the user's most recent successful edit. The
+  // poll replaces the reply list for a post wholesale, so without this a
+  // reply edit is silently reverted by the next poll — which is why an
+  // edit only appeared to "take" after a manual refresh.
+  const optimisticEditAt = useRef<Record<string, number>>({});
 
   useEffect(() => {
     postsRef.current = posts;
@@ -560,12 +570,26 @@ export function LoungeView(props: Props) {
                   nowMs - (optimisticReplyAt.current[r.id] ?? 0) <
                     REPLY_MERGE_GRACE_MS
               );
+              // A reply the user just edited keeps its local body until
+              // the server read catches up. Without this the poll hands
+              // back the pre-edit text and the edit appears to fail.
+              const byId = new Map((prev[pid] ?? []).map((r) => [r.id, r]));
+              const reconciled = list.map((r) => {
+                const local = byId.get(r.id);
+                if (!local) return r;
+                const editedRecently =
+                  nowMs - (optimisticEditAt.current[r.id] ?? 0) <
+                  EDIT_MERGE_GRACE_MS;
+                if (!editedRecently) return r;
+                if ((r.editedAt ?? 0) >= (local.editedAt ?? 0)) return r;
+                return { ...r, body: local.body, editedAt: local.editedAt };
+              });
               out[pid] =
                 survivors.length > 0
-                  ? [...list, ...survivors].sort(
+                  ? [...reconciled, ...survivors].sort(
                       (a, b) => a.createdAt - b.createdAt
                     )
-                  : list;
+                  : reconciled;
             }
             return out;
           });
@@ -650,7 +674,20 @@ export function LoungeView(props: Props) {
           !serverIds.has(p.id) &&
           !(snapshot.pinned && p.id === snapshot.pinned.id)
       );
-      return [...snapshot.posts, ...trailing];
+      // Same edit protection as the poll's reply merge: this replaces the
+      // first page wholesale, so a post edited seconds ago would revert.
+      const nowMs = Date.now();
+      const byId = new Map(prev.map((p) => [p.id, p]));
+      const merged = snapshot.posts.map((p) => {
+        const local = byId.get(p.id);
+        if (!local) return p;
+        const editedRecently =
+          nowMs - (optimisticEditAt.current[p.id] ?? 0) < EDIT_MERGE_GRACE_MS;
+        if (!editedRecently) return p;
+        if ((p.editedAt ?? 0) >= (local.editedAt ?? 0)) return p;
+        return { ...p, body: local.body, editedAt: local.editedAt };
+      });
+      return [...merged, ...trailing];
     });
     setPinned(snapshot.pinned);
     setReplies((prev) => ({ ...prev, ...snapshot.replies }));
@@ -1110,6 +1147,7 @@ export function LoungeView(props: Props) {
       const newBody = typeof data.body === "string" ? data.body : editDraft;
       const editedAt =
         typeof data.editedAt === "number" ? data.editedAt : Date.now();
+      optimisticEditAt.current[id] = Date.now();
       if (kind === "post") {
         setPosts((prev) =>
           prev.map((p) =>
