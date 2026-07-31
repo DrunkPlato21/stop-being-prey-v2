@@ -39,9 +39,13 @@ import { CoinProvider, CoinMemberNotice } from "@/components/CoinContext";
 type Props = {
   kind: CommentKind;
   slug: string;
+  /** Patron vocabulary on the gate. Opt-in, so /case-files and
+      /notes/field-notes keep the member wording and no surface ends up
+      half-translated. */
+  patron?: boolean;
 };
 
-export async function Comments({ kind, slug }: Props) {
+export async function Comments({ kind, slug, patron = false }: Props) {
   if (!isCommentsConfigured()) {
     // No Redis → render nothing rather than a broken section.
     return null;
@@ -183,8 +187,9 @@ export async function Comments({ kind, slug }: Props) {
               className="font-serif italic text-ink-muted leading-relaxed"
               style={{ fontSize: "0.9rem" }}
             >
-              Coins are how inner circle members highlight the best
-              comments.{" "}
+              {patron
+                ? "Coins are how patrons highlight the best comments."
+                : "Coins are how inner circle members highlight the best comments."}{" "}
               <a
                 href="/membership"
                 className="text-eye-deep"
@@ -293,18 +298,21 @@ export async function Comments({ kind, slug }: Props) {
               className="font-serif text-ink leading-relaxed mb-2"
               style={{ fontSize: "1rem" }}
             >
-              The comments are for members.
+              {patron
+                ? "The comments are for patrons."
+                : "The comments are for members."}
             </p>
             <p
               className="font-serif text-ink-muted leading-relaxed mb-5"
               style={{ fontSize: "1rem" }}
             >
-              Reading is free for everyone. The room behind the work is where
-              members talk, and where I talk back.
+              Reading is free for everyone. The room behind the work is
+              where {patron ? "patrons" : "members"} talk, and where I talk
+              back.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-x-6 gap-y-3">
               <Link href="/membership?src=comments" className="cta-prestige">
-                <span>Become a member</span>
+                <span>{patron ? "Become a patron" : "Become a member"}</span>
                 <span aria-hidden="true">&rarr;</span>
               </Link>
               <Link
@@ -312,7 +320,7 @@ export async function Comments({ kind, slug }: Props) {
                 className="font-serif italic text-ink-faint hover:text-eye-deep no-underline transition-colors"
                 style={{ fontSize: "0.85rem" }}
               >
-                already a member? sign in
+                already a {patron ? "patron" : "member"}? sign in
               </Link>
             </div>
           </div>

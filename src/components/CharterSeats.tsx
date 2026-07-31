@@ -19,3 +19,16 @@ export function CharterSeatsInline() {
     </>
   );
 }
+
+// Just the seat number, for use MID-SENTENCE where the surrounding words
+// are the author's and only the figure is live. Unlike CharterSeatsInline
+// this can never render nothing — a blank in the middle of a sentence is
+// worse than a slightly stale number — so it falls back to the last known
+// figure and swaps to the real one as soon as /api/stats answers. That
+// also means it server-renders a number instead of flashing empty.
+export function CharterSeatsCount({ fallback = 64 }: { fallback?: number }) {
+  const stats = useSiteStats();
+  const n =
+    stats && stats.charterRemaining > 0 ? stats.charterRemaining : fallback;
+  return <>{n}</>;
+}

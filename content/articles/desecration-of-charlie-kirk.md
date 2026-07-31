@@ -9,14 +9,23 @@ essayStyle: true
 # Homepage "From the essay" pull quote once this is the lead cornerstone.
 leadQuote: "If nobody wants you dead, you're not playing."
 # Tailored membership ask, shown above the end-of-essay subscribe block.
-closingCta: "If you read that and recognized the thing being described, you're who I write for. The room behind the work is where the next piece lands first, and where the people who refuse to submit actually talk."
+closingCta: "If you read that and recognized the thing being described, you're who I write for."
 # "The argument starts here" link. He names the losertarian phase directly.
+# Explicit "Read this next" picks, in order. Editorial call, not a date
+# sort: these two are the pieces that actually follow from this one.
+readNext:
+  - "the-losertarian-problem"
+  - "some-random-kid"
 prequelSlug: "the-losertarian-problem"
 prequelLabel: "The Losertarian Problem"
 # Draft gate. While false: hidden from the homepage, /writing, the issue
 # numbering, RSS, the sitemap and static generation, and served noindex.
 # The URL still resolves for members, and it shows on the Writer's Desk
 # as the early-access card. Flip to true on Sunday to launch.
+# The canned end-of-piece p.s. is off here. This essay closes with its
+# own `closingCta` above the Two ways in block, so the generic one would
+# be a fourth ask stacked on three.
+postscript: false
 published: false
 ---
 
@@ -40,7 +49,7 @@ It's not personal. It's politics.
 
 > "The tyrant dies and his rule is over, the martyr dies and his rule begins."
 >
-> \~ Soren Kierkegaard
+> \~ Soren Kierkegaard, journals, 1848
 
 That's what I posted to my Facebook page the day Charlie Kirk was assassinated. I didn't explain it, I didn't post a comment… I just posted that quote above a picture of Charlie, memorializing his life.
 
@@ -150,9 +159,9 @@ Stephen King knew it. Your aunt who shares NPR articles knew it. The HR lady at 
 
 Tyler Robinson knew it.
 
-> "Hey fascist, catch"
+> "Hey fascist! Catch!"
 >
-> \~ engraved on a shell casing found at the scene
+> \~ engraved on ammunition recovered at the scene, charging documents, Utah County, September 2025
 
 So Tyler is a hero in this world. He killed a fascist. A monster.
 
@@ -282,13 +291,11 @@ Days after Charlie was murdered, the House brought up a resolution to honor him.
 
 Well, that offended some people. AOC, a sitting Congresswoman, voted no on the resolution, and walked up to the microphone.
 
-"We should be clear about who Charlie Kirk was."
-
-She called the murder horrific and vile. Then, with his body barely cold, she read the charges.
+She called the murder horrific and vile. Then she read the charges.
 
 > "We should be clear about who Charlie Kirk was; a man who believed that the Civil Rights Act that granted Black Americans the right to vote was a mistake."
 >
-> \~ Alexandria Ocasio-Cortez
+> \~ Alexandria Ocasio-Cortez, House floor, September 19, 2025
 
 The Civil Rights Act didn't grant anyone the right to vote. That was the Voting Rights Act, a year later. She didn't do a basic fact check, she just uncritically fused two laws together to put the worst possible case against Charlie into the public record.
 
@@ -302,7 +309,7 @@ Three weeks later, Congresswoman Ilhan Omar sat down with Don Lemon and said thi
 
 > "But there is no legacy to honor. It was a legacy filled with bigotry, hatred, and White supremacy. And as a Black woman and as a Muslim in this country, I refuse to join the chorus that changes the history of what is on the record from this man."
 >
-> \~ Ilhan Omar
+> \~ Ilhan Omar, on Don Lemon's show, September 2025
 
 That's on the record now too.
 
@@ -321,6 +328,8 @@ That's exactly what they did to Charlie. They'd been screaming "fascist" at him 
 Signal sent. Signal received. One less effective enemy to contend with.
 
 The flock flies on.
+
+{{CTA}}
 
 So, that's how Charlie's enemies have treated him. It's to be expected, that's what enemies do… but now we have to talk about one of his "friends."
 
@@ -358,7 +367,7 @@ She looked at Tyler, confessed, his own father turning him in, motive carved int
 
 > "If Tyler Robinson's defense would like to contact me, I'd be happy to supply them the folder of the maroon boys that I began archiving when I noticed the bizarre fashion trend."
 >
-> \~ Candace Owens
+> \~ Candace Owens, July 9, 2026
 
 His own lawyers wouldn't touch a word of it. Why do you think that is? Are they in on the conspiracy too?
 
@@ -390,7 +399,7 @@ He talks about his faith, then he says this:
 
 > "There is a God, and I am not him, and I surrender to His will."
 >
-> \~ Charlie Kirk
+> \~ Charlie Kirk, in his final interview, September 10, 2025
 
 Charlie would never submit to the flock, because he had already submitted to a power that sits above it.
 
@@ -418,9 +427,9 @@ What made Charlie dangerous is that he was converting that energy into power. Th
 
 The magic was in what Charlie was building. The machinery. That's what scared the flock.
 
-> "This is not a flash-in-the-pan movement. We're going to become an institution."
+> "We want to be an institution in this country that is as well-known and as powerful as The New York Times, Harvard and tech companies. And we believe we're creating that."
 >
-> \~ Charlie Kirk
+> \~ Charlie Kirk, Deseret News, August 19, 2025
 
 An institution that reliably turns the flock's own heirs into a coalition that refuses to submit to it.
 

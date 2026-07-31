@@ -11,19 +11,30 @@ import {
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { AudioPill } from "@/components/AudioPill";
-import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
 import { EyeDivider } from "@/components/Eyes";
 import { ShareButtons } from "@/components/ShareButtons";
+import { CharterSeatsCount } from "@/components/CharterSeats";
 import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
 import { InlineSubscribe } from "@/components/InlineSubscribe";
 import { ReadingTracker } from "@/components/ReadingTracker";
-import { FinisherAchievement } from "@/components/FinisherAchievement";
 import { ReadThisNext } from "@/components/ReadThisNext";
 import { splitForInlineCta, stripCtaMarker } from "@/lib/inline-cta";
 import { isPaidViewer } from "@/lib/viewer";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
+
+// The site's ordinary inline-link treatment (same values as
+// ArticlePostscript): a hairline eye-colored underline sitting clear of
+// the baseline. Deliberately NOT a CTA style — these are links in a
+// sentence.
+const inlineLinkClass = "text-eye-deep hover:text-ink";
+const inlineLinkStyle: React.CSSProperties = {
+  textDecoration: "underline",
+  textDecorationColor: "var(--eye)",
+  textDecorationThickness: "1px",
+  textUnderlineOffset: "3px",
+};
 
 type PageParams = { slug: string };
 
@@ -126,10 +137,24 @@ export default async function ArticlePage({
   // Silent reading time for the byline (faster ~225 wpm pace).
   const readMin = readingMinutes(article);
 
-  // End-of-essay recirculation: the 2 newest other published essays
-  // (excluding this one and its prequel, which already gets its own link).
-  const readNext = getAllArticles()
-    .filter((a) => a.slug !== article.slug && a.slug !== article.prequelSlug)
+  // End-of-essay recirculation. The prequel is PINNED first when the
+  // piece has one: it is the single most relevant next read, and sorting
+  // by date alone buried it (the losertarian piece is older than the two
+  // newest essays, so it never surfaced under the Charlie piece). The
+  // remaining slot goes to the newest other essay.
+  const others = getAllArticles().filter((a) => a.slug !== article.slug);
+  const prequel = article.prequelSlug
+    ? others.find((a) => a.slug === article.prequelSlug)
+    : undefined;
+  // Explicit frontmatter picks win outright when present — the right next
+  // read is an editorial call more often than a date sort gets it right.
+  const picked = article.readNextSlugs
+    ?.map((slug) => others.find((a) => a.slug === slug))
+    .filter((a) => a !== undefined);
+  const readNext = (picked?.length ? picked : [
+    ...(prequel ? [prequel] : []),
+    ...others.filter((a) => a.slug !== prequel?.slug),
+  ])
     .slice(0, 2)
     .map((a) => ({
       slug: a.slug,
@@ -319,30 +344,38 @@ export default async function ArticlePage({
              but not the old 8rem void. If the frontmatter carries a
              `postscript` field, that custom markdown wins; otherwise fall
              back to the stable-hash rotation across the three variants. === */}
-        <div
-          className={`max-w-[38rem] mx-auto ${
-            article.essayStyle && !article.postscriptHtml
-              ? "mt-12 md:mt-16"
-              : "mt-8"
-          }`}
-        >
-          {/* Soft footer divider: the same short olive hairline the
-              blockquote captions use, so the P.S. reads as a deliberate
-              closing note rather than a floating line. */}
+        {/* The whole postscript wrapper, not just its contents — an empty
+            div still carried mt-16, which left a 4rem hole under the
+            sign-off on pieces that suppress the p.s. and made the two
+            section gaps below unequal. */}
+        {article.postscript !== false && (
           <div
-            aria-hidden="true"
-            className="mb-7"
-            style={{ width: "4rem", height: "1px", background: "var(--eye-deep)" }}
-          />
-          {article.postscriptHtml ? (
+            className={`max-w-[38rem] mx-auto ${
+              article.essayStyle && !article.postscriptHtml
+                ? "mt-12 md:mt-16"
+                : "mt-8"
+            }`}
+          >
+            {/* Soft footer divider: the same short olive hairline the
+                blockquote captions use, so the P.S. reads as a deliberate
+                closing note rather than a floating line. It only ever
+                appears WITH a p.s. — alone under the sign-off it read as
+                a quote-attribution rule missing its attribution. */}
             <div
-              className="postscript-block"
-              dangerouslySetInnerHTML={{ __html: article.postscriptHtml }}
+              aria-hidden="true"
+              className="mb-7"
+              style={{ width: "4rem", height: "1px", background: "var(--eye-deep)" }}
             />
-          ) : (
-            <ArticlePostscript slug={article.slug} />
-          )}
-        </div>
+            {article.postscriptHtml ? (
+              <div
+                className="postscript-block"
+                dangerouslySetInnerHTML={{ __html: article.postscriptHtml }}
+              />
+            ) : (
+              <ArticlePostscript slug={article.slug} />
+            )}
+          </div>
+        )}
       </div>
 
       {/* === References (opt-in, populated when markdown ends with
@@ -364,16 +397,70 @@ export default async function ArticlePage({
           words ("send it to one person who'd get it"), so the buttons
           follow the sentence. Kept ABOVE the email/membership capture so
           the low-friction action lands before the heavier ask. === */}
-      <div className="max-w-2xl mx-auto px-6 mt-12">
-        <ShareButtons url={`/${article.slug}`} title={article.title} />
+      {/* Centered on purpose. The rule below the sign-off: body copy sits
+          on the left margin, break elements sit on the centre line. The
+          share row is a break, so it centers; the patronage paragraph
+          under it is body copy, so it does not. Nested on the same 38rem
+          measure as that paragraph, so both occupy one column and only
+          differ in how they align inside it.
+
+          mt-14 lands the measured gap at 3.5rem, matching the gap below
+          the share row exactly — roughly double a paragraph gap, which is
+          what makes both breaks read as section changes now that the two
+          separator rules are gone. */}
+      <div className="max-w-3xl mx-auto px-6 mt-14">
+        <div className="mx-auto" style={{ maxWidth: "38rem" }}>
+          <ShareButtons url={`/${article.slug}`} title={article.title} />
+        </div>
       </div>
 
-      {/* End-of-read capture. Mounts nothing until the reader reaches the
-          end of #reading-region. Members get nothing; cold readers get
-          the email-list form; known subscribers get the cadence-capped
-          membership ask. Sits after the share row so the "pass it on" beat
-          comes first. */}
-      <FinisherAchievement slug={article.slug} isMember={hideCaptures} />
+      {/* === The ask, as a LADDER not a menu. It used to be a two-column
+          "Two ways in" block with free sitting beside paid, plus a second
+          email capture below it, which meant three competing asks and two
+          email forms under one essay. Now: one opening line, one loud
+          primary (patronage), one deliberately subordinate fallback (the
+          free list). The two are NOT siblings — the fallback is narrower,
+          smaller, unboxed, and its submit button is a ghost rather than a
+          filled one. Suppressed entirely for paying patrons. === */}
+      {!hideCaptures && (
+      <section className="max-w-3xl mx-auto px-6 pt-14 pb-10 md:pb-14">
+        {/* Prose, not a widget. No form controls on the page at all: the
+            ask is three paragraphs in the essay's own body face and size,
+            on the essay's own measure (38rem, matching .prose-article), so
+            it reads as the closing paragraphs of the piece. The two links
+            are ordinary inline links in a sentence — the house underline
+            treatment — not calls to action. One 4rem hairline above, the
+            same rule the quote attributions use. Nothing else. */}
+        <div className="mx-auto" style={{ maxWidth: "38rem" }}>
+          <div
+            className="font-serif text-ink space-y-6"
+            style={{ fontSize: "1.07rem", lineHeight: 1.65 }}
+          >
+            <p>
+              If you recognized the flock, you&apos;re who I write for.
+            </p>
+            <p>
+              This piece took a month. No advertiser was ever going to pay
+              for it. Patrons did, and they read it first.{" "}
+              <CharterSeatsCount /> charter seats left at $13 a month, locked
+              for life.{" "}
+              <Link href="/patronage" className={inlineLinkClass} style={inlineLinkStyle}>
+                Become a patron
+              </Link>
+              .
+            </p>
+            <p>
+              Not ready for that?{" "}
+              <Link href="/join" className={inlineLinkClass} style={inlineLinkStyle}>
+                The writing goes out free by email
+              </Link>
+              , nearly every day.
+            </p>
+          </div>
+        </div>
+      </section>
+      )}
+
 
       <EyeDivider />
 
@@ -381,7 +468,7 @@ export default async function ArticlePage({
           with a soft join CTA underneath for anonymous visitors.
           Moved up so the conversation sits right after the work,
           before the chrome (bio, share, audio, tip jar). === */}
-      <Comments kind="article" slug={article.commentSlug ?? article.slug} />
+      <Comments kind="article" slug={article.commentSlug ?? article.slug} patron />
 
       {/* === Author bio === */}
       <div className="max-w-3xl mx-auto px-6 mt-16">
@@ -428,48 +515,6 @@ export default async function ArticlePage({
       </section>
 
       <EyeDivider />
-
-      {/* === "Two ways in" conversion surface — dual paths so the reader
-          picks the level of commitment that fits. Suppressed for paying
-          members (they're already in); they still get the recirculation
-          block below. === */}
-      {!hideCaptures && (
-      <section className="max-w-3xl mx-auto px-6 py-10 md:py-14">
-        {/* Single conversion surface after the work: the tailored closing
-            line, then the two paths (free email + paid). The old standalone
-            scarcity block was cut — it repeated the "room / book in the open"
-            pitch and gave a second button to the same place. The paid column
-            now carries the charter-seats-left scarcity and the live room
-            total, so the ask lands once, not three times. */}
-        <p className="eyebrow mb-8 text-center">Two ways in</p>
-        {/* Tailored membership ask in the piece's own voice, when set
-            (frontmatter `closingCta`). Sits at the conversion surface,
-            above the generic dual block. */}
-        {article.closingCtaHtml && (
-          <div
-            className="max-w-2xl mx-auto mb-10 text-center font-serif text-ink leading-relaxed [&_a]:text-eye-deep [&_a:hover]:text-ink"
-            style={{ fontSize: "1.15rem" }}
-            dangerouslySetInnerHTML={{ __html: article.closingCtaHtml }}
-          />
-        )}
-        {/* The paid column's charter-seat count now arrives client-side
-            from /api/stats (CharterSeatsInline), so it always matches the
-            live membership page even when this page serves from cache. */}
-        <DualSubscribeBlock showCharterSeats />
-        {/* "The argument starts here" — pull engaged readers deeper into
-            the series instead of bouncing (frontmatter `prequelSlug`). */}
-        {article.prequelSlug && article.prequelLabel && (
-          <div className="mt-10 text-center">
-            <Link
-              href={`/${article.prequelSlug}`}
-              className="eyebrow no-underline hover:text-ink transition-colors"
-            >
-              Start here: {article.prequelLabel} &rarr;
-            </Link>
-          </div>
-        )}
-      </section>
-      )}
 
       {/* === Read this next. Exit-point recirculation, below the
           conversion CTA so it never competes with it. === */}

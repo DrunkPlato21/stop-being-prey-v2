@@ -60,6 +60,13 @@ export type ArticleMeta = {
       mid-point break). Defaults to on. A {{CTA}} marker in the body
       overrides placement; this kills it entirely. */
   inlineCta?: boolean;
+  /** Set `postscript: false` in frontmatter to suppress the end-of-piece
+      p.s. on this article. The canned ArticlePostscript is generic and
+      picked by hashing the slug, so on a piece that already carries a
+      tailored `closingCta` it reads as a fourth ask stacked on three
+      others. Also suppresses a custom `postscriptHtml` if one is set —
+      false means no postscript, full stop. Defaults to on. */
+  postscript?: boolean;
 };
 
 /**
@@ -101,6 +108,10 @@ export type Article = ArticleMeta & {
       piece make its membership ask in its own voice instead of the
       generic "More like this". Null when absent. */
   closingCtaHtml?: string | null;
+  /** Explicit "Read this next" picks, in order, by slug. Overrides the
+      default (prequel pinned first, then newest). For pieces where the
+      right next read is an editorial call, not a date sort. */
+  readNextSlugs?: string[];
   /** Optional "the argument starts here" link to an earlier issue this
       one builds on. Both fields come from frontmatter (`prequelSlug` /
       `prequelLabel`); label is stored so no extra file read is needed. */
@@ -315,10 +326,14 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     referencesHtml: referencesHtml ? externalLinksInNewTab(referencesHtml) : null,
     postscriptHtml,
     closingCtaHtml,
+    readNextSlugs: Array.isArray(data.readNext)
+      ? data.readNext.filter((v: unknown): v is string => typeof v === "string")
+      : undefined,
     prequelSlug:
       typeof data.prequelSlug === "string" ? data.prequelSlug : undefined,
     prequelLabel:
       typeof data.prequelLabel === "string" ? data.prequelLabel : undefined,
     inlineCta: data.inlineCta === false ? false : undefined,
+    postscript: data.postscript === false ? false : undefined,
   };
 }
