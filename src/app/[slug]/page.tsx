@@ -410,7 +410,11 @@ export default async function ArticlePage({
           separator rules are gone. */}
       <div className="max-w-3xl mx-auto px-6 mt-14">
         <div className="mx-auto" style={{ maxWidth: "38rem" }}>
-          <ShareButtons url={`/${article.slug}`} title={article.title} />
+          <ShareButtons
+            url={`/${article.slug}`}
+            title={article.title}
+            slug={article.slug}
+          />
         </div>
       </div>
 

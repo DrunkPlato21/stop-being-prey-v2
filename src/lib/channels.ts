@@ -14,6 +14,14 @@ export const TRACK_CHANNELS = [
   "youtube",
   "google",
   "email",
+  // A reader passed the piece on by hand: forwarded the email, or copied
+  // the link and pasted it somewhere. Both arrive with NO referrer, so
+  // until now they were indistinguishable from "direct". The share row
+  // tags those two links with ?ref=share to separate them out. Twitter
+  // and Facebook links are deliberately left untagged — their referrer
+  // already identifies them, and tagging would move that traffic out of
+  // its own bucket.
+  "share",
   "direct",
   "other",
 ] as const;
@@ -40,6 +48,11 @@ const HOST_RULES: Array<[RegExp, TrackChannel]> = [
 // referrer guess. Normalized loosely to the channel vocabulary.
 function fromTag(tag: string): TrackChannel | undefined {
   const t = tag.toLowerCase();
+  // Must come first. "share" would otherwise be caught by nothing, but a
+  // future "share-email" style tag would fall into the email rule below
+  // and get counted as a newsletter send, which is the one thing this
+  // channel exists to tell apart.
+  if (/^share/.test(t)) return "share";
   if (/facebook|fb|meta/.test(t)) return "facebook";
   if (/instagram|ig/.test(t)) return "instagram";
   if (/twitter|x\.com|tweet/.test(t)) return "twitter";

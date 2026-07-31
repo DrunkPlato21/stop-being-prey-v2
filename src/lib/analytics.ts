@@ -27,6 +27,13 @@ export const TRACK_EVENTS = [
   "form_seen",
   "sub_submit",
   "sub_success",
+  // Outbound click on the "Pass it on" row under a piece. The `channel`
+  // dimension carries WHICH button (twitter / facebook / email / share
+  // for copy-link). This is the only surface on the site that was never
+  // instrumented, so there is currently no way to know whether readers
+  // share at all. Pairs with the "share" channel on the inbound side:
+  // this counts intent, that counts arrivals.
+  "share_click",
   // End-of-read capture + membership funnel. achievement_shown fires on a
   // non-member's first finish of a piece (the denominator for both ask
   // flavors; the legacy event name is kept so the counter series stays
