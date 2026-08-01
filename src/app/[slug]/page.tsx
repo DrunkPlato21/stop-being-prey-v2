@@ -21,6 +21,7 @@ import { ReadingTracker } from "@/components/ReadingTracker";
 import { ReadThisNext } from "@/components/ReadThisNext";
 import { splitForInlineCta, stripCtaMarker } from "@/lib/inline-cta";
 import { isPaidViewer } from "@/lib/viewer";
+import { recordEvent } from "@/lib/analytics";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
 
@@ -119,6 +120,12 @@ export default async function ArticlePage({
         (await cookies()).get(SESSION_COOKIE)?.value
       );
       if (!session?.email) {
+        // Counted server-side, not from the client: the gate ships almost
+        // no JS and a beacon would miss anyone who bounces immediately,
+        // which is exactly the population worth knowing about. Fire and
+        // forget so a slow counter never delays the render. Lands in this
+        // piece's per-article counters beside its views.
+        void recordEvent("gate_shown", { slug: article.slug });
         return <DraftGate article={article} />;
       }
     }

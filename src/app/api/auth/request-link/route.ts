@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { createMagicLink, safeNextPath } from "@/lib/auth";
-import { sendMagicLink } from "@/lib/email";
+import { sendMagicLink, sendNoMembershipNote } from "@/lib/email";
+import { recordEvent } from "@/lib/analytics";
 import {
   baseUrl,
   emailHasActiveMembership,
@@ -107,6 +108,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ ok: true });
   }
 
+  // Counted here rather than at the top of the route so it measures real
+  // reader intent: past the rate limiter (a flooder's 6th attempt is not a
+  // 6th person trying to get in) and past the admin branch (Clay signing
+  // in is not a data point). Pairs with signin_no_match below — the gap
+  // between the two is how many people tried to get in and couldn't.
+  void recordEvent("signin_requested", { source: "signin" });
+
   // Decide whether to send a login link. The webhook-maintained member
   // record is the source of truth: if it says active/trialing, send.
   //
@@ -159,12 +167,32 @@ export async function POST(req: NextRequest) {
   }
 
   if (!customerId) {
-    // Silent success — don't leak whether the email is a member. In dev,
-    // log loudly so a developer can tell why no email arrived.
+    // Silent success to the CALLER — the response must stay identical
+    // either way so this endpoint can't be used to probe who is a member.
     if (process.env.NODE_ENV !== "production") {
       console.warn(
-        `[auth/request-link] no active membership for ${email}; skipping ` +
-          `magic link send. Set DEV_AUTO_GRANT=1 to bypass while testing.`
+        `[auth/request-link] no active membership for ${email}; sending the ` +
+          `no-membership note instead. Set DEV_AUTO_GRANT=1 to bypass while testing.`
+      );
+    }
+    // But the person still gets an email. Silence was the actual failure
+    // here: they sat waiting on a link that was never coming, and the only
+    // way it ever surfaced was one of them tracking down Clay's address to
+    // ask. This leaks nothing — the note goes only to the address that was
+    // typed, so its reader already knows what they typed, and from the
+    // outside every request still produces exactly one email.
+    void recordEvent("signin_no_match", { source: "signin" });
+    const note = await sendNoMembershipNote({ to: email }).catch(
+      (err): { ok: false; error: string } => ({
+        ok: false,
+        error: err instanceof Error ? err.message : "send_failed",
+      })
+    );
+    if (!note.ok && process.env.NODE_ENV === "production") {
+      // Log and swallow. A failed courtesy note must never change the
+      // response, which has to stay a silent 200.
+      console.error(
+        `[auth/request-link] no-membership note failed for ${email}: ${note.error}`
       );
     }
     return Response.json({ ok: true });

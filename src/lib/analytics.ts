@@ -71,6 +71,24 @@ export const TRACK_EVENTS = [
   "pool_waitlisted",
   "pool_contribution_started",
   "pool_contributed",
+  // Draft gate. gate_shown fires server-side when a non-member lands on
+  // an unpublished piece at its real URL and gets the join prompt instead
+  // of the body. Carries the slug, so it lands in the per-article counters
+  // beside that piece's views. This is the highest-intent surface on the
+  // site during a members-first window and it was previously invisible:
+  // the window closes when the piece publishes and the measurement can
+  // never be repeated for that piece.
+  "gate_shown",
+  // Sign-in funnel. signin_requested on every well-formed link request
+  // that clears the rate limiter; signin_no_match on the subset where the
+  // address resolves to no membership. The gap between them is the number
+  // of people who tried to get in and couldn't. Before this, that failure
+  // was invisible on both sides: the caller gets a deliberate silent 200
+  // (so the endpoint can't be used to probe who is a member) and nothing
+  // was written anywhere. The only way it ever surfaced was a reader
+  // emailing to ask why no link arrived.
+  "signin_requested",
+  "signin_no_match",
 ] as const;
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
 
@@ -87,6 +105,10 @@ export const TRACK_SOURCES = [
   "rules",
   "about",
   "comments",
+  // The sign-in page. Its events carry no article slug, and recordEvent
+  // writes nothing at all for a slugless event that isn't source-tracked,
+  // so this source is what gives them somewhere to land.
+  "signin",
   "unknown",
 ] as const;
 export type TrackSource = (typeof TRACK_SOURCES)[number];
@@ -109,6 +131,10 @@ const SOURCE_TRACKED_EVENTS: ReadonlySet<string> = new Set([
   "pool_waitlisted",
   "pool_contribution_started",
   "pool_contributed",
+  // Slugless by nature: the sign-in page isn't tied to one piece. Without
+  // being listed here they would write nothing at all.
+  "signin_requested",
+  "signin_no_match",
 ]);
 
 // Events that also roll up into a per-CHANNEL counter (analytics:channel:*)

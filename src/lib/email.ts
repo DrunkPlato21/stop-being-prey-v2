@@ -166,6 +166,151 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/* === No-membership note ====================================
+   Sent when someone asks for a sign-in link and the address resolves
+   to no membership. Before this, that request produced total silence:
+   the endpoint returns a deliberate silent 200 (so it can't be used to
+   probe who is a member) and nothing was sent, so the person sat
+   waiting on an email that was never coming. The only way it surfaced
+   was a reader tracking down Clay's address to ask.
+
+   This leaks nothing. The note goes only to the address that asked, so
+   the sender already knows what they typed. From the outside the
+   behaviour is unchanged: anyone who asks gets exactly one email, and
+   its contents are only ever visible to whoever controls that inbox.
+
+   It is also a conversion surface, and a good one. Someone asking for
+   a sign-in link is trying to get in. The two real cases are "I pay
+   under a different address" and "I never actually joined", so the
+   note answers both and asks for the reply that resolves the first. */
+
+export async function sendNoMembershipNote(args: {
+  to: string;
+}): Promise<SendResult> {
+  const resend = client();
+  if (!resend) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[email] RESEND_API_KEY not set, no-membership note not sent to ${args.to}`
+      );
+    }
+    return { ok: false, error: "email_not_configured" };
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`\n[email] (dev) no-membership note would go to ${args.to}\n`);
+  }
+
+  const subject = "about that sign-in link";
+  const html = renderNoMembershipHtml();
+  const text = renderNoMembershipText();
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: args.to,
+      subject,
+      html,
+      text,
+      replyTo: REPLY_TO,
+    });
+    if (result.error) {
+      console.error("[email] Resend rejected no-membership note:", {
+        to: args.to,
+        error: result.error,
+      });
+      return { ok: false, error: result.error.message };
+    }
+    console.info(
+      `[email] no-membership note sent to ${args.to} (resend id: ${result.data?.id ?? "?"})`
+    );
+    return { ok: true, id: result.data?.id ?? "" };
+  } catch (err) {
+    console.error("[email] Resend threw while sending no-membership note:", {
+      to: args.to,
+      error: err,
+    });
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "send_failed",
+    };
+  }
+}
+
+export function renderNoMembershipHtml(): string {
+  const patronageUrl = `${getBaseUrl()}/patronage`;
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Stop Being Prey, about that sign-in link</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5efe1;font-family:Georgia,'Times New Roman',serif;color:#1a1714;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5efe1;padding:48px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#fbf6e9;border:1px solid #c9bfa3;padding:40px 32px;">
+            <tr>
+              <td style="text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.7rem;letter-spacing:0.32em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding-bottom:24px;">
+                Stop Being Prey
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;font-style:italic;">you asked for a sign-in link.</p>
+                <p style="margin:0 0 18px 0;">I don't have a patronage on file for this address, so there's no link to send you. Rather than leave you waiting on an email that isn't coming, here's what's probably going on.</p>
+                <p style="margin:0 0 18px 0;"><strong>If you support the work under a different email</strong>, just reply to this and tell me which one. I'll get you sorted the same day.</p>
+                <p style="margin:0 0 28px 0;"><strong>If you haven't joined yet</strong>, that's the other half of it. Patrons read new pieces first, before they go public.</p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:8px 0 28px 0;">
+                <a href="${escapeHtml(patronageUrl)}" style="display:inline-block;background:#1a1714;color:#f5efe1;text-decoration:none;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.78rem;letter-spacing:0.22em;text-transform:uppercase;font-weight:600;padding:14px 28px;border:1px solid #1a1714;">
+                  See what's inside
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:13px;font-style:italic;color:#8a8077;line-height:1.6;border-top:1px solid #d8cfb8;padding-top:20px;">
+                <p style="margin:0 0 6px 0;">if you didn't ask for a sign-in link, someone typed this address by mistake. nothing happened, and you can ignore this.</p>
+                <p style="margin:14px 0 0 0;">stay close,<br/>~ Clay</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+export function renderNoMembershipText(): string {
+  return [
+    "stop being prey, about that sign-in link",
+    "",
+    "you asked for a sign-in link.",
+    "",
+    "I don't have a patronage on file for this address, so there's no",
+    "link to send you. Rather than leave you waiting on an email that",
+    "isn't coming, here's what's probably going on.",
+    "",
+    "If you support the work under a different email, just reply to this",
+    "and tell me which one. I'll get you sorted the same day.",
+    "",
+    "If you haven't joined yet, that's the other half of it. Patrons read",
+    "new pieces first, before they go public.",
+    "",
+    `${getBaseUrl()}/patronage`,
+    "",
+    "if you didn't ask for a sign-in link, someone typed this address by",
+    "mistake. nothing happened, and you can ignore this.",
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+}
+
 /* === Reply notification ====================================
    Sent to a comment author after Clay posts a reply. Voice and
    visual match the magic-link email so the inbox feels coherent. */

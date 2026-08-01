@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getAllArticles } from "@/lib/articles";
+import { getAllArticles, getEarlyAccessArticle } from "@/lib/articles";
 import {
   getArticleCounts,
   getChannelCounts,
@@ -62,7 +62,15 @@ export default async function AnalyticsAdminPage({
   const dev = params.ns === "dev";
 
   const articles = getAllArticles();
-  const slugs = articles.map((a) => a.slug);
+  // The draft is deliberately absent from getAllArticles, but it is the
+  // ONLY piece that can accrue gate_shown — the gate exists exactly while
+  // a piece is unpublished. Fetch its counters explicitly or the members-
+  // first window would be recorded and never displayed.
+  const draft = getEarlyAccessArticle();
+  const slugs = [
+    ...articles.map((a) => a.slug),
+    ...(draft ? [draft.slug] : []),
+  ];
   const [counts, staticCounts, sources, channels, membership, engagement] =
     await Promise.all([
       getArticleCounts(slugs, dev),
@@ -97,6 +105,10 @@ export default async function AnalyticsAdminPage({
 
   const totalViews = n(totals, "view");
   const totalSuccess = n(totals, "sub_success");
+
+  // Sign-in events carry no slug, so they live in the "signin" source
+  // bucket rather than in any per-article counter.
+  const signin = sources.get("signin") ?? {};
 
   return (
     <div className="max-w-6xl mx-auto px-6 pt-12 md:pt-16 pb-24">
@@ -419,6 +431,39 @@ export default async function AnalyticsAdminPage({
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* The way in. Two surfaces that were previously invisible and that
+          only a reader emailing to complain ever surfaced: the draft gate
+          (strangers hitting a members-only piece) and the sign-in no-match
+          (people who tried to get in under an address with no membership
+          behind it). The gate half is unrepeatable — it can only be
+          measured while a piece is unpublished. */}
+      <h2 className="eyebrow mt-12 mb-3">The way in</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl">
+        <Stat
+          label={draft ? "Gate shown" : "Gate shown (no draft)"}
+          value={draft ? n(counts.get(draft.slug) ?? {}, "gate_shown") : 0}
+          sub={draft ? draft.title : "nothing unpublished right now"}
+        />
+        <Stat
+          label="Sign-in requests"
+          value={n(signin, "signin_requested")}
+          sub="past rate limit, excludes admin"
+        />
+        <Stat
+          label="No membership found"
+          value={n(signin, "signin_no_match")}
+          sub="each one gets the note"
+        />
+        <Stat
+          label="Matched"
+          valueText={pct(
+            n(signin, "signin_requested") - n(signin, "signin_no_match"),
+            n(signin, "signin_requested")
+          )}
+          sub="requests that got a real link"
+        />
       </div>
 
       <p className="font-serif italic text-ink-faint text-sm mt-8 leading-relaxed max-w-xl">
