@@ -24,6 +24,11 @@ export type ArticleMeta = {
   spotifyEpisodeId?: string;
   chapter?: number;
   wordCount?: number;
+  /** Optional background photo for the share card (the link preview on
+      X, Facebook, iMessage). Filename only, resolved from /assets, which
+      is already bundled into the OG routes. Absent = the plain dark card.
+      Pre-crop the file to 1200x630; the card does no image processing. */
+  ogImage?: string;
   /** Legacy: marked the "Start Here" pick on the retired podcast page.
       Currently unused; kept so existing frontmatter stays valid and a
       future featured-essay slot can reuse it. */
@@ -184,6 +189,7 @@ function readAllArticleMeta(): ArticleMeta[] {
       cornerstone: data.cornerstone === true,
       spotifyEpisodeId: data.spotifyEpisodeId,
       chapter: data.chapter,
+      ogImage: typeof data.ogImage === "string" ? data.ogImage : undefined,
       // essayStyle pieces carry {{tokens}} and inline citation URLs that
       // aren't prose; count them the way the early-access view did so the
       // displayed total reflects what's actually read.
@@ -313,6 +319,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     issue: data.issue,
     spotifyEpisodeId: data.spotifyEpisodeId,
     chapter: data.chapter,
+    ogImage: typeof data.ogImage === "string" ? data.ogImage : undefined,
     wordCount: essayStyle ? countWords(content) : countBodyWords(content),
     published: data.published !== false,
     essayStyle,

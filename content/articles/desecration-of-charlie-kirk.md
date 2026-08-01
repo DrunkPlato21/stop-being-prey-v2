@@ -6,6 +6,10 @@ description: "Tyler Robinson pulled the trigger. He didn't decide Charlie Kirk h
 subtitle: "They have to kill him twice."
 cornerstone: true
 essayStyle: true
+# Share-card background. The murmuration, which is the essay's own image
+# for how a verdict gets reached with nobody giving the order. Lives in
+# /assets, pre-cropped to 1200x630.
+ogImage: "og-murmuration.jpg"
 # Homepage "From the essay" pull quote once this is the lead cornerstone.
 leadQuote: "If nobody wants you dead, you're not playing."
 # Tailored membership ask, shown above the end-of-essay subscribe block.

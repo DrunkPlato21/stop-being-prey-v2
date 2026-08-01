@@ -12,12 +12,32 @@ export const OG_CONTENT_TYPE = "image/png";
 // into the OG routes' function bundle via outputFileTracingIncludes in
 // next.config.ts. Returns null on any read failure so the card still
 // renders (Satori's default font) rather than erroring.
-async function loadFont(file: string): Promise<Buffer | null> {
+async function loadAsset(file: string): Promise<Buffer | null> {
   try {
     return await readFile(join(process.cwd(), "assets", file));
   } catch {
     return null;
   }
+}
+
+async function loadFont(file: string): Promise<Buffer | null> {
+  return loadAsset(file);
+}
+
+/**
+ * Read a bundled image out of /assets as a data URI. Satori can't fetch a
+ * URL at render time in any way we'd want to depend on, so the bytes go
+ * inline. Pre-crop the source to 1200x630 before committing it — nothing
+ * here resizes. Returns null on any failure so the card falls back to the
+ * plain dark chassis rather than erroring the whole route.
+ */
+async function loadImageDataUri(file: string): Promise<string | null> {
+  const buf = await loadAsset(file);
+  if (!buf) return null;
+  const ext = file.toLowerCase().split(".").pop();
+  const mime =
+    ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+  return `data:${mime};base64,${buf.toString("base64")}`;
 }
 
 /**
@@ -649,13 +669,24 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
     article?.description ?? "On power, politics, and the apex class.";
   const chapter = article?.chapter;
 
-  // Cap the description so it fits on ~2 lines at 36px italic across the
+  // Optional photo background (frontmatter `ogImage`). Loaded first because
+  // it decides the deck: over a photo the card runs the article's subtitle,
+  // which is the one-line hook, since a two-line description fights the
+  // image for the same space. Plain cards keep the description they've
+  // always had — this must not restyle every card that's already been
+  // scraped and cached by the platforms.
+  const photo = article?.ogImage
+    ? await loadImageDataUri(article.ogImage)
+    : null;
+  const deckSource = photo ? article?.subtitle || description : description;
+
+  // Cap the deck so it fits on ~2 lines at 36px italic across the
   // full editorial column. Satori's WebkitLineClamp isn't reliable here, so
   // the truncation is the truth.
   const trimmedDesc =
-    description.length > 140
-      ? description.slice(0, 137).replace(/[\s,;.]+$/, "") + "…"
-      : description;
+    deckSource.length > 140
+      ? deckSource.slice(0, 137).replace(/[\s,;.]+$/, "") + "…"
+      : deckSource;
 
   const eyebrow = chapter
     ? `Chapter ${chapter} · Stop Being Prey`
@@ -698,6 +729,41 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
           position: "relative",
         }}
       >
+        {photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photo}
+            alt=""
+            width={1200}
+            height={630}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "1200px",
+              height: "630px",
+              objectFit: "cover",
+            }}
+          />
+        ) : null}
+        {photo ? (
+          // Scrim. The type sits left, so the darkness is heaviest there and
+          // thins toward the flock on the right. Without it the cream title
+          // lands on open sky and turns to mush at thumbnail size, which is
+          // the size these cards are actually read at.
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "1200px",
+              height: "630px",
+              display: "flex",
+              backgroundImage:
+                "linear-gradient(90deg, rgba(12,10,8,0.86) 0%, rgba(12,10,8,0.76) 34%, rgba(12,10,8,0.48) 62%, rgba(12,10,8,0.20) 100%)",
+            }}
+          />
+        ) : null}
         <div
           style={{
             display: "flex",
@@ -728,6 +794,16 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
                 color: "#f5efe1",
                 fontSize: 96,
                 fontWeight: 700,
+                // Spread, never `key: undefined`. Satori chokes on a style
+                // key present with an undefined value and the whole card
+                // fails to render, so the photo-only styles have to be
+                // absent, not empty, on the plain cards.
+                ...(photo
+                  ? {
+                      textShadow: "0 2px 24px rgba(0,0,0,0.75)",
+                      maxWidth: 880,
+                    }
+                  : {}),
                 lineHeight: 1.02,
                 letterSpacing: "-0.025em",
                 marginBottom: 36,
@@ -751,6 +827,12 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
                 WebkitBoxOrient: "vertical",
                 WebkitLineClamp: 2,
                 overflow: "hidden",
+                ...(photo
+                  ? {
+                      textShadow: "0 2px 20px rgba(0,0,0,0.8)",
+                      maxWidth: 860,
+                    }
+                  : {}),
               }}
             >
               {trimmedDesc}
@@ -759,7 +841,11 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
 
           <div
             style={{
-              color: "#8a7d20",
+              // Brighter gold over a photo. The deep #8a7d20 is tuned for a
+              // flat black field; on the sunset at the bottom of a picture
+              // it sinks into the background.
+              color: photo ? "#c4ac35" : "#8a7d20",
+              ...(photo ? { textShadow: "0 1px 12px rgba(0,0,0,0.9)" } : {}),
               fontSize: 18,
               letterSpacing: "0.28em",
               textTransform: "uppercase",
