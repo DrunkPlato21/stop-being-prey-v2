@@ -461,6 +461,39 @@ export default async function ArticlePage({
       </section>
       )}
 
+      {/* === The patron's closer. The ladder above is suppressed for people
+          who already pay, which left them with no ask at all except the
+          muted Wall line far below the comments, the bio and the audio
+          block. The readers most likely to give more were the ones the
+          page asked least. So patrons get their own closer in the same
+          slot, same prose treatment, same measure: not a second membership
+          pitch, and not a tip jar. The Wall is where a reader backs one
+          specific piece and signs their name to it, which is the thing a
+          recurring subscription can't express. The quiet Wall line below
+          is suppressed when this shows, so there is only ever one. === */}
+      {hideCaptures && (
+      <section className="max-w-3xl mx-auto px-6 pt-14 pb-10 md:pb-14">
+        <div className="mx-auto" style={{ maxWidth: "38rem" }}>
+          <div
+            className="font-serif text-ink space-y-6"
+            style={{ fontSize: "1.07rem", lineHeight: 1.65 }}
+          >
+            <p>
+              You already pay for this. It&apos;s the reason the piece exists
+              at all.
+            </p>
+            <p>
+              If this one hit you,{" "}
+              <Link href="/wall" className={inlineLinkClass} style={inlineLinkStyle}>
+                the Wall
+              </Link>{" "}
+              is where readers leave a message and sign their name to it.
+            </p>
+          </div>
+        </div>
+      </section>
+      )}
+
 
       <EyeDivider />
 
@@ -494,8 +527,11 @@ export default async function ArticlePage({
       {/* === Support nudge. The publication is reader-funded; the Wall is
           where readers back the work and sign their name. Reframed from the
           old "tip jar" line, which undercut the Wall's support-first
-          framing. Always present so the funding model surfaces on every
-          essay, not just the third that gets variant C. === */}
+          framing. Present for everyone EXCEPT paying patrons, who get the
+          fuller Wall closer up in the ask slot instead. Two Wall asks on
+          one page would read as nagging, and the quiet one down here would
+          be the weaker of the two. === */}
+      {!hideCaptures && (
       <section className="max-w-2xl mx-auto px-6 mt-12 text-center">
         <p className="font-serif italic text-ink-muted leading-relaxed">
           Reader-supported.{" "}
@@ -513,6 +549,7 @@ export default async function ArticlePage({
           </Link>
         </p>
       </section>
+      )}
 
       <EyeDivider />
 
