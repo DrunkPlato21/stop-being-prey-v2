@@ -69,7 +69,7 @@ Then, they killed him, and it's like a switch flipped in my brain. The world sta
 
 I was born 8 years before Charlie, but he was somehow 100 years wiser than I was.
 
-The so-called 'marketplace of ideas' is, in fact, not a marketplace at all. It is a battlefield. Charlie was fighting the real war, trying to take real ground, while me and my libertarian friends argued in the halls of a marketplace that doesn't even exist.
+The so-called 'marketplace of ideas' is, in fact, not a marketplace at all. It is a battlefield. Charlie was fighting the real war, trying to take real ground, while my libertarian friends and I argued in the halls of a marketplace that doesn't even exist.
 
 I watched his memorial… that enormous event in the stadium, with hundreds of thousands of people. I watched the people who loved him try to put his life into words. I mourned him for months. I'm still mourning him now.
 
