@@ -6,7 +6,6 @@ import type {
   WritersDeskState,
   FirstRunState,
   DeskPoolAsk,
-  DeskEarlyAccess,
 } from "@/lib/writers-desk-state";
 import type { PresenceState } from "@/lib/desk";
 import type { PulseEvent } from "@/lib/pulse";
@@ -355,104 +354,6 @@ function CheckDisc({ done }: { done: boolean }) {
 // earns its keep on the desk: it's a temporary, actionable element that
 // should stand out, and it retires once the member is settled (finished
 // or dismissed). Olive outline marks it as the thing to act on.
-/**
- * Early-access card. The only surface on the site that points at an
- * unpublished piece, so it carries the whole members-first window: no
- * catalog lists a draft, and members would otherwise never learn it's
- * there. Sits at the top of the desk because for the days it's up, it
- * IS the reason to be in the room.
- *
- * Deliberately heavier than the other panels (gold rule, larger title):
- * this is the marquee, not another row in a list.
- */
-/* The members-first window is the only time the thread under a
-   cornerstone is empty. Comments seeded now are what the public reads
-   first when it opens up, so the card asks for one explicitly rather
-   than leaving "Read it now" to imply it.
-
-   Option A is wired. Clay picks:
-     A  The comments are open, and empty. Leave the first one.
-     B  Leave a comment before the rest of the world gets here.
-     C  Be the first comment on this one.                            */
-const EARLY_ACCESS_COMMENT_LINE =
-  "The comments are open, and empty. Leave the first one.";
-// const EARLY_ACCESS_COMMENT_LINE =
-//   "Leave a comment before the rest of the world gets here.";
-// const EARLY_ACCESS_COMMENT_LINE =
-//   "Be the first comment on this one.";
-
-function EarlyAccessPanel({ piece }: { piece: DeskEarlyAccess }) {
-  return (
-    <div
-      style={{
-        marginBottom: "1.75rem",
-        background: "var(--surface)",
-        border: "1px solid var(--eye-deep)",
-        borderTop: "3px solid var(--eye)",
-        borderRadius: 2,
-        padding: "1.35rem 1.4rem 1.2rem",
-      }}
-    >
-      <p
-        className="font-display uppercase text-ink mb-2.5"
-        style={{ letterSpacing: "0.2em", fontSize: "0.78rem", fontWeight: 700 }}
-      >
-        {piece.cornerstone ? "Yours first · Cornerstone" : "Yours first"}
-      </p>
-
-      <Link href={`/${piece.slug}`} className="block group">
-        <h3
-          className="font-display text-ink leading-tight mb-2"
-          style={{
-            fontSize: "clamp(1.35rem, 3.4vw, 1.75rem)",
-            fontWeight: 700,
-            letterSpacing: "-0.015em",
-          }}
-        >
-          {piece.title}
-        </h3>
-      </Link>
-
-      <p
-        className="font-serif text-ink-muted leading-relaxed mb-4"
-        style={{ fontSize: "0.95rem" }}
-      >
-        {piece.description}
-      </p>
-
-      <p
-        className="font-serif text-ink leading-relaxed mb-4"
-        style={{ fontSize: "0.95rem" }}
-      >
-        {EARLY_ACCESS_COMMENT_LINE}
-      </p>
-
-      <div className="flex items-baseline justify-between gap-4 flex-wrap">
-        <Link
-          href={`/${piece.slug}`}
-          className="text-eye-deep hover:text-ink"
-          style={{
-            fontSize: "0.92rem",
-            textDecoration: "underline",
-            textDecorationColor: "var(--eye)",
-            textDecorationThickness: "1px",
-            textUnderlineOffset: "3px",
-          }}
-        >
-          Read it now
-        </Link>
-        {/* No em dashes in member-facing copy. */}
-        <span
-          className="font-serif italic text-ink-faint"
-          style={{ fontSize: "0.8rem" }}
-        >
-          Not public yet
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function FirstRunPanel({ firstRun }: { firstRun: FirstRunState }) {
   const [dismissed, setDismissed] = useState(false);
   if (dismissed) return null;
@@ -721,7 +622,6 @@ export function WritersDeskView({
     rooms,
     firstRun,
     poolAsk,
-    earlyAccess,
     isSignedIn,
     isAdmin: viewerIsAdmin,
   } = data;
@@ -855,10 +755,6 @@ export function WritersDeskView({
               : "View this as a reader"}
           </button>
         )}
-
-        {/* Above the first-run checklist: a member who lands during the
-            window should see the new piece before anything else. */}
-        {earlyAccess && <EarlyAccessPanel piece={earlyAccess} />}
 
         {effectiveFirstRun && <FirstRunPanel firstRun={effectiveFirstRun} />}
 

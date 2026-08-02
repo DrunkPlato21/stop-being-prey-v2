@@ -8,7 +8,6 @@ import {
   type PresenceState,
 } from "./desk";
 import { getRecentWorkEvents, type PulseEvent } from "./pulse";
-import { getEarlyAccessArticle } from "./articles";
 import { getProfile, getProfilesByEmails, isAdmin } from "./comments";
 import { getMember } from "./members";
 import { listByMember, type Note } from "./notes";
@@ -106,23 +105,6 @@ export type DeskPoolAsk = {
   seatPriceCents: number;
 };
 
-/**
- * The members-only early-access card. A `published: false` piece is
- * readable at its URL but hidden from every catalog, so members have no
- * way to discover it. This is that missing surface, and it's the only
- * place on the site that points at an unpublished piece.
- *
- * Anonymous viewers never receive it (the desk is gated anyway), so the
- * draft's existence stays inside the room.
- */
-export type DeskEarlyAccess = {
-  slug: string;
-  title: string;
-  description: string;
-  /** Cornerstones get the heavier treatment; dispatches read lighter. */
-  cornerstone: boolean;
-};
-
 export type WritersDeskState = {
   presence: DeskPresence;
   state: PresenceState;
@@ -155,8 +137,6 @@ export type WritersDeskState = {
   firstRun: FirstRunState | null;
   /** Pool-ask band (cover a seat for a waiting reader), or null to hide. */
   poolAsk: DeskPoolAsk | null;
-  /** Unpublished piece members can read early, or null. See DeskEarlyAccess. */
-  earlyAccess: DeskEarlyAccess | null;
   isSignedIn: boolean;
   isAdmin: boolean;
 };
@@ -404,20 +384,6 @@ export async function getWritersDeskState(
     },
   };
 
-  // Early-access card. Signed-in viewers only: an anonymous visitor must
-  // never learn an unpublished piece exists, since the whole point of the
-  // window is that it's the room's to read first. Reads the filesystem,
-  // so there's no Redis cost on the polling loop.
-  const earlyAccessArticle = viewerEmail ? getEarlyAccessArticle() : null;
-  const earlyAccess: DeskEarlyAccess | null = earlyAccessArticle
-    ? {
-        slug: earlyAccessArticle.slug,
-        title: earlyAccessArticle.title,
-        description: earlyAccessArticle.description,
-        cornerstone: earlyAccessArticle.cornerstone === true,
-      }
-    : null;
-
   return {
     presence,
     state,
@@ -434,7 +400,6 @@ export async function getWritersDeskState(
     rooms,
     firstRun,
     poolAsk,
-    earlyAccess,
     isSignedIn: !!viewerEmail,
     isAdmin: viewerIsAdmin,
   };
