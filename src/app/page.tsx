@@ -233,11 +233,46 @@ export default function Home() {
         );
       })()}
 
+      {/* === Reader proof === A thin strip of real reader words, sitting
+          between the writing and the doctrine: the praise lands right after
+          the pieces it's praising, while the reader is still deciding
+          whether this is for them. Quotes come from the shared pool in
+          lib/testimonials.ts (tagged "home"); attribution rules live there.
+
+          Carries its own top rule. The seam above used to be drawn by the
+          doctrine's border-y, which sat here before the two swapped. */}
+      <section className="border-t border-rule py-14 md:py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <p className="eyebrow mb-10 text-center">What readers say</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
+            {testimonialsFor("home").map((quote) => (
+              <figure key={quote.attribution} className="border-t border-rule pt-5">
+                <blockquote
+                  className="font-serif italic text-ink leading-relaxed mb-4"
+                  style={{ fontSize: "1.05rem" }}
+                >
+                  &ldquo;{quote.body}&rdquo;
+                </blockquote>
+                <figcaption
+                  className="font-serif text-ink-muted"
+                  style={{ fontSize: "0.92rem" }}
+                >
+                  {quote.attribution}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* === The Doctrine: seven-rule teaser === Supporting now, below the
-          writing. The rules are fully public, so this reads as a free flex
-          and funnels to /rules. Labels come from RULE_SHORT_LABEL so this
-          never drifts from the canonical rule copy. */}
-      <section className="border-y border-rule py-14 md:py-20">
+          writing and the reader proof. The rules are fully public, so this
+          reads as a free flex and funnels to /rules. Labels come from
+          RULE_SHORT_LABEL so this never drifts from the canonical rule copy.
+
+          Top rule only, not border-y: the email capture below supplies its
+          own border-t, and a bottom border here would stack two hairlines. */}
+      <section className="border-t border-rule py-14 md:py-20">
         <div className="max-w-3xl mx-auto px-6">
           <p className="eyebrow mb-4 text-center">The Doctrine</p>
           <h2
@@ -292,34 +327,6 @@ export default function Home() {
             <Link href="/rules" className="btn-primary">
               <span>Read the rules</span>
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* === Reader proof === A thin strip of real reader words directly
-          above the ask, so the praise lands at the moment of decision.
-          Quotes come from the shared pool in lib/testimonials.ts (tagged
-          "home"); attribution rules live there. */}
-      <section className="py-14 md:py-20">
-        <div className="max-w-5xl mx-auto px-6">
-          <p className="eyebrow mb-10 text-center">What readers say</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
-            {testimonialsFor("home").map((quote) => (
-              <figure key={quote.attribution} className="border-t border-rule pt-5">
-                <blockquote
-                  className="font-serif italic text-ink leading-relaxed mb-4"
-                  style={{ fontSize: "1.05rem" }}
-                >
-                  &ldquo;{quote.body}&rdquo;
-                </blockquote>
-                <figcaption
-                  className="font-serif text-ink-muted"
-                  style={{ fontSize: "0.92rem" }}
-                >
-                  {quote.attribution}
-                </figcaption>
-              </figure>
-            ))}
           </div>
         </div>
       </section>
