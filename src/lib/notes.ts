@@ -46,10 +46,12 @@ export type Note = {
   status: NoteStatus;
 };
 
-// 150 hard cap on member-submitted note bodies. Forcing function for
-// brevity — applies to both private and public notes.
-const MAX_BODY = 150;
-const MAX_REPLY = 2000;
+// Note + reply caps now live in notes-constants.ts so the client
+// components share one source of truth with this module. The admin
+// reply box used to carry its own hardcoded copy, which is exactly how
+// a client and server cap drift apart without anyone noticing.
+import { MAX_BODY, MAX_REPLY } from "./notes-constants";
+
 const MAX_NAME = 60;
 
 let cachedClient: Redis | null = null;
@@ -301,13 +303,19 @@ export type SetReplyResult =
   | { ok: false; error: "not_found" | "empty_reply" | "storage_unavailable" };
 
 /**
- * Maximum reply length, varying by the note's visibility. Public
- * notes are kept symmetric with the 150-char member submission so the
- * public feed reads as short Q / short A. Private replies stay long
- * since Clay's email reply isn't constrained by a public scan-feed.
+ * Maximum reply length. Now one number regardless of visibility.
+ *
+ * This used to return the 150-char MAX_BODY for public notes, to keep
+ * a public feed reading as short Q / short A. That feed doesn't exist:
+ * a reply renders in PastNotes, which shows a member their OWN notes,
+ * with whitespace-pre-wrap and no clamp. Nothing about the layout was
+ * being protected, and 150 was simply too short to answer anyone. The
+ * private branch was dead code besides, since every note is public now.
+ *
+ * Signature kept so callers don't churn.
  */
-export function maxReplyLengthFor(visibility: NoteVisibility): number {
-  return visibility === "public" ? MAX_BODY : MAX_REPLY;
+export function maxReplyLengthFor(_visibility: NoteVisibility): number {
+  return MAX_REPLY;
 }
 
 /**

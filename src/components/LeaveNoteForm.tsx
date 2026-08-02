@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import type { Note } from "@/lib/notes";
+import { MAX_BODY } from "@/lib/notes-constants";
 
 // "Leave a note for Clay" composer. Notes go straight to Clay's
 // private inbox — they never appear publicly on the desk or anywhere
-// else. Public room talk lives in the Lounge. 150-char cap is the
-// forcing function for brevity.
-
-const MAX_BODY = 150;
+// else. Public room talk lives in the Lounge. The cap is the forcing
+// function for brevity, and is imported so this box and the server
+// agree on one number.
 
 export function LeaveNoteForm({
   onSubmitted,

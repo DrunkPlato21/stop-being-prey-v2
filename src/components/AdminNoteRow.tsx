@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ClayReaction, Note, NoteStatus } from "@/lib/notes";
+import { MAX_REPLY } from "@/lib/notes-constants";
 import { REACTION_LABELS, ReactionIcon } from "@/components/ReactionIcon";
 
 const REACTIONS: ClayReaction[] = [
@@ -18,8 +19,10 @@ const REACTIONS: ClayReaction[] = [
 // reply / mark-read / archive (or restore) / Convert to Field Note.
 //
 // Visibility is no longer surfaced — every note is public.
-
-const MAX_REPLY = 150;
+//
+// The reply cap is imported, not redeclared. This file carried its own
+// copy of the number, so the counter here and the server's slice could
+// disagree without anything failing loudly.
 
 function formatTimestamp(ms: number): string {
   return new Date(ms).toLocaleString("en-US", {
@@ -208,8 +211,9 @@ export function AdminNoteRow({ note: initialNote }: { note: Note }) {
         </p>
       )}
 
-      {/* Inline reply composer. All notes are public; reply posts to
-          the public board with the same 150-char cap as submissions. */}
+      {/* Inline reply composer. The cap is MAX_REPLY, which is larger
+          than the 150 a member gets: a reply needs more room than the
+          question it answers. */}
       {replyOpen && (
         <div className="mt-4">
           <label className="block">
