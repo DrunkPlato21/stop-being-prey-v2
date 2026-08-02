@@ -105,6 +105,15 @@ const nextConfig: NextConfig = {
         destination: "/founding/predator-or-prey",
         permanent: true,
       },
+      // Speakable short URL for the audio edition. You can't read
+      // "/desecration-of-charlie-kirk" into a microphone, and the show
+      // notes point at /desecration. The canonical slug stays the long
+      // one, so shares and the sitemap are unaffected.
+      {
+        source: "/desecration",
+        destination: "/desecration-of-charlie-kirk",
+        permanent: true,
+      },
       // /tip was reframed into the wall: same act (back the work), wall-first
       // framing. EXACT match only — /tip/success is the Stripe return URL and
       // must keep resolving to its own page.

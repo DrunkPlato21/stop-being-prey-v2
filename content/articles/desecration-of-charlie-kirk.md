@@ -4,6 +4,13 @@ slug: "desecration-of-charlie-kirk"
 date: "2026-07-31"
 description: "Tyler Robinson pulled the trigger. He didn't decide Charlie Kirk had to die. That verdict came from something with no leader, no orders, and no one to answer for it."
 subtitle: "They have to kill him twice."
+# Audio edition. Title above matches the Spotify episode title verbatim.
+# Presence of this field is what makes the piece surface on /podcast and
+# label as NEW PODCAST on the desk, instead of NEW ESSAY.
+spotifyEpisodeId: "0xG59x8UrjotwXDjuiWY0c"
+# Real runtime off the Spotify episode. Without it the Listen pill
+# estimates from word count at 150 wpm, which lands at 33 for this one.
+audioMinutes: 36
 cornerstone: true
 essayStyle: true
 # Share-card background. The murmuration, which is the essay's own image
@@ -22,15 +29,14 @@ readNext:
   - "some-random-kid"
 prequelSlug: "the-losertarian-problem"
 prequelLabel: "The Losertarian Problem"
-# Draft gate. While false: hidden from the homepage, /writing, the issue
-# numbering, RSS, the sitemap and static generation, and served noindex.
-# The URL still resolves for members, and it shows on the Writer's Desk
-# as the early-access card. Flip to true on Sunday to launch.
+# Draft gate. Now public: on the homepage as the lead cornerstone, in
+# /writing, RSS, the sitemap and static generation, indexable. The
+# Writer's Desk early-access card retires itself on this flip.
 # The canned end-of-piece p.s. is off here. This essay closes with its
 # own `closingCta` above the Two ways in block, so the generic one would
 # be a fourth ask stacked on three.
 postscript: false
-published: false
+published: true
 ---
 
 Tyler Robinson didn't kill Charlie Kirk. He just pulled the trigger.
