@@ -16,7 +16,15 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function ReactivatePage() {
+export default async function ReactivatePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // The lapsed-membership email arrives with ?email= attached so the
+  // form is already filled when they land.
+  const raw = (await searchParams).email;
+  const initialEmail = typeof raw === "string" ? raw.trim().slice(0, 254) : "";
   return (
     <div>
       <section className="border-b border-rule">
@@ -55,7 +63,7 @@ export default function ReactivatePage() {
       </section>
 
       <section className="max-w-3xl mx-auto px-6 py-14 md:py-20">
-        <ReactivateForm />
+        <ReactivateForm initialEmail={initialEmail} />
       </section>
 
       <div className="text-center pb-16">

@@ -1904,12 +1904,66 @@ export async function sendDeskNoteAdminEmail(args: {
 /* === Payment failed (membership renewal) ============================
    Sent to the member when Stripe reports invoice.payment_failed.
    Too important for in-site only — a churning card needs a real
-   inbox prompt. */
+   inbox prompt.
+
+   Stripe fires this event on every retry in its dunning window, so the
+   stage comes from lib/dunning.ts and the copy escalates with it. The
+   member sees at most three of these per failed renewal, and the last
+   one is the only place we ever say the seat is closing. */
+
+type PaymentFailedCopy = {
+  subject: string;
+  paragraphs: string[];
+  cta: string;
+};
+
+function paymentFailedCopy(
+  stage: "first" | "nudge" | "final",
+  nextAttemptLabel: string | null
+): PaymentFailedCopy {
+  if (stage === "first") {
+    return {
+      subject: "Payment didn't go through.",
+      paragraphs: [
+        "Your latest membership payment didn't go through. Usually it's a card that expired or got reissued.",
+        "Update your card and the renewal will retry automatically. If you locked a founder rate, that rate stays locked as long as the subscription stays alive.",
+      ],
+      cta: "Update your card",
+    };
+  }
+
+  if (stage === "nudge") {
+    return {
+      subject: "Your card is still failing.",
+      paragraphs: [
+        "Your membership payment still hasn't cleared. The bank has turned it down a few times now, so it's probably not a fluke.",
+        nextAttemptLabel
+          ? `Nothing is lost yet. The next attempt runs ${nextAttemptLabel}. Update the card before then and it goes through, at the same rate you locked.`
+          : "Nothing is lost yet. Update the card and the next attempt goes through, at the same rate you locked.",
+        "If you'd rather step away, you don't have to do anything. It closes on its own. I'd just rather you stayed.",
+      ],
+      cta: "Update your card",
+    };
+  }
+
+  return {
+    subject: "Last try on your seat.",
+    paragraphs: [
+      "This is the last note you'll get about this one.",
+      "Your renewal failed, and there's no automatic retry left. When this closes out, the seat closes with it, and the rate you locked goes with it.",
+      "One click puts a new card on and keeps everything exactly where it is.",
+      "If you're done, that's alright. No hard feelings, and the writing stays free to read. I just didn't want your seat to lapse quietly without telling you.",
+    ],
+    cta: "Keep your seat",
+  };
+}
 
 export async function sendPaymentFailedEmail(args: {
   to: string;
   memberDisplayName: string;
   billingUrl: string;
+  stage: "first" | "nudge" | "final";
+  nextAttemptLabel?: string | null;
 }): Promise<SendResult> {
   const resend = client();
   if (!resend) {
@@ -1924,14 +1978,23 @@ export async function sendPaymentFailedEmail(args: {
   const greeting = args.memberDisplayName
     ? `${escapeHtml(args.memberDisplayName)},`
     : "Hey,";
-  const subject = "Payment didn't go through.";
+  const copy = paymentFailedCopy(args.stage, args.nextAttemptLabel ?? null);
+  const subject = copy.subject;
+  const paragraphsHtml = copy.paragraphs
+    .map(
+      (p, i) =>
+        `<p style="margin:0 0 ${
+          i === copy.paragraphs.length - 1 ? 22 : 16
+        }px 0;">${escapeHtml(p)}</p>`
+    )
+    .join("\n                ");
 
   const html = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Payment didn&apos;t go through</title>
+    <title>${escapeHtml(subject)}</title>
   </head>
   <body style="margin:0;padding:0;background:#f5efe1;font-family:Georgia,'Times New Roman',serif;color:#1a1714;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5efe1;padding:48px 16px;">
@@ -1946,14 +2009,13 @@ export async function sendPaymentFailedEmail(args: {
             <tr>
               <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
                 <p style="margin:0 0 18px 0;font-style:italic;">${greeting}</p>
-                <p style="margin:0 0 16px 0;">Your latest membership payment didn&apos;t go through. Usually it&apos;s a card that expired or got reissued.</p>
-                <p style="margin:0 0 22px 0;">Update your card and the renewal will retry automatically. If you locked a founder rate, that rate stays locked as long as the subscription stays alive.</p>
+                ${paragraphsHtml}
               </td>
             </tr>
             <tr>
               <td align="center" style="padding:8px 0 24px 0;">
                 <a href="${escapeHtml(args.billingUrl)}" style="display:inline-block;background:#1a1714;color:#f5efe1;text-decoration:none;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.78rem;letter-spacing:0.22em;text-transform:uppercase;font-weight:600;padding:14px 28px;border:1px solid #1a1714;">
-                  Update your card
+                  ${escapeHtml(copy.cta)}
                 </a>
               </td>
             </tr>
@@ -1972,11 +2034,8 @@ export async function sendPaymentFailedEmail(args: {
   const text = [
     args.memberDisplayName ? `${args.memberDisplayName},` : "Hey,",
     "",
-    "Your latest membership payment didn't go through. Usually it's a card that expired or got reissued.",
-    "",
-    "Update your card and the renewal will retry automatically. If you locked a founder rate, that rate stays locked as long as the subscription stays alive.",
-    "",
-    `Update your card: ${args.billingUrl}`,
+    ...copy.paragraphs.flatMap((p) => [p, ""]),
+    `${copy.cta}: ${args.billingUrl}`,
     "",
     "stay close,",
     "~ Clay",
@@ -2006,4 +2065,150 @@ export async function sendPaymentFailedEmail(args: {
       error: err instanceof Error ? err.message : "send_failed",
     };
   }
+}
+
+/* === Membership lapsed (win-back) ===================================
+   The subscription actually died after Stripe ran out of retries.
+   Until now this moment was silent, which is a strange way to treat
+   somebody who paid for months. The one thing worth saying is that
+   their locked rate survives on the existing Stripe customer, so
+   coming back through /reactivate costs what it always cost. */
+
+export async function sendMembershipLapsedEmail(args: {
+  to: string;
+  memberDisplayName: string;
+  reactivateUrl: string;
+}): Promise<SendResult> {
+  const greeting = args.memberDisplayName
+    ? `${escapeHtml(args.memberDisplayName)},`
+    : "Hey,";
+  const paragraphs = [
+    "The card never cleared, so your membership ended today. No more attempts, nothing pending.",
+    "Here's the part worth knowing. Your rate is still yours. Come back through the link below and you return at the exact price you locked, founder or charter number intact. It does not reset to whatever the seats cost now.",
+    "No rush, and no pitch. The door just stays open.",
+  ];
+
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;font-style:italic;">${greeting}</p>
+                ${paragraphs
+                  .map(
+                    (p, i) =>
+                      `<p style="margin:0 0 ${
+                        i === paragraphs.length - 1 ? 22 : 16
+                      }px 0;">${escapeHtml(p)}</p>`
+                  )
+                  .join("\n                ")}
+              </td>
+            </tr>
+            ${giftButtonRow(args.reactivateUrl, "Reactivate your seat")}`);
+
+  const text = [
+    args.memberDisplayName ? `${args.memberDisplayName},` : "Hey,",
+    "",
+    ...paragraphs.flatMap((p) => [p, ""]),
+    `Reactivate your seat: ${args.reactivateUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject: "Your seat closed.",
+    html,
+    text,
+    logTag: "membership lapsed",
+  });
+}
+
+/* === Billing alert (to Clay) ========================================
+   Fires twice per failed renewal: the day the card first fails, and
+   the day Stripe burns its last retry. Those are the two windows where
+   a personal note from a human still turns a churn around. Everything
+   in between stays silent so this doesn't become inbox noise. */
+
+export async function sendBillingAdminAlert(args: {
+  to: string;
+  stage: "first" | "final";
+  memberEmail: string;
+  memberName: string;
+  tierLabel: string;
+  amountLabel: string;
+  memberSinceLabel: string;
+  attemptCount: number;
+  nextAttemptLabel: string | null;
+  stripeCustomerId: string;
+}): Promise<SendResult> {
+  const who = args.memberName || args.memberEmail;
+  const subject =
+    args.stage === "first"
+      ? `[billing] ${who} (${args.tierLabel}) card failed`
+      : `[billing] last retry burned: ${who} (${args.tierLabel})`;
+
+  const lead =
+    args.stage === "first"
+      ? "First failure today. The automated notice has gone out. This is the window where a personal note actually works."
+      : "Stripe has no retry left. The final notice has gone out. After this the seat closes and the locked rate goes with it.";
+
+  const facts: Array<[string, string]> = [
+    ["member", `${who} <${args.memberEmail}>`],
+    ["standing", `${args.tierLabel}, ${args.amountLabel}`],
+    ["member since", args.memberSinceLabel],
+    ["attempts", String(args.attemptCount)],
+    ["next retry", args.nextAttemptLabel ?? "none, this was the last"],
+  ];
+
+  const stripeUrl = `https://dashboard.stripe.com/customers/${args.stripeCustomerId}`;
+  const mailto = `mailto:${args.memberEmail}`;
+
+  const rowsHtml = facts
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:3px 14px 3px 0;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:#8a7d20;white-space:nowrap;vertical-align:top;">${escapeHtml(
+          label
+        )}</td><td style="padding:3px 0;font-family:Georgia,serif;font-size:15px;color:#1a1714;">${escapeHtml(
+          value
+        )}</td></tr>`
+    )
+    .join("");
+
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:18px;">
+                <p style="margin:0;">${escapeHtml(lead)}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 0 24px 0;">
+                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;background:#f5efe1;width:100%;">
+                  <tr><td style="padding:14px 18px;"><table role="presentation" cellspacing="0" cellpadding="0">${rowsHtml}</table></td></tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,serif;font-size:15px;line-height:1.7;color:#5c544c;padding-bottom:24px;">
+                <p style="margin:0;"><a href="${escapeHtml(
+                  mailto
+                )}" style="color:#8a7d20;">Write to them</a> &nbsp;·&nbsp; <a href="${escapeHtml(
+    stripeUrl
+  )}" style="color:#8a7d20;">Open in Stripe</a></p>
+              </td>
+            </tr>`);
+
+  const text = [
+    lead,
+    "",
+    ...facts.map(([label, value]) => `${label}: ${value}`),
+    "",
+    `Write to them: ${args.memberEmail}`,
+    `Open in Stripe: ${stripeUrl}`,
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "billing admin alert",
+  });
 }

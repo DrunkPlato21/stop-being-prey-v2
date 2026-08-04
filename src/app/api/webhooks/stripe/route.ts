@@ -47,10 +47,17 @@ import {
   markPaid,
 } from "@/lib/case-submissions";
 import {
+  sendBillingAdminAlert,
   sendCaseReviewAdminNotification,
   sendCaseReviewMemberConfirmation,
+  sendMembershipLapsedEmail,
   sendPaymentFailedEmail,
 } from "@/lib/email";
+import {
+  claimFailureStage,
+  claimLapse,
+  clearInvoiceDunning,
+} from "@/lib/dunning";
 import { createNotification } from "@/lib/notifications";
 import { signBillingToken } from "@/lib/auth";
 import { asTrackChannel, asTrackSource, recordEvent } from "@/lib/analytics";
@@ -112,6 +119,49 @@ function parseAttribution(value: string | undefined): AttributionPreference {
     return value as AttributionPreference;
   }
   return "first";
+}
+
+/* --- Dunning labels -------------------------------------------------
+   Dates come off Stripe as unix seconds and get read by humans in
+   Clay's timezone, so they're rendered in Eastern rather than whatever
+   the serverless region happens to be. */
+
+function formatBillingDate(unixSeconds: number | null): string | null {
+  if (!unixSeconds) return null;
+  return new Date(unixSeconds * 1000).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    timeZone: "America/New_York",
+  });
+}
+
+function formatMemberSince(msEpoch: number | undefined): string {
+  if (!msEpoch) return "unknown";
+  return new Date(msEpoch).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "America/New_York",
+  });
+}
+
+/** "founder #12" / "charter #27" / "regular", for the admin alert. */
+function tierLabelOf(member: MemberRecord): string {
+  if (member.tier === "founder" && member.founderSlot) {
+    return `founder #${member.founderSlot}`;
+  }
+  if (member.tier === "charter" && member.charterSlot) {
+    return `charter #${member.charterSlot}`;
+  }
+  return member.tier;
+}
+
+function amountLabelOf(member: MemberRecord): string {
+  if (typeof member.amountCents !== "number") return "amount unknown";
+  const dollars = member.amountCents / 100;
+  const rendered = Number.isInteger(dollars)
+    ? String(dollars)
+    : dollars.toFixed(2);
+  return `$${rendered}/${member.interval === "year" ? "yr" : "mo"}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -184,7 +234,48 @@ export async function POST(request: NextRequest) {
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
       const customerId = customerIdOf(sub.customer);
-      if (customerId) await updateMemberStatus(customerId, "canceled");
+      if (customerId) {
+        // Read before the status flip so we can tell a card that died
+        // from a member who chose to leave.
+        const member = await getMemberByCustomerId(customerId).catch(
+          () => null
+        );
+        await updateMemberStatus(customerId, "canceled");
+
+        // A seat that died at the end of a failed retry window used to
+        // end in total silence. Send one win-back, claimed on the
+        // subscription id so a member who reactivates and lapses again
+        // later still gets one. Voluntary cancels are left alone: they
+        // decided, and "your card never cleared" would be a lie.
+        const diedOnPayment =
+          sub.cancellation_details?.reason === "payment_failed" ||
+          member?.status === "past_due" ||
+          member?.status === "unpaid";
+
+        if (member && diedOnPayment && (await claimLapse(sub.id))) {
+          const profile = await getProfile(member.email).catch(() => null);
+          const displayName =
+            profile?.displayName?.trim() || member.email.split("@")[0] || "";
+          const base = (
+            process.env.NEXT_PUBLIC_BASE_URL ?? "https://stopbeingprey.com"
+          ).replace(/\/$/, "");
+          // Prefill the address so the win-back is one click, not a
+          // form to fill out at the exact moment they're least invested.
+          const reactivateUrl = `${base}/reactivate?email=${encodeURIComponent(
+            member.email
+          )}`;
+          await sendMembershipLapsedEmail({
+            to: member.email,
+            memberDisplayName: displayName,
+            reactivateUrl,
+          }).catch((err) => {
+            console.error(
+              `[email] membership-lapsed send threw for ${member.email}:`,
+              err
+            );
+          });
+        }
+      }
       return new Response("ok", { status: 200 });
     }
 
@@ -219,10 +310,24 @@ export async function POST(request: NextRequest) {
       const invoice = event.data.object as Stripe.Invoice;
       const customerId = customerIdOf(invoice.customer);
       if (customerId) {
+        // Status flip is idempotent, so it stays outside the stage gate
+        // and tracks every retry.
         await updateMemberStatus(customerId, "past_due");
-        // Notify + email the member. The renewal usually retries
-        // a few times before it hard-fails, but we want them in
-        // the loop immediately so they can update the card.
+
+        // Stripe retries a failed invoice on its own dunning schedule
+        // and fires this event on EVERY attempt. Emailing per event sent
+        // one member nine identical notices. The stage machine decides
+        // which of the three touches this particular attempt earns, and
+        // claims it atomically, so retries and webhook redeliveries
+        // collapse into exactly one send.
+        const nextPaymentAttempt = invoice.next_payment_attempt ?? null;
+        const stage = await claimFailureStage({
+          invoiceId: invoice.id,
+          attemptCount: invoice.attempt_count ?? 1,
+          nextPaymentAttempt,
+        });
+        if (!stage) return new Response("ok", { status: 200 });
+
         const member = await getMemberByCustomerId(customerId).catch(
           () => null
         );
@@ -244,28 +349,66 @@ export async function POST(request: NextRequest) {
           const billingUrl = `${baseUrl}/billing/fix?token=${encodeURIComponent(
             recoveryToken
           )}`;
-          await createNotification({
-            memberEmail: member.email,
-            type: "payment_failed",
-            title: "Payment didn't go through",
-            body: "Update your card to keep your founder rate locked in",
-            linkUrl: "/notes/account",
-          }).catch((err) => {
-            console.error(
-              `[notifications] payment_failed write failed for ${member.email}:`,
-              err
-            );
-          });
+          const nextAttemptLabel = formatBillingDate(nextPaymentAttempt);
+
+          // The bell only rings on the two stages that carry news. A
+          // mid-sequence nudge in the inbox is enough.
+          if (stage !== "nudge") {
+            await createNotification({
+              memberEmail: member.email,
+              type: "payment_failed",
+              title:
+                stage === "final"
+                  ? "Last try on your seat"
+                  : "Payment didn't go through",
+              body:
+                stage === "final"
+                  ? "No retries left. Update your card to keep the seat and the rate."
+                  : "Update your card to keep your founder rate locked in",
+              linkUrl: "/notes/account",
+            }).catch((err) => {
+              console.error(
+                `[notifications] payment_failed write failed for ${member.email}:`,
+                err
+              );
+            });
+          }
+
           await sendPaymentFailedEmail({
             to: member.email,
             memberDisplayName: displayName,
             billingUrl,
+            stage,
+            nextAttemptLabel,
           }).catch((err) => {
             console.error(
               `[email] payment-failed send threw for ${member.email}:`,
               err
             );
           });
+
+          // Ping Clay at the two moments a personal note still turns a
+          // churn around: the day the card first fails, and the day
+          // Stripe burns its last retry.
+          if (stage === "first" || stage === "final") {
+            await sendBillingAdminAlert({
+              to: process.env.ADMIN_EMAIL ?? "clay@stopbeingprey.com",
+              stage,
+              memberEmail: member.email,
+              memberName: displayName,
+              tierLabel: tierLabelOf(member),
+              amountLabel: amountLabelOf(member),
+              memberSinceLabel: formatMemberSince(member.createdAt),
+              attemptCount: invoice.attempt_count ?? 1,
+              nextAttemptLabel,
+              stripeCustomerId: customerId,
+            }).catch((err) => {
+              console.error(
+                `[email] billing admin alert threw for ${member.email}:`,
+                err
+              );
+            });
+          }
         }
       }
       return new Response("ok", { status: 200 });
@@ -283,6 +426,10 @@ export async function POST(request: NextRequest) {
           await updateMemberStatus(customerId, "active");
         }
       }
+      // Wipe the sequence for an invoice that finally cleared, so a
+      // renewal failure months from now opens with the soft notice
+      // instead of picking up mid-escalation.
+      await clearInvoiceDunning(invoice.id).catch(() => {});
       return new Response("ok", { status: 200 });
     }
 

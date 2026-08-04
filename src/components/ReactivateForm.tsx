@@ -18,8 +18,15 @@ type State =
   | "update_card"
   | "error";
 
-export function ReactivateForm() {
-  const [email, setEmail] = useState("");
+export function ReactivateForm({
+  initialEmail = "",
+}: {
+  // The lapsed-membership email links here with ?email= already filled,
+  // so coming back is one click at the moment they're least inclined to
+  // type anything.
+  initialEmail?: string;
+}) {
+  const [email, setEmail] = useState(initialEmail);
   const [state, setState] = useState<State>("idle");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
