@@ -4,13 +4,17 @@ import { getAllArticles, getEarlyAccessArticle } from "@/lib/articles";
 import {
   getArticleCounts,
   getChannelCounts,
+  getReferrers,
   getSourceCounts,
+  MAX_REFERRER_HOSTS,
+  MAX_REFERRER_URLS,
   TRACK_CHANNELS,
   TRACK_SOURCES,
   type EventCounts,
   type TrackChannel,
   type TrackSource,
 } from "@/lib/analytics";
+import { channelFromReferrer, referrerHostOf } from "@/lib/channels";
 import { getEngagementStats, getMembershipStats } from "@/lib/member-stats";
 
 // First-party funnel dashboard. Localhost only (proxy.ts 404s /admin in
@@ -71,18 +75,34 @@ export default async function AnalyticsAdminPage({
     ...articles.map((a) => a.slug),
     ...(draft ? [draft.slug] : []),
   ];
-  const [counts, staticCounts, sources, channels, membership, engagement] =
-    await Promise.all([
-      getArticleCounts(slugs, dev),
-      getArticleCounts(
-        STATIC_FUNNEL.map((p) => p.slug),
-        dev
-      ),
-      getSourceCounts(dev),
-      getChannelCounts(dev),
-      getMembershipStats(dev),
-      getEngagementStats(),
-    ]);
+  const [
+    counts,
+    staticCounts,
+    sources,
+    channels,
+    membership,
+    engagement,
+    referrers,
+  ] = await Promise.all([
+    getArticleCounts(slugs, dev),
+    getArticleCounts(
+      STATIC_FUNNEL.map((p) => p.slug),
+      dev
+    ),
+    getSourceCounts(dev),
+    getChannelCounts(dev),
+    getMembershipStats(dev),
+    getEngagementStats(),
+    getReferrers(dev),
+  ]);
+
+  // Which bucket each raw host would have fallen into. The point of the
+  // column is the "other" rows: those are the sites the channel table
+  // above can only show you as one anonymous number.
+  const bucketOf = (host: string) => channelFromReferrer(`https://${host}/`, "");
+  const unknownVisits = referrers.hosts
+    .filter((r) => bucketOf(r.name) === "other")
+    .reduce((sum, r) => sum + r.count, 0);
 
   const staticRows: Row[] = STATIC_FUNNEL.map((p) => ({
     slug: p.slug,
@@ -431,6 +451,144 @@ export default async function AnalyticsAdminPage({
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Raw referrers — the same dimension as the channel table, but by
+          name. The channel table can only ever tell you HOW MUCH traffic
+          came from outside the six known hosts; this tells you who. Left
+          table is by site, right is the exact page, so a thread that's
+          sending readers can actually be opened and read. */}
+      <h2 className="eyebrow mt-12 mb-3">Who is linking you</h2>
+      <p className="font-serif text-ink-muted text-sm mb-4 leading-relaxed max-w-2xl">
+        Off-site arrivals by referring site. Counted on every arrival, not
+        just first-touch, so a reader who first came from Facebook and comes
+        back later from somewhere new still shows the new source.{" "}
+        <strong className="text-ink">
+          {unknownVisits.toLocaleString()}
+        </strong>{" "}
+        {unknownVisits === 1 ? "visit" : "visits"} came from sites outside the
+        known channels. Those are the &ldquo;other&rdquo; rows.
+      </p>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div>
+          <p className="eyebrow text-ink-faint mb-2">
+            By site
+            <span className="normal-case tracking-normal ml-2">
+              {referrers.hostTotal > referrers.hosts.length
+                ? `top ${referrers.hosts.length} of ${referrers.hostTotal.toLocaleString()}`
+                : `${referrers.hostTotal.toLocaleString()} tracked`}
+              {referrers.hostTotal >= MAX_REFERRER_HOSTS * 0.9
+                ? ` · at cap (${MAX_REFERRER_HOSTS.toLocaleString()}), rarest are being dropped`
+                : ""}
+            </span>
+          </p>
+          <div className="overflow-x-auto border border-rule">
+            <table
+              className="w-full text-sm"
+              style={{ borderCollapse: "collapse" }}
+            >
+              <thead>
+                <tr className="text-left text-ink-faint uppercase tracking-wider">
+                  <Th className="text-left">Site</Th>
+                  <Th className="text-left">Bucket</Th>
+                  <Th>Visits</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {referrers.hosts.map((r) => {
+                  const bucket = bucketOf(r.name);
+                  return (
+                    <tr key={r.name} className="border-t border-rule">
+                      <Td className="text-left">
+                        <a
+                          href={`https://${r.name}`}
+                          target="_blank"
+                          rel="noreferrer nofollow"
+                          className="text-ink hover:text-eye-deep break-all"
+                        >
+                          {r.name}
+                        </a>
+                      </Td>
+                      <Td className="text-left">
+                        <span
+                          className={
+                            bucket === "other" ? "text-eye-deep" : "text-ink-faint"
+                          }
+                        >
+                          {bucket}
+                        </span>
+                      </Td>
+                      <Td>{r.count.toLocaleString()}</Td>
+                    </tr>
+                  );
+                })}
+                {referrers.hosts.length === 0 && (
+                  <tr className="border-t border-rule">
+                    <Td className="text-left text-ink-faint" colSpan={3}>
+                      No off-site arrivals recorded yet
+                      {dev ? "" : " (data starts after the next deploy)"}.
+                    </Td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <p className="eyebrow text-ink-faint mb-2">
+            By exact page
+            <span className="normal-case tracking-normal ml-2">
+              {referrers.urlTotal > referrers.urls.length
+                ? `top ${referrers.urls.length} of ${referrers.urlTotal.toLocaleString()}`
+                : `${referrers.urlTotal.toLocaleString()} tracked`}
+              {referrers.urlTotal >= MAX_REFERRER_URLS * 0.9
+                ? ` · at cap (${MAX_REFERRER_URLS.toLocaleString()}), rarest are being dropped`
+                : ""}
+            </span>
+          </p>
+          <div className="overflow-x-auto border border-rule">
+            <table
+              className="w-full text-sm"
+              style={{ borderCollapse: "collapse" }}
+            >
+              <thead>
+                <tr className="text-left text-ink-faint uppercase tracking-wider">
+                  <Th className="text-left">Page</Th>
+                  <Th>Visits</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {referrers.urls.map((r) => (
+                  <tr key={r.name} className="border-t border-rule">
+                    <Td className="text-left">
+                      <a
+                        href={`https://${r.name}`}
+                        target="_blank"
+                        rel="noreferrer nofollow"
+                        className="text-ink hover:text-eye-deep break-all"
+                      >
+                        {r.name}
+                      </a>
+                      <span className="block text-[0.65rem] text-ink-faint">
+                        {bucketOf(referrerHostOf(r.name))}
+                      </span>
+                    </Td>
+                    <Td>{r.count.toLocaleString()}</Td>
+                  </tr>
+                ))}
+                {referrers.urls.length === 0 && (
+                  <tr className="border-t border-rule">
+                    <Td className="text-left text-ink-faint" colSpan={2}>
+                      No off-site arrivals recorded yet
+                      {dev ? "" : " (data starts after the next deploy)"}.
+                    </Td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* The way in. Two surfaces that were previously invisible and that

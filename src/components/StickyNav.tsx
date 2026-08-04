@@ -133,7 +133,7 @@ export function StickyNav({ signedIn, isPaidMember }: StickyNavProps) {
               Desk &rarr;
             </Link>
           ) : signedIn ? (
-            <Link href="/membership" className="header-subscribe">
+            <Link href="/membership?src=sticky" className="header-subscribe">
               Join
             </Link>
           ) : (
@@ -144,7 +144,7 @@ export function StickyNav({ signedIn, isPaidMember }: StickyNavProps) {
               >
                 Sign in
               </Link>
-              <Link href="/membership" className="header-subscribe">
+              <Link href="/membership?src=sticky" className="header-subscribe">
                 Join
               </Link>
             </>

@@ -76,7 +76,7 @@ export function DualSubscribeBlock({
         </p>
         <MemberCount className="mb-3" />
         <div>
-          <Link href="/membership" className="btn-primary">
+          <Link href="/membership?src=dual" className="btn-primary">
             <span>Join Stop Being Prey</span>
           </Link>
         </div>

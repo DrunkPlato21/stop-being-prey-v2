@@ -483,7 +483,7 @@ export default async function RulesPage() {
             </p>
             <p>
               <Link
-                href="/membership"
+                href="/membership?src=rules"
                 className="text-eye-deep hover:text-ink no-underline transition-colors"
                 style={{ fontWeight: 600 }}
               >

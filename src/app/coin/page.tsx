@@ -176,7 +176,7 @@ export default function CoinPage() {
           </p>
           <p>
             <Link
-              href="/membership"
+              href="/membership?src=coin"
               className="text-eye-deep hover:text-ink no-underline transition-colors"
               style={{ fontWeight: 600 }}
             >

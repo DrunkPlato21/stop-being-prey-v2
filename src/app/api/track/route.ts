@@ -1,12 +1,14 @@
 import type { NextRequest } from "next/server";
 import {
   recordEvent,
+  recordReferrer,
   TRACK_EVENTS,
   TRACK_SOURCES,
   asTrackChannel,
   type TrackEvent,
   type TrackSource,
 } from "@/lib/analytics";
+import { asReferrer } from "@/lib/channels";
 
 // First-party event sink for the funnel analytics. Public (not behind the
 // admin gate) because real visitors POST to it. Always answers 204 and
@@ -57,6 +59,17 @@ export async function POST(request: NextRequest) {
 
   const channel = asTrackChannel((body as { channel?: unknown })?.channel);
 
-  await recordEvent(event, { slug, source, channel });
+  // Raw referrer, "view" only — it describes an arrival, and accepting it
+  // on any event would let one visit be counted many times over as they
+  // scroll. asReferrer re-canonicalizes rather than trusting the string.
+  const referrer =
+    event === "view"
+      ? asReferrer((body as { referrer?: unknown })?.referrer)
+      : undefined;
+
+  await Promise.all([
+    recordEvent(event, { slug, source, channel }),
+    referrer ? recordReferrer(referrer) : Promise.resolve(),
+  ]);
   return new Response(null, { status: 204 });
 }

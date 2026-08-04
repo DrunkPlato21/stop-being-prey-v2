@@ -2,6 +2,7 @@ import { Redis } from "@upstash/redis";
 import {
   TRACK_CHANNELS,
   asTrackChannel,
+  referrerHostOf,
   type TrackChannel,
 } from "./channels";
 
@@ -105,6 +106,27 @@ export const TRACK_SOURCES = [
   "rules",
   "about",
   "comments",
+  // Surfaces that link to the membership page and were never tagged, so
+  // every buyer arriving through them landed in "unknown". That was all
+  // of them: 35 of 35 paid conversions and 56 of 59 checkout starts were
+  // unattributed, because `source` is read from a ?src= param that only
+  // five of the site's ~28 membership links carried.
+  //   header      site-wide nav CTA (Header + HeaderJoinLink + StickyNav)
+  //   hero        homepage hero
+  //   essay       inline "become a patron" inside a piece
+  //   gate        the draft gate a non-member hits on an unpublished piece
+  //   case_file   case-file body + the preview-mode funnel link
+  //   coin        the /coin explainer
+  //   cover       "back to membership" off the cover-a-seat page
+  //   reactivate  "back to patronage" off the lapsed-member page
+  "header",
+  "hero",
+  "essay",
+  "gate",
+  "case_file",
+  "coin",
+  "cover",
+  "reactivate",
   // The sign-in page. Its events carry no article slug, and recordEvent
   // writes nothing at all for a slugless event that isn't source-tracked,
   // so this source is what gives them somewhere to land.
@@ -212,6 +234,110 @@ export async function recordEvent(
     await Promise.all(tasks);
   } catch {
     /* swallow: a failed counter must not surface to the caller */
+  }
+}
+
+// ---------------------------------------------------------------------
+// Raw referrer leaderboards. The channel counters answer "how much of my
+// traffic is social vs search"; these answer "who is linking me that I
+// don't know about" — the question the "other" bucket swallows.
+//
+// Sorted sets rather than hashes, for two reasons: the top N is one
+// command instead of dragging the whole key back, and each write can
+// self-trim. /api/track is public, so a forged payload could otherwise
+// grow these keys without bound. ZREMRANGEBYRANK evicts the lowest-scoring
+// entries once over the cap and is a no-op below it, so it rides along in
+// the same pipeline at no extra round trip.
+// Caps are an abuse backstop, not a budget: sized so they never bind in
+// normal operation. They matter because eviction takes the LOWEST score,
+// so a full set would silently stop admitting new one-off referrers —
+// exactly the discovery this exists for. getReferrers reports the live
+// size against the cap so that can never happen unnoticed.
+const REFERRER_HOST_KEY = "referrer:host";
+const REFERRER_URL_KEY = "referrer:url";
+export const MAX_REFERRER_HOSTS = 2000;
+export const MAX_REFERRER_URLS = 5000;
+
+export type ReferrerRow = { name: string; count: number };
+export type ReferrerReport = {
+  hosts: ReferrerRow[];
+  urls: ReferrerRow[];
+  /** Distinct sites / pages held, against the caps above. */
+  hostTotal: number;
+  urlTotal: number;
+};
+
+/**
+ * Count one off-site arrival, by host and by exact page. `referrer` is a
+ * canonical "host/path" string (see asReferrer, which is what validates
+ * it on the way in). One pipelined round trip; never throws.
+ */
+export async function recordReferrer(referrer: string): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  const host = referrerHostOf(referrer);
+  if (!host) return;
+  const ns = prefix(isDevWrite());
+  const hostKey = `${ns}${REFERRER_HOST_KEY}`;
+  const urlKey = `${ns}${REFERRER_URL_KEY}`;
+
+  try {
+    const pipe = client.pipeline();
+    pipe.zincrby(hostKey, 1, host);
+    pipe.zincrby(urlKey, 1, referrer);
+    pipe.zremrangebyrank(hostKey, 0, -(MAX_REFERRER_HOSTS + 1));
+    pipe.zremrangebyrank(urlKey, 0, -(MAX_REFERRER_URLS + 1));
+    await pipe.exec();
+  } catch {
+    /* swallow: a failed counter must not surface to the caller */
+  }
+}
+
+function coerceRows(raw: unknown): ReferrerRow[] {
+  if (!Array.isArray(raw)) return [];
+  const rows: ReferrerRow[] = [];
+  // withScores comes back flat: [member, score, member, score, ...]
+  for (let i = 0; i + 1 < raw.length; i += 2) {
+    const name = String(raw[i]);
+    if (name) rows.push({ name, count: Number(raw[i + 1]) || 0 });
+  }
+  return rows;
+}
+
+/**
+ * Top referring hosts and top exact referring pages, highest first.
+ * Same dev/prod namespace selection as the counters.
+ */
+export async function getReferrers(
+  dev = false,
+  limit = 50
+): Promise<ReferrerReport> {
+  const empty: ReferrerReport = {
+    hosts: [],
+    urls: [],
+    hostTotal: 0,
+    urlTotal: 0,
+  };
+  const client = getClient();
+  if (!client) return empty;
+  const ns = prefix(dev);
+  const hostKey = `${ns}${REFERRER_HOST_KEY}`;
+  const urlKey = `${ns}${REFERRER_URL_KEY}`;
+  try {
+    const [hosts, urls, hostTotal, urlTotal] = await Promise.all([
+      client.zrange(hostKey, 0, limit - 1, { rev: true, withScores: true }),
+      client.zrange(urlKey, 0, limit - 1, { rev: true, withScores: true }),
+      client.zcard(hostKey),
+      client.zcard(urlKey),
+    ]);
+    return {
+      hosts: coerceRows(hosts),
+      urls: coerceRows(urls),
+      hostTotal: Number(hostTotal) || 0,
+      urlTotal: Number(urlTotal) || 0,
+    };
+  } catch {
+    return empty;
   }
 }
 

@@ -61,7 +61,7 @@ export function SignInForm({ next }: { next?: string }) {
           Nothing in your inbox? You may not be signed up yet, or your
           membership lapsed.{" "}
           <Link
-            href="/membership"
+            href="/membership?src=signin"
             className="text-eye-deep hover:text-ink"
             style={{
               textDecoration: "underline",

@@ -124,7 +124,7 @@ export default async function GiftSuccessPage({
               >
                 Want a seat of your own?{" "}
                 <Link
-                  href="/membership"
+                  href="/membership?src=gift"
                   className="text-eye-deep hover:text-ink"
                 >
                   The door is here.

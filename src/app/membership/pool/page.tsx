@@ -101,7 +101,7 @@ export default function PoolClaimPage() {
 
       <div className="text-center pb-16">
         <Link
-          href="/membership"
+          href="/membership?src=pool"
           className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
           style={{ fontWeight: 500 }}
         >

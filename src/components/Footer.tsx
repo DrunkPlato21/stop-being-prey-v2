@@ -70,7 +70,7 @@ export function Footer() {
               <ul className="space-y-2">
                 <li>
                   <Link
-                    href="/membership"
+                    href="/membership?src=footer"
                     className="text-eye-deep hover:text-ink no-underline font-serif text-sm transition-colors"
                     style={{ fontWeight: 600 }}
                   >

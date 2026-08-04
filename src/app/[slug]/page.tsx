@@ -455,7 +455,7 @@ export default async function ArticlePage({
               for it. Patrons did, and they read it first.{" "}
               <CharterSeatsCount /> charter seats left at $13 a month, locked
               for life.{" "}
-              <Link href="/patronage" className={inlineLinkClass} style={inlineLinkStyle}>
+              <Link href="/patronage?src=essay" className={inlineLinkClass} style={inlineLinkStyle}>
                 Become a patron
               </Link>
               .
@@ -603,7 +603,7 @@ function DraftGate({ article }: { article: Article }) {
         </h1>
         <p className="deck mb-10 max-w-md mx-auto">{article.description}</p>
 
-        <Link href="/membership" className="btn-primary">
+        <Link href="/membership?src=gate" className="btn-primary">
           <span>See what&apos;s inside</span>
         </Link>
 

@@ -10,7 +10,13 @@ import type { TrackChannel } from "@/lib/channels";
 
 export function track(
   event: TrackEvent,
-  opts: { slug?: string; source?: TrackSource; channel?: TrackChannel } = {}
+  opts: {
+    slug?: string;
+    source?: TrackSource;
+    channel?: TrackChannel;
+    /** Canonical "host/path" of an off-site arrival. "view" only. */
+    referrer?: string;
+  } = {}
 ): void {
   if (typeof navigator === "undefined") return;
   try {
@@ -19,6 +25,7 @@ export function track(
       slug: opts.slug,
       source: opts.source,
       channel: opts.channel,
+      referrer: opts.referrer,
     });
     if (typeof navigator.sendBeacon === "function") {
       navigator.sendBeacon(

@@ -165,7 +165,7 @@ export async function Header() {
               {showPresence && (
                 <DeskPresenceIndicator
                   initialState={presenceState}
-                  href="/membership"
+                  href="/membership?src=header"
                   hideWhenAway
                 />
               )}

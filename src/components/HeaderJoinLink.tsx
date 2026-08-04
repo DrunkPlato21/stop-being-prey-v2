@@ -17,7 +17,7 @@ export function HeaderJoinLink() {
   const pathname = usePathname();
   if (SUPPRESS_ON.some((p) => pathname?.startsWith(p))) return null;
   return (
-    <Link href="/patronage" className="header-subscribe">
+    <Link href="/patronage?src=header" className="header-subscribe">
       Join
     </Link>
   );

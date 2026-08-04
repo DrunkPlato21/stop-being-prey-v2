@@ -696,7 +696,7 @@ export default async function CaseFileDetailPage({
             </p>
             <p>
               <Link
-                href="/membership"
+                href="/membership?src=case_file"
                 className="text-eye-deep hover:text-ink no-underline transition-colors"
                 style={{ fontWeight: 600 }}
               >
@@ -741,7 +741,7 @@ export default async function CaseFileDetailPage({
           className="max-w-3xl mx-auto px-6 pb-16 text-center"
         >
           <Link
-            href="/membership"
+            href="/membership?src=case_file"
             className="text-ink-muted hover:text-eye-deep font-display text-sm uppercase tracking-[0.18em] no-underline transition-colors"
             style={{ fontWeight: 500 }}
           >

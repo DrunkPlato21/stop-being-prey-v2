@@ -21,7 +21,7 @@ export function HeroJoinCta() {
   if (!show) return null;
 
   return (
-    <Link href="/membership" className="btn-secondary">
+    <Link href="/membership?src=hero" className="btn-secondary">
       Join the room
     </Link>
   );

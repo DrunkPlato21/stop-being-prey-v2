@@ -80,7 +80,7 @@ export function ReactivateForm() {
           We couldn&apos;t find a membership under that email. Check the
           address, or start fresh.
         </p>
-        <Link href="/membership" className="text-eye-deep hover:text-ink">
+        <Link href="/membership?src=reactivate" className="text-eye-deep hover:text-ink">
           See membership
         </Link>
       </div>
