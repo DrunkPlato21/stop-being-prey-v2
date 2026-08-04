@@ -475,9 +475,9 @@ export async function PatronageLanding({
             className="font-serif text-ink leading-relaxed"
             style={{ fontSize: "1.08rem" }}
           >
-            Only patrons can comment on my articles. You know what a comment
-            section usually looks like. Low quality is putting it kindly.
-            Here, every single comment is from someone who has paid. No
+            Last, the <strong>comments</strong> under each piece. You know
+            what a comment section usually looks like. Low quality is putting
+            it kindly. Here, every single one is from someone who has paid. No
             freeloading communists or spambots allowed.
           </p>
           <p
