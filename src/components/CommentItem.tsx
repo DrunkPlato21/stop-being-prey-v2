@@ -180,6 +180,25 @@ export function CommentItem({
                 Author
               </span>
             )}
+            {/* Your own comment, marked permanently. Coin-ranking puts a
+                member's comment anywhere in the list, so on a busy piece
+                there was no way to pick your own out of twenty-five
+                without reading all of them. */}
+            {viewerWroteThis && !byAuthor && (
+              <span
+                className="font-display uppercase"
+                style={{
+                  fontSize: "0.62rem",
+                  fontWeight: 700,
+                  color: "var(--eye-deep)",
+                  border: "1px solid var(--eye-deep)",
+                  padding: "0.15rem 0.55rem",
+                  letterSpacing: "0.2em",
+                }}
+              >
+                Your comment
+              </span>
+            )}
             {!byAuthor && (
               <MemberBadge
                 founderSlot={founderSlot}

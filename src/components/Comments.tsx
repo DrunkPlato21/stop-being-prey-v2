@@ -20,6 +20,8 @@ import {
 import { CommentForm } from "@/components/CommentForm";
 import { CommentItem } from "@/components/CommentItem";
 import { CommentsLiveRefresh } from "@/components/CommentsLiveRefresh";
+import { CommentSpotlight } from "@/components/CommentSpotlight";
+import { JumpToMyComment } from "@/components/JumpToMyComment";
 import {
   getCoinDataForComments,
   getSpentCommentId,
@@ -75,10 +77,18 @@ export async function Comments({ kind, slug, patron = false }: Props) {
   // pieces allow more (see commentLimitFor). The form shows while the
   // member is under the cap and is replaced by a notice once they hit it.
   const commentLimit = commentLimitFor(kind, slug);
-  const myCommentCount = viewerEmail
-    ? allComments.filter((c) => c.email === viewerEmail).length
-    : 0;
+  const myComments = viewerEmail
+    ? allComments.filter((c) => c.email === viewerEmail)
+    : [];
+  const myCommentCount = myComments.length;
   const atCommentLimit = myCommentCount >= commentLimit;
+  // Newest of their own, for the "show me my comment" jump. Their most
+  // recent is the one they're looking for; the list is coin-ranked, so it
+  // can be sitting anywhere.
+  const myNewestCommentId =
+    myComments.length > 0
+      ? [...myComments].sort((a, b) => b.createdAt - a.createdAt)[0].id
+      : null;
 
   // Featured comments float to the top as standalone cards (see card
   // styling in CommentItem). Author replies aren't eligible to be
@@ -172,6 +182,10 @@ export async function Comments({ kind, slug, patron = false }: Props) {
           reload — comments are server-rendered, so without this only the
           poster ever saw new activity. */}
       <CommentsLiveRefresh />
+      {/* Post-time confirmation + "show me my comment". Mounted here, not
+          inside CommentForm, because the form is replaced by the
+          at-limit block the moment a member posts their last one. */}
+      <CommentSpotlight />
       <div className="text-center mb-10">
         <p className="eyebrow">Comments</p>
       </div>
@@ -191,7 +205,7 @@ export async function Comments({ kind, slug, patron = false }: Props) {
                 ? "Coins are how patrons highlight the best comments."
                 : "Coins are how inner circle members highlight the best comments."}{" "}
               <a
-                href="/membership"
+                href="/membership?src=comments"
                 className="text-eye-deep"
                 style={{ textDecoration: "underline" }}
               >
@@ -267,13 +281,30 @@ export async function Comments({ kind, slug, patron = false }: Props) {
                 style={{ fontSize: "0.98rem" }}
               >
                 {commentLimit > 1
-                  ? `You've used your ${commentLimit} comments on this piece.`
-                  : "That's your comment on this piece."}{" "}
+                  ? `Your ${commentLimit} comments on this piece are posted.`
+                  : "Your comment on this piece is posted."}{" "}
                 Keep the conversation going in the replies. You can reply to
-                anyone below, as often as you like.
+                anyone above, as often as you like.
               </p>
+              {/* The button, not just the words. This block is what a
+                  member sees right after posting their last comment, and
+                  it used to say the comments were "below" when the whole
+                  list is above it. Readers took that to mean their
+                  comment had not saved. */}
+              {myNewestCommentId && (
+                <div className="mt-4">
+                  <JumpToMyComment
+                    commentId={myNewestCommentId}
+                    label={
+                      commentLimit > 1 && myCommentCount > 1
+                        ? "Show me my comments"
+                        : "Show me my comment"
+                    }
+                  />
+                </div>
+              )}
               <p
-                className="font-serif italic text-ink-faint mt-2"
+                className="font-serif italic text-ink-faint mt-3"
                 style={{ fontSize: "0.82rem" }}
               >
                 {commentLimit > 1
@@ -282,12 +313,25 @@ export async function Comments({ kind, slug, patron = false }: Props) {
               </p>
             </div>
           ) : (
-            <CommentForm
-              kind={kind}
-              slug={slug}
-              hasProfile={!!profile?.displayName}
-              existingDisplayName={profile?.displayName || null}
-            />
+            <>
+              {/* Already commented but still has one left. Same problem,
+                  smaller: their existing comment is somewhere up the
+                  coin-ranked list and they have no way to spot it. */}
+              {myNewestCommentId && (
+                <div className="text-center mb-6">
+                  <JumpToMyComment
+                    commentId={myNewestCommentId}
+                    label="Show me my comment"
+                  />
+                </div>
+              )}
+              <CommentForm
+                kind={kind}
+                slug={slug}
+                hasProfile={!!profile?.displayName}
+                existingDisplayName={profile?.displayName || null}
+              />
+            </>
           )
         ) : (
           // Public visitors: read every approved comment above, but

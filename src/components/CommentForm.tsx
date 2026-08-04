@@ -4,11 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { CommentKind } from "@/lib/comments";
 import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
+import { announceCommentPosted } from "@/lib/comment-spotlight";
 
 // Comment input form. Renders the display-name field only for first-
 // time commenters (when the server says hasProfile=false). On submit,
 // POSTs to /api/comments and refreshes the route so the new comment
-// renders server-side without bespoke client state.
+// renders server-side without bespoke client state, then announces the
+// new id so CommentSpotlight can scroll the author to it (see
+// lib/comment-spotlight.ts for why position can't be assumed).
 
 const ERRORS: Record<string, string> = {
   not_authenticated: "Sign in first.",
@@ -165,10 +168,19 @@ export function CommentForm({
         return;
       }
 
+      // The id of the comment just created, so the page can scroll to it
+      // and mark it. Without this the author is left guessing: the list is
+      // coin-ranked, so a new comment lands mid-list, well above the form
+      // they're looking at, with nothing to say it worked.
+      const created = (await res.json().catch(() => ({}))) as {
+        comment?: { id?: string };
+      };
+
       setBody("");
       setDisplayName("");
       setRestoredNote(null);
       clearDraft(key);
+      if (created.comment?.id) announceCommentPosted(created.comment.id);
       router.refresh();
     } catch {
       setError("Couldn't post your comment. Try again.");

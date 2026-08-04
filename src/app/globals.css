@@ -5349,3 +5349,141 @@ body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .moon-icon {
   border: 0;
 }
 
+
+/* === Comments: finding your own comment ==========================
+   The comment list is coin-ranked, so a newly posted comment lands
+   mid-list, above the form the author is looking at, with nothing to say
+   it worked. Readers reported that as "my comment didn't save". These two
+   pieces answer it: the comment marks itself, and a panel confirms in
+   words with a button back to it.
+
+   Held, not flashed. The existing .reply-flash runs 2.6s, which this
+   audience misses entirely. This holds a full ring for ten seconds and
+   then fades over two. */
+.comment-just-posted {
+  border-radius: 6px;
+  animation: commentJustPosted 12s ease-out forwards;
+}
+@keyframes commentJustPosted {
+  0%,
+  83% {
+    background-color: color-mix(in srgb, var(--eye-deep) 14%, transparent);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--eye-deep) 55%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .comment-just-posted {
+    animation: none;
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--eye-deep) 55%, transparent);
+  }
+}
+
+/* Confirmation panel. Pinned so it cannot be scrolled past or lost
+   behind the fold, which is the whole point: it is the fallback for when
+   the scroll loses a race with the refresh. */
+.comment-posted-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: min(26rem, calc(100vw - 2rem));
+  background: var(--surface);
+  border: 2px solid var(--eye-deep);
+  border-radius: 6px;
+  padding: 1.15rem 1.25rem 1.05rem;
+  box-shadow: 0 10px 30px rgba(26, 23, 20, 0.22);
+  text-align: center;
+  animation: commentPostedToastIn 0.32s ease-out;
+}
+@keyframes commentPostedToastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .comment-posted-toast {
+    animation: none;
+  }
+}
+.comment-posted-toast-title {
+  font-family: var(--font-display);
+  font-size: 1.22rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.3rem;
+}
+.comment-posted-toast-body {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  margin-bottom: 0.9rem;
+}
+.comment-posted-toast-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+}
+/* Deliberately large tap targets. */
+.comment-posted-toast-cta {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--paper);
+  background: var(--eye-deep);
+  border: 2px solid var(--eye-deep);
+  border-radius: 4px;
+  padding: 0.6rem 1.15rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+.comment-posted-toast-cta:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.comment-posted-toast-close {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  padding: 0.6rem 1.15rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+.comment-posted-toast-close:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+/* Return-visit affordance next to the form. Reads as a button, because a
+   quiet text link is not findable by the people who need it. */
+.jump-to-my-comment {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--eye-deep);
+  background: transparent;
+  border: 2px solid var(--eye-deep);
+  border-radius: 4px;
+  padding: 0.55rem 1.1rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+.jump-to-my-comment:hover {
+  color: var(--paper);
+  background: var(--eye-deep);
+}
