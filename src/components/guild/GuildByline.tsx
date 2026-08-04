@@ -28,6 +28,7 @@ export function GuildByline({
   adminEmail,
   hostEmail,
   size = "default",
+  showSlot = true,
 }: {
   email: string;
   names: Record<string, string>;
@@ -35,6 +36,9 @@ export function GuildByline({
   adminEmail: string | null;
   hostEmail: string | null;
   size?: "default" | "small";
+  /** Passed through to MemberBadge. The Guild index sets it false to
+      drop the slot number from a dense list row. */
+  showSlot?: boolean;
 }) {
   const norm = email.toLowerCase().trim();
   const isAuthor = !!adminEmail && norm === adminEmail;
@@ -78,6 +82,7 @@ export function GuildByline({
             charterSlot={hb.charterSlot}
             tierBadge={hb.tierBadge}
             size={size}
+            showSlot={showSlot}
           />
         )}
         <span
@@ -109,6 +114,7 @@ export function GuildByline({
           charterSlot={b.charterSlot}
           tierBadge={b.tierBadge}
           size={size}
+          showSlot={showSlot}
         />
       )}
     </>

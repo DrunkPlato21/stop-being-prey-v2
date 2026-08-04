@@ -44,6 +44,7 @@ export function MemberBadge({
   charterSlot,
   tierBadge,
   size = "default",
+  showSlot = true,
 }: {
   founderSlot: number | null;
   charterSlot?: number | null;
@@ -51,6 +52,14 @@ export function MemberBadge({
   /** "small" trims padding + font for in-thread replies; "default"
       sits beside top-level usernames. */
   size?: "default" | "small";
+  /** Drop the "· 37" slot number, keeping the tier word alone. For dense
+      list contexts (the Guild index) where the row is a navigation aid
+      and the number is prestige, not wayfinding — it was the widest thing
+      in the meta line and pushed later marks onto a second row. Standing
+      still reads: the chip is still there, still filled olive. Everywhere
+      a member's identity is the point (Lounge, comments, a thread's own
+      byline) this stays true and the number shows. */
+  showSlot?: boolean;
 }) {
   if (
     founderSlot === null &&
@@ -67,19 +76,27 @@ export function MemberBadge({
       {founderSlot !== null && (
         <span className={`member-chip member-chip-founder${sizeClass}`}>
           <span>Founder</span>
-          <span className="member-chip-sep" aria-hidden="true">
-            &middot;
-          </span>
-          <span className="member-chip-slot">{founderSlot}</span>
+          {showSlot && (
+            <>
+              <span className="member-chip-sep" aria-hidden="true">
+                &middot;
+              </span>
+              <span className="member-chip-slot">{founderSlot}</span>
+            </>
+          )}
         </span>
       )}
       {charterSlot !== null && charterSlot !== undefined && (
         <span className={`member-chip member-chip-charter${sizeClass}`}>
           <span>Charter</span>
-          <span className="member-chip-sep" aria-hidden="true">
-            &middot;
-          </span>
-          <span className="member-chip-slot">{charterSlot}</span>
+          {showSlot && (
+            <>
+              <span className="member-chip-sep" aria-hidden="true">
+                &middot;
+              </span>
+              <span className="member-chip-slot">{charterSlot}</span>
+            </>
+          )}
         </span>
       )}
       {tierBadge !== null && (

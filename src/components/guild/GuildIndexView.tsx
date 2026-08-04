@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { GuildThread } from "@/lib/guild";
 import { NewThreadComposer } from "./NewThreadComposer";
-import { ClayReadSeal } from "./ClayReadSeal";
 import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { GuildCrest } from "./GuildCrest";
 import { formatRelative } from "./guild-format";
@@ -183,56 +182,77 @@ function MetaLine({
   // reply-less threads fall back to the plain time + byline.
   const hasLastReply =
     thread.replyCount > 0 && !!thread.lastReplyId && !!thread.lastReplyAuthorEmail;
+  // Two zones, not one flat list. A single wrapping row put the dots
+  // between items as standalone siblings, so the break landed wherever it
+  // fit and left a separator pointing at nothing — trailing "8 replies ·"
+  // at the end of one line, or a leading "·" opening the next. Grouping
+  // WHO (name + chips) and WHAT (replies, last voice, image) means the
+  // wrap can only happen at the seam between them, where no dot lives.
+  // Wide viewports still render one line and look as they did.
+  const zone: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "0.5rem 0.9rem",
+  };
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
         flexWrap: "wrap",
-        gap: "0.5rem 0.9rem",
+        // Wider gap between the zones than inside them, so the seam reads
+        // as a deliberate boundary on one line and not a missing dot.
+        gap: "0.5rem 1.4rem",
         marginTop: "0.5rem",
         fontSize: "0.8rem",
         color: "var(--ink-muted)",
       }}
     >
-      <GuildByline
-        email={thread.authorEmail}
-        names={names}
-        badges={badges}
-        adminEmail={adminEmail}
-        hostEmail={hostEmail}
-      />
-      {/* No replies yet: the starter IS the last voice, so the time stays on
-          the byline. With replies, the time moves to the last-reply cue so
-          it names its true author. */}
-      {!hasLastReply && (
-        <>
-          <Dot />
-          <span suppressHydrationWarning style={{ color: "var(--ink-faint)" }}>
-            {formatRelative(thread.lastActivityAt)}
-          </span>
-        </>
-      )}
-      <Dot />
-      <ReplyCount n={thread.replyCount} />
-      {hasLastReply && (
-        <>
-          <Dot />
-          <LastReplyLink thread={thread} names={names} adminEmail={adminEmail} />
-        </>
-      )}
-      {postImages(thread).length > 0 && (
-        <>
-          <Dot />
-          <ImageMark />
-        </>
-      )}
-      {thread.clayReadAt && (
-        <>
-          <Dot />
-          <ClayReadSeal at={thread.clayReadAt} />
-        </>
-      )}
+      {/* GuildByline renders the name and chips as flat siblings so a
+          parent gap spaces them uniformly. This zone keeps that contract:
+          same 0.9rem gap it used to inherit from the row. */}
+      <span style={zone}>
+        <GuildByline
+          email={thread.authorEmail}
+          names={names}
+          badges={badges}
+          adminEmail={adminEmail}
+          hostEmail={hostEmail}
+          showSlot={false}
+        />
+      </span>
+      <span style={zone}>
+        {/* No replies yet: the starter IS the last voice, so the time stays
+            on the byline. With replies, the time moves to the last-reply
+            cue so it names its true author. */}
+        {!hasLastReply && (
+          <>
+            <span suppressHydrationWarning style={{ color: "var(--ink-faint)" }}>
+              {formatRelative(thread.lastActivityAt)}
+            </span>
+            <Dot />
+          </>
+        )}
+        <ReplyCount n={thread.replyCount} />
+        {hasLastReply && (
+          <>
+            <Dot />
+            <LastReplyLink thread={thread} names={names} adminEmail={adminEmail} />
+          </>
+        )}
+        {postImages(thread).length > 0 && (
+          <>
+            <Dot />
+            <ImageMark />
+          </>
+        )}
+        {/* No "read by Clay" seal here. It sat on nearly every thread in the
+            index, which is no signal at all, and it was the widest mark in
+            the row — the thing that wrapped and left a dangling separator
+            behind it. The seal still renders on the thread itself, where it
+            lands with weight instead of as list furniture. */}
+      </span>
     </div>
   );
 }
