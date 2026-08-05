@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { postThreadAction, type GuildFormState } from "@/app/guild/actions";
 import { FormatToolbar } from "./FormatToolbar";
 import { ComposerPreview, useComposerPreview } from "./ComposerPreview";
+import { DraftNotice } from "./DraftNotice";
+import { readComposerDraft, useComposerDraft } from "./useComposerDraft";
 import { GuildImagePicker } from "./GuildImagePicker";
 import { useAutoGrow } from "./useAutoGrow";
 import {
@@ -14,6 +16,10 @@ import {
 } from "@/lib/guild-constants";
 
 const INITIAL: GuildFormState = { ok: false };
+
+// One draft slot for the room's one new-thread composer.
+const DRAFT_KEY = "thread:new";
+type ThreadDraft = { title: string; body: string; category: string };
 
 // Open-a-thread composer. Collapsed by default so the index reads calm;
 // one tap opens it. Low friction: a title, a body, post. On success the
@@ -32,19 +38,64 @@ export function NewThreadComposer({
     postThreadAction,
     INITIAL
   );
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  // Seeded from any rescued draft. Safe to read storage during render: this
+  // form only mounts after the collapsed button is tapped, so it is never
+  // server-rendered and can't desync hydration.
+  const [saved] = useState(() => readComposerDraft<ThreadDraft>(DRAFT_KEY));
+  const [title, setTitle] = useState(saved?.title ?? "");
+  const [body, setBody] = useState(saved?.body ?? "");
   // First-post display name. Only used (and only gates the button) when
   // needsDisplayName; the input carries name="displayName" so it rides the
   // form action straight to the gate.
   const [displayName, setDisplayName] = useState("");
   // Required. Empty until the author picks, which gates the Post button.
-  const [category, setCategory] = useState<GuildCategory | "">("");
+  const [category, setCategory] = useState<GuildCategory | "">(
+    (saved?.category as GuildCategory | undefined) ?? ""
+  );
   const [imageUploading, setImageUploading] = useState(false);
   const nameMissing = needsDisplayName && !displayName.trim();
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(bodyRef, body);
   const preview = useComposerPreview(bodyRef);
+  const draft = useComposerDraft<ThreadDraft>(
+    DRAFT_KEY,
+    { title, body, category },
+    !title.trim() && !body.trim() && !category,
+    !!saved
+  );
+  // The collapsed button says so when there's an unfinished thread waiting,
+  // but only after hydration: the server has no idea what's in this
+  // member's storage, and the two first renders have to agree.
+  const [showDraftCue, setShowDraftCue] = useState(false);
+  useEffect(() => {
+    if (saved?.body?.trim() || saved?.title?.trim()) setShowDraftCue(true);
+  }, [saved]);
+
+  // The draft is cleared on submit, since a successful post redirects and
+  // this component never hears about it. If the server rejects instead, the
+  // words are still on screen, so put them straight back in storage.
+  useEffect(() => {
+    if (state.error) draft.saveNow();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  // Reopening a rescued draft puts the caret at the end of the body, where
+  // the member actually left off.
+  useEffect(() => {
+    if (!open || !saved?.body) return;
+    const ta = bodyRef.current;
+    if (!ta) return;
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function discardDraft() {
+    setTitle("");
+    setBody("");
+    setCategory("");
+    draft.clear();
+  }
 
   if (!open) {
     return (
@@ -63,7 +114,7 @@ export function NewThreadComposer({
           cursor: "pointer",
         }}
       >
-        Open a thread
+        {showDraftCue ? "Finish your thread" : "Open a thread"}
       </button>
     );
   }
@@ -71,6 +122,7 @@ export function NewThreadComposer({
   return (
     <form
       action={formAction}
+      onSubmit={() => draft.clear()}
       className="border border-rule"
       style={{ background: "var(--surface)", padding: "1.25rem", borderRadius: 2 }}
     >
@@ -80,6 +132,7 @@ export function NewThreadComposer({
       >
         New thread
       </p>
+      {draft.rescued && <DraftNotice onDiscard={discardDraft} />}
       {/* Category — a required pick, placed first on purpose. Choosing
           the kind of post before writing scaffolds it and kills the
           blank-page freeze. The hint doubles as a prompt. */}
@@ -169,7 +222,10 @@ export function NewThreadComposer({
         value={title}
         onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE))}
         placeholder="What is this thread about?"
-        autoFocus
+        // A restored draft focuses the body instead (see below): landing in
+        // the title puts the caret at the end of a long line and scrolls it
+        // mid-word, which reads as damage rather than as a rescue.
+        autoFocus={!saved}
         className="w-full font-display"
         style={{
           background: "transparent",

@@ -23,6 +23,8 @@ import { authorName, formatRelative } from "./guild-format";
 import { GUILD_BODY_STYLE, formatGuildBody } from "@/components/guild/format-body";
 import { FormatToolbar } from "./FormatToolbar";
 import { ComposerPreview, useComposerPreview } from "./ComposerPreview";
+import { DraftNotice } from "./DraftNotice";
+import { readComposerDraft, useComposerDraft } from "./useComposerDraft";
 import { GuildGallery } from "./GuildGallery";
 import { GuildImagePicker } from "./GuildImagePicker";
 import { GuildReactions } from "./GuildReactions";
@@ -158,7 +160,13 @@ function ReplyComposer({
   needsDisplayName?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(postReplyAction, INITIAL);
-  const [body, setBody] = useState("");
+  // One draft slot per reply box: the thread's own, and one per reply being
+  // answered, so two half-written replies in the same thread can coexist.
+  const draftKey = `reply:${threadId}:${parentReplyId ?? "root"}`;
+  const [saved] = useState(() =>
+    readComposerDraft<{ body: string }>(draftKey)
+  );
+  const [body, setBody] = useState(saved?.body ?? "");
   // First-post display name. Carries name="displayName" so it rides the
   // form action to the gate; only gates the button when needsDisplayName.
   const [displayName, setDisplayName] = useState("");
@@ -172,6 +180,7 @@ function ReplyComposer({
   const bodyRef = textareaRef ?? internalRef;
   useAutoGrow(bodyRef, body);
   const preview = useComposerPreview(bodyRef);
+  const draft = useComposerDraft(draftKey, { body }, !body.trim(), !!saved);
 
   const nameMissing = needsDisplayName && !displayName.trim();
   const canSend =
@@ -182,6 +191,9 @@ function ReplyComposer({
       setBody("");
       setHasImage(false);
       setPickerKey((k) => k + 1);
+      // The reply landed, so the rescue copy has done its job. Emptying the
+      // box would drop the key anyway; this also clears the notice.
+      draft.clear();
       onDone?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,6 +204,14 @@ function ReplyComposer({
       <input type="hidden" name="threadId" value={threadId} />
       {parentReplyId && (
         <input type="hidden" name="parentReplyId" value={parentReplyId} />
+      )}
+      {draft.rescued && (
+        <DraftNotice
+          onDiscard={() => {
+            setBody("");
+            draft.clear();
+          }}
+        />
       )}
       {needsDisplayName && (
         <div style={{ marginBottom: "0.7rem" }}>
