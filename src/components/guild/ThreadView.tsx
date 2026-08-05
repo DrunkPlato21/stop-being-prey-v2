@@ -882,6 +882,72 @@ function UnreadBar({
   );
 }
 
+// Watching is a property of the THREAD, so it lives in the thread's own
+// header rather than in the original post's action row. It was sitting
+// seventh in a row of actions at the foot of the OP, which is the wrong
+// register twice over: members are auto-joined by posting or replying, so
+// almost nobody ever clicks this to turn it on. Its real jobs are telling
+// you that this thread is currently reaching your inbox, and letting you
+// stop it. That's a status, not an action, and a status has to be legible
+// on arrival.
+//
+// The bell is filled when it's on, outline when it's off, and it always
+// carries the word — an icon alone would leave a member guessing whether
+// the bell means "you are subscribed" or "click to subscribe".
+function WatchControl({
+  threadId,
+  watching,
+}: {
+  threadId: string;
+  watching: boolean;
+}) {
+  return (
+    <form action={setWatchAction} style={{ display: "inline-flex" }}>
+      <input type="hidden" name="threadId" value={threadId} />
+      <input type="hidden" name="watching" value={watching ? "0" : "1"} />
+      <button
+        type="submit"
+        aria-pressed={watching}
+        title={
+          watching
+            ? "You get a notification and an email when someone replies here. Click to stop."
+            : "Get told when someone replies here."
+        }
+        className="font-display uppercase tracking-[0.16em] transition-colors"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.45rem",
+          background: "transparent",
+          border: 0,
+          padding: 0,
+          fontSize: "0.66rem",
+          fontWeight: 600,
+          lineHeight: 1,
+          cursor: "pointer",
+          color: watching ? "var(--eye-deep)" : "var(--ink-faint)",
+        }}
+      >
+        <svg
+          aria-hidden="true"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill={watching ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" fill="none" />
+        </svg>
+        {watching ? "Watching" : "Watch"}
+      </button>
+    </form>
+  );
+}
+
 // --- The thread page body --------------------------------------------
 
 export function ThreadView({
@@ -1033,13 +1099,29 @@ export function ThreadView({
 
   return (
     <div style={{ maxWidth: "44rem", margin: "0 auto", padding: "2.25rem 1.25rem 5rem" }}>
-      <Link
-        href="/guild"
-        className="no-underline font-display uppercase tracking-[0.2em]"
-        style={{ color: "var(--ink-faint)", fontSize: "0.66rem", fontWeight: 600 }}
+      {/* The thread's own header bar: where you came from on the left,
+          what this thread is doing to your inbox on the right. The row
+          used to carry the back link alone with the whole right half
+          empty. */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+        }}
       >
-        ← The Guild
-      </Link>
+        <Link
+          href="/guild"
+          className="no-underline font-display uppercase tracking-[0.2em]"
+          style={{ color: "var(--ink-faint)", fontSize: "0.66rem", fontWeight: 600 }}
+        >
+          ← The Guild
+        </Link>
+        {!thread.deleted && (
+          <WatchControl threadId={thread.id} watching={watching} />
+        )}
+      </div>
 
       {/* Original post */}
       <article style={{ marginTop: "1.5rem" }}>
@@ -1157,32 +1239,6 @@ export function ThreadView({
                   hidden={{ id: thread.id }}
                 />
               )}
-              {/* Watching sits last in the member row: it's the quietest
-                  thing here, and it self-labels the state rather than the
-                  action, so a member can read where they stand without
-                  clicking to find out. */}
-              <form action={setWatchAction} style={{ display: "inline-flex" }}>
-                <input type="hidden" name="threadId" value={thread.id} />
-                <input
-                  type="hidden"
-                  name="watching"
-                  value={watching ? "0" : "1"}
-                />
-                <button
-                  type="submit"
-                  title={
-                    watching
-                      ? "You're notified when someone replies. Click to stop."
-                      : "Get notified when someone replies."
-                  }
-                  style={{
-                    ...controlStyle,
-                    color: watching ? "var(--eye-deep)" : "var(--ink-faint)",
-                  }}
-                >
-                  {watching ? "Watching" : "Watch"}
-                </button>
-              </form>
             </div>
 
             {isAdmin && (
