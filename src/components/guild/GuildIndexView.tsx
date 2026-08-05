@@ -5,7 +5,59 @@ import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { GuildCrest } from "./GuildCrest";
 import { GuildNewTag } from "./GuildNewTag";
 import { formatRelative } from "./guild-format";
-import { guildCategoryLabel, postImages } from "@/lib/guild-constants";
+import {
+  GUILD_CATEGORIES,
+  guildCategoryLabel,
+  postImages,
+  type GuildCategory,
+} from "@/lib/guild-constants";
+
+// The library's own filter. The composer has required a category since
+// launch (it gates the Post button), and until now the index ignored it
+// completely: a promise the writer made that the room didn't keep.
+// URL-driven so a filtered view is linkable and needs no client state.
+function CategoryFilter({ active }: { active: GuildCategory | null }) {
+  const chips: { slug: GuildCategory | null; label: string }[] = [
+    { slug: null, label: "All" },
+    ...GUILD_CATEGORIES.map((c) => ({
+      slug: c.slug as GuildCategory,
+      label: c.label,
+    })),
+  ];
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "0.5rem",
+        marginBottom: "2rem",
+      }}
+    >
+      {chips.map((c) => {
+        const on = c.slug === active;
+        return (
+          <Link
+            key={c.slug ?? "all"}
+            href={c.slug ? `/guild?kind=${c.slug}` : "/guild"}
+            className="no-underline font-display uppercase tracking-[0.16em]"
+            aria-current={on ? "page" : undefined}
+            style={{
+              background: on ? "var(--eye-deep)" : "transparent",
+              color: on ? "var(--surface)" : "var(--eye-deep)",
+              border: "1px solid var(--eye-deep)",
+              borderRadius: 2,
+              padding: "0.4rem 0.8rem",
+              fontSize: "0.64rem",
+              fontWeight: 600,
+            }}
+          >
+            {c.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 // Small uppercase category tag. Reuses the eyebrow vocabulary so it reads
 // as a kicker above the thread title, not a loud badge.
@@ -248,6 +300,9 @@ export function GuildIndexView({
   hostEmail,
   lastViewedAt,
   needsDisplayName,
+  category,
+  hasMore,
+  isPage2,
 }: {
   pinned: GuildThread | null;
   threads: GuildThread[];
@@ -261,6 +316,12 @@ export function GuildIndexView({
   /** Viewer has no display name yet — the composer reveals an inline name
       field, required before the thread posts. Never set for the admin. */
   needsDisplayName: boolean;
+  /** Which kind of thread the library is filtered to, if any. */
+  category: GuildCategory | null;
+  /** More threads exist below this page. */
+  hasMore: boolean;
+  /** This is a "load older" page, not the top of the library. */
+  isPage2: boolean;
 }) {
   // First-ever visitors (0) never see NEW, so the list doesn't flood.
   const isNew = (t: GuildThread) =>
@@ -369,10 +430,16 @@ export function GuildIndexView({
         <NewThreadComposer needsDisplayName={needsDisplayName} />
       </div>
 
+      <CategoryFilter active={category} />
+
       {/* The library */}
       {threads.length === 0 ? (
         <p style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>
-          No open threads yet. Be the one to start the conversation.
+          {category
+            ? `Nothing in ${guildCategoryLabel(category)} yet. Yours would be the first.`
+            : isPage2
+            ? "That's the end of the library."
+            : "No open threads yet. Be the one to start the conversation."}
         </p>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -385,9 +452,14 @@ export function GuildIndexView({
                   cue is its own deep link. Kept as siblings so no anchor
                   nests inside another. */}
               <Link href={`/guild/${t.id}`} className="no-underline" style={{ display: "block" }}>
-                <div style={{ marginBottom: "0.3rem" }}>
-                  <CategoryTag slug={t.category} />
-                </div>
+                {/* The kicker names the kind of thread. Under a filter every
+                    row is that kind, so repeating it down the page is noise
+                    the chip above already covers. */}
+                {!category && (
+                  <div style={{ marginBottom: "0.3rem" }}>
+                    <CategoryTag slug={t.category} />
+                  </div>
+                )}
                 <div
                   style={{
                     display: "flex",
@@ -409,6 +481,39 @@ export function GuildIndexView({
             </li>
           ))}
         </ul>
+      )}
+
+      {/* The list used to stop dead at 50 with nothing to say it had. The
+          cursor is the oldest row shown, so "older" means strictly below
+          this page and can't repeat a thread that got bumped meanwhile. */}
+      {hasMore && threads.length > 0 && (
+        <div style={{ borderTop: "1px solid var(--rule)", paddingTop: "1.5rem", marginTop: "0.5rem" }}>
+          <Link
+            href={{
+              pathname: "/guild",
+              query: {
+                ...(category ? { kind: category } : {}),
+                before: threads[threads.length - 1].lastActivityAt,
+              },
+            }}
+            className="no-underline font-display uppercase tracking-[0.18em]"
+            style={{ color: "var(--eye-deep)", fontSize: "0.68rem", fontWeight: 600 }}
+          >
+            Older threads →
+          </Link>
+        </div>
+      )}
+
+      {isPage2 && (
+        <div style={{ marginTop: "2rem" }}>
+          <Link
+            href={category ? `/guild?kind=${category}` : "/guild"}
+            className="no-underline font-display uppercase tracking-[0.18em]"
+            style={{ color: "var(--ink-faint)", fontSize: "0.68rem", fontWeight: 600 }}
+          >
+            ← Back to the top
+          </Link>
+        </div>
       )}
     </div>
   );

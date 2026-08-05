@@ -349,10 +349,22 @@ export type ThreadPage = { threads: GuildThread[]; hasMore: boolean };
 export async function listActiveThreads(args?: {
   limit?: number;
   before?: number;
+  /** Show only this kind of thread. Omit for the whole library. */
+  category?: GuildCategory;
 }): Promise<ThreadPage> {
   const client = getClient();
   if (!client) return { threads: [], hasMore: false };
   const limit = args?.limit ?? 25;
+
+  // Filtering can't page through the index a slice at a time: a category
+  // may have nothing in the first 25 ids and plenty below them. At this
+  // room's size (tens of threads) the honest answer is to read the index
+  // and filter it, which is one zrange and one mget. If the library ever
+  // outgrows the cap, that's the point to add a per-category index rather
+  // than quietly return a short list.
+  if (args?.category) {
+    return listByCategory(client, args.category, limit, args.before);
+  }
 
   // Pull limit+1 to detect hasMore, newest activity first. Mirrors the
   // lounge feed: a by-rank read for the first page, a by-score read past
@@ -383,6 +395,40 @@ export async function listActiveThreads(args?: {
     .map((r) => withCategory(parse<GuildThread>(r)))
     .filter((t): t is GuildThread => !!t && !t.deleted && !t.pinned);
   return { threads, hasMore };
+}
+
+// How far down the (activity-ordered) index a category filter will look.
+// Well past the current library; see the note in listActiveThreads.
+const CATEGORY_SCAN_CAP = 500;
+
+async function listByCategory(
+  client: Redis,
+  category: GuildCategory,
+  limit: number,
+  before?: number
+): Promise<ThreadPage> {
+  const ids = (await client
+    .zrange(THREADS_INDEX, 0, CATEGORY_SCAN_CAP, { rev: true })
+    .catch(() => [] as unknown[])) as string[];
+  if (!ids.length) return { threads: [], hasMore: false };
+  const raw = await client.mget<(string | null)[]>(
+    ...ids.map((id) => `${THREAD_PREFIX}${id}`)
+  );
+  let matching = raw
+    .map((r) => withCategory(parse<GuildThread>(r)))
+    .filter(
+      (t): t is GuildThread =>
+        !!t && !t.deleted && !t.pinned && t.category === category
+    );
+  // Same cursor contract as the unfiltered read: everything strictly older
+  // than the last row the member has already been shown.
+  if (typeof before === "number" && Number.isFinite(before)) {
+    matching = matching.filter((t) => t.lastActivityAt < before);
+  }
+  return {
+    threads: matching.slice(0, limit),
+    hasMore: matching.length > limit,
+  };
 }
 
 /**
