@@ -818,13 +818,26 @@ function ReplyNode({
   );
 }
 
+// Smooth is a lie on a page this tall. The site sets scroll-behavior:
+// smooth globally, so a programmatic scroll across a 21,000px thread
+// animates for SECONDS, and typing doesn't cancel it — the page just goes
+// on sliding under whoever is now writing. Short hops still glide (that's
+// the nice part, and it shows you the direction you moved); anything past
+// a couple of screens arrives at once.
+function scrollBehaviourFor(el: Element): ScrollBehavior {
+  const distance = Math.abs(
+    el.getBoundingClientRect().top - window.innerHeight / 2
+  );
+  return distance > window.innerHeight * 2 ? "instant" : "smooth";
+}
+
 // Centre a reply in the viewport and flash it. Shared by the deep-link
 // landing (arriving from a notification) and the unread jump, so both
 // land the same way and a member learns one behaviour, not two.
 function revealReply(replyId: string) {
   const el = document.getElementById(`reply-${replyId}`);
   if (!el) return;
-  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.scrollIntoView({ behavior: scrollBehaviourFor(el), block: "center" });
   el.classList.remove("reply-flash");
   // Reflow so re-adding the class restarts the animation on repeat taps.
   void el.offsetWidth;
@@ -1021,7 +1034,16 @@ export function ThreadView({
     if (!composerOpen) return;
     const ta = composerRef.current;
     if (!ta) return;
-    ta.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Only move the page if the box isn't already there to write in. The
+    // old unconditional smooth scroll was the worst case of it: opening
+    // the composer at the foot of a long thread started an animation that
+    // ran for seconds, and since typing doesn't cancel a smooth scroll,
+    // the page kept sliding while the member was already writing.
+    const box = ta.getBoundingClientRect();
+    const fullyVisible = box.top >= 0 && box.bottom <= window.innerHeight;
+    if (!fullyVisible) {
+      ta.scrollIntoView({ behavior: scrollBehaviourFor(ta), block: "center" });
+    }
     ta.focus({ preventScroll: true });
   }, [composerOpen]);
 
