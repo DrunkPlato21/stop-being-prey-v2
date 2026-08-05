@@ -17,14 +17,7 @@ import {
 // launch (it gates the Post button), and until now the index ignored it
 // completely: a promise the writer made that the room didn't keep.
 // URL-driven so a filtered view is linkable and needs no client state.
-function CategoryFilter({
-  active,
-  children,
-}: {
-  active: GuildCategory | null;
-  /** Trailing control on the same row (the composer), pushed right. */
-  children?: React.ReactNode;
-}) {
+function CategoryFilter({ active }: { active: GuildCategory | null }) {
   const chips: { slug: GuildCategory | null; label: string }[] = [
     { slug: null, label: "All" },
     ...GUILD_CATEGORIES.map((c) => ({
@@ -64,11 +57,6 @@ function CategoryFilter({
           </Link>
         );
       })}
-      {/* Rendered as a direct flex child, with no wrapper: the collapsed
-          button pushes itself to the far end, and the open form sets its
-          own width to 100%, which makes it wrap onto its own full-width
-          line. A wrapper div would cap that width at its content. */}
-      {children}
     </div>
   );
 }
@@ -457,18 +445,23 @@ export function GuildIndexView({
         }}
       >
         <GuildSearchBox q={q} category={category} />
-        {/* Chips and the composer share one row: the filter narrows the
-            list, the button adds to it, and both belong to the threads
-            below. Opening the composer takes the full width from inside
-            the component (it owns that state), so the form never has to
-            live squeezed into a control row. Neither belongs over a set of
-            search results, which is a claim about matches, not the room. */}
-        {!search && (
-          <CategoryFilter active={category}>
-            <NewThreadComposer needsDisplayName={needsDisplayName} />
-          </CategoryFilter>
-        )}
+        {/* Filters only. The composer used to ride the end of this row and
+            read as a fifth category, because an outlined small-caps box in
+            this design language IS a chip. Filters change what you see;
+            the composer makes something. Different jobs, different rows,
+            different shapes. Neither belongs over a set of search results,
+            which is a claim about matches, not about the room. */}
+        {!search && <CategoryFilter active={category} />}
       </div>
+
+      {/* The invitation to write, on its own line directly above the
+          threads it adds to. Full-width and quiet: it reads as the top of
+          the list rather than as another control in the header. */}
+      {!search && (
+        <div style={{ marginTop: "1.5rem" }}>
+          <NewThreadComposer needsDisplayName={needsDisplayName} />
+        </div>
+      )}
 
       {/* A search takes over the page: the filter chips and the library
           listing are both claims about "everything", and neither is true
@@ -481,7 +474,7 @@ export function GuildIndexView({
               className="no-underline font-display uppercase tracking-[0.18em]"
               style={{ color: "var(--ink-faint)", fontSize: "0.66rem", fontWeight: 600 }}
             >
-              ← Back to the library
+              ← Back to the Guild
             </Link>
           </p>
           <GuildSearchResults
@@ -502,7 +495,7 @@ export function GuildIndexView({
           {category
             ? `Nothing in ${guildCategoryLabel(category)} yet. Yours would be the first.`
             : isPage2
-            ? "That's the end of the library."
+            ? "That's every thread in the Guild."
             : "No open threads yet. Be the one to start the conversation."}
         </p>
       ) : (

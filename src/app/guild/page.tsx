@@ -18,7 +18,7 @@ import type { GuildBadgeInfo } from "@/components/guild/GuildByline";
 export const metadata: Metadata = {
   title: "The Guild",
   description:
-    "The members' library. Substantive threads, thought through, that last.",
+    "The members' deep room. Substantive threads, thought through, that last.",
 };
 
 export const dynamic = "force-dynamic";

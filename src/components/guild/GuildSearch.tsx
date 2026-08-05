@@ -127,7 +127,7 @@ export function GuildSearchResults({
 
       {hits.length === 0 && (
         <p style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>
-          Nothing in the library matches that. Try one word instead of three.
+          Nothing in the Guild matches that. Try one word instead of three.
         </p>
       )}
 

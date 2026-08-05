@@ -97,26 +97,54 @@ export function NewThreadComposer({
   }
 
   if (!open) {
+    // Collapsed, this is an invitation to write, not a control. It used to
+    // be an outlined small-caps button, which in this design language is
+    // exactly what a filter chip looks like — so sat in a row of chips it
+    // read as a fifth category rather than the one thing on the page that
+    // makes something. A full-width field can't be misread that way: it's
+    // writing-shaped, not chip-shaped, and it says what it will become.
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="font-display uppercase tracking-[0.18em] transition-colors hover:text-ink"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "var(--eye-deep)";
+          e.currentTarget.style.color = "var(--ink-soft)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "var(--rule)";
+          e.currentTarget.style.color = "var(--ink-faint)";
+        }}
         style={{
-          // Last control on the library header's chip row: the filters sit
-          // left, the one thing that isn't a filter sits right.
-          marginLeft: "auto",
-          color: "var(--eye-deep)",
-          background: "transparent",
-          border: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: "0.7rem",
+          width: "100%",
+          textAlign: "left",
+          background: "var(--surface)",
+          border: "1px solid var(--rule)",
           borderRadius: 2,
-          padding: "0.7rem 1.2rem",
-          fontSize: "0.72rem",
-          fontWeight: 600,
-          cursor: "pointer",
+          padding: "0.9rem 1rem",
+          fontFamily: "var(--font-source-serif), Georgia, serif",
+          fontSize: "1.02rem",
+          color: "var(--ink-faint)",
+          // A text cursor, because that's what this becomes.
+          cursor: "text",
+          transition: "border-color .15s, color .15s",
         }}
       >
-        {showDraftCue ? "Finish your thread" : "Open a thread"}
+        {/* The same "+" the image picker uses inside the composer. Without
+            it this box is the search field again: identical border, same
+            width, one line of muted serif. The mark is what says one of
+            these takes a query and the other makes a thread. */}
+        <span aria-hidden style={{ color: "var(--eye-deep)", fontSize: "1.1rem" }}>
+          +
+        </span>
+        <span>
+          {showDraftCue
+            ? "Finish the thread you started…"
+            : "Open a thread…"}
+        </span>
       </button>
     );
   }
