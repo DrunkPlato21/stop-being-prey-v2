@@ -30,6 +30,7 @@ import {
   unpinThread,
 } from "@/lib/guild";
 import { createNotification } from "@/lib/notifications";
+import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
 import { sendGuildReplyNotification } from "@/lib/email";
 import { markOnboardingStep } from "@/lib/onboarding";
 
@@ -106,6 +107,64 @@ async function guildNameGate(
   return messageFor(named.error);
 }
 
+/**
+ * Fan out `guild_mention` notifications for everyone @-tagged in a body.
+ *
+ * Mirrors the Lounge's block (same parser, same resolution), with the
+ * Guild's own dedupe: `skip` carries whoever already got a guild_reply
+ * for this exact post, so being named in the reply you're already being
+ * notified about doesn't ring the bell twice. Self-mentions are skipped —
+ * writing your own name doesn't ping you.
+ *
+ * Fire-and-forget by design: a notification hiccup must never fail a post
+ * that already landed.
+ */
+function notifyGuildMentions(args: {
+  body: string;
+  authorEmail: string;
+  authorName: string;
+  threadTitle: string;
+  linkUrl: string;
+  skip?: string | null;
+}): void {
+  void (async () => {
+    try {
+      const tokens = parseMentions(args.body);
+      if (!tokens.length) return;
+      const excerpt =
+        args.body.length > 60
+          ? `${args.body.slice(0, 60).trim()}…`
+          : args.body;
+      const author = args.authorEmail.toLowerCase().trim();
+      const skip = args.skip?.toLowerCase().trim() ?? null;
+      const notified = new Set<string>();
+      for (const token of tokens) {
+        const target = await resolveMentionToEmail(token);
+        if (!target) continue;
+        if (target === author || target === skip) continue;
+        if (notified.has(target)) continue;
+        notified.add(target);
+        await createNotification({
+          memberEmail: target,
+          type: "guild_mention",
+          title: `${args.authorName} mentioned you in the Guild`,
+          body: args.threadTitle || excerpt,
+          linkUrl: args.linkUrl,
+        });
+      }
+    } catch (err) {
+      console.error("[notifications] guild_mention write failed:", err);
+    }
+  })();
+}
+
+/** The name to sign a notification with. Clay presides under his own. */
+async function notifierName(email: string): Promise<string> {
+  if (isAdmin(email)) return "Clay";
+  const profile = await getProfile(email).catch(() => null);
+  return profile?.displayName?.trim() || "A member";
+}
+
 // --- Compose: thread -------------------------------------------------
 
 export async function postThreadAction(
@@ -139,6 +198,14 @@ export async function postThreadAction(
 
   // First-run: posting in the Guild ticks that onboarding step.
   await markOnboardingStep(session.email, "guild").catch(() => {});
+
+  notifyGuildMentions({
+    body: result.thread.body,
+    authorEmail: session.email,
+    authorName: await notifierName(session.email),
+    threadTitle: result.thread.title,
+    linkUrl: `/guild/${result.thread.id}`,
+  });
 
   revalidatePath("/guild");
   // Drop the author straight into their new thread.
@@ -187,6 +254,10 @@ export async function postReplyAction(
   // notify yourself, and never let a notification hiccup break the reply.
   // (Dev never touches prod here — the notifications keyspace is now
   // dev-namespaced, same as the Guild.)
+  // Held outside the try so the mention fan-out below can skip whoever
+  // already got a reply notification for this exact post.
+  let directRecipient: string | null = null;
+  let threadTitle = "";
   try {
     const landedParentId = result.reply.parentReplyId;
     const [thread, parent] = await Promise.all([
@@ -194,6 +265,8 @@ export async function postReplyAction(
       landedParentId ? getReply(landedParentId) : Promise.resolve(null),
     ]);
     const recipient = parent?.authorEmail ?? thread?.authorEmail ?? null;
+    directRecipient = recipient;
+    threadTitle = thread?.title ?? "";
     if (
       thread &&
       recipient &&
@@ -231,6 +304,15 @@ export async function postReplyAction(
   } catch {
     // A notification hiccup must never break posting a reply.
   }
+
+  notifyGuildMentions({
+    body: result.reply.body,
+    authorEmail: session.email,
+    authorName: await notifierName(session.email),
+    threadTitle,
+    linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
+    skip: directRecipient,
+  });
 
   revalidatePath(`/guild/${threadId}`);
   return { ok: true };

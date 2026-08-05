@@ -29,7 +29,7 @@ import { GuildGallery } from "./GuildGallery";
 import { GuildImagePicker } from "./GuildImagePicker";
 import { GuildNewTag } from "./GuildNewTag";
 import { GuildReactions } from "./GuildReactions";
-import { useAutoGrow } from "./useAutoGrow";
+import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
 
 const INITIAL: GuildFormState = { ok: false };
 
@@ -179,7 +179,6 @@ function ReplyComposer({
   const [pickerKey, setPickerKey] = useState(0);
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const bodyRef = textareaRef ?? internalRef;
-  useAutoGrow(bodyRef, body);
   const preview = useComposerPreview(bodyRef);
   const draft = useComposerDraft(draftKey, { body }, !body.trim(), !!saved);
 
@@ -263,13 +262,13 @@ function ReplyComposer({
       {preview.previewing && (
         <ComposerPreview text={body} minHeight={preview.minHeight} />
       )}
-      <textarea
+      <MentionAutoResizingTextarea
         ref={bodyRef}
         name="body"
         value={body}
-        onChange={(e) => setBody(e.target.value.slice(0, MAX_REPLY))}
+        onValueChange={(v) => setBody(v.slice(0, MAX_REPLY))}
         placeholder={placeholder}
-        rows={compact ? 3 : 4}
+        minRows={compact ? 3 : 4}
         className="w-full"
         style={{
           display: preview.previewing ? "none" : undefined,
@@ -282,7 +281,10 @@ function ReplyComposer({
           color: "var(--ink)",
           padding: "0.7rem",
           outline: "none",
+          // Keep the drag handle these boxes have always had. Auto-grow
+          // makes it redundant, but removing it is a visible change.
           resize: "vertical",
+          overflow: "auto",
         }}
       />
       <GuildImagePicker
@@ -337,7 +339,6 @@ function EditThreadForm({
   const [title, setTitle] = useState(thread.title);
   const [body, setBody] = useState(thread.body);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrow(bodyRef, body);
   const preview = useComposerPreview(bodyRef);
   useEffect(() => {
     if (state.ok) onDone();
@@ -372,12 +373,12 @@ function EditThreadForm({
       {preview.previewing && (
         <ComposerPreview text={body} minHeight={preview.minHeight} />
       )}
-      <textarea
+      <MentionAutoResizingTextarea
         ref={bodyRef}
         name="body"
         value={body}
-        onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
-        rows={6}
+        onValueChange={(v) => setBody(v.slice(0, MAX_BODY))}
+        minRows={6}
         className="w-full"
         style={{
           display: preview.previewing ? "none" : undefined,
@@ -390,7 +391,10 @@ function EditThreadForm({
           color: "var(--ink)",
           padding: "0.7rem",
           outline: "none",
+          // Keep the drag handle these boxes have always had. Auto-grow
+          // makes it redundant, but removing it is a visible change.
           resize: "vertical",
+          overflow: "auto",
         }}
       />
       {state.error && (
@@ -435,7 +439,6 @@ function EditReplyForm({
   const [state, formAction, pending] = useActionState(editReplyAction, INITIAL);
   const [body, setBody] = useState(reply.body);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrow(bodyRef, body);
   const preview = useComposerPreview(bodyRef);
   useEffect(() => {
     if (state.ok) onDone();
@@ -455,12 +458,12 @@ function EditReplyForm({
       {preview.previewing && (
         <ComposerPreview text={body} minHeight={preview.minHeight} />
       )}
-      <textarea
+      <MentionAutoResizingTextarea
         ref={bodyRef}
         name="body"
         value={body}
-        onChange={(e) => setBody(e.target.value.slice(0, MAX_REPLY))}
-        rows={3}
+        onValueChange={(v) => setBody(v.slice(0, MAX_REPLY))}
+        minRows={3}
         className="w-full"
         style={{
           display: preview.previewing ? "none" : undefined,
@@ -473,7 +476,10 @@ function EditReplyForm({
           color: "var(--ink)",
           padding: "0.6rem",
           outline: "none",
+          // Keep the drag handle these boxes have always had. Auto-grow
+          // makes it redundant, but removing it is a visible change.
           resize: "vertical",
+          overflow: "auto",
         }}
       />
       {state.error && (

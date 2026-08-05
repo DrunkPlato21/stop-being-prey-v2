@@ -41,8 +41,22 @@ export const AutoResizingTextarea = forwardRef<
     // Reset to "auto" first so the textarea can shrink when content
     // is deleted. Without this, scrollHeight stays at the previous
     // taller value and the box never gets smaller.
+    //
+    // That reset also shortens the document for an instant. Scrolled
+    // past the page's new end, the browser clamps the scroll position
+    // to that new bottom, and restoring the height a line later leaves
+    // the member somewhere they didn't put themselves — in a tall box,
+    // the view appears to jump on every keystroke. Remember where they
+    // were, measure, put them back. Instant on purpose: the site sets
+    // scroll-behavior: smooth globally, which would animate the
+    // correction and make an invisible fix a visible slide.
+    const top = window.scrollY;
+    const left = window.scrollX;
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
+    if (window.scrollY !== top || window.scrollX !== left) {
+      window.scrollTo({ top, left, behavior: "instant" });
+    }
   }, [value]);
 
   // On first mount, when autoFocus + an initial value combine (the

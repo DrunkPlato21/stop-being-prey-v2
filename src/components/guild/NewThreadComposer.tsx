@@ -7,7 +7,7 @@ import { ComposerPreview, useComposerPreview } from "./ComposerPreview";
 import { DraftNotice } from "./DraftNotice";
 import { readComposerDraft, useComposerDraft } from "./useComposerDraft";
 import { GuildImagePicker } from "./GuildImagePicker";
-import { useAutoGrow } from "./useAutoGrow";
+import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
 import {
   GUILD_CATEGORIES,
   MAX_BODY,
@@ -55,7 +55,6 @@ export function NewThreadComposer({
   const [imageUploading, setImageUploading] = useState(false);
   const nameMissing = needsDisplayName && !displayName.trim();
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrow(bodyRef, body);
   const preview = useComposerPreview(bodyRef);
   const draft = useComposerDraft<ThreadDraft>(
     DRAFT_KEY,
@@ -250,13 +249,13 @@ export function NewThreadComposer({
       {preview.previewing && (
         <ComposerPreview text={body} minHeight={preview.minHeight} />
       )}
-      <textarea
+      <MentionAutoResizingTextarea
         ref={bodyRef}
         name="body"
         value={body}
-        onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
+        onValueChange={(v) => setBody(v.slice(0, MAX_BODY))}
         placeholder="Lay out the question or the case. Take the space you need."
-        rows={6}
+        minRows={6}
         className="w-full"
         style={{
           display: preview.previewing ? "none" : undefined,
@@ -269,7 +268,11 @@ export function NewThreadComposer({
           color: "var(--ink)",
           padding: "0.8rem",
           outline: "none",
+          // The Guild composer has always offered the drag handle. Auto-grow
+          // makes it redundant, but taking it away is a visible change to a
+          // box members are used to, so it stays.
           resize: "vertical",
+          overflow: "auto",
         }}
       />
       <GuildImagePicker onUploadingChange={setImageUploading} />

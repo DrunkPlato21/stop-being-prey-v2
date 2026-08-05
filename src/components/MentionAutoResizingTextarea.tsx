@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  forwardRef,
   useCallback,
   useEffect,
   useMemo,
+  useImperativeHandle,
   useRef,
   useState,
   type KeyboardEvent,
@@ -144,17 +146,31 @@ export type MentionAutoResizingTextareaProps = Omit<
   onValueChange: (next: string) => void;
 };
 
-export function MentionAutoResizingTextarea({
-  value,
-  onValueChange,
-  onFocus,
-  onBlur,
-  onKeyDown,
-  onKeyUp,
-  onClick,
-  ...rest
-}: MentionAutoResizingTextareaProps) {
+// Forwards a ref to the underlying <textarea>. The Lounge never needed
+// one (the picker drives selection from inside), but the Guild's format
+// toolbar and its write/preview toggle both act on the member's current
+// selection from outside the box.
+export const MentionAutoResizingTextarea = forwardRef<
+  HTMLTextAreaElement,
+  MentionAutoResizingTextareaProps
+>(function MentionAutoResizingTextarea(
+  {
+    value,
+    onValueChange,
+    onFocus,
+    onBlur,
+    onKeyDown,
+    onKeyUp,
+    onClick,
+    ...rest
+  },
+  externalRef
+) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useImperativeHandle(
+    externalRef,
+    () => textareaRef.current as HTMLTextAreaElement
+  );
   const [directory, setDirectory] = useState<MentionDirectoryEntry[]>(
     () => directoryCache ?? []
   );
@@ -409,4 +425,4 @@ export function MentionAutoResizingTextarea({
       )}
     </div>
   );
-}
+});
