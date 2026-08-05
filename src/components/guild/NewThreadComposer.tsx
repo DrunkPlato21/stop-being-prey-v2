@@ -103,6 +103,9 @@ export function NewThreadComposer({
         onClick={() => setOpen(true)}
         className="font-display uppercase tracking-[0.18em] transition-colors hover:text-ink"
         style={{
+          // Last control on the library header's chip row: the filters sit
+          // left, the one thing that isn't a filter sits right.
+          marginLeft: "auto",
           color: "var(--eye-deep)",
           background: "transparent",
           border: "1px solid var(--border)",
@@ -123,7 +126,15 @@ export function NewThreadComposer({
       action={formAction}
       onSubmit={() => draft.clear()}
       className="border border-rule"
-      style={{ background: "var(--surface)", padding: "1.25rem", borderRadius: 2 }}
+      style={{
+        // Full width so the open composer wraps onto its own line inside
+        // the header's chip row, instead of being squeezed beside filters.
+        width: "100%",
+        background: "var(--surface)",
+        padding: "1.25rem",
+        borderRadius: 2,
+        marginTop: "0.5rem",
+      }}
     >
       <p
         className="eyebrow"

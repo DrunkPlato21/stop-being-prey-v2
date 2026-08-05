@@ -17,7 +17,14 @@ import {
 // launch (it gates the Post button), and until now the index ignored it
 // completely: a promise the writer made that the room didn't keep.
 // URL-driven so a filtered view is linkable and needs no client state.
-function CategoryFilter({ active }: { active: GuildCategory | null }) {
+function CategoryFilter({
+  active,
+  children,
+}: {
+  active: GuildCategory | null;
+  /** Trailing control on the same row (the composer), pushed right. */
+  children?: React.ReactNode;
+}) {
   const chips: { slug: GuildCategory | null; label: string }[] = [
     { slug: null, label: "All" },
     ...GUILD_CATEGORIES.map((c) => ({
@@ -29,9 +36,10 @@ function CategoryFilter({ active }: { active: GuildCategory | null }) {
     <div
       style={{
         display: "flex",
+        alignItems: "center",
         flexWrap: "wrap",
         gap: "0.5rem",
-        marginBottom: "2rem",
+        marginBottom: "1.5rem",
       }}
     >
       {chips.map((c) => {
@@ -56,6 +64,11 @@ function CategoryFilter({ active }: { active: GuildCategory | null }) {
           </Link>
         );
       })}
+      {/* Rendered as a direct flex child, with no wrapper: the collapsed
+          button pushes itself to the far end, and the open form sets its
+          own width to 100%, which makes it wrap onto its own full-width
+          line. A wrapper div would cap that width at its content. */}
+      {children}
     </div>
   );
 }
@@ -432,19 +445,37 @@ export function GuildIndexView({
         </div>
       )}
 
-      {/* Compose */}
-      <div style={{ marginBottom: "2.5rem" }}>
-        <NewThreadComposer needsDisplayName={needsDisplayName} />
+      {/* The library header: find it, narrow it, or add to it. One block
+          sitting directly on top of the list, rather than three controls
+          floating between the Question of the Week and the first thread.
+          No bottom rule — the first row of the list draws its own. */}
+      <div
+        style={{
+          borderTop: "1px solid var(--rule)",
+          marginTop: "2.5rem",
+          paddingTop: "1.5rem",
+        }}
+      >
+        <GuildSearchBox q={q} category={category} />
+        {/* Chips and the composer share one row: the filter narrows the
+            list, the button adds to it, and both belong to the threads
+            below. Opening the composer takes the full width from inside
+            the component (it owns that state), so the form never has to
+            live squeezed into a control row. Neither belongs over a set of
+            search results, which is a claim about matches, not the room. */}
+        {!search && (
+          <CategoryFilter active={category}>
+            <NewThreadComposer needsDisplayName={needsDisplayName} />
+          </CategoryFilter>
+        )}
       </div>
-
-      <GuildSearchBox q={q} category={category} />
 
       {/* A search takes over the page: the filter chips and the library
           listing are both claims about "everything", and neither is true
           next to a result set. One way back, stated plainly. */}
       {search ? (
         <>
-          <p style={{ marginBottom: "1.4rem" }}>
+          <p style={{ margin: "1.4rem 0" }}>
             <Link
               href={category ? `/guild?kind=${category}` : "/guild"}
               className="no-underline font-display uppercase tracking-[0.18em]"
@@ -464,7 +495,6 @@ export function GuildIndexView({
         </>
       ) : (
       <>
-      <CategoryFilter active={category} />
 
       {/* The library */}
       {threads.length === 0 ? (
