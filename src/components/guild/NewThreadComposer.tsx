@@ -30,8 +30,18 @@ export function NewThreadComposer({
   // field (the server action requires it before the thread lands). Never
   // set for the admin. See the first-post gate in guild/actions.ts.
   needsDisplayName = false,
+  children,
 }: {
   needsDisplayName?: boolean;
+  /**
+   * Rendered under the collapsed prompt, and hidden while the composer is
+   * open. That's the list's category filter: chips that look exactly like
+   * the composer's own category buttons. Sitting them under an open form
+   * (right below Post thread, no less) invites a member to read them as
+   * "pick a kind for this thread". While you're writing, the filter for
+   * the list you aren't reading has nothing to say.
+   */
+  children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(
@@ -104,6 +114,7 @@ export function NewThreadComposer({
     // makes something. A full-width field can't be misread that way: it's
     // writing-shaped, not chip-shaped, and it says what it will become.
     return (
+      <>
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -125,6 +136,7 @@ export function NewThreadComposer({
           border: "1px solid var(--rule)",
           borderRadius: 2,
           padding: "0.9rem 1rem",
+          marginBottom: "1.6rem",
           fontFamily: "var(--font-source-serif), Georgia, serif",
           fontSize: "1.02rem",
           color: "var(--ink-faint)",
@@ -146,6 +158,8 @@ export function NewThreadComposer({
             : "Open a thread…"}
         </span>
       </button>
+      {children}
+      </>
     );
   }
 
@@ -155,13 +169,11 @@ export function NewThreadComposer({
       onSubmit={() => draft.clear()}
       className="border border-rule"
       style={{
-        // Full width so the open composer wraps onto its own line inside
-        // the header's chip row, instead of being squeezed beside filters.
         width: "100%",
         background: "var(--surface)",
         padding: "1.25rem",
         borderRadius: 2,
-        marginTop: "0.5rem",
+        marginBottom: "1.6rem",
       }}
     >
       <p

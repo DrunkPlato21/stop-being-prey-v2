@@ -33,7 +33,7 @@ function CategoryFilter({ active }: { active: GuildCategory | null }) {
     // phone, one row once there's room for it.
     <div
       className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center"
-      style={{ marginBottom: "1.5rem" }}
+      style={{ marginBottom: "0.9rem" }}
     >
       {chips.map((c) => {
         const on = c.slug === active;
@@ -447,22 +447,22 @@ export function GuildIndexView({
         }}
       >
         <GuildSearchBox q={q} category={category} />
-        {/* Filters only. The composer used to ride the end of this row and
-            read as a fifth category, because an outlined small-caps box in
-            this design language IS a chip. Filters change what you see;
-            the composer makes something. Different jobs, different rows,
-            different shapes. Neither belongs over a set of search results,
-            which is a claim about matches, not about the room. */}
-        {!search && <CategoryFilter active={category} />}
       </div>
 
-      {/* The invitation to write, on its own line directly above the
-          threads it adds to. Full-width and quiet: it reads as the top of
-          the list rather than as another control in the header. */}
+      {/* Two things you can type into, then the filter, then what it
+          filters. The composer used to ride the end of the chip row and
+          read as a fifth category, because an outlined small-caps box in
+          this design language IS a chip. Filters change what you see; the
+          composer makes something. Different jobs, different shapes.
+          Neither belongs over a set of search results, which is a claim
+          about matches rather than about the room. */}
+      {/* The filter is passed as a child so the composer can drop it while
+          it's open: proximity puts it on the list it governs, and nothing
+          governs a list you've stopped reading to write. */}
       {!search && (
-        <div style={{ marginTop: "1.5rem" }}>
-          <NewThreadComposer needsDisplayName={needsDisplayName} />
-        </div>
+        <NewThreadComposer needsDisplayName={needsDisplayName}>
+          <CategoryFilter active={category} />
+        </NewThreadComposer>
       )}
 
       {/* A search takes over the page: the filter chips and the library
