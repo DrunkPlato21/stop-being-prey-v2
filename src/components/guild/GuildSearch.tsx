@@ -27,7 +27,7 @@ export function GuildSearchBox({
         type="search"
         name="q"
         defaultValue={q}
-        placeholder="Search the library"
+        placeholder="Search the Guild"
         aria-label="Search the Guild"
         className="w-full"
         style={{
