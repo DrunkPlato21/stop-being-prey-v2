@@ -587,6 +587,13 @@ export async function sendGuildReplyNotification(args: {
   /** Path like /guild/<id>#reply-<id>; the absolute URL is built here. */
   threadPath: string;
   replyBody: string;
+  /**
+   * True when this goes to someone WATCHING the thread rather than the
+   * person being answered. Only the copy changes: telling a watcher that
+   * someone "replied to your thread" would be a lie, and the way to stop
+   * these is a different lever than the account toggle.
+   */
+  watching?: boolean;
 }): Promise<SendResult> {
   if (process.env.NODE_ENV !== "production") {
     console.log(
@@ -602,7 +609,17 @@ export async function sendGuildReplyNotification(args: {
   const greeting = args.recipientDisplayName
     ? escapeHtml(args.recipientDisplayName)
     : "Hey";
-  const subject = `${args.replyAuthorDisplayName} replied to your thread in the Guild`;
+  const subject = args.watching
+    ? `${args.replyAuthorDisplayName} replied in "${args.threadTitle}"`
+    : `${args.replyAuthorDisplayName} replied to your thread in the Guild`;
+  const lede = args.watching
+    ? `<strong style="color:#1a1714;">${escapeHtml(args.replyAuthorDisplayName)}</strong> replied in <em>${escapeHtml(args.threadTitle)}</em>, a thread you're following.`
+    : `<strong style="color:#1a1714;">${escapeHtml(args.replyAuthorDisplayName)}</strong> replied to your thread <em>${escapeHtml(args.threadTitle)}</em>.`;
+  // Watchers opted in by taking part, so the way out is the thread's own
+  // Watching control, not the account-wide reply toggle.
+  const footerNote = args.watching
+    ? "to stop these, open the thread and click &ldquo;watching&rdquo;."
+    : "to stop these emails, toggle off &ldquo;email me when someone replies&rdquo; in your account.";
   const replyEscaped = escapeHtml(args.replyBody.trim()).replace(/\n/g, "<br/>");
 
   const html = `<!doctype html>
@@ -625,7 +642,7 @@ export async function sendGuildReplyNotification(args: {
             <tr>
               <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
                 <p style="margin:0 0 18px 0;">${greeting},</p>
-                <p style="margin:0 0 18px 0;"><strong style="color:#1a1714;">${escapeHtml(args.replyAuthorDisplayName)}</strong> replied to your thread <em>${escapeHtml(args.threadTitle)}</em>.</p>
+                <p style="margin:0 0 18px 0;">${lede}</p>
               </td>
             </tr>
             <tr>
@@ -648,7 +665,7 @@ export async function sendGuildReplyNotification(args: {
             </tr>
             <tr>
               <td style="font-family:Georgia,'Times New Roman',serif;font-size:13px;font-style:italic;color:#8a8077;line-height:1.6;border-top:1px solid #d8cfb8;padding-top:20px;">
-                <p style="margin:0 0 6px 0;">to stop these emails, toggle off &ldquo;email me when someone replies&rdquo; in your account.</p>
+                <p style="margin:0 0 6px 0;">${footerNote}</p>
                 <p style="margin:14px 0 0 0;">stay close,<br/>~ Clay</p>
               </td>
             </tr>
@@ -662,13 +679,17 @@ export async function sendGuildReplyNotification(args: {
   const text = [
     `${args.recipientDisplayName || "Hey"},`,
     "",
-    `${args.replyAuthorDisplayName} replied to your thread "${args.threadTitle}":`,
+    args.watching
+      ? `${args.replyAuthorDisplayName} replied in "${args.threadTitle}", a thread you're following:`
+      : `${args.replyAuthorDisplayName} replied to your thread "${args.threadTitle}":`,
     "",
     args.replyBody.trim(),
     "",
     `Read it in the Guild: ${threadUrl}`,
     "",
-    'to stop these emails, toggle off "email me when someone replies" in your account.',
+    args.watching
+      ? 'to stop these, open the thread and click "watching".'
+      : 'to stop these emails, toggle off "email me when someone replies" in your account.',
     "",
     "stay close,",
     "~ Clay",

@@ -327,13 +327,35 @@ export async function postReplyAction(
       const direct = directRecipient?.toLowerCase().trim() ?? null;
       const candidates = watchers.filter((w) => w !== author && w !== direct);
       const due = await claimWatcherNotifications(threadId, candidates);
+      if (!due.length) return;
+      const replier = await getProfile(session.email).catch(() => null);
+      const replierName = isAdmin(session.email)
+        ? "Clay"
+        : replier?.displayName?.trim() || "A member";
+      const path = `/guild/${threadId}#reply-${result.reply.id}`;
       for (const email of due) {
         await createNotification({
           memberEmail: email,
           type: "guild_reply",
           title: "New reply in a thread you're in",
           body: threadTitle,
-          linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
+          linkUrl: path,
+        });
+        // And email, on the same terms as the direct recipient's: the
+        // member's own preference, and at most one per thread per window.
+        // A bell alone reaches nobody who isn't already on the site, which
+        // is most of them — watching without email doesn't pull anyone back.
+        const profile = await getProfile(email).catch(() => null);
+        if (!notifyOnReply(profile)) continue;
+        if (!(await claimReplyEmailCooldown(email, threadId))) continue;
+        await sendGuildReplyNotification({
+          to: email,
+          recipientDisplayName: profile?.displayName ?? "",
+          replyAuthorDisplayName: replierName,
+          threadTitle,
+          threadPath: path,
+          replyBody: result.reply.body || "Shared a photo",
+          watching: true,
         });
       }
     } catch (err) {

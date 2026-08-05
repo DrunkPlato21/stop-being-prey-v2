@@ -22,6 +22,7 @@ for (const line of readFileSync(".env.local", "utf8").split("\n")) {
 
 const {
   autoWatchThread,
+  claimReplyEmailCooldown,
   claimWatcherNotifications,
   getWatchState,
   listWatchers,
@@ -102,6 +103,25 @@ check(
   "and she's quiet again until her next visit",
   await claimWatcherNotifications(THREAD, [alice, bob], t1 + 5000),
   []
+);
+
+// --- email volume ----------------------------------------------------
+// Watchers send on the same per-(member, thread) cooldown as the direct
+// recipient, so a burst of replies can't become a burst of email.
+check(
+  "a watcher's first email claims the thread cooldown",
+  await claimReplyEmailCooldown(bob, THREAD, 60),
+  true
+);
+check(
+  "a second reply in the window sends no second email",
+  await claimReplyEmailCooldown(bob, THREAD, 60),
+  false
+);
+check(
+  "the cooldown is per thread, not per member",
+  await claimReplyEmailCooldown(bob, `${THREAD}-other`, 60),
+  true
 );
 
 console.log(
