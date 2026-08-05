@@ -56,6 +56,13 @@ const REPLY_PREFIX = `${KEY_PREFIX}guild:reply:`;
 const PINNED_KEY = `${KEY_PREFIX}guild:pinned`;
 // Per-(member, action) cooldown locks. SET NX EX; presence = rate limited.
 const RATELIMIT_PREFIX = `${KEY_PREFIX}guild:ratelimit:`;
+// Per-thread HASH of member email -> last time they opened this thread.
+// Deliberately NOT the Guild-wide nav stamp used by the index's NEW tags:
+// that one is reset by a visit to the index, which would tell a member
+// they'd read threads they never opened. One hash per thread keeps the
+// key count flat and lets a single HGET answer "what have I not seen".
+const threadReadKey = (threadId: string) =>
+  `${THREAD_PREFIX}${threadId}:read`;
 
 /** True when Guild writes land in the production keyspace (no prefix). */
 export function isGuildProduction(): boolean {
@@ -525,6 +532,50 @@ export async function listReplies(threadId: string): Promise<GuildReply[]> {
   return raw
     .map((r) => parse<GuildReply>(r))
     .filter((r): r is GuildReply => !!r);
+}
+
+// --------------------------------------------------------------------
+// Per-thread read stamps
+// --------------------------------------------------------------------
+
+/**
+ * When this member last opened this thread (epoch ms), or 0 if never.
+ * Read BEFORE marking the visit, or every thread reports itself fully
+ * read the instant it's opened.
+ */
+export async function getThreadLastRead(
+  threadId: string,
+  email: string
+): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  try {
+    const at = await client.hget<number | string>(
+      threadReadKey(threadId),
+      normEmail(email)
+    );
+    const n = typeof at === "string" ? Number(at) : at;
+    return typeof n === "number" && Number.isFinite(n) ? n : 0;
+  } catch {
+    // A missing stamp reads as "never", which shows no markers at all.
+    // Failing quiet is right: a broken read must not fake unread replies.
+    return 0;
+  }
+}
+
+/** Record that this member has now seen the thread up to `at`. */
+export async function markThreadRead(
+  threadId: string,
+  email: string,
+  at: number = Date.now()
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  try {
+    await client.hset(threadReadKey(threadId), { [normEmail(email)]: at });
+  } catch {
+    // Never let a bookkeeping write break opening a thread.
+  }
 }
 
 /**

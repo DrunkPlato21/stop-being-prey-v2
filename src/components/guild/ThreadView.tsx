@@ -27,6 +27,7 @@ import { DraftNotice } from "./DraftNotice";
 import { readComposerDraft, useComposerDraft } from "./useComposerDraft";
 import { GuildGallery } from "./GuildGallery";
 import { GuildImagePicker } from "./GuildImagePicker";
+import { GuildNewTag } from "./GuildNewTag";
 import { GuildReactions } from "./GuildReactions";
 import { useAutoGrow } from "./useAutoGrow";
 
@@ -524,6 +525,7 @@ function ReplyNode({
   isPinned,
   pinnedSlot,
   needsDisplayName,
+  unreadSince,
 }: {
   reply: GuildReply;
   childReplies?: GuildReply[];
@@ -547,6 +549,9 @@ function ReplyNode({
   // Viewer has no display name yet — the inline reply composer reveals a
   // name field, required before the reply posts.
   needsDisplayName: boolean;
+  // When this member last opened the thread (0 = never, which shows no
+  // markers at all, so a first visit doesn't light up every reply).
+  unreadSince: number;
 }) {
   const [replying, setReplying] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -595,6 +600,14 @@ function ReplyNode({
       }
     : {};
 
+  // Landed since this member last opened the thread. Your own replies never
+  // count: you were there when you wrote them.
+  const isUnread =
+    unreadSince > 0 &&
+    reply.createdAt > unreadSince &&
+    !isOwner &&
+    !reply.deleted;
+
   const replyTo = replyTargets[reply.id] ?? null;
   const visibleChildren = (childReplies ?? []).filter((c) => !c.deleted);
   // A deleted reply with nothing live hanging off it leaves no trace at all
@@ -620,6 +633,7 @@ function ReplyNode({
           {reply.editedAt && (
             <span style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>edited</span>
           )}
+          {isUnread && <GuildNewTag />}
           {reply.clayReadAt && <ClayReadSeal at={reply.clayReadAt} />}
         </div>
 
@@ -789,9 +803,74 @@ function ReplyNode({
           reactions={reactions}
           replyTargets={replyTargets}
           needsDisplayName={needsDisplayName}
+          unreadSince={unreadSince}
           nested
         />
       ))}
+    </div>
+  );
+}
+
+// Centre a reply in the viewport and flash it. Shared by the deep-link
+// landing (arriving from a notification) and the unread jump, so both
+// land the same way and a member learns one behaviour, not two.
+function revealReply(replyId: string) {
+  const el = document.getElementById(`reply-${replyId}`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("reply-flash");
+  // Reflow so re-adding the class restarts the animation on repeat taps.
+  void el.offsetWidth;
+  el.classList.add("reply-flash");
+}
+
+// A thread you've been in before opens with a line saying what arrived
+// while you were gone, and one control that takes you straight there. The
+// whole point of a 36-reply thread staying readable is not having to scan
+// it to find where you stopped.
+function UnreadBar({
+  count,
+  firstUnreadId,
+}: {
+  count: number;
+  firstUnreadId: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: "0.5rem 1rem",
+        marginTop: "1.1rem",
+        padding: "0.6rem 0.9rem",
+        background: "rgba(184, 168, 44, 0.12)",
+        borderRadius: 2,
+        fontSize: "0.86rem",
+        color: "var(--ink-soft)",
+      }}
+    >
+      <span>
+        {count === 1 ? "1 new reply" : `${count} new replies`} since your last
+        visit.
+      </span>
+      <button
+        type="button"
+        onClick={() => revealReply(firstUnreadId)}
+        className="font-display uppercase tracking-[0.18em] transition-colors hover:text-ink"
+        style={{
+          marginLeft: "auto",
+          background: "transparent",
+          border: 0,
+          padding: 0,
+          fontSize: "0.64rem",
+          fontWeight: 600,
+          color: "var(--eye-deep)",
+          cursor: "pointer",
+        }}
+      >
+        Jump to first
+      </button>
     </div>
   );
 }
@@ -809,6 +888,7 @@ export function ThreadView({
   isAdmin,
   reactions,
   needsDisplayName,
+  lastReadAt,
 }: {
   thread: GuildThread;
   replies: GuildReply[];
@@ -823,6 +903,10 @@ export function ThreadView({
   // reveals an inline name field, required before a reply posts. Never set
   // for the admin.
   needsDisplayName: boolean;
+  // When this member last OPENED THIS THREAD (epoch ms, 0 if never). Not
+  // the Guild-wide nav stamp: that one is cleared by a visit to the index,
+  // which would claim they'd read threads they never opened.
+  lastReadAt: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -839,13 +923,7 @@ export function ThreadView({
     function jumpToHash() {
       const hash = window.location.hash;
       if (!hash.startsWith("#reply-")) return;
-      const el = document.getElementById(hash.slice(1));
-      if (!el) return;
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.remove("reply-flash");
-      // Reflow so re-adding the class restarts the animation on repeat taps.
-      void el.offsetWidth;
-      el.classList.add("reply-flash");
+      revealReply(hash.slice(1).replace(/^reply-/, ""));
     }
     // One frame so the server-rendered replies have settled into layout.
     const raf = window.requestAnimationFrame(jumpToHash);
@@ -916,6 +994,32 @@ export function ThreadView({
     : topLevel;
   const pinnedByClay =
     !!pinnedReply && !!adminEmail && pinnedReply.authorEmail === adminEmail;
+
+  // What landed since this member last opened the thread. A thread they've
+  // never opened (0) shows nothing: lighting up all 36 replies as "new"
+  // tells them nothing they didn't know from the index.
+  const viewer = viewerEmail.toLowerCase().trim();
+  const isUnreadReply = (r: GuildReply) =>
+    lastReadAt > 0 &&
+    r.createdAt > lastReadAt &&
+    !r.deleted &&
+    r.authorEmail !== viewer;
+  const unreadCount = replies.filter(isUnreadReply).length;
+  // The first unread in READING order, which is the pinned slot first (it's
+  // lifted to the top), then each top-level reply followed by its children.
+  // Walking the render order rather than the flat chronological list means
+  // the jump lands on the first one they'll actually meet coming down.
+  const firstUnreadId = (() => {
+    if (!unreadCount) return null;
+    const inOrder: GuildReply[] = [];
+    const push = (r: GuildReply) => {
+      inOrder.push(r);
+      for (const c of childrenOf[r.id] ?? []) inOrder.push(c);
+    };
+    if (pinnedReply) push(pinnedReply);
+    for (const r of inlineTopLevel) push(r);
+    return inOrder.find(isUnreadReply)?.id ?? null;
+  })();
 
   return (
     <div style={{ maxWidth: "44rem", margin: "0 auto", padding: "2.25rem 1.25rem 5rem" }}>
@@ -1094,6 +1198,10 @@ export function ThreadView({
           )}
         </div>
 
+        {unreadCount > 0 && firstUnreadId && (
+          <UnreadBar count={unreadCount} firstUnreadId={firstUnreadId} />
+        )}
+
         {/* Pinned reply, lifted to the top under its own banner. */}
         {pinnedReply && (
           <div
@@ -1131,6 +1239,7 @@ export function ThreadView({
               reactions={reactions}
               replyTargets={replyTargets}
               needsDisplayName={needsDisplayName}
+              unreadSince={lastReadAt}
               isPinned
               pinnedSlot
             />
@@ -1153,6 +1262,7 @@ export function ThreadView({
             reactions={reactions}
             replyTargets={replyTargets}
             needsDisplayName={needsDisplayName}
+            unreadSince={lastReadAt}
           />
         ))}
 

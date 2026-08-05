@@ -3,6 +3,7 @@ import type { GuildThread } from "@/lib/guild";
 import { NewThreadComposer } from "./NewThreadComposer";
 import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { GuildCrest } from "./GuildCrest";
+import { GuildNewTag } from "./GuildNewTag";
 import { formatRelative } from "./guild-format";
 import { guildCategoryLabel, postImages } from "@/lib/guild-constants";
 
@@ -24,28 +25,9 @@ function CategoryTag({ slug }: { slug: string }) {
   );
 }
 
-// "New since your last visit" tag, shown on a thread whose latest
-// activity postdates the member's prior Guild visit. Soft olive wash,
-// quiet — a scan cue, not a loud badge.
-function NewTag() {
-  return (
-    <span
-      className="font-display uppercase"
-      style={{
-        color: "var(--eye-deep)",
-        background: "rgba(184, 168, 44, 0.12)",
-        fontSize: "0.56rem",
-        fontWeight: 700,
-        letterSpacing: "0.14em",
-        padding: "0.12rem 0.42rem",
-        borderRadius: 2,
-        whiteSpace: "nowrap",
-      }}
-    >
-      New
-    </span>
-  );
-}
+// The NEW tag now lives in its own file: the thread page marks unread
+// replies with the same one, and two copies of a scan cue drift.
+const NewTag = GuildNewTag;
 
 // The Guild index: the king's pinned Question of the Week at the top,
 // then the library of member threads ordered by latest activity. Server

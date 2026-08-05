@@ -13,7 +13,13 @@ import {
   getMembersByEmails,
   getTierBadge,
 } from "@/lib/members";
-import { getGuildReactions, getThread, listReplies } from "@/lib/guild";
+import {
+  getGuildReactions,
+  getThread,
+  getThreadLastRead,
+  listReplies,
+  markThreadRead,
+} from "@/lib/guild";
 import { ThreadView } from "@/components/guild/ThreadView";
 import type { GuildBadgeInfo } from "@/components/guild/GuildByline";
 
@@ -39,7 +45,15 @@ export default async function GuildThreadPage({
   const thread = await getThread(id);
   if (!thread) notFound();
 
+  // Capture the prior read stamp BEFORE recording this visit, so the
+  // markers describe what arrived since last time and not "nothing".
+  const lastReadAt = await getThreadLastRead(id, session.email).catch(() => 0);
+
   const replies = await listReplies(id);
+
+  // This visit reads the thread to its current end. Fire and forget: the
+  // page must never wait on, or fail from, a bookkeeping write.
+  void markThreadRead(id, session.email);
 
   const emails = [thread.authorEmail, ...replies.map((r) => r.authorEmail)];
   const [profiles, memberMap, reactions] = await Promise.all([
@@ -89,6 +103,7 @@ export default async function GuildThreadPage({
       isAdmin={isAdmin(session.email)}
       reactions={reactions}
       needsDisplayName={needsDisplayName}
+      lastReadAt={lastReadAt}
     />
   );
 }
