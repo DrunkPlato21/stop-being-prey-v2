@@ -26,14 +26,14 @@ function CategoryFilter({ active }: { active: GuildCategory | null }) {
     })),
   ];
   return (
+    // Four chips of four different widths wrapped 3 + 1 on a phone, which
+    // orphaned "Open floor" beside a hole and left a ragged edge lining up
+    // with nothing. Everything else in this header is a full-width block,
+    // so the filters were the one thing that didn't. Two even columns on a
+    // phone, one row once there's room for it.
     <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: "0.5rem",
-        marginBottom: "1.5rem",
-      }}
+      className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center"
+      style={{ marginBottom: "1.5rem" }}
     >
       {chips.map((c) => {
         const on = c.slug === active;
@@ -41,14 +41,16 @@ function CategoryFilter({ active }: { active: GuildCategory | null }) {
           <Link
             key={c.slug ?? "all"}
             href={c.slug ? `/guild?kind=${c.slug}` : "/guild"}
-            className="no-underline font-display uppercase tracking-[0.16em]"
+            // Centred in its cell while the grid governs the width; on the
+            // wide row the label sets the width again, as before.
+            className="no-underline font-display uppercase tracking-[0.16em] text-center inline-flex items-center justify-center"
             aria-current={on ? "page" : undefined}
             style={{
               background: on ? "var(--eye-deep)" : "transparent",
               color: on ? "var(--surface)" : "var(--eye-deep)",
               border: "1px solid var(--eye-deep)",
               borderRadius: 2,
-              padding: "0.4rem 0.8rem",
+              padding: "0.45rem 0.8rem",
               fontSize: "0.64rem",
               fontWeight: 600,
             }}
