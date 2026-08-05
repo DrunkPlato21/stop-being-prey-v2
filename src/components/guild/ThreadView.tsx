@@ -15,6 +15,7 @@ import {
   pinThreadAction,
   postReplyAction,
   restoreThreadAction,
+  setWatchAction,
   type GuildFormState,
 } from "@/app/guild/actions";
 import { ClayReadSeal } from "./ClayReadSeal";
@@ -895,6 +896,7 @@ export function ThreadView({
   reactions,
   needsDisplayName,
   lastReadAt,
+  watching,
 }: {
   thread: GuildThread;
   replies: GuildReply[];
@@ -913,6 +915,8 @@ export function ThreadView({
   // the Guild-wide nav stamp: that one is cleared by a visit to the index,
   // which would claim they'd read threads they never opened.
   lastReadAt: number;
+  /** Is the viewer being notified about new replies here? */
+  watching: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -1153,6 +1157,32 @@ export function ThreadView({
                   hidden={{ id: thread.id }}
                 />
               )}
+              {/* Watching sits last in the member row: it's the quietest
+                  thing here, and it self-labels the state rather than the
+                  action, so a member can read where they stand without
+                  clicking to find out. */}
+              <form action={setWatchAction} style={{ display: "inline-flex" }}>
+                <input type="hidden" name="threadId" value={thread.id} />
+                <input
+                  type="hidden"
+                  name="watching"
+                  value={watching ? "0" : "1"}
+                />
+                <button
+                  type="submit"
+                  title={
+                    watching
+                      ? "You're notified when someone replies. Click to stop."
+                      : "Get notified when someone replies."
+                  }
+                  style={{
+                    ...controlStyle,
+                    color: watching ? "var(--eye-deep)" : "var(--ink-faint)",
+                  }}
+                >
+                  {watching ? "Watching" : "Watch"}
+                </button>
+              </form>
             </div>
 
             {isAdmin && (

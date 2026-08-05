@@ -11,7 +11,9 @@ import {
   notifyOnReply,
 } from "@/lib/comments";
 import {
+  autoWatchThread,
   claimReplyEmailCooldown,
+  claimWatcherNotifications,
   createReply,
   createThread,
   editReply,
@@ -24,6 +26,8 @@ import {
   pinThread,
   restoreReply,
   restoreThread,
+  listWatchers,
+  setWatchState,
   softDeleteReply,
   softDeleteThread,
   unpinReply,
@@ -199,6 +203,9 @@ export async function postThreadAction(
   // First-run: posting in the Guild ticks that onboarding step.
   await markOnboardingStep(session.email, "guild").catch(() => {});
 
+  // Starting a thread means watching it. No opt-in step.
+  await autoWatchThread(result.thread.id, session.email).catch(() => {});
+
   notifyGuildMentions({
     body: result.thread.body,
     authorEmail: session.email,
@@ -304,6 +311,35 @@ export async function postReplyAction(
   } catch {
     // A notification hiccup must never break posting a reply.
   }
+
+  // Answering a thread means watching it, unless they've muted it before.
+  await autoWatchThread(threadId, session.email).catch(() => {});
+
+  // Tell the rest of the room's participants. Until now a reply notified
+  // exactly one person — the parent author — so everyone else in a long
+  // thread was deaf to it, and a conversation they were part of carried on
+  // without them. The direct recipient already has their own, more
+  // specific notification, and nobody is told about their own reply.
+  void (async () => {
+    try {
+      const watchers = await listWatchers(threadId);
+      const author = session.email.toLowerCase().trim();
+      const direct = directRecipient?.toLowerCase().trim() ?? null;
+      const candidates = watchers.filter((w) => w !== author && w !== direct);
+      const due = await claimWatcherNotifications(threadId, candidates);
+      for (const email of due) {
+        await createNotification({
+          memberEmail: email,
+          type: "guild_reply",
+          title: "New reply in a thread you're in",
+          body: threadTitle,
+          linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
+        });
+      }
+    } catch (err) {
+      console.error("[notifications] guild watcher fan-out failed:", err);
+    }
+  })();
 
   notifyGuildMentions({
     body: result.reply.body,
@@ -442,5 +478,22 @@ export async function pinReplyAction(formData: FormData): Promise<void> {
   } else {
     await pinReply(threadId, id);
   }
+  revalidatePath(`/guild/${threadId}`);
+}
+
+// --- Watching --------------------------------------------------------
+
+/**
+ * Start or stop watching a thread. Members are joined automatically when
+ * they start or answer one, so this is the way out (and the way back in
+ * for a thread someone read but never posted in).
+ */
+export async function setWatchAction(formData: FormData): Promise<void> {
+  const session = await currentSession();
+  if (!session) return;
+  const threadId = String(formData.get("threadId") ?? "");
+  if (!threadId) return;
+  const watching = String(formData.get("watching") ?? "") === "1";
+  await setWatchState(threadId, session.email, watching);
   revalidatePath(`/guild/${threadId}`);
 }

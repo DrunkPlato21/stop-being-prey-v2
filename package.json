@@ -12,6 +12,7 @@
     "members:sync-kit": "tsx scripts/sync-members-to-kit.mts",
     "lounge:export": "node scripts/export-lounge.mjs",
     "comments:export": "node scripts/export-comments.mjs",
+    "test:guild-watch": "tsx scripts/guild-watch-test.mts",
     "test:seat-pool": "tsx scripts/seat-pool-test.mts",
     "test:dunning": "tsx scripts/dunning-test.mts"
   },

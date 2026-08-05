@@ -17,6 +17,7 @@ import {
   getGuildReactions,
   getThread,
   getThreadLastRead,
+  getWatchState,
   listReplies,
   markThreadRead,
 } from "@/lib/guild";
@@ -48,6 +49,9 @@ export default async function GuildThreadPage({
   // Capture the prior read stamp BEFORE recording this visit, so the
   // markers describe what arrived since last time and not "nothing".
   const lastReadAt = await getThreadLastRead(id, session.email).catch(() => 0);
+  // Members are auto-joined when they post or reply, so "none" (never took
+  // part) reads as not watching, with the control offering the way in.
+  const watchState = await getWatchState(id, session.email).catch(() => "none" as const);
 
   const replies = await listReplies(id);
 
@@ -104,6 +108,7 @@ export default async function GuildThreadPage({
       reactions={reactions}
       needsDisplayName={needsDisplayName}
       lastReadAt={lastReadAt}
+      watching={watchState === "watching"}
     />
   );
 }

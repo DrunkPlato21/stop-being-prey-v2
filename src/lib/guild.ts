@@ -63,6 +63,17 @@ const RATELIMIT_PREFIX = `${KEY_PREFIX}guild:ratelimit:`;
 // key count flat and lets a single HGET answer "what have I not seen".
 const threadReadKey = (threadId: string) =>
   `${THREAD_PREFIX}${threadId}:read`;
+// Per-thread HASH of member email -> "1" watching, "0" muted. Absent means
+// never involved. Joined automatically by starting or answering a thread,
+// because asking a member to opt in to hearing back from a conversation
+// they're already in is a manual step that mostly gets skipped.
+const threadWatchKey = (threadId: string) =>
+  `${THREAD_PREFIX}${threadId}:watch`;
+// Per-thread HASH of member email -> when they were last told about a new
+// reply. Compared against their read stamp so a thread can only hold one
+// unread ping at a time. See notifyThreadWatchers.
+const threadNotifiedKey = (threadId: string) =>
+  `${THREAD_PREFIX}${threadId}:notified`;
 
 /** True when Guild writes land in the production keyspace (no prefix). */
 export function isGuildProduction(): boolean {
@@ -768,6 +779,125 @@ export async function markThreadRead(
     await client.hset(threadReadKey(threadId), { [normEmail(email)]: at });
   } catch {
     // Never let a bookkeeping write break opening a thread.
+  }
+}
+
+// --------------------------------------------------------------------
+// Watching a thread
+// --------------------------------------------------------------------
+
+/** Is this member watching, muted, or not involved? */
+export async function getWatchState(
+  threadId: string,
+  email: string
+): Promise<"watching" | "muted" | "none"> {
+  const client = getClient();
+  if (!client) return "none";
+  try {
+    const v = await client.hget<string | number>(
+      threadWatchKey(threadId),
+      normEmail(email)
+    );
+    if (v === null || v === undefined) return "none";
+    return String(v) === "1" ? "watching" : "muted";
+  } catch {
+    return "none";
+  }
+}
+
+/** Explicitly start or stop watching. */
+export async function setWatchState(
+  threadId: string,
+  email: string,
+  watching: boolean
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  try {
+    await client.hset(threadWatchKey(threadId), {
+      [normEmail(email)]: watching ? "1" : "0",
+    });
+  } catch {}
+}
+
+/**
+ * Join a member to a thread because they took part in it. Never overrides
+ * an existing value: a member who deliberately muted a thread and then
+ * answered one person in it has not asked to hear everything again.
+ */
+export async function autoWatchThread(
+  threadId: string,
+  email: string
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  try {
+    await client.hsetnx(threadWatchKey(threadId), normEmail(email), "1");
+  } catch {}
+}
+
+/** Everyone currently watching this thread. */
+export async function listWatchers(threadId: string): Promise<string[]> {
+  const client = getClient();
+  if (!client) return [];
+  try {
+    const all = await client.hgetall<Record<string, string | number>>(
+      threadWatchKey(threadId)
+    );
+    if (!all) return [];
+    return Object.entries(all)
+      .filter(([, v]) => String(v) === "1")
+      .map(([email]) => email);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Which watchers should be told about a new reply.
+ *
+ * A watcher who already has an unread ping for this thread is skipped:
+ * they were notified, they haven't been back since, and a second bell for
+ * the same unread conversation is noise. Once they open the thread (which
+ * writes a read stamp newer than the notice) the next reply rings again.
+ * That bounds a hot thread to one notification per member per visit
+ * instead of one per reply, which is what makes watching survivable.
+ *
+ * Returns the recipients and stamps them as notified in one go.
+ */
+export async function claimWatcherNotifications(
+  threadId: string,
+  candidates: string[],
+  now: number = Date.now()
+): Promise<string[]> {
+  const client = getClient();
+  if (!client || !candidates.length) return [];
+  try {
+    const [reads, notices] = await Promise.all([
+      client.hgetall<Record<string, string | number>>(threadReadKey(threadId)),
+      client.hgetall<Record<string, string | number>>(
+        threadNotifiedKey(threadId)
+      ),
+    ]);
+    const num = (v: unknown) => {
+      const n = typeof v === "string" ? Number(v) : (v as number);
+      return typeof n === "number" && Number.isFinite(n) ? n : 0;
+    };
+    const due = candidates.filter((email) => {
+      const lastRead = num(reads?.[email]);
+      const lastNotified = num(notices?.[email]);
+      // Nothing pending only when they've been back since the last notice.
+      return lastNotified <= lastRead;
+    });
+    if (!due.length) return [];
+    await client.hset(
+      threadNotifiedKey(threadId),
+      Object.fromEntries(due.map((e) => [e, now]))
+    );
+    return due;
+  } catch {
+    // Fail closed: a missed bell beats a burst of them.
+    return [];
   }
 }
 
