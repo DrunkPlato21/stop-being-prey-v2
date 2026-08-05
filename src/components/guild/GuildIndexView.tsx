@@ -1,5 +1,6 @@
 import Link from "next/link";
-import type { GuildThread } from "@/lib/guild";
+import type { GuildSearchResult, GuildThread } from "@/lib/guild";
+import { GuildSearchBox, GuildSearchResults } from "./GuildSearch";
 import { NewThreadComposer } from "./NewThreadComposer";
 import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { GuildCrest } from "./GuildCrest";
@@ -303,6 +304,8 @@ export function GuildIndexView({
   category,
   hasMore,
   isPage2,
+  q,
+  search,
 }: {
   pinned: GuildThread | null;
   threads: GuildThread[];
@@ -322,6 +325,10 @@ export function GuildIndexView({
   hasMore: boolean;
   /** This is a "load older" page, not the top of the library. */
   isPage2: boolean;
+  /** The current search query, empty when browsing. */
+  q: string;
+  /** Results, when there's a query. Null means show the library. */
+  search: GuildSearchResult | null;
 }) {
   // First-ever visitors (0) never see NEW, so the list doesn't flood.
   const isNew = (t: GuildThread) =>
@@ -430,6 +437,33 @@ export function GuildIndexView({
         <NewThreadComposer needsDisplayName={needsDisplayName} />
       </div>
 
+      <GuildSearchBox q={q} category={category} />
+
+      {/* A search takes over the page: the filter chips and the library
+          listing are both claims about "everything", and neither is true
+          next to a result set. One way back, stated plainly. */}
+      {search ? (
+        <>
+          <p style={{ marginBottom: "1.4rem" }}>
+            <Link
+              href={category ? `/guild?kind=${category}` : "/guild"}
+              className="no-underline font-display uppercase tracking-[0.18em]"
+              style={{ color: "var(--ink-faint)", fontSize: "0.66rem", fontWeight: 600 }}
+            >
+              ← Back to the library
+            </Link>
+          </p>
+          <GuildSearchResults
+            q={q}
+            result={search}
+            names={names}
+            badges={badges}
+            adminEmail={adminEmail}
+            hostEmail={hostEmail}
+          />
+        </>
+      ) : (
+      <>
       <CategoryFilter active={category} />
 
       {/* The library */}
@@ -514,6 +548,8 @@ export function GuildIndexView({
             ← Back to the top
           </Link>
         </div>
+      )}
+      </>
       )}
     </div>
   );

@@ -9,7 +9,7 @@ import {
   getMembersByEmails,
   getTierBadge,
 } from "@/lib/members";
-import { getPinnedThread, listActiveThreads } from "@/lib/guild";
+import { getPinnedThread, listActiveThreads, searchThreads } from "@/lib/guild";
 import { isGuildCategory } from "@/lib/guild-constants";
 import { getGuildLastViewed, markNavViewed } from "@/lib/nav-dots";
 import { GuildIndexView } from "@/components/guild/GuildIndexView";
@@ -31,9 +31,10 @@ const PAGE_SIZE = 30;
 export default async function GuildPage({
   searchParams,
 }: {
-  searchParams: Promise<{ kind?: string; before?: string }>;
+  searchParams: Promise<{ kind?: string; before?: string; q?: string }>;
 }) {
   const sp = await searchParams;
+  const q = (sp.q ?? "").trim().slice(0, 120);
   const category = isGuildCategory(sp.kind) ? sp.kind : null;
   const beforeRaw = Number(sp.before);
   const before = Number.isFinite(beforeRaw) && beforeRaw > 0 ? beforeRaw : undefined;
@@ -50,9 +51,19 @@ export default async function GuildPage({
     () => 0
   );
 
+  // A search replaces the library listing with its results, so the two
+  // reads are exclusive: no point paging a list nobody is going to see.
+  const search = q ? await searchThreads(q) : null;
+
   const [pinnedRaw, page] = await Promise.all([
-    getPinnedThread(),
-    listActiveThreads({ limit: PAGE_SIZE, before, category: category ?? undefined }),
+    search ? Promise.resolve(null) : getPinnedThread(),
+    search
+      ? Promise.resolve({ threads: [], hasMore: false })
+      : listActiveThreads({
+          limit: PAGE_SIZE,
+          before,
+          category: category ?? undefined,
+        }),
     // Seeing the room clears its nav dot. Cheap single SET; never blocks.
     markNavViewed("guild", session.email),
   ]);
@@ -77,6 +88,10 @@ export default async function GuildPage({
         pinned?.authorEmail,
         pinned?.lastReplyAuthorEmail,
         ...page.threads.flatMap((t) => [t.authorEmail, t.lastReplyAuthorEmail]),
+        ...(search?.hits ?? []).flatMap((h) => [
+          h.thread.authorEmail,
+          h.replyAuthorEmail,
+        ]),
       ].filter((e): e is string => !!e)
     ),
   ];
@@ -121,6 +136,8 @@ export default async function GuildPage({
       category={category}
       hasMore={page.hasMore}
       isPage2={!!before}
+      q={q}
+      search={search}
     />
   );
 }

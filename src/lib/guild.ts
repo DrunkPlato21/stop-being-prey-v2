@@ -431,6 +431,153 @@ async function listByCategory(
   };
 }
 
+// --------------------------------------------------------------------
+// Search
+// --------------------------------------------------------------------
+
+// A library nobody can search stops compounding: the thread from six weeks
+// ago can't be found, so it's never cited, so it's dead weight. This is a
+// scan, not an index — honest at this room's size, and the caps below say
+// out loud where it stops rather than quietly returning less.
+const SEARCH_THREAD_CAP = 200;
+// Reading replies costs a zrange + an mget per thread, so full-text search
+// covers the most recently active threads. Older ones still match on their
+// title and opening post. Callers get told which case they're in.
+export const SEARCH_REPLY_CAP = 50;
+
+export type GuildSearchHit = {
+  thread: GuildThread;
+  /** Text around the first match, for the result row. */
+  snippet: string;
+  /** Set when the match was found in a reply, for the deep link. */
+  replyId: string | null;
+  replyAuthorEmail: string | null;
+  /** How many replies in this thread matched. */
+  matchingReplies: number;
+};
+
+export type GuildSearchResult = {
+  hits: GuildSearchHit[];
+  /** False when a cap kept some threads from being searched in full. */
+  fullyScanned: boolean;
+  /** How many threads were looked at. */
+  scanned: number;
+};
+
+/** Split a query into the words every hit has to contain. */
+function searchTokens(query: string): string[] {
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
+function hasAllTokens(haystack: string, tokens: string[]): boolean {
+  const lower = haystack.toLowerCase();
+  return tokens.every((t) => lower.includes(t));
+}
+
+/**
+ * Text around the first token, trimmed to word boundaries. The composer's
+ * markers (**bold**, *italic*, "> ") are stripped: a result row is a
+ * preview of what was said, not a preview of how it was typed.
+ */
+function makeSnippet(text: string, tokens: string[], span = 90): string {
+  const clean = text
+    .replace(/\*\*/g, "")
+    .replace(/\*/g, "")
+    .replace(/^>\s?/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const lower = clean.toLowerCase();
+  let at = -1;
+  for (const t of tokens) {
+    const i = lower.indexOf(t);
+    if (i !== -1 && (at === -1 || i < at)) at = i;
+  }
+  if (at === -1) return clean.slice(0, span * 2).trim();
+  let start = Math.max(0, at - span);
+  let end = Math.min(clean.length, at + span);
+  if (start > 0) {
+    const sp = clean.indexOf(" ", start);
+    if (sp !== -1 && sp < at) start = sp + 1;
+  }
+  if (end < clean.length) {
+    const sp = clean.lastIndexOf(" ", end);
+    if (sp !== -1 && sp > at) end = sp;
+  }
+  return `${start > 0 ? "… " : ""}${clean.slice(start, end).trim()}${
+    end < clean.length ? " …" : ""
+  }`;
+}
+
+/**
+ * Find threads whose title, opening post, or replies contain every word in
+ * the query. Ordered by the index's own activity order, so the freshest
+ * conversation on a topic comes first.
+ */
+export async function searchThreads(
+  query: string,
+  opts?: { limit?: number }
+): Promise<GuildSearchResult> {
+  const client = getClient();
+  const tokens = searchTokens(query);
+  if (!client || !tokens.length) {
+    return { hits: [], fullyScanned: true, scanned: 0 };
+  }
+  const limit = opts?.limit ?? 40;
+
+  const ids = (await client
+    .zrange(THREADS_INDEX, 0, SEARCH_THREAD_CAP, { rev: true })
+    .catch(() => [] as unknown[])) as string[];
+  if (!ids.length) return { hits: [], fullyScanned: true, scanned: 0 };
+  const raw = await client.mget<(string | null)[]>(
+    ...ids.map((id) => `${THREAD_PREFIX}${id}`)
+  );
+  const threads = raw
+    .map((r) => withCategory(parse<GuildThread>(r)))
+    .filter((t): t is GuildThread => !!t && !t.deleted);
+
+  // Replies are fetched only for the freshest slice; everything else is
+  // matched on its title and opening post.
+  const deep = threads.slice(0, SEARCH_REPLY_CAP);
+  const replyLists = await Promise.all(
+    deep.map((t) => listReplies(t.id).catch(() => [] as GuildReply[]))
+  );
+  const repliesByThread = new Map<string, GuildReply[]>();
+  deep.forEach((t, i) => repliesByThread.set(t.id, replyLists[i]));
+
+  const hits: GuildSearchHit[] = [];
+  for (const thread of threads) {
+    const inTitle = hasAllTokens(thread.title, tokens);
+    const inBody = hasAllTokens(thread.body, tokens);
+    const replies = (repliesByThread.get(thread.id) ?? []).filter(
+      (r) => !r.deleted && hasAllTokens(r.body, tokens)
+    );
+    if (!inTitle && !inBody && !replies.length) continue;
+    // Prefer showing the opening post; a match only in the replies points
+    // straight at the reply that carries it.
+    const fromReply = !inTitle && !inBody && replies.length > 0;
+    const source = fromReply ? replies[0].body : inBody ? thread.body : thread.title;
+    hits.push({
+      thread,
+      snippet: makeSnippet(source, tokens),
+      replyId: fromReply ? replies[0].id : null,
+      replyAuthorEmail: fromReply ? replies[0].authorEmail : null,
+      matchingReplies: replies.length,
+    });
+    if (hits.length >= limit) break;
+  }
+
+  return {
+    hits,
+    fullyScanned: threads.length <= SEARCH_REPLY_CAP && ids.length <= SEARCH_THREAD_CAP,
+    scanned: threads.length,
+  };
+}
+
 /**
  * Wall-clock time (epoch ms) of the most recent thread-or-reply activity
  * anywhere in the Guild, or 0 when empty. The threads index is re-scored to
