@@ -54,6 +54,16 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   return out;
 }
 
+// The posted-body look, in one place. The renderer is shared by the live
+// thread/reply body and by the composer's preview, so the two can never
+// drift: what a member sees in preview is the same nodes in the same type.
+export const GUILD_BODY_STYLE: React.CSSProperties = {
+  whiteSpace: "pre-wrap",
+  fontSize: "1.05rem",
+  lineHeight: 1.7,
+  color: "var(--ink-soft)",
+};
+
 const QUOTE_RE = /^>\s?/;
 
 export function formatGuildBody(text: string): React.ReactNode {

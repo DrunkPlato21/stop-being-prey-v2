@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { postThreadAction, type GuildFormState } from "@/app/guild/actions";
 import { FormatToolbar } from "./FormatToolbar";
+import { ComposerPreview, useComposerPreview } from "./ComposerPreview";
 import { GuildImagePicker } from "./GuildImagePicker";
 import { useAutoGrow } from "./useAutoGrow";
 import {
@@ -43,6 +44,7 @@ export function NewThreadComposer({
   const nameMissing = needsDisplayName && !displayName.trim();
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(bodyRef, body);
+  const preview = useComposerPreview(bodyRef);
 
   if (!open) {
     return (
@@ -184,7 +186,14 @@ export function NewThreadComposer({
         textareaRef={bodyRef}
         value={body}
         onChange={(v) => setBody(v.slice(0, MAX_BODY))}
+        previewing={preview.previewing}
+        onTogglePreview={preview.toggle}
       />
+      {/* The textarea is hidden, never unmounted: a hidden field still
+          submits, so a member can post straight from preview. */}
+      {preview.previewing && (
+        <ComposerPreview text={body} minHeight={preview.minHeight} />
+      )}
       <textarea
         ref={bodyRef}
         name="body"
@@ -194,6 +203,7 @@ export function NewThreadComposer({
         rows={6}
         className="w-full"
         style={{
+          display: preview.previewing ? "none" : undefined,
           background: "transparent",
           border: "1px solid var(--rule)",
           borderRadius: 2,

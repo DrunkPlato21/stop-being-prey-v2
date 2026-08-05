@@ -20,8 +20,9 @@ import {
 import { ClayReadSeal } from "./ClayReadSeal";
 import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { authorName, formatRelative } from "./guild-format";
-import { formatGuildBody } from "@/components/guild/format-body";
+import { GUILD_BODY_STYLE, formatGuildBody } from "@/components/guild/format-body";
 import { FormatToolbar } from "./FormatToolbar";
+import { ComposerPreview, useComposerPreview } from "./ComposerPreview";
 import { GuildGallery } from "./GuildGallery";
 import { GuildImagePicker } from "./GuildImagePicker";
 import { GuildReactions } from "./GuildReactions";
@@ -127,15 +128,7 @@ function DeleteControl({
 
 function Body({ text }: { text: string }) {
   return (
-    <div
-      style={{
-        whiteSpace: "pre-wrap",
-        fontSize: "1.05rem",
-        lineHeight: 1.7,
-        color: "var(--ink-soft)",
-        marginTop: "0.8rem",
-      }}
-    >
+    <div style={{ ...GUILD_BODY_STYLE, marginTop: "0.8rem" }}>
       {formatGuildBody(text)}
     </div>
   );
@@ -178,6 +171,7 @@ function ReplyComposer({
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const bodyRef = textareaRef ?? internalRef;
   useAutoGrow(bodyRef, body);
+  const preview = useComposerPreview(bodyRef);
 
   const nameMissing = needsDisplayName && !displayName.trim();
   const canSend =
@@ -242,7 +236,12 @@ function ReplyComposer({
         textareaRef={bodyRef}
         value={body}
         onChange={(v) => setBody(v.slice(0, MAX_REPLY))}
+        previewing={preview.previewing}
+        onTogglePreview={preview.toggle}
       />
+      {preview.previewing && (
+        <ComposerPreview text={body} minHeight={preview.minHeight} />
+      )}
       <textarea
         ref={bodyRef}
         name="body"
@@ -252,6 +251,7 @@ function ReplyComposer({
         rows={compact ? 3 : 4}
         className="w-full"
         style={{
+          display: preview.previewing ? "none" : undefined,
           background: "var(--surface)",
           border: "1px solid var(--rule)",
           borderRadius: 2,
@@ -317,6 +317,7 @@ function EditThreadForm({
   const [body, setBody] = useState(thread.body);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(bodyRef, body);
+  const preview = useComposerPreview(bodyRef);
   useEffect(() => {
     if (state.ok) onDone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -344,7 +345,12 @@ function EditThreadForm({
         textareaRef={bodyRef}
         value={body}
         onChange={(v) => setBody(v.slice(0, MAX_BODY))}
+        previewing={preview.previewing}
+        onTogglePreview={preview.toggle}
       />
+      {preview.previewing && (
+        <ComposerPreview text={body} minHeight={preview.minHeight} />
+      )}
       <textarea
         ref={bodyRef}
         name="body"
@@ -353,6 +359,7 @@ function EditThreadForm({
         rows={6}
         className="w-full"
         style={{
+          display: preview.previewing ? "none" : undefined,
           background: "var(--surface)",
           border: "1px solid var(--rule)",
           borderRadius: 2,
@@ -408,6 +415,7 @@ function EditReplyForm({
   const [body, setBody] = useState(reply.body);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(bodyRef, body);
+  const preview = useComposerPreview(bodyRef);
   useEffect(() => {
     if (state.ok) onDone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -420,7 +428,12 @@ function EditReplyForm({
         textareaRef={bodyRef}
         value={body}
         onChange={(v) => setBody(v.slice(0, MAX_REPLY))}
+        previewing={preview.previewing}
+        onTogglePreview={preview.toggle}
       />
+      {preview.previewing && (
+        <ComposerPreview text={body} minHeight={preview.minHeight} />
+      )}
       <textarea
         ref={bodyRef}
         name="body"
@@ -429,6 +442,7 @@ function EditReplyForm({
         rows={3}
         className="w-full"
         style={{
+          display: preview.previewing ? "none" : undefined,
           background: "var(--surface)",
           border: "1px solid var(--rule)",
           borderRadius: 2,

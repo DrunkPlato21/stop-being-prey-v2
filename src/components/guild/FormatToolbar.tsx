@@ -12,6 +12,10 @@ type Props = {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   value: string;
   onChange: (next: string) => void;
+  // Write/preview toggle, parked at the right end of the same row. Omit
+  // both and the toolbar is exactly the three buttons it always was.
+  previewing?: boolean;
+  onTogglePreview?: () => void;
 };
 
 const TOOLS = [
@@ -20,8 +24,15 @@ const TOOLS = [
   { key: "quote", glyph: "”", title: "Quote", glyphStyle: { fontWeight: 700, fontSize: "1.25rem" } },
 ] as const;
 
-export function FormatToolbar({ textareaRef, value, onChange }: Props) {
+export function FormatToolbar({
+  textareaRef,
+  value,
+  onChange,
+  previewing = false,
+  onTogglePreview,
+}: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
+  const [toggleHover, setToggleHover] = useState(false);
 
   function restoreSelection(start: number, end: number) {
     requestAnimationFrame(() => {
@@ -71,21 +82,28 @@ export function FormatToolbar({ textareaRef, value, onChange }: Props) {
 
   return (
     <div
-      style={{ display: "flex", gap: "0.4rem", marginBottom: "0.6rem" }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.4rem",
+        marginBottom: "0.6rem",
+      }}
       aria-label="Formatting"
     >
       {TOOLS.map((t) => {
-        const isHover = hovered === t.key;
+        const isHover = hovered === t.key && !previewing;
         return (
           <button
             key={t.key}
             type="button"
             title={t.title}
             aria-label={t.title}
+            disabled={previewing}
             onMouseEnter={() => setHovered(t.key)}
             onMouseLeave={() => setHovered(null)}
             onClick={() => run(t.key)}
             style={{
+              opacity: previewing ? 0.4 : 1,
               width: "2.3rem",
               height: "2.3rem",
               display: "inline-flex",
@@ -98,7 +116,7 @@ export function FormatToolbar({ textareaRef, value, onChange }: Props) {
               fontFamily: "var(--font-source-serif), Georgia, 'Times New Roman', serif",
               fontSize: "1.05rem",
               lineHeight: 1,
-              cursor: "pointer",
+              cursor: previewing ? "default" : "pointer",
               transition: "color .15s, border-color .15s, background .15s",
               ...t.glyphStyle,
             }}
@@ -107,6 +125,35 @@ export function FormatToolbar({ textareaRef, value, onChange }: Props) {
           </button>
         );
       })}
+      {onTogglePreview && (
+        // Self-labelling: it says the room it takes you to, never the room
+        // you're in. Same 2.3rem height as the glyph boxes so the row keeps
+        // one baseline.
+        <button
+          type="button"
+          onClick={onTogglePreview}
+          onMouseEnter={() => setToggleHover(true)}
+          onMouseLeave={() => setToggleHover(false)}
+          aria-pressed={previewing}
+          className="font-display uppercase tracking-[0.18em]"
+          style={{
+            marginLeft: "auto",
+            height: "2.3rem",
+            padding: "0 0.6rem",
+            display: "inline-flex",
+            alignItems: "center",
+            background: "transparent",
+            border: 0,
+            color: toggleHover || previewing ? "var(--eye-deep)" : "var(--ink-faint)",
+            fontSize: "0.64rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "color .15s",
+          }}
+        >
+          {previewing ? "Write" : "Preview"}
+        </button>
+      )}
     </div>
   );
 }
