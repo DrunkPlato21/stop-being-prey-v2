@@ -42,6 +42,7 @@ type Notification = {
     | "lounge_reply"
     | "lounge_reaction"
     | "lounge_mention"
+    | "guild_mention"
     | "guild_reply"
     | "guild_reaction"
     | "coin_received";
@@ -164,6 +165,7 @@ function TypeGlyph({ type }: { type: Notification["type"] }) {
         </svg>
       );
     case "lounge_mention":
+    case "guild_mention":
     case "comment_mention":
       // At-sign — someone tagged you, in the lounge or a comment thread.
       return (

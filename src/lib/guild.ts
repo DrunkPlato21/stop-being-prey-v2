@@ -56,6 +56,24 @@ const REPLY_PREFIX = `${KEY_PREFIX}guild:reply:`;
 const PINNED_KEY = `${KEY_PREFIX}guild:pinned`;
 // Per-(member, action) cooldown locks. SET NX EX; presence = rate limited.
 const RATELIMIT_PREFIX = `${KEY_PREFIX}guild:ratelimit:`;
+// Per-thread HASH of member email -> last time they opened this thread.
+// Deliberately NOT the Guild-wide nav stamp used by the index's NEW tags:
+// that one is reset by a visit to the index, which would tell a member
+// they'd read threads they never opened. One hash per thread keeps the
+// key count flat and lets a single HGET answer "what have I not seen".
+const threadReadKey = (threadId: string) =>
+  `${THREAD_PREFIX}${threadId}:read`;
+// Per-thread HASH of member email -> "1" watching, "0" muted. Absent means
+// never involved. Joined automatically by starting or answering a thread,
+// because asking a member to opt in to hearing back from a conversation
+// they're already in is a manual step that mostly gets skipped.
+const threadWatchKey = (threadId: string) =>
+  `${THREAD_PREFIX}${threadId}:watch`;
+// Per-thread HASH of member email -> when they were last told about a new
+// reply. Compared against their read stamp so a thread can only hold one
+// unread ping at a time. See notifyThreadWatchers.
+const threadNotifiedKey = (threadId: string) =>
+  `${THREAD_PREFIX}${threadId}:notified`;
 
 /** True when Guild writes land in the production keyspace (no prefix). */
 export function isGuildProduction(): boolean {
@@ -342,10 +360,22 @@ export type ThreadPage = { threads: GuildThread[]; hasMore: boolean };
 export async function listActiveThreads(args?: {
   limit?: number;
   before?: number;
+  /** Show only this kind of thread. Omit for the whole library. */
+  category?: GuildCategory;
 }): Promise<ThreadPage> {
   const client = getClient();
   if (!client) return { threads: [], hasMore: false };
   const limit = args?.limit ?? 25;
+
+  // Filtering can't page through the index a slice at a time: a category
+  // may have nothing in the first 25 ids and plenty below them. At this
+  // room's size (tens of threads) the honest answer is to read the index
+  // and filter it, which is one zrange and one mget. If the library ever
+  // outgrows the cap, that's the point to add a per-category index rather
+  // than quietly return a short list.
+  if (args?.category) {
+    return listByCategory(client, args.category, limit, args.before);
+  }
 
   // Pull limit+1 to detect hasMore, newest activity first. Mirrors the
   // lounge feed: a by-rank read for the first page, a by-score read past
@@ -376,6 +406,187 @@ export async function listActiveThreads(args?: {
     .map((r) => withCategory(parse<GuildThread>(r)))
     .filter((t): t is GuildThread => !!t && !t.deleted && !t.pinned);
   return { threads, hasMore };
+}
+
+// How far down the (activity-ordered) index a category filter will look.
+// Well past the current library; see the note in listActiveThreads.
+const CATEGORY_SCAN_CAP = 500;
+
+async function listByCategory(
+  client: Redis,
+  category: GuildCategory,
+  limit: number,
+  before?: number
+): Promise<ThreadPage> {
+  const ids = (await client
+    .zrange(THREADS_INDEX, 0, CATEGORY_SCAN_CAP, { rev: true })
+    .catch(() => [] as unknown[])) as string[];
+  if (!ids.length) return { threads: [], hasMore: false };
+  const raw = await client.mget<(string | null)[]>(
+    ...ids.map((id) => `${THREAD_PREFIX}${id}`)
+  );
+  let matching = raw
+    .map((r) => withCategory(parse<GuildThread>(r)))
+    .filter(
+      (t): t is GuildThread =>
+        !!t && !t.deleted && !t.pinned && t.category === category
+    );
+  // Same cursor contract as the unfiltered read: everything strictly older
+  // than the last row the member has already been shown.
+  if (typeof before === "number" && Number.isFinite(before)) {
+    matching = matching.filter((t) => t.lastActivityAt < before);
+  }
+  return {
+    threads: matching.slice(0, limit),
+    hasMore: matching.length > limit,
+  };
+}
+
+// --------------------------------------------------------------------
+// Search
+// --------------------------------------------------------------------
+
+// A library nobody can search stops compounding: the thread from six weeks
+// ago can't be found, so it's never cited, so it's dead weight. This is a
+// scan, not an index — honest at this room's size, and the caps below say
+// out loud where it stops rather than quietly returning less.
+const SEARCH_THREAD_CAP = 200;
+// Reading replies costs a zrange + an mget per thread, so full-text search
+// covers the most recently active threads. Older ones still match on their
+// title and opening post. Callers get told which case they're in.
+export const SEARCH_REPLY_CAP = 50;
+
+export type GuildSearchHit = {
+  thread: GuildThread;
+  /** Text around the first match, for the result row. */
+  snippet: string;
+  /** Set when the match was found in a reply, for the deep link. */
+  replyId: string | null;
+  replyAuthorEmail: string | null;
+  /** How many replies in this thread matched. */
+  matchingReplies: number;
+};
+
+export type GuildSearchResult = {
+  hits: GuildSearchHit[];
+  /** False when a cap kept some threads from being searched in full. */
+  fullyScanned: boolean;
+  /** How many threads were looked at. */
+  scanned: number;
+};
+
+/** Split a query into the words every hit has to contain. */
+function searchTokens(query: string): string[] {
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
+function hasAllTokens(haystack: string, tokens: string[]): boolean {
+  const lower = haystack.toLowerCase();
+  return tokens.every((t) => lower.includes(t));
+}
+
+/**
+ * Text around the first token, trimmed to word boundaries. The composer's
+ * markers (**bold**, *italic*, "> ") are stripped: a result row is a
+ * preview of what was said, not a preview of how it was typed.
+ */
+function makeSnippet(text: string, tokens: string[], span = 90): string {
+  const clean = text
+    .replace(/\*\*/g, "")
+    .replace(/\*/g, "")
+    .replace(/^>\s?/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const lower = clean.toLowerCase();
+  let at = -1;
+  for (const t of tokens) {
+    const i = lower.indexOf(t);
+    if (i !== -1 && (at === -1 || i < at)) at = i;
+  }
+  if (at === -1) return clean.slice(0, span * 2).trim();
+  let start = Math.max(0, at - span);
+  let end = Math.min(clean.length, at + span);
+  if (start > 0) {
+    const sp = clean.indexOf(" ", start);
+    if (sp !== -1 && sp < at) start = sp + 1;
+  }
+  if (end < clean.length) {
+    const sp = clean.lastIndexOf(" ", end);
+    if (sp !== -1 && sp > at) end = sp;
+  }
+  return `${start > 0 ? "… " : ""}${clean.slice(start, end).trim()}${
+    end < clean.length ? " …" : ""
+  }`;
+}
+
+/**
+ * Find threads whose title, opening post, or replies contain every word in
+ * the query. Ordered by the index's own activity order, so the freshest
+ * conversation on a topic comes first.
+ */
+export async function searchThreads(
+  query: string,
+  opts?: { limit?: number }
+): Promise<GuildSearchResult> {
+  const client = getClient();
+  const tokens = searchTokens(query);
+  if (!client || !tokens.length) {
+    return { hits: [], fullyScanned: true, scanned: 0 };
+  }
+  const limit = opts?.limit ?? 40;
+
+  const ids = (await client
+    .zrange(THREADS_INDEX, 0, SEARCH_THREAD_CAP, { rev: true })
+    .catch(() => [] as unknown[])) as string[];
+  if (!ids.length) return { hits: [], fullyScanned: true, scanned: 0 };
+  const raw = await client.mget<(string | null)[]>(
+    ...ids.map((id) => `${THREAD_PREFIX}${id}`)
+  );
+  const threads = raw
+    .map((r) => withCategory(parse<GuildThread>(r)))
+    .filter((t): t is GuildThread => !!t && !t.deleted);
+
+  // Replies are fetched only for the freshest slice; everything else is
+  // matched on its title and opening post.
+  const deep = threads.slice(0, SEARCH_REPLY_CAP);
+  const replyLists = await Promise.all(
+    deep.map((t) => listReplies(t.id).catch(() => [] as GuildReply[]))
+  );
+  const repliesByThread = new Map<string, GuildReply[]>();
+  deep.forEach((t, i) => repliesByThread.set(t.id, replyLists[i]));
+
+  const hits: GuildSearchHit[] = [];
+  for (const thread of threads) {
+    const inTitle = hasAllTokens(thread.title, tokens);
+    const inBody = hasAllTokens(thread.body, tokens);
+    const replies = (repliesByThread.get(thread.id) ?? []).filter(
+      (r) => !r.deleted && hasAllTokens(r.body, tokens)
+    );
+    if (!inTitle && !inBody && !replies.length) continue;
+    // Prefer showing the opening post; a match only in the replies points
+    // straight at the reply that carries it.
+    const fromReply = !inTitle && !inBody && replies.length > 0;
+    const source = fromReply ? replies[0].body : inBody ? thread.body : thread.title;
+    hits.push({
+      thread,
+      snippet: makeSnippet(source, tokens),
+      replyId: fromReply ? replies[0].id : null,
+      replyAuthorEmail: fromReply ? replies[0].authorEmail : null,
+      matchingReplies: replies.length,
+    });
+    if (hits.length >= limit) break;
+  }
+
+  return {
+    hits,
+    fullyScanned: threads.length <= SEARCH_REPLY_CAP && ids.length <= SEARCH_THREAD_CAP,
+    scanned: threads.length,
+  };
 }
 
 /**
@@ -525,6 +736,169 @@ export async function listReplies(threadId: string): Promise<GuildReply[]> {
   return raw
     .map((r) => parse<GuildReply>(r))
     .filter((r): r is GuildReply => !!r);
+}
+
+// --------------------------------------------------------------------
+// Per-thread read stamps
+// --------------------------------------------------------------------
+
+/**
+ * When this member last opened this thread (epoch ms), or 0 if never.
+ * Read BEFORE marking the visit, or every thread reports itself fully
+ * read the instant it's opened.
+ */
+export async function getThreadLastRead(
+  threadId: string,
+  email: string
+): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  try {
+    const at = await client.hget<number | string>(
+      threadReadKey(threadId),
+      normEmail(email)
+    );
+    const n = typeof at === "string" ? Number(at) : at;
+    return typeof n === "number" && Number.isFinite(n) ? n : 0;
+  } catch {
+    // A missing stamp reads as "never", which shows no markers at all.
+    // Failing quiet is right: a broken read must not fake unread replies.
+    return 0;
+  }
+}
+
+/** Record that this member has now seen the thread up to `at`. */
+export async function markThreadRead(
+  threadId: string,
+  email: string,
+  at: number = Date.now()
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  try {
+    await client.hset(threadReadKey(threadId), { [normEmail(email)]: at });
+  } catch {
+    // Never let a bookkeeping write break opening a thread.
+  }
+}
+
+// --------------------------------------------------------------------
+// Watching a thread
+// --------------------------------------------------------------------
+
+/** Is this member watching, muted, or not involved? */
+export async function getWatchState(
+  threadId: string,
+  email: string
+): Promise<"watching" | "muted" | "none"> {
+  const client = getClient();
+  if (!client) return "none";
+  try {
+    const v = await client.hget<string | number>(
+      threadWatchKey(threadId),
+      normEmail(email)
+    );
+    if (v === null || v === undefined) return "none";
+    return String(v) === "1" ? "watching" : "muted";
+  } catch {
+    return "none";
+  }
+}
+
+/** Explicitly start or stop watching. */
+export async function setWatchState(
+  threadId: string,
+  email: string,
+  watching: boolean
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  try {
+    await client.hset(threadWatchKey(threadId), {
+      [normEmail(email)]: watching ? "1" : "0",
+    });
+  } catch {}
+}
+
+/**
+ * Join a member to a thread because they took part in it. Never overrides
+ * an existing value: a member who deliberately muted a thread and then
+ * answered one person in it has not asked to hear everything again.
+ */
+export async function autoWatchThread(
+  threadId: string,
+  email: string
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  try {
+    await client.hsetnx(threadWatchKey(threadId), normEmail(email), "1");
+  } catch {}
+}
+
+/** Everyone currently watching this thread. */
+export async function listWatchers(threadId: string): Promise<string[]> {
+  const client = getClient();
+  if (!client) return [];
+  try {
+    const all = await client.hgetall<Record<string, string | number>>(
+      threadWatchKey(threadId)
+    );
+    if (!all) return [];
+    return Object.entries(all)
+      .filter(([, v]) => String(v) === "1")
+      .map(([email]) => email);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Which watchers should be told about a new reply.
+ *
+ * A watcher who already has an unread ping for this thread is skipped:
+ * they were notified, they haven't been back since, and a second bell for
+ * the same unread conversation is noise. Once they open the thread (which
+ * writes a read stamp newer than the notice) the next reply rings again.
+ * That bounds a hot thread to one notification per member per visit
+ * instead of one per reply, which is what makes watching survivable.
+ *
+ * Returns the recipients and stamps them as notified in one go.
+ */
+export async function claimWatcherNotifications(
+  threadId: string,
+  candidates: string[],
+  now: number = Date.now()
+): Promise<string[]> {
+  const client = getClient();
+  if (!client || !candidates.length) return [];
+  try {
+    const [reads, notices] = await Promise.all([
+      client.hgetall<Record<string, string | number>>(threadReadKey(threadId)),
+      client.hgetall<Record<string, string | number>>(
+        threadNotifiedKey(threadId)
+      ),
+    ]);
+    const num = (v: unknown) => {
+      const n = typeof v === "string" ? Number(v) : (v as number);
+      return typeof n === "number" && Number.isFinite(n) ? n : 0;
+    };
+    const due = candidates.filter((email) => {
+      const lastRead = num(reads?.[email]);
+      const lastNotified = num(notices?.[email]);
+      // Nothing pending only when they've been back since the last notice.
+      return lastNotified <= lastRead;
+    });
+    if (!due.length) return [];
+    await client.hset(
+      threadNotifiedKey(threadId),
+      Object.fromEntries(due.map((e) => [e, now]))
+    );
+    return due;
+  } catch {
+    // Fail closed: a missed bell beats a burst of them.
+    return [];
+  }
 }
 
 /**

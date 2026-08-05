@@ -11,7 +11,9 @@ import {
   notifyOnReply,
 } from "@/lib/comments";
 import {
+  autoWatchThread,
   claimReplyEmailCooldown,
+  claimWatcherNotifications,
   createReply,
   createThread,
   editReply,
@@ -24,12 +26,15 @@ import {
   pinThread,
   restoreReply,
   restoreThread,
+  listWatchers,
+  setWatchState,
   softDeleteReply,
   softDeleteThread,
   unpinReply,
   unpinThread,
 } from "@/lib/guild";
 import { createNotification } from "@/lib/notifications";
+import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
 import { sendGuildReplyNotification } from "@/lib/email";
 import { markOnboardingStep } from "@/lib/onboarding";
 
@@ -106,6 +111,64 @@ async function guildNameGate(
   return messageFor(named.error);
 }
 
+/**
+ * Fan out `guild_mention` notifications for everyone @-tagged in a body.
+ *
+ * Mirrors the Lounge's block (same parser, same resolution), with the
+ * Guild's own dedupe: `skip` carries whoever already got a guild_reply
+ * for this exact post, so being named in the reply you're already being
+ * notified about doesn't ring the bell twice. Self-mentions are skipped —
+ * writing your own name doesn't ping you.
+ *
+ * Fire-and-forget by design: a notification hiccup must never fail a post
+ * that already landed.
+ */
+function notifyGuildMentions(args: {
+  body: string;
+  authorEmail: string;
+  authorName: string;
+  threadTitle: string;
+  linkUrl: string;
+  skip?: string | null;
+}): void {
+  void (async () => {
+    try {
+      const tokens = parseMentions(args.body);
+      if (!tokens.length) return;
+      const excerpt =
+        args.body.length > 60
+          ? `${args.body.slice(0, 60).trim()}…`
+          : args.body;
+      const author = args.authorEmail.toLowerCase().trim();
+      const skip = args.skip?.toLowerCase().trim() ?? null;
+      const notified = new Set<string>();
+      for (const token of tokens) {
+        const target = await resolveMentionToEmail(token);
+        if (!target) continue;
+        if (target === author || target === skip) continue;
+        if (notified.has(target)) continue;
+        notified.add(target);
+        await createNotification({
+          memberEmail: target,
+          type: "guild_mention",
+          title: `${args.authorName} mentioned you in the Guild`,
+          body: args.threadTitle || excerpt,
+          linkUrl: args.linkUrl,
+        });
+      }
+    } catch (err) {
+      console.error("[notifications] guild_mention write failed:", err);
+    }
+  })();
+}
+
+/** The name to sign a notification with. Clay presides under his own. */
+async function notifierName(email: string): Promise<string> {
+  if (isAdmin(email)) return "Clay";
+  const profile = await getProfile(email).catch(() => null);
+  return profile?.displayName?.trim() || "A member";
+}
+
 // --- Compose: thread -------------------------------------------------
 
 export async function postThreadAction(
@@ -139,6 +202,17 @@ export async function postThreadAction(
 
   // First-run: posting in the Guild ticks that onboarding step.
   await markOnboardingStep(session.email, "guild").catch(() => {});
+
+  // Starting a thread means watching it. No opt-in step.
+  await autoWatchThread(result.thread.id, session.email).catch(() => {});
+
+  notifyGuildMentions({
+    body: result.thread.body,
+    authorEmail: session.email,
+    authorName: await notifierName(session.email),
+    threadTitle: result.thread.title,
+    linkUrl: `/guild/${result.thread.id}`,
+  });
 
   revalidatePath("/guild");
   // Drop the author straight into their new thread.
@@ -187,6 +261,10 @@ export async function postReplyAction(
   // notify yourself, and never let a notification hiccup break the reply.
   // (Dev never touches prod here — the notifications keyspace is now
   // dev-namespaced, same as the Guild.)
+  // Held outside the try so the mention fan-out below can skip whoever
+  // already got a reply notification for this exact post.
+  let directRecipient: string | null = null;
+  let threadTitle = "";
   try {
     const landedParentId = result.reply.parentReplyId;
     const [thread, parent] = await Promise.all([
@@ -194,6 +272,8 @@ export async function postReplyAction(
       landedParentId ? getReply(landedParentId) : Promise.resolve(null),
     ]);
     const recipient = parent?.authorEmail ?? thread?.authorEmail ?? null;
+    directRecipient = recipient;
+    threadTitle = thread?.title ?? "";
     if (
       thread &&
       recipient &&
@@ -231,6 +311,66 @@ export async function postReplyAction(
   } catch {
     // A notification hiccup must never break posting a reply.
   }
+
+  // Answering a thread means watching it, unless they've muted it before.
+  await autoWatchThread(threadId, session.email).catch(() => {});
+
+  // Tell the rest of the room's participants. Until now a reply notified
+  // exactly one person — the parent author — so everyone else in a long
+  // thread was deaf to it, and a conversation they were part of carried on
+  // without them. The direct recipient already has their own, more
+  // specific notification, and nobody is told about their own reply.
+  void (async () => {
+    try {
+      const watchers = await listWatchers(threadId);
+      const author = session.email.toLowerCase().trim();
+      const direct = directRecipient?.toLowerCase().trim() ?? null;
+      const candidates = watchers.filter((w) => w !== author && w !== direct);
+      const due = await claimWatcherNotifications(threadId, candidates);
+      if (!due.length) return;
+      const replier = await getProfile(session.email).catch(() => null);
+      const replierName = isAdmin(session.email)
+        ? "Clay"
+        : replier?.displayName?.trim() || "A member";
+      const path = `/guild/${threadId}#reply-${result.reply.id}`;
+      for (const email of due) {
+        await createNotification({
+          memberEmail: email,
+          type: "guild_reply",
+          title: "New reply in a thread you're in",
+          body: threadTitle,
+          linkUrl: path,
+        });
+        // And email, on the same terms as the direct recipient's: the
+        // member's own preference, and at most one per thread per window.
+        // A bell alone reaches nobody who isn't already on the site, which
+        // is most of them — watching without email doesn't pull anyone back.
+        const profile = await getProfile(email).catch(() => null);
+        if (!notifyOnReply(profile)) continue;
+        if (!(await claimReplyEmailCooldown(email, threadId))) continue;
+        await sendGuildReplyNotification({
+          to: email,
+          recipientDisplayName: profile?.displayName ?? "",
+          replyAuthorDisplayName: replierName,
+          threadTitle,
+          threadPath: path,
+          replyBody: result.reply.body || "Shared a photo",
+          watching: true,
+        });
+      }
+    } catch (err) {
+      console.error("[notifications] guild watcher fan-out failed:", err);
+    }
+  })();
+
+  notifyGuildMentions({
+    body: result.reply.body,
+    authorEmail: session.email,
+    authorName: await notifierName(session.email),
+    threadTitle,
+    linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
+    skip: directRecipient,
+  });
 
   revalidatePath(`/guild/${threadId}`);
   return { ok: true };
@@ -360,5 +500,22 @@ export async function pinReplyAction(formData: FormData): Promise<void> {
   } else {
     await pinReply(threadId, id);
   }
+  revalidatePath(`/guild/${threadId}`);
+}
+
+// --- Watching --------------------------------------------------------
+
+/**
+ * Start or stop watching a thread. Members are joined automatically when
+ * they start or answer one, so this is the way out (and the way back in
+ * for a thread someone read but never posted in).
+ */
+export async function setWatchAction(formData: FormData): Promise<void> {
+  const session = await currentSession();
+  if (!session) return;
+  const threadId = String(formData.get("threadId") ?? "");
+  if (!threadId) return;
+  const watching = String(formData.get("watching") ?? "") === "1";
+  await setWatchState(threadId, session.email, watching);
   revalidatePath(`/guild/${threadId}`);
 }

@@ -28,20 +28,24 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   while ((m = INLINE_RE.exec(text)) !== null) {
     if (m.index > last) {
       out.push(
-        <Linkified key={`${keyPrefix}-t${i}`} text={text.slice(last, m.index)} />
+        <Linkified
+          key={`${keyPrefix}-t${i}`}
+          text={text.slice(last, m.index)}
+          highlightMentions
+        />
       );
     }
     const tok = m[0];
     if (tok.startsWith("**")) {
       out.push(
         <strong key={`${keyPrefix}-b${i}`}>
-          <Linkified text={tok.slice(2, -2)} />
+          <Linkified text={tok.slice(2, -2)} highlightMentions />
         </strong>
       );
     } else {
       out.push(
         <em key={`${keyPrefix}-i${i}`}>
-          <Linkified text={tok.slice(1, -1)} />
+          <Linkified text={tok.slice(1, -1)} highlightMentions />
         </em>
       );
     }
@@ -49,7 +53,13 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
     i++;
   }
   if (last < text.length || out.length === 0) {
-    out.push(<Linkified key={`${keyPrefix}-t${i}`} text={text.slice(last)} />);
+    out.push(
+      <Linkified
+        key={`${keyPrefix}-t${i}`}
+        text={text.slice(last)}
+        highlightMentions
+      />
+    );
   }
   return out;
 }

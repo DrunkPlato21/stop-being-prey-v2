@@ -1,10 +1,67 @@
 import Link from "next/link";
-import type { GuildThread } from "@/lib/guild";
+import type { GuildSearchResult, GuildThread } from "@/lib/guild";
+import { GuildSearchBox, GuildSearchResults } from "./GuildSearch";
 import { NewThreadComposer } from "./NewThreadComposer";
 import { GuildByline, type GuildBadgeInfo } from "./GuildByline";
 import { GuildCrest } from "./GuildCrest";
+import { GuildNewTag } from "./GuildNewTag";
 import { formatRelative } from "./guild-format";
-import { guildCategoryLabel, postImages } from "@/lib/guild-constants";
+import {
+  GUILD_CATEGORIES,
+  guildCategoryLabel,
+  postImages,
+  type GuildCategory,
+} from "@/lib/guild-constants";
+
+// The library's own filter. The composer has required a category since
+// launch (it gates the Post button), and until now the index ignored it
+// completely: a promise the writer made that the room didn't keep.
+// URL-driven so a filtered view is linkable and needs no client state.
+function CategoryFilter({ active }: { active: GuildCategory | null }) {
+  const chips: { slug: GuildCategory | null; label: string }[] = [
+    { slug: null, label: "All" },
+    ...GUILD_CATEGORIES.map((c) => ({
+      slug: c.slug as GuildCategory,
+      label: c.label,
+    })),
+  ];
+  return (
+    // Four chips of four different widths wrapped 3 + 1 on a phone, which
+    // orphaned "Open floor" beside a hole and left a ragged edge lining up
+    // with nothing. Everything else in this header is a full-width block,
+    // so the filters were the one thing that didn't. Two even columns on a
+    // phone, one row once there's room for it.
+    <div
+      className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center"
+      style={{ marginBottom: "0.9rem" }}
+    >
+      {chips.map((c) => {
+        const on = c.slug === active;
+        return (
+          <Link
+            key={c.slug ?? "all"}
+            href={c.slug ? `/guild?kind=${c.slug}` : "/guild"}
+            // Centred in its cell while the grid governs the width; on the
+            // wide row the label sets the width again, as before.
+            className="no-underline font-display uppercase tracking-[0.16em] text-center inline-flex items-center justify-center"
+            aria-current={on ? "page" : undefined}
+            style={{
+              background: on ? "var(--eye-deep)" : "transparent",
+              color: on ? "var(--surface)" : "var(--eye-deep)",
+              border: "1px solid var(--eye-deep)",
+              borderRadius: 2,
+              padding: "0.45rem 0.8rem",
+              fontSize: "0.64rem",
+              fontWeight: 600,
+            }}
+          >
+            {c.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 // Small uppercase category tag. Reuses the eyebrow vocabulary so it reads
 // as a kicker above the thread title, not a loud badge.
@@ -24,28 +81,9 @@ function CategoryTag({ slug }: { slug: string }) {
   );
 }
 
-// "New since your last visit" tag, shown on a thread whose latest
-// activity postdates the member's prior Guild visit. Soft olive wash,
-// quiet — a scan cue, not a loud badge.
-function NewTag() {
-  return (
-    <span
-      className="font-display uppercase"
-      style={{
-        color: "var(--eye-deep)",
-        background: "rgba(184, 168, 44, 0.12)",
-        fontSize: "0.56rem",
-        fontWeight: 700,
-        letterSpacing: "0.14em",
-        padding: "0.12rem 0.42rem",
-        borderRadius: 2,
-        whiteSpace: "nowrap",
-      }}
-    >
-      New
-    </span>
-  );
-}
+// The NEW tag now lives in its own file: the thread page marks unread
+// replies with the same one, and two copies of a scan cue drift.
+const NewTag = GuildNewTag;
 
 // The Guild index: the king's pinned Question of the Week at the top,
 // then the library of member threads ordered by latest activity. Server
@@ -266,6 +304,11 @@ export function GuildIndexView({
   hostEmail,
   lastViewedAt,
   needsDisplayName,
+  category,
+  hasMore,
+  isPage2,
+  q,
+  search,
 }: {
   pinned: GuildThread | null;
   threads: GuildThread[];
@@ -279,6 +322,16 @@ export function GuildIndexView({
   /** Viewer has no display name yet — the composer reveals an inline name
       field, required before the thread posts. Never set for the admin. */
   needsDisplayName: boolean;
+  /** Which kind of thread the library is filtered to, if any. */
+  category: GuildCategory | null;
+  /** More threads exist below this page. */
+  hasMore: boolean;
+  /** This is a "load older" page, not the top of the library. */
+  isPage2: boolean;
+  /** The current search query, empty when browsing. */
+  q: string;
+  /** Results, when there's a query. Null means show the library. */
+  search: GuildSearchResult | null;
 }) {
   // First-ever visitors (0) never see NEW, so the list doesn't flood.
   const isNew = (t: GuildThread) =>
@@ -382,15 +435,70 @@ export function GuildIndexView({
         </div>
       )}
 
-      {/* Compose */}
-      <div style={{ marginBottom: "2.5rem" }}>
-        <NewThreadComposer needsDisplayName={needsDisplayName} />
+      {/* The library header: find it, narrow it, or add to it. One block
+          sitting directly on top of the list, rather than three controls
+          floating between the Question of the Week and the first thread.
+          No bottom rule — the first row of the list draws its own. */}
+      <div
+        style={{
+          borderTop: "1px solid var(--rule)",
+          marginTop: "2.5rem",
+          paddingTop: "1.5rem",
+        }}
+      >
+        <GuildSearchBox q={q} category={category} />
       </div>
+
+      {/* Two things you can type into, then the filter, then what it
+          filters. The composer used to ride the end of the chip row and
+          read as a fifth category, because an outlined small-caps box in
+          this design language IS a chip. Filters change what you see; the
+          composer makes something. Different jobs, different shapes.
+          Neither belongs over a set of search results, which is a claim
+          about matches rather than about the room. */}
+      {/* The filter is passed as a child so the composer can drop it while
+          it's open: proximity puts it on the list it governs, and nothing
+          governs a list you've stopped reading to write. */}
+      {!search && (
+        <NewThreadComposer needsDisplayName={needsDisplayName}>
+          <CategoryFilter active={category} />
+        </NewThreadComposer>
+      )}
+
+      {/* A search takes over the page: the filter chips and the library
+          listing are both claims about "everything", and neither is true
+          next to a result set. One way back, stated plainly. */}
+      {search ? (
+        <>
+          <p style={{ margin: "1.4rem 0" }}>
+            <Link
+              href={category ? `/guild?kind=${category}` : "/guild"}
+              className="no-underline font-display uppercase tracking-[0.18em]"
+              style={{ color: "var(--ink-faint)", fontSize: "0.66rem", fontWeight: 600 }}
+            >
+              ← Back to the Guild
+            </Link>
+          </p>
+          <GuildSearchResults
+            q={q}
+            result={search}
+            names={names}
+            badges={badges}
+            adminEmail={adminEmail}
+            hostEmail={hostEmail}
+          />
+        </>
+      ) : (
+      <>
 
       {/* The library */}
       {threads.length === 0 ? (
         <p style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>
-          No open threads yet. Be the one to start the conversation.
+          {category
+            ? `Nothing in ${guildCategoryLabel(category)} yet. Yours would be the first.`
+            : isPage2
+            ? "That's every thread in the Guild."
+            : "No open threads yet. Be the one to start the conversation."}
         </p>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -403,9 +511,14 @@ export function GuildIndexView({
                   cue is its own deep link. Kept as siblings so no anchor
                   nests inside another. */}
               <Link href={`/guild/${t.id}`} className="no-underline" style={{ display: "block" }}>
-                <div style={{ marginBottom: "0.3rem" }}>
-                  <CategoryTag slug={t.category} />
-                </div>
+                {/* The kicker names the kind of thread. Under a filter every
+                    row is that kind, so repeating it down the page is noise
+                    the chip above already covers. */}
+                {!category && (
+                  <div style={{ marginBottom: "0.3rem" }}>
+                    <CategoryTag slug={t.category} />
+                  </div>
+                )}
                 <div
                   style={{
                     display: "flex",
@@ -427,6 +540,41 @@ export function GuildIndexView({
             </li>
           ))}
         </ul>
+      )}
+
+      {/* The list used to stop dead at 50 with nothing to say it had. The
+          cursor is the oldest row shown, so "older" means strictly below
+          this page and can't repeat a thread that got bumped meanwhile. */}
+      {hasMore && threads.length > 0 && (
+        <div style={{ borderTop: "1px solid var(--rule)", paddingTop: "1.5rem", marginTop: "0.5rem" }}>
+          <Link
+            href={{
+              pathname: "/guild",
+              query: {
+                ...(category ? { kind: category } : {}),
+                before: threads[threads.length - 1].lastActivityAt,
+              },
+            }}
+            className="no-underline font-display uppercase tracking-[0.18em]"
+            style={{ color: "var(--eye-deep)", fontSize: "0.68rem", fontWeight: 600 }}
+          >
+            Older threads →
+          </Link>
+        </div>
+      )}
+
+      {isPage2 && (
+        <div style={{ marginTop: "2rem" }}>
+          <Link
+            href={category ? `/guild?kind=${category}` : "/guild"}
+            className="no-underline font-display uppercase tracking-[0.18em]"
+            style={{ color: "var(--ink-faint)", fontSize: "0.68rem", fontWeight: 600 }}
+          >
+            ← Back to the top
+          </Link>
+        </div>
+      )}
+      </>
       )}
     </div>
   );

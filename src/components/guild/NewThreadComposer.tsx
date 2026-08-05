@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { postThreadAction, type GuildFormState } from "@/app/guild/actions";
 import { FormatToolbar } from "./FormatToolbar";
 import { ComposerPreview, useComposerPreview } from "./ComposerPreview";
+import { DraftNotice } from "./DraftNotice";
+import { readComposerDraft, useComposerDraft } from "./useComposerDraft";
 import { GuildImagePicker } from "./GuildImagePicker";
-import { useAutoGrow } from "./useAutoGrow";
+import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
 import {
   GUILD_CATEGORIES,
   MAX_BODY,
@@ -14,6 +16,10 @@ import {
 } from "@/lib/guild-constants";
 
 const INITIAL: GuildFormState = { ok: false };
+
+// One draft slot for the room's one new-thread composer.
+const DRAFT_KEY = "thread:new";
+type ThreadDraft = { title: string; body: string; category: string };
 
 // Open-a-thread composer. Collapsed by default so the index reads calm;
 // one tap opens it. Low friction: a title, a body, post. On success the
@@ -24,55 +30,151 @@ export function NewThreadComposer({
   // field (the server action requires it before the thread lands). Never
   // set for the admin. See the first-post gate in guild/actions.ts.
   needsDisplayName = false,
+  children,
 }: {
   needsDisplayName?: boolean;
+  /**
+   * Rendered under the collapsed prompt, and hidden while the composer is
+   * open. That's the list's category filter: chips that look exactly like
+   * the composer's own category buttons. Sitting them under an open form
+   * (right below Post thread, no less) invites a member to read them as
+   * "pick a kind for this thread". While you're writing, the filter for
+   * the list you aren't reading has nothing to say.
+   */
+  children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(
     postThreadAction,
     INITIAL
   );
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  // Seeded from any rescued draft. Safe to read storage during render: this
+  // form only mounts after the collapsed button is tapped, so it is never
+  // server-rendered and can't desync hydration.
+  const [saved] = useState(() => readComposerDraft<ThreadDraft>(DRAFT_KEY));
+  const [title, setTitle] = useState(saved?.title ?? "");
+  const [body, setBody] = useState(saved?.body ?? "");
   // First-post display name. Only used (and only gates the button) when
   // needsDisplayName; the input carries name="displayName" so it rides the
   // form action straight to the gate.
   const [displayName, setDisplayName] = useState("");
   // Required. Empty until the author picks, which gates the Post button.
-  const [category, setCategory] = useState<GuildCategory | "">("");
+  const [category, setCategory] = useState<GuildCategory | "">(
+    (saved?.category as GuildCategory | undefined) ?? ""
+  );
   const [imageUploading, setImageUploading] = useState(false);
   const nameMissing = needsDisplayName && !displayName.trim();
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrow(bodyRef, body);
   const preview = useComposerPreview(bodyRef);
+  const draft = useComposerDraft<ThreadDraft>(
+    DRAFT_KEY,
+    { title, body, category },
+    !title.trim() && !body.trim() && !category,
+    !!saved
+  );
+  // The collapsed button says so when there's an unfinished thread waiting,
+  // but only after hydration: the server has no idea what's in this
+  // member's storage, and the two first renders have to agree.
+  const [showDraftCue, setShowDraftCue] = useState(false);
+  useEffect(() => {
+    if (saved?.body?.trim() || saved?.title?.trim()) setShowDraftCue(true);
+  }, [saved]);
+
+  // The draft is cleared on submit, since a successful post redirects and
+  // this component never hears about it. If the server rejects instead, the
+  // words are still on screen, so put them straight back in storage.
+  useEffect(() => {
+    if (state.error) draft.saveNow();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  // Reopening a rescued draft puts the caret at the end of the body, where
+  // the member actually left off.
+  useEffect(() => {
+    if (!open || !saved?.body) return;
+    const ta = bodyRef.current;
+    if (!ta) return;
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function discardDraft() {
+    setTitle("");
+    setBody("");
+    setCategory("");
+    draft.clear();
+  }
 
   if (!open) {
+    // Collapsed, this is an invitation to write, not a control. It used to
+    // be an outlined small-caps button, which in this design language is
+    // exactly what a filter chip looks like — so sat in a row of chips it
+    // read as a fifth category rather than the one thing on the page that
+    // makes something. A full-width field can't be misread that way: it's
+    // writing-shaped, not chip-shaped, and it says what it will become.
     return (
+      <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="font-display uppercase tracking-[0.18em] transition-colors hover:text-ink"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "var(--eye-deep)";
+          e.currentTarget.style.color = "var(--ink-soft)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "var(--rule)";
+          e.currentTarget.style.color = "var(--ink-faint)";
+        }}
         style={{
-          color: "var(--eye-deep)",
-          background: "transparent",
-          border: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: "0.7rem",
+          width: "100%",
+          textAlign: "left",
+          background: "var(--surface)",
+          border: "1px solid var(--rule)",
           borderRadius: 2,
-          padding: "0.7rem 1.2rem",
-          fontSize: "0.72rem",
-          fontWeight: 600,
-          cursor: "pointer",
+          padding: "0.9rem 1rem",
+          marginBottom: "1.6rem",
+          fontFamily: "var(--font-source-serif), Georgia, serif",
+          fontSize: "1.02rem",
+          color: "var(--ink-faint)",
+          // A text cursor, because that's what this becomes.
+          cursor: "text",
+          transition: "border-color .15s, color .15s",
         }}
       >
-        Open a thread
+        {/* The same "+" the image picker uses inside the composer. Without
+            it this box is the search field again: identical border, same
+            width, one line of muted serif. The mark is what says one of
+            these takes a query and the other makes a thread. */}
+        <span aria-hidden style={{ color: "var(--eye-deep)", fontSize: "1.1rem" }}>
+          +
+        </span>
+        <span>
+          {showDraftCue
+            ? "Finish the thread you started…"
+            : "Open a thread…"}
+        </span>
       </button>
+      {children}
+      </>
     );
   }
 
   return (
     <form
       action={formAction}
+      onSubmit={() => draft.clear()}
       className="border border-rule"
-      style={{ background: "var(--surface)", padding: "1.25rem", borderRadius: 2 }}
+      style={{
+        width: "100%",
+        background: "var(--surface)",
+        padding: "1.25rem",
+        borderRadius: 2,
+        marginBottom: "1.6rem",
+      }}
     >
       <p
         className="eyebrow"
@@ -80,6 +182,7 @@ export function NewThreadComposer({
       >
         New thread
       </p>
+      {draft.rescued && <DraftNotice onDiscard={discardDraft} />}
       {/* Category — a required pick, placed first on purpose. Choosing
           the kind of post before writing scaffolds it and kills the
           blank-page freeze. The hint doubles as a prompt. */}
@@ -169,7 +272,10 @@ export function NewThreadComposer({
         value={title}
         onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE))}
         placeholder="What is this thread about?"
-        autoFocus
+        // A restored draft focuses the body instead (see below): landing in
+        // the title puts the caret at the end of a long line and scrolls it
+        // mid-word, which reads as damage rather than as a rescue.
+        autoFocus={!saved}
         className="w-full font-display"
         style={{
           background: "transparent",
@@ -194,13 +300,13 @@ export function NewThreadComposer({
       {preview.previewing && (
         <ComposerPreview text={body} minHeight={preview.minHeight} />
       )}
-      <textarea
+      <MentionAutoResizingTextarea
         ref={bodyRef}
         name="body"
         value={body}
-        onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
+        onValueChange={(v) => setBody(v.slice(0, MAX_BODY))}
         placeholder="Lay out the question or the case. Take the space you need."
-        rows={6}
+        minRows={6}
         className="w-full"
         style={{
           display: preview.previewing ? "none" : undefined,
@@ -213,7 +319,11 @@ export function NewThreadComposer({
           color: "var(--ink)",
           padding: "0.8rem",
           outline: "none",
+          // The Guild composer has always offered the drag handle. Auto-grow
+          // makes it redundant, but taking it away is a visible change to a
+          // box members are used to, so it stays.
           resize: "vertical",
+          overflow: "auto",
         }}
       />
       <GuildImagePicker onUploadingChange={setImageUploading} />

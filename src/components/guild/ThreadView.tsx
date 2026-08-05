@@ -15,6 +15,7 @@ import {
   pinThreadAction,
   postReplyAction,
   restoreThreadAction,
+  setWatchAction,
   type GuildFormState,
 } from "@/app/guild/actions";
 import { ClayReadSeal } from "./ClayReadSeal";
@@ -23,10 +24,13 @@ import { authorName, formatRelative } from "./guild-format";
 import { GUILD_BODY_STYLE, formatGuildBody } from "@/components/guild/format-body";
 import { FormatToolbar } from "./FormatToolbar";
 import { ComposerPreview, useComposerPreview } from "./ComposerPreview";
+import { DraftNotice } from "./DraftNotice";
+import { readComposerDraft, useComposerDraft } from "./useComposerDraft";
 import { GuildGallery } from "./GuildGallery";
 import { GuildImagePicker } from "./GuildImagePicker";
+import { GuildNewTag } from "./GuildNewTag";
 import { GuildReactions } from "./GuildReactions";
-import { useAutoGrow } from "./useAutoGrow";
+import { MentionAutoResizingTextarea } from "@/components/MentionAutoResizingTextarea";
 
 const INITIAL: GuildFormState = { ok: false };
 
@@ -158,7 +162,13 @@ function ReplyComposer({
   needsDisplayName?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(postReplyAction, INITIAL);
-  const [body, setBody] = useState("");
+  // One draft slot per reply box: the thread's own, and one per reply being
+  // answered, so two half-written replies in the same thread can coexist.
+  const draftKey = `reply:${threadId}:${parentReplyId ?? "root"}`;
+  const [saved] = useState(() =>
+    readComposerDraft<{ body: string }>(draftKey)
+  );
+  const [body, setBody] = useState(saved?.body ?? "");
   // First-post display name. Carries name="displayName" so it rides the
   // form action to the gate; only gates the button when needsDisplayName.
   const [displayName, setDisplayName] = useState("");
@@ -170,8 +180,8 @@ function ReplyComposer({
   const [pickerKey, setPickerKey] = useState(0);
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const bodyRef = textareaRef ?? internalRef;
-  useAutoGrow(bodyRef, body);
   const preview = useComposerPreview(bodyRef);
+  const draft = useComposerDraft(draftKey, { body }, !body.trim(), !!saved);
 
   const nameMissing = needsDisplayName && !displayName.trim();
   const canSend =
@@ -182,6 +192,9 @@ function ReplyComposer({
       setBody("");
       setHasImage(false);
       setPickerKey((k) => k + 1);
+      // The reply landed, so the rescue copy has done its job. Emptying the
+      // box would drop the key anyway; this also clears the notice.
+      draft.clear();
       onDone?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,6 +205,14 @@ function ReplyComposer({
       <input type="hidden" name="threadId" value={threadId} />
       {parentReplyId && (
         <input type="hidden" name="parentReplyId" value={parentReplyId} />
+      )}
+      {draft.rescued && (
+        <DraftNotice
+          onDiscard={() => {
+            setBody("");
+            draft.clear();
+          }}
+        />
       )}
       {needsDisplayName && (
         <div style={{ marginBottom: "0.7rem" }}>
@@ -242,13 +263,13 @@ function ReplyComposer({
       {preview.previewing && (
         <ComposerPreview text={body} minHeight={preview.minHeight} />
       )}
-      <textarea
+      <MentionAutoResizingTextarea
         ref={bodyRef}
         name="body"
         value={body}
-        onChange={(e) => setBody(e.target.value.slice(0, MAX_REPLY))}
+        onValueChange={(v) => setBody(v.slice(0, MAX_REPLY))}
         placeholder={placeholder}
-        rows={compact ? 3 : 4}
+        minRows={compact ? 3 : 4}
         className="w-full"
         style={{
           display: preview.previewing ? "none" : undefined,
@@ -261,7 +282,10 @@ function ReplyComposer({
           color: "var(--ink)",
           padding: "0.7rem",
           outline: "none",
+          // Keep the drag handle these boxes have always had. Auto-grow
+          // makes it redundant, but removing it is a visible change.
           resize: "vertical",
+          overflow: "auto",
         }}
       />
       <GuildImagePicker
@@ -316,7 +340,6 @@ function EditThreadForm({
   const [title, setTitle] = useState(thread.title);
   const [body, setBody] = useState(thread.body);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrow(bodyRef, body);
   const preview = useComposerPreview(bodyRef);
   useEffect(() => {
     if (state.ok) onDone();
@@ -351,12 +374,12 @@ function EditThreadForm({
       {preview.previewing && (
         <ComposerPreview text={body} minHeight={preview.minHeight} />
       )}
-      <textarea
+      <MentionAutoResizingTextarea
         ref={bodyRef}
         name="body"
         value={body}
-        onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
-        rows={6}
+        onValueChange={(v) => setBody(v.slice(0, MAX_BODY))}
+        minRows={6}
         className="w-full"
         style={{
           display: preview.previewing ? "none" : undefined,
@@ -369,7 +392,10 @@ function EditThreadForm({
           color: "var(--ink)",
           padding: "0.7rem",
           outline: "none",
+          // Keep the drag handle these boxes have always had. Auto-grow
+          // makes it redundant, but removing it is a visible change.
           resize: "vertical",
+          overflow: "auto",
         }}
       />
       {state.error && (
@@ -414,7 +440,6 @@ function EditReplyForm({
   const [state, formAction, pending] = useActionState(editReplyAction, INITIAL);
   const [body, setBody] = useState(reply.body);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrow(bodyRef, body);
   const preview = useComposerPreview(bodyRef);
   useEffect(() => {
     if (state.ok) onDone();
@@ -434,12 +459,12 @@ function EditReplyForm({
       {preview.previewing && (
         <ComposerPreview text={body} minHeight={preview.minHeight} />
       )}
-      <textarea
+      <MentionAutoResizingTextarea
         ref={bodyRef}
         name="body"
         value={body}
-        onChange={(e) => setBody(e.target.value.slice(0, MAX_REPLY))}
-        rows={3}
+        onValueChange={(v) => setBody(v.slice(0, MAX_REPLY))}
+        minRows={3}
         className="w-full"
         style={{
           display: preview.previewing ? "none" : undefined,
@@ -452,7 +477,10 @@ function EditReplyForm({
           color: "var(--ink)",
           padding: "0.6rem",
           outline: "none",
+          // Keep the drag handle these boxes have always had. Auto-grow
+          // makes it redundant, but removing it is a visible change.
           resize: "vertical",
+          overflow: "auto",
         }}
       />
       {state.error && (
@@ -504,6 +532,7 @@ function ReplyNode({
   isPinned,
   pinnedSlot,
   needsDisplayName,
+  unreadSince,
 }: {
   reply: GuildReply;
   childReplies?: GuildReply[];
@@ -527,6 +556,9 @@ function ReplyNode({
   // Viewer has no display name yet — the inline reply composer reveals a
   // name field, required before the reply posts.
   needsDisplayName: boolean;
+  // When this member last opened the thread (0 = never, which shows no
+  // markers at all, so a first visit doesn't light up every reply).
+  unreadSince: number;
 }) {
   const [replying, setReplying] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -575,6 +607,14 @@ function ReplyNode({
       }
     : {};
 
+  // Landed since this member last opened the thread. Your own replies never
+  // count: you were there when you wrote them.
+  const isUnread =
+    unreadSince > 0 &&
+    reply.createdAt > unreadSince &&
+    !isOwner &&
+    !reply.deleted;
+
   const replyTo = replyTargets[reply.id] ?? null;
   const visibleChildren = (childReplies ?? []).filter((c) => !c.deleted);
   // A deleted reply with nothing live hanging off it leaves no trace at all
@@ -600,6 +640,7 @@ function ReplyNode({
           {reply.editedAt && (
             <span style={{ color: "var(--ink-faint)", fontStyle: "italic" }}>edited</span>
           )}
+          {isUnread && <GuildNewTag />}
           {reply.clayReadAt && <ClayReadSeal at={reply.clayReadAt} />}
         </div>
 
@@ -769,9 +810,74 @@ function ReplyNode({
           reactions={reactions}
           replyTargets={replyTargets}
           needsDisplayName={needsDisplayName}
+          unreadSince={unreadSince}
           nested
         />
       ))}
+    </div>
+  );
+}
+
+// Centre a reply in the viewport and flash it. Shared by the deep-link
+// landing (arriving from a notification) and the unread jump, so both
+// land the same way and a member learns one behaviour, not two.
+function revealReply(replyId: string) {
+  const el = document.getElementById(`reply-${replyId}`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("reply-flash");
+  // Reflow so re-adding the class restarts the animation on repeat taps.
+  void el.offsetWidth;
+  el.classList.add("reply-flash");
+}
+
+// A thread you've been in before opens with a line saying what arrived
+// while you were gone, and one control that takes you straight there. The
+// whole point of a 36-reply thread staying readable is not having to scan
+// it to find where you stopped.
+function UnreadBar({
+  count,
+  firstUnreadId,
+}: {
+  count: number;
+  firstUnreadId: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: "0.5rem 1rem",
+        marginTop: "1.1rem",
+        padding: "0.6rem 0.9rem",
+        background: "rgba(184, 168, 44, 0.12)",
+        borderRadius: 2,
+        fontSize: "0.86rem",
+        color: "var(--ink-soft)",
+      }}
+    >
+      <span>
+        {count === 1 ? "1 new reply" : `${count} new replies`} since your last
+        visit.
+      </span>
+      <button
+        type="button"
+        onClick={() => revealReply(firstUnreadId)}
+        className="font-display uppercase tracking-[0.18em] transition-colors hover:text-ink"
+        style={{
+          marginLeft: "auto",
+          background: "transparent",
+          border: 0,
+          padding: 0,
+          fontSize: "0.64rem",
+          fontWeight: 600,
+          color: "var(--eye-deep)",
+          cursor: "pointer",
+        }}
+      >
+        Jump to first
+      </button>
     </div>
   );
 }
@@ -789,6 +895,8 @@ export function ThreadView({
   isAdmin,
   reactions,
   needsDisplayName,
+  lastReadAt,
+  watching,
 }: {
   thread: GuildThread;
   replies: GuildReply[];
@@ -803,6 +911,12 @@ export function ThreadView({
   // reveals an inline name field, required before a reply posts. Never set
   // for the admin.
   needsDisplayName: boolean;
+  // When this member last OPENED THIS THREAD (epoch ms, 0 if never). Not
+  // the Guild-wide nav stamp: that one is cleared by a visit to the index,
+  // which would claim they'd read threads they never opened.
+  lastReadAt: number;
+  /** Is the viewer being notified about new replies here? */
+  watching: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -819,13 +933,7 @@ export function ThreadView({
     function jumpToHash() {
       const hash = window.location.hash;
       if (!hash.startsWith("#reply-")) return;
-      const el = document.getElementById(hash.slice(1));
-      if (!el) return;
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.remove("reply-flash");
-      // Reflow so re-adding the class restarts the animation on repeat taps.
-      void el.offsetWidth;
-      el.classList.add("reply-flash");
+      revealReply(hash.slice(1).replace(/^reply-/, ""));
     }
     // One frame so the server-rendered replies have settled into layout.
     const raf = window.requestAnimationFrame(jumpToHash);
@@ -896,6 +1004,32 @@ export function ThreadView({
     : topLevel;
   const pinnedByClay =
     !!pinnedReply && !!adminEmail && pinnedReply.authorEmail === adminEmail;
+
+  // What landed since this member last opened the thread. A thread they've
+  // never opened (0) shows nothing: lighting up all 36 replies as "new"
+  // tells them nothing they didn't know from the index.
+  const viewer = viewerEmail.toLowerCase().trim();
+  const isUnreadReply = (r: GuildReply) =>
+    lastReadAt > 0 &&
+    r.createdAt > lastReadAt &&
+    !r.deleted &&
+    r.authorEmail !== viewer;
+  const unreadCount = replies.filter(isUnreadReply).length;
+  // The first unread in READING order, which is the pinned slot first (it's
+  // lifted to the top), then each top-level reply followed by its children.
+  // Walking the render order rather than the flat chronological list means
+  // the jump lands on the first one they'll actually meet coming down.
+  const firstUnreadId = (() => {
+    if (!unreadCount) return null;
+    const inOrder: GuildReply[] = [];
+    const push = (r: GuildReply) => {
+      inOrder.push(r);
+      for (const c of childrenOf[r.id] ?? []) inOrder.push(c);
+    };
+    if (pinnedReply) push(pinnedReply);
+    for (const r of inlineTopLevel) push(r);
+    return inOrder.find(isUnreadReply)?.id ?? null;
+  })();
 
   return (
     <div style={{ maxWidth: "44rem", margin: "0 auto", padding: "2.25rem 1.25rem 5rem" }}>
@@ -1023,6 +1157,32 @@ export function ThreadView({
                   hidden={{ id: thread.id }}
                 />
               )}
+              {/* Watching sits last in the member row: it's the quietest
+                  thing here, and it self-labels the state rather than the
+                  action, so a member can read where they stand without
+                  clicking to find out. */}
+              <form action={setWatchAction} style={{ display: "inline-flex" }}>
+                <input type="hidden" name="threadId" value={thread.id} />
+                <input
+                  type="hidden"
+                  name="watching"
+                  value={watching ? "0" : "1"}
+                />
+                <button
+                  type="submit"
+                  title={
+                    watching
+                      ? "You're notified when someone replies. Click to stop."
+                      : "Get notified when someone replies."
+                  }
+                  style={{
+                    ...controlStyle,
+                    color: watching ? "var(--eye-deep)" : "var(--ink-faint)",
+                  }}
+                >
+                  {watching ? "Watching" : "Watch"}
+                </button>
+              </form>
             </div>
 
             {isAdmin && (
@@ -1074,6 +1234,10 @@ export function ThreadView({
           )}
         </div>
 
+        {unreadCount > 0 && firstUnreadId && (
+          <UnreadBar count={unreadCount} firstUnreadId={firstUnreadId} />
+        )}
+
         {/* Pinned reply, lifted to the top under its own banner. */}
         {pinnedReply && (
           <div
@@ -1111,6 +1275,7 @@ export function ThreadView({
               reactions={reactions}
               replyTargets={replyTargets}
               needsDisplayName={needsDisplayName}
+              unreadSince={lastReadAt}
               isPinned
               pinnedSlot
             />
@@ -1133,6 +1298,7 @@ export function ThreadView({
             reactions={reactions}
             replyTargets={replyTargets}
             needsDisplayName={needsDisplayName}
+            unreadSince={lastReadAt}
           />
         ))}
 
