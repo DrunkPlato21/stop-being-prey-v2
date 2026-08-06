@@ -25,6 +25,7 @@ const {
   claimReplyEmailCooldown,
   claimWatcherNotifications,
   getWatchState,
+  listWatchStates,
   listWatchers,
   markThreadRead,
   setWatchState,
@@ -47,27 +48,51 @@ console.log(`\nguild watch contract (thread ${THREAD})\n`);
 
 // --- joining ---------------------------------------------------------
 await autoWatchThread(THREAD, alice);
-check("posting joins you", await getWatchState(THREAD, alice), "watching");
+check(
+  "posting joins you IN-APP ONLY, never to email",
+  await getWatchState(THREAD, alice),
+  "auto"
+);
 
 await setWatchState(THREAD, alice, false);
-check("you can mute", await getWatchState(THREAD, alice), "muted");
+check("you can mute", await getWatchState(THREAD, alice), "off");
 
 await autoWatchThread(THREAD, alice);
 check(
   "replying again does NOT override a deliberate mute",
   await getWatchState(THREAD, alice),
-  "muted"
+  "off"
 );
 
 await setWatchState(THREAD, alice, true);
+check(
+  "clicking the bell is what opts you into email",
+  await getWatchState(THREAD, alice),
+  "on"
+);
+
+await autoWatchThread(THREAD, alice);
+check(
+  "replying later does NOT downgrade a deliberate opt-in",
+  await getWatchState(THREAD, alice),
+  "on"
+);
+
 await autoWatchThread(THREAD, bob);
-check("watcher list has both", (await listWatchers(THREAD)).sort(), [
+check("both get in-app notices", (await listWatchers(THREAD)).sort(), [
   alice,
   bob,
 ]);
 
+const states = await listWatchStates(THREAD);
+check(
+  "but only the bell-clicker is email-eligible",
+  Object.entries(states).filter(([, s]) => s === "on").map(([e]) => e),
+  [alice]
+);
+
 await setWatchState(THREAD, bob, false);
-check("a muted member drops off the list", await listWatchers(THREAD), [alice]);
+check("a muted member drops off entirely", await listWatchers(THREAD), [alice]);
 await setWatchState(THREAD, bob, true);
 
 // --- the suppression contract ----------------------------------------

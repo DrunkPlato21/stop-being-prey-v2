@@ -786,26 +786,50 @@ export async function markThreadRead(
 // Watching a thread
 // --------------------------------------------------------------------
 
-/** Is this member watching, muted, or not involved? */
+/**
+ * How a member stands with a thread.
+ *
+ *   "on"    they clicked the bell: in-app notice AND email
+ *   "auto"  they posted or replied here: in-app notice ONLY
+ *   "off"   muted: nothing
+ *   "none"  never involved
+ *
+ * The split between "on" and "auto" is the consent line. Taking part in a
+ * conversation is a good reason to show someone it moved when they next
+ * come back; it is NOT a reason to put mail in their inbox they never
+ * asked for. Only a deliberate click on the bell does that.
+ *
+ * Stored as "2" / "1" / "0". Legacy "1" values (written before the split,
+ * when participating meant email) read as "auto", which is the safe way
+ * round: the worst case of guessing wrong is a missing email, not an
+ * unwanted one.
+ */
+export type WatchState = "on" | "auto" | "off" | "none";
+
+function toWatchState(v: unknown): WatchState {
+  if (v === null || v === undefined) return "none";
+  const s = String(v);
+  if (s === "2") return "on";
+  if (s === "1") return "auto";
+  return "off";
+}
+
 export async function getWatchState(
   threadId: string,
   email: string
-): Promise<"watching" | "muted" | "none"> {
+): Promise<WatchState> {
   const client = getClient();
   if (!client) return "none";
   try {
-    const v = await client.hget<string | number>(
-      threadWatchKey(threadId),
-      normEmail(email)
+    return toWatchState(
+      await client.hget<string | number>(threadWatchKey(threadId), normEmail(email))
     );
-    if (v === null || v === undefined) return "none";
-    return String(v) === "1" ? "watching" : "muted";
   } catch {
     return "none";
   }
 }
 
-/** Explicitly start or stop watching. */
+/** The bell, clicked. On means email; off means silence, bell included. */
 export async function setWatchState(
   threadId: string,
   email: string,
@@ -815,15 +839,16 @@ export async function setWatchState(
   if (!client) return;
   try {
     await client.hset(threadWatchKey(threadId), {
-      [normEmail(email)]: watching ? "1" : "0",
+      [normEmail(email)]: watching ? "2" : "0",
     });
   } catch {}
 }
 
 /**
- * Join a member to a thread because they took part in it. Never overrides
- * an existing value: a member who deliberately muted a thread and then
- * answered one person in it has not asked to hear everything again.
+ * Join a member to a thread because they took part in it. In-app only —
+ * see WatchState. Never overrides an existing value: a member who muted a
+ * thread and then answered one person in it has not asked to hear all of
+ * it again, and someone who already opted into email stays opted in.
  */
 export async function autoWatchThread(
   threadId: string,
@@ -836,21 +861,31 @@ export async function autoWatchThread(
   } catch {}
 }
 
-/** Everyone currently watching this thread. */
-export async function listWatchers(threadId: string): Promise<string[]> {
+/** Every member's standing with this thread, in one read. */
+export async function listWatchStates(
+  threadId: string
+): Promise<Record<string, WatchState>> {
   const client = getClient();
-  if (!client) return [];
+  if (!client) return {};
   try {
     const all = await client.hgetall<Record<string, string | number>>(
       threadWatchKey(threadId)
     );
-    if (!all) return [];
-    return Object.entries(all)
-      .filter(([, v]) => String(v) === "1")
-      .map(([email]) => email);
+    if (!all) return {};
+    const out: Record<string, WatchState> = {};
+    for (const [email, v] of Object.entries(all)) out[email] = toWatchState(v);
+    return out;
   } catch {
-    return [];
+    return {};
   }
+}
+
+/** Everyone who should see an in-app notice: bell-clickers and participants. */
+export async function listWatchers(threadId: string): Promise<string[]> {
+  const states = await listWatchStates(threadId);
+  return Object.entries(states)
+    .filter(([, s]) => s === "on" || s === "auto")
+    .map(([email]) => email);
 }
 
 /**

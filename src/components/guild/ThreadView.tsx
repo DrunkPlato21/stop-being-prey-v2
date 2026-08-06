@@ -923,8 +923,8 @@ function WatchControl({
         aria-pressed={watching}
         title={
           watching
-            ? "You get a notification and an email when someone replies here. Click to stop."
-            : "Get told when someone replies here."
+            ? "You get an email when someone replies here. Click to stop."
+            : "Email me when someone replies here."
         }
         className="font-display uppercase tracking-[0.16em] transition-colors"
         style={{

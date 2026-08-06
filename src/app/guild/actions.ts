@@ -26,7 +26,7 @@ import {
   pinThread,
   restoreReply,
   restoreThread,
-  listWatchers,
+  listWatchStates,
   setWatchState,
   softDeleteReply,
   softDeleteThread,
@@ -322,10 +322,17 @@ export async function postReplyAction(
   // specific notification, and nobody is told about their own reply.
   void (async () => {
     try {
-      const watchers = await listWatchers(threadId);
+      const states = await listWatchStates(threadId);
       const author = session.email.toLowerCase().trim();
       const direct = directRecipient?.toLowerCase().trim() ?? null;
-      const candidates = watchers.filter((w) => w !== author && w !== direct);
+      // Everyone still listening gets the in-app notice. Only the ones who
+      // clicked the bell get mail — see WatchState. Taking part in a thread
+      // earns you a marker when you come back; it does not put anything in
+      // your inbox you didn't ask for.
+      const candidates = Object.entries(states)
+        .filter(([, s]) => s === "on" || s === "auto")
+        .map(([email]) => email)
+        .filter((w) => w !== author && w !== direct);
       const due = await claimWatcherNotifications(threadId, candidates);
       if (!due.length) return;
       const replier = await getProfile(session.email).catch(() => null);
@@ -341,10 +348,10 @@ export async function postReplyAction(
           body: threadTitle,
           linkUrl: path,
         });
-        // And email, on the same terms as the direct recipient's: the
-        // member's own preference, and at most one per thread per window.
-        // A bell alone reaches nobody who isn't already on the site, which
-        // is most of them — watching without email doesn't pull anyone back.
+        // Email only for a deliberate opt-in. Beyond that it's the same
+        // terms as the direct recipient's: the member's own preference, and
+        // at most one per thread per window.
+        if (states[email] !== "on") continue;
         const profile = await getProfile(email).catch(() => null);
         if (!notifyOnReply(profile)) continue;
         if (!(await claimReplyEmailCooldown(email, threadId))) continue;
