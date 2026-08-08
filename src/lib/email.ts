@@ -2233,3 +2233,243 @@ export async function sendBillingAdminAlert(args: {
     logTag: "billing admin alert",
   });
 }
+
+/* === Weekly digest ==================================================
+   The patron report. One email a week to every active member, fired by
+   /api/cron/weekly-digest. Supporter-first by design: about half the
+   membership never signs in, so this email IS the room for them. Every
+   content section is optional; the assembly lib guarantees a floor
+   (archive rotation) so the email is never empty. The digest observes,
+   it never demands — a silent week still sends whole.
+
+   ALL COPY BELOW IS DRAFT. Clay finalizes the voice. (No em dashes.)
+
+   Ships with RFC 8058 one-click unsubscribe headers plus a footer
+   link, per the house rule: no new email path without a no-login
+   one-click out. */
+
+import type { DigestPayload } from "@/lib/digest";
+
+function digestMoney(cents: number): string {
+  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
+}
+
+function digestSectionEyebrow(label: string): string {
+  return `<tr>
+              <td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.66rem;letter-spacing:0.28em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding:18px 0 10px 0;">
+                ${escapeHtml(label)}
+              </td>
+            </tr>`;
+}
+
+export async function sendWeeklyDigestEmail(args: {
+  to: string;
+  payload: DigestPayload;
+  /** Absolute origin (no trailing slash) for turning site-relative
+      links into clickable ones. */
+  siteUrl: string;
+  /** The human unsubscribe page (footer link). */
+  unsubPageUrl: string;
+  /** The RFC 8058 one-click POST endpoint (mail-client header). */
+  unsubPostUrl: string;
+}): Promise<SendResult> {
+  const resend = client();
+  if (!resend) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[email] RESEND_API_KEY not set, weekly digest skipped. To: ${args.to}`
+      );
+    }
+    return { ok: false, error: "email_not_configured" };
+  }
+
+  const p = args.payload;
+  const abs = (url: string | null): string | null =>
+    url ? (url.startsWith("http") ? url : `${args.siteUrl}${url}`) : null;
+
+  const subject = "this week at the desk";
+  const rows: string[] = [];
+  const textLines: string[] = [];
+
+  // Lead: the chambered note when one is loaded. Otherwise proof of
+  // work straight off the desk — the status note, or the away note.
+  // A patron reading "heads down on the next piece" got exactly what
+  // they pay for; that line is the point, not a fallback apology.
+  if (p.note) {
+    rows.push(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.7;color:#3d3530;padding-bottom:8px;white-space:pre-wrap;">${escapeHtml(p.note)}</td>
+            </tr>`);
+    textLines.push(p.note, "");
+  } else {
+    const deskLine = p.desk.statusBody ?? p.desk.awayNote;
+    if (deskLine) {
+      rows.push(digestSectionEyebrow("From the desk"));
+      rows.push(`<tr>
+              <td style="padding-bottom:8px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;width:100%;">
+                  <tr><td style="font-family:Georgia,serif;font-size:16px;font-style:italic;line-height:1.7;color:#3d3530;padding:4px 0 4px 16px;white-space:pre-wrap;">${escapeHtml(deskLine)}</td></tr>
+                </table>
+              </td>
+            </tr>`);
+      textLines.push("FROM THE DESK", deskLine, "");
+    }
+  }
+
+  if (p.shipped.length > 0) {
+    rows.push(digestSectionEyebrow("New work this week"));
+    for (const item of p.shipped) {
+      const href = abs(item.url);
+      const title = href
+        ? `<a href="${escapeHtml(href)}" style="color:#1a1714;">${escapeHtml(item.title)}</a>`
+        : escapeHtml(item.title);
+      rows.push(`<tr>
+              <td style="font-family:Georgia,serif;font-size:16px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <span style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#8a8077;">${escapeHtml(item.label)}</span><br/>${title}
+              </td>
+            </tr>`);
+      textLines.push(`${item.label}: ${item.title}${href ? ` (${href})` : ""}`);
+    }
+    textLines.push("");
+  }
+
+  const roomLines: string[] = [];
+  if (p.rooms.qotw) {
+    roomLines.push(
+      `Question of the week: &ldquo;${escapeHtml(p.rooms.qotw.title)}&rdquo; &middot; ${p.rooms.qotw.replyCount} ${p.rooms.qotw.replyCount === 1 ? "reply" : "replies"}`
+    );
+    textLines.push(
+      `Question of the week: "${p.rooms.qotw.title}" (${p.rooms.qotw.replyCount} replies)`
+    );
+  }
+  if (p.rooms.latestThread) {
+    roomLines.push(
+      `Live in the Guild: &ldquo;${escapeHtml(p.rooms.latestThread.title)}&rdquo; &middot; ${p.rooms.latestThread.replyCount} ${p.rooms.latestThread.replyCount === 1 ? "reply" : "replies"}`
+    );
+    textLines.push(
+      `Live in the Guild: "${p.rooms.latestThread.title}" (${p.rooms.latestThread.replyCount} replies)`
+    );
+  }
+  if (roomLines.length > 0) {
+    rows.push(digestSectionEyebrow("The rooms"));
+    rows.push(`<tr>
+              <td style="font-family:Georgia,serif;font-size:15px;line-height:1.8;color:#3d3530;padding-bottom:8px;">
+                ${roomLines.join("<br/>")}<br/><a href="${escapeHtml(`${args.siteUrl}/guild`)}" style="color:#8a7d20;">Step into the Guild</a>
+              </td>
+            </tr>`);
+    textLines.push(`Step into the Guild: ${args.siteUrl}/guild`, "");
+  }
+
+  const patronLines: string[] = [];
+  if (p.wall) {
+    const wallLine = `The wall &ldquo;${escapeHtml(p.wall.title)}&rdquo; carries ${p.wall.contributorCount} ${p.wall.contributorCount === 1 ? "name" : "names"} and ${digestMoney(p.wall.totalRaisedCents)}.`;
+    patronLines.push(
+      `${wallLine} <a href="${escapeHtml(`${args.siteUrl}/wall`)}" style="color:#8a7d20;">See it</a>`
+    );
+    textLines.push(
+      `The wall "${p.wall.title}" carries ${p.wall.contributorCount} names and ${digestMoney(p.wall.totalRaisedCents)}. ${args.siteUrl}/wall`
+    );
+  }
+  if (p.pool.waiting > 0) {
+    patronLines.push(
+      `${p.pool.waiting} ${p.pool.waiting === 1 ? "reader is" : "readers are"} waiting on a covered seat. <a href="${escapeHtml(`${args.siteUrl}/membership/cover`)}" style="color:#8a7d20;">Put one in the room</a>`
+    );
+    textLines.push(
+      `${p.pool.waiting} reader(s) waiting on a covered seat: ${args.siteUrl}/membership/cover`
+    );
+  }
+  if (patronLines.length > 0) {
+    rows.push(digestSectionEyebrow("Patronage at work"));
+    rows.push(`<tr>
+              <td style="font-family:Georgia,serif;font-size:15px;line-height:1.8;color:#3d3530;padding-bottom:8px;">
+                ${patronLines.join("<br/>")}
+              </td>
+            </tr>`);
+    textLines.push("");
+  }
+
+  if (p.archive) {
+    const href = abs(p.archive.url)!;
+    rows.push(digestSectionEyebrow("From the case files"));
+    rows.push(`<tr>
+              <td style="font-family:Georgia,serif;font-size:16px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                &#8470;&nbsp;${p.archive.number} &middot; <a href="${escapeHtml(href)}" style="color:#1a1714;">${escapeHtml(p.archive.title)}</a>
+              </td>
+            </tr>`);
+    textLines.push(`From the case files: No. ${p.archive.number}, ${p.archive.title} (${href})`, "");
+  }
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Stop Being Prey</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5efe1;font-family:Georgia,'Times New Roman',serif;color:#1a1714;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5efe1;padding:48px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#fbf6e9;border:1px solid #c9bfa3;padding:40px 32px;">
+            <tr>
+              <td style="text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.7rem;letter-spacing:0.32em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding-bottom:24px;">
+                Stop Being Prey
+              </td>
+            </tr>
+            ${rows.join("\n            ")}
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:13px;font-style:italic;color:#8a8077;line-height:1.6;border-top:1px solid #d8cfb8;padding-top:20px;">
+                <p style="margin:0;">stay close,<br/>~ Clay</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,serif;font-size:12px;color:#a89e90;line-height:1.6;padding-top:20px;">
+                <p style="margin:0;">You get this because you hold a seat. <a href="${escapeHtml(args.unsubPageUrl)}" style="color:#a89e90;">Stop the weekly digest</a> and nothing else changes.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  textLines.push(
+    "stay close,",
+    "~ Clay",
+    "",
+    `Stop the weekly digest (nothing else changes): ${args.unsubPageUrl}`
+  );
+  const text = textLines.join("\n");
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: args.to,
+      subject,
+      html,
+      text,
+      replyTo: REPLY_TO,
+      headers: {
+        "List-Unsubscribe": `<${args.unsubPostUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    });
+    if (result.error) {
+      console.error("[email] Resend rejected weekly digest send:", {
+        to: args.to,
+        error: result.error,
+      });
+      return { ok: false, error: result.error.message };
+    }
+    return { ok: true, id: result.data?.id ?? "" };
+  } catch (err) {
+    console.error("[email] Resend threw while sending weekly digest:", {
+      to: args.to,
+      error: err,
+    });
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "send_failed",
+    };
+  }
+}

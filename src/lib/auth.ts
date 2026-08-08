@@ -173,6 +173,47 @@ export async function verifyBillingToken(
   }
 }
 
+// Digest-unsubscribe tokens follow the billing-token pattern: stateless,
+// long-lived, single-purpose, no site access. They live in every weekly
+// digest footer, so the TTL is a year — a member acting on a six-month-old
+// email should still get a working one-click out.
+const DIGEST_TOKEN_TTL_DAYS = 365;
+
+/**
+ * Sign a digest-unsubscribe token. Grants nothing but the ability to
+ * flip this one email's weekly-digest preference via the public
+ * /digest/unsubscribe route — no login, per the house email rule.
+ */
+export async function signDigestToken(email: string): Promise<string> {
+  return new SignJWT({ purpose: "digest-unsub", email })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${DIGEST_TOKEN_TTL_DAYS}d`)
+    .sign(authSecret());
+}
+
+/**
+ * Verify a digest-unsubscribe token. Returns the email on success,
+ * null on failure (bad signature, expired, or wrong purpose).
+ */
+export async function verifyDigestToken(
+  token: string | undefined | null
+): Promise<string | null> {
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, authSecret());
+    if (
+      payload.purpose === "digest-unsub" &&
+      typeof payload.email === "string"
+    ) {
+      return payload.email;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export type MagicLinkRecord = {
   email: string;
   customerId: string;
