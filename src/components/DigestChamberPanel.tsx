@@ -29,13 +29,17 @@ export function DigestChamberPanel({
   lastRun,
   nextFireAt,
   previewLines,
+  defaultOpen = false,
 }: {
   initialChamber: ChamberedNote | null;
   lastRun: DigestRun | null;
   nextFireAt: number;
   previewLines: string[];
+  /** True on the dedicated /admin/digest page, where the panel IS the
+      page and arriving collapsed would just be a second click. */
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [chamber, setChamber] = useState<ChamberedNote | null>(initialChamber);
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
