@@ -2259,8 +2259,32 @@ function digestMoney(cents: number): string {
 // rule carries the rhythm; the eyebrow names the section.
 function digestSectionEyebrow(label: string): string {
   return `<tr>
-              <td style="border-top:1px solid #e2d9c1;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.66rem;letter-spacing:0.28em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding:22px 0 12px 0;">
+              <td style="border-top:1px solid #e2d9c1;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.66rem;letter-spacing:0.28em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding:22px 0 14px 0;">
                 ${escapeHtml(label)}
+              </td>
+            </tr>`;
+}
+
+// One entry inside a digest section: a small tracked label (with the
+// meta stat folded in, so counts never dangle mid-sentence) over the
+// content line in ink. The same eyebrow-over-content rhythm the site
+// itself uses — hierarchy, not decoration.
+function digestEntry(args: {
+  label: string;
+  meta?: string;
+  bodyHtml: string;
+}): string {
+  const meta = args.meta
+    ? `<span style="font-family:Georgia,serif;font-size:12px;letter-spacing:0.02em;text-transform:none;color:#a89e90;font-weight:400;">&nbsp;&middot;&nbsp; ${escapeHtml(args.meta)}</span>`
+    : "";
+  return `<tr>
+              <td style="padding-bottom:3px;">
+                <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a8077;font-weight:700;">${escapeHtml(args.label)}</span>${meta}
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:#1a1714;padding-bottom:16px;">
+                ${args.bodyHtml}
               </td>
             </tr>`;
 }
@@ -2347,46 +2371,55 @@ export async function sendWeeklyDigestEmail(args: {
       const title = href
         ? `<a href="${escapeHtml(href)}" style="color:#1a1714;">${escapeHtml(item.title)}</a>`
         : escapeHtml(item.title);
-      rows.push(`<tr>
-              <td style="font-family:Georgia,serif;font-size:16px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
-                <span style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#8a8077;">${escapeHtml(item.label)}</span><br/>${title}
-              </td>
-            </tr>`);
+      rows.push(digestEntry({ label: item.label, bodyHtml: title }));
       textLines.push(`${item.label}: ${item.title}${href ? ` (${href})` : ""}`);
     }
     textLines.push("");
   }
 
-  const roomLines: string[] = [];
-  if (p.rooms.qotw) {
-    roomLines.push(
-      `Question of the week: &ldquo;${escapeHtml(p.rooms.qotw.title)}&rdquo; &middot; ${p.rooms.qotw.replyCount} ${p.rooms.qotw.replyCount === 1 ? "reply" : "replies"}`
-    );
-    textLines.push(
-      `Question of the week: "${p.rooms.qotw.title}" (${p.rooms.qotw.replyCount} replies)`
-    );
-  }
-  if (p.rooms.latestThread) {
-    roomLines.push(
-      `Live in the Guild: &ldquo;${escapeHtml(p.rooms.latestThread.title)}&rdquo; &middot; ${p.rooms.latestThread.replyCount} ${p.rooms.latestThread.replyCount === 1 ? "reply" : "replies"}`
-    );
-    textLines.push(
-      `Live in the Guild: "${p.rooms.latestThread.title}" (${p.rooms.latestThread.replyCount} replies)`
-    );
-  }
-  if (p.rooms.loungePostsThisWeek > 0) {
-    roomLines.push(
-      `The Lounge kept talking &middot; ${p.rooms.loungePostsThisWeek} ${p.rooms.loungePostsThisWeek === 1 ? "post" : "posts"} this week`
-    );
-    textLines.push(
-      `The Lounge kept talking: ${p.rooms.loungePostsThisWeek} ${p.rooms.loungePostsThisWeek === 1 ? "post" : "posts"} this week`
-    );
-  }
-  if (roomLines.length > 0) {
+  const hasRooms =
+    !!p.rooms.qotw || !!p.rooms.latestThread || p.rooms.loungePostsThisWeek > 0;
+  if (hasRooms) {
     rows.push(digestSectionEyebrow("The rooms"));
+    if (p.rooms.qotw) {
+      rows.push(
+        digestEntry({
+          label: "Question of the week",
+          meta: `${p.rooms.qotw.replyCount} ${p.rooms.qotw.replyCount === 1 ? "reply" : "replies"}`,
+          bodyHtml: `&ldquo;${escapeHtml(p.rooms.qotw.title)}&rdquo;`,
+        })
+      );
+      textLines.push(
+        `Question of the week: "${p.rooms.qotw.title}" (${p.rooms.qotw.replyCount} replies)`
+      );
+    }
+    if (p.rooms.latestThread) {
+      rows.push(
+        digestEntry({
+          label: "Live in the Guild",
+          meta: `${p.rooms.latestThread.replyCount} ${p.rooms.latestThread.replyCount === 1 ? "reply" : "replies"}`,
+          bodyHtml: `&ldquo;${escapeHtml(p.rooms.latestThread.title)}&rdquo;`,
+        })
+      );
+      textLines.push(
+        `Live in the Guild: "${p.rooms.latestThread.title}" (${p.rooms.latestThread.replyCount} replies)`
+      );
+    }
+    if (p.rooms.loungePostsThisWeek > 0) {
+      // The Lounge is a stat, not a title — it gets the label row only,
+      // with the count as its meta, so it doesn't fake a content line.
+      rows.push(`<tr>
+              <td style="padding-bottom:16px;">
+                <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a8077;font-weight:700;">The Lounge kept talking</span><span style="font-family:Georgia,serif;font-size:12px;color:#a89e90;">&nbsp;&middot;&nbsp; ${p.rooms.loungePostsThisWeek} ${p.rooms.loungePostsThisWeek === 1 ? "post" : "posts"} this week</span>
+              </td>
+            </tr>`);
+      textLines.push(
+        `The Lounge kept talking: ${p.rooms.loungePostsThisWeek} ${p.rooms.loungePostsThisWeek === 1 ? "post" : "posts"} this week`
+      );
+    }
     rows.push(`<tr>
-              <td style="font-family:Georgia,serif;font-size:15px;line-height:1.8;color:#3d3530;padding-bottom:8px;">
-                ${roomLines.join("<br/>")}<br/><a href="${escapeHtml(`${args.siteUrl}/guild`)}" style="color:#8a7d20;">Step into the Guild</a>${p.rooms.loungePostsThisWeek > 0 ? ` &nbsp;&middot;&nbsp; <a href="${escapeHtml(`${args.siteUrl}/lounge`)}" style="color:#8a7d20;">The Lounge</a>` : ""}
+              <td style="font-family:Georgia,serif;font-size:14px;padding:0 0 8px 0;">
+                <a href="${escapeHtml(`${args.siteUrl}/guild`)}" style="color:#8a7d20;">Step into the Guild</a>${p.rooms.loungePostsThisWeek > 0 ? ` &nbsp;&middot;&nbsp; <a href="${escapeHtml(`${args.siteUrl}/lounge`)}" style="color:#8a7d20;">The Lounge</a>` : ""}
               </td>
             </tr>`);
     textLines.push(`Step into the Guild: ${args.siteUrl}/guild`, "");
@@ -2424,11 +2457,22 @@ export async function sendWeeklyDigestEmail(args: {
     const href = abs(p.archive.url)!;
     rows.push(digestSectionEyebrow("From the case files"));
     rows.push(`<tr>
-              <td style="font-family:Georgia,serif;font-size:16px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
-                &#8470;&nbsp;${p.archive.number} &middot; <a href="${escapeHtml(href)}" style="color:#1a1714;">${escapeHtml(p.archive.title)}</a>
+              <td style="padding-bottom:8px;">
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.35rem;font-weight:700;color:#8a7d20;padding-right:14px;vertical-align:top;line-height:1.3;">&#8470;&nbsp;${p.archive.number}</td>
+                    <td style="vertical-align:top;">
+                      <div style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.4;color:#1a1714;"><a href="${escapeHtml(href)}" style="color:#1a1714;">${escapeHtml(p.archive.title)}</a></div>
+                      <div style="font-family:Georgia,serif;font-size:12.5px;font-style:italic;color:#8a8077;padding-top:3px;">${escapeHtml(p.archive.archetype)}</div>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>`);
-    textLines.push(`From the case files: No. ${p.archive.number}, ${p.archive.title} (${href})`, "");
+    textLines.push(
+      `From the case files: No. ${p.archive.number}, ${p.archive.title} (${p.archive.archetype}) ${href}`,
+      ""
+    );
   }
 
   const html = `<!doctype html>

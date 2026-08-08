@@ -110,8 +110,14 @@ export type DigestPayload = {
   } | null;
   pool: { waiting: number; potCents: number };
   /** Evergreen rotation so the email always has a floor, even on a
-      week where every live slot came up empty. */
-  archive: { number: number; title: string; url: string } | null;
+      week where every live slot came up empty. Carries the archetype
+      so the email can present it as a real entry, not a bare link. */
+  archive: {
+    number: number;
+    title: string;
+    archetype: string;
+    url: string;
+  } | null;
 };
 
 function sanitizeChamberBody(input: string): string {
@@ -316,6 +322,7 @@ export async function assembleDigest(
     archive = {
       number: pick.number,
       title: pick.title,
+      archetype: pick.archetype,
       url: `/case-files/${pick.slug}`,
     };
   }
