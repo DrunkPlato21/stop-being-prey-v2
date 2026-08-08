@@ -1,9 +1,9 @@
 import type { PulseSource } from "@/lib/pulse";
 
 // Tiny olive glyph that prefixes each pulse-row eyebrow on the Writer's
-// Desk widget and in the /notes/activity and /notes/elsewhere
-// archives, so the reader can tell sources apart at a glance without
-// scanning the label text.
+// Desk widget and in the /notes/activity archive, so the reader can
+// tell sources apart at a glance without scanning the label text.
+// (The social glyphs left with the Elsewhere retirement, 2026-08-08.)
 
 export function PulseSourceGlyph({ source }: { source: PulseSource }) {
   const common = {
@@ -13,27 +13,6 @@ export function PulseSourceGlyph({ source }: { source: PulseSource }) {
     "aria-hidden": true as const,
     style: { flexShrink: 0, display: "inline-block" as const },
   };
-  if (source === "x") {
-    return (
-      <svg {...common} fill="currentColor">
-        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-      </svg>
-    );
-  }
-  if (source === "facebook") {
-    return (
-      <svg {...common} fill="currentColor">
-        <path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103.34.04.717.105 1.141.195v3.325c-.16-.01-.327-.022-.495-.03-.166-.005-.246-.008-.733-.008-.707 0-1.259.096-1.675.309-.272.139-.493.34-.679.622-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647z" />
-      </svg>
-    );
-  }
-  if (source === "youtube") {
-    return (
-      <svg {...common} fill="currentColor">
-        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-      </svg>
-    );
-  }
   if (source === "issue") {
     return (
       <svg

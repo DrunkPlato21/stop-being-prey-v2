@@ -33,9 +33,8 @@ type NavItem = { href: string; label: string; badgeSection?: NavBadgeSection };
 const PRIMARY: NavItem[] = [
   { href: "/admin/desk", label: "Desk" },
   { href: "/admin/notes", label: "Notes" },
-  { href: "/admin/channels", label: "Elsewhere" },
+  { href: "/admin/digest", label: "Digest" },
   { href: "/admin/desk/voice", label: "Voice memos" },
-  { href: "/admin/field-notes", label: "Field notes" },
   { href: "/admin/lounge", label: "Lounge", badgeSection: "lounge" },
   { href: "/admin/comments", label: "Comments", badgeSection: "comments" },
 ];

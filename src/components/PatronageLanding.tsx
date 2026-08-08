@@ -44,7 +44,13 @@ import { testimonialsFor } from "@/lib/testimonials";
    into a paraphrase. If Clay edits or hides one on the wall, this unit
    follows. A missing entry is skipped rather than faked.
    ─────────────────────────────────────────────────────────────────── */
-const WALL_PICKS = ["Murrell", "Kim", "Steve Coleman, Forsyth, GA"] as const;
+// The three cover three different reasons to pay, in order: the writing
+// changed me (Murrell), I know this man and I back him (Kim), and the
+// work is good enough that I hand it to people (Rick). The third slot
+// used to hold Steve Coleman's note, which opens on a west-coast joke
+// that lands only if you already know Clay is not on the west coast. A
+// stranger reads it as a mistake.
+const WALL_PICKS = ["Murrell", "Kim", "Rick"] as const;
 
 // An explicit hand-picked set, in Clay's order — not a filter or a sort,
 // so the sequence can't drift when the shared pool changes. Chris and

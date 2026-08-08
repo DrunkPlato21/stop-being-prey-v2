@@ -3,7 +3,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getAllFieldNotes, type FieldNoteMeta } from "@/lib/field-notes";
 import {
   getAllCaseFiles,
   getPublicCaseFiles,
@@ -182,10 +181,6 @@ export default async function RulesPage() {
         } left. $13/month floor, or pay what it's worth. Your rate locked for life, with your slot number.`
       : "$13/month floor, or pay what it's worth. Locked for life.";
 
-  const fieldNotesBySlug: Record<string, FieldNoteMeta> = Object.fromEntries(
-    getAllFieldNotes().map((n) => [n.slug, n])
-  );
-
   // Reverse index: rule number → case files that reference it.
   // Built once at render time so each rule body can pull its
   // demonstrating cases with a single map lookup. Sort within each
@@ -209,8 +204,8 @@ export default async function RulesPage() {
   // Full rule card (numeral, title, body, member enrichments). Shared by the
   // unlocked all-seven list and the locked free-rules list.
   const fullRuleCard = (rule: Rule, idx: number) => {
-    const demoNote =
-      signedIn && rule.demoSlug ? fieldNotesBySlug[rule.demoSlug] : undefined;
+    // Field-note "Demonstrated in" links retired with the journal
+    // format (2026-08-08); case files carry the demonstration role.
     const demoCases = signedIn ? caseFilesByRule.get(rule.number) ?? [] : [];
     return (
       <Fragment key={rule.number}>
@@ -234,14 +229,6 @@ export default async function RulesPage() {
                   <p key={i}>{para}</p>
                 ))}
               </div>
-              {demoNote && (
-                <p className="rule-demo">
-                  Demonstrated in:{" "}
-                  <Link href={`/notes/field-notes/${demoNote.slug}`}>
-                    {demoNote.title}
-                  </Link>
-                </p>
-              )}
               {demoCases.length > 0 && (
                 <div className="mt-5">
                   <p

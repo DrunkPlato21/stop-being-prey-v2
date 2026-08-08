@@ -1,47 +1,35 @@
 import { getAllArticles } from "./articles";
-import { getAllFieldNotesWithActivity } from "./field-notes";
-import {
-  listChannelPosts,
-  type ChannelPost,
-} from "./channel-posts";
 
-// Pulse feeds for the Writer's Desk widget. Two distinct lanes so
-// social posts can't crowd out site work:
+// Pulse feed for the Writer's Desk widget: site-only output (essays,
+// issues, pinned site events; case files when they start publishing).
+// Surfaces under the "Recent work" header on the widget and on
+// /notes/activity in full.
 //
-//   At home          — site-only output. Essays, field notes, issues,
-//                       and (once they start publishing) case files.
-//                       Surfaces under the "At home" header on the
-//                       widget and on /notes/activity in full.
-//   Out in the world — social-only output. Admin-curated entries from
-//                       the channels:x, channels:fb, and channels:youtube
-//                       Upstash lists.
-//                       Surfaces under the "Out in the world" header
-//                       on the widget and on /notes/elsewhere in full.
+// Two lanes were retired 2026-08-08:
+//   - Field notes. The journal format was abandoned; the archive under
+//     /notes/field-notes stays reachable (member comments and coins
+//     live there) but nothing feeds the pulse from it.
+//   - "Out in the world" social echo (admin-curated FB/X/YouTube).
+//     Clay stopped curating it, and the desk had already retired the
+//     section in July. The `field-note` source variant survives for
+//     the glyph on old activity rows.
 //
 // Walls have their own Active Wall panel above this section. Admin-
 // comment events are excluded entirely — they read as noise next to
 // fresh work output.
-//
-// The two lanes share the PulseEvent shape and the row component on
-// the widget, so source glyphs and NEW-badge logic work identically
-// across both. Each lane caps independently and never reaches into
-// the other's sources.
 
 export type PulseSource =
   | "essay"
   | "issue"
   | "field-note"
   | "case-file"
-  | "guild"
-  | "facebook"
-  | "x"
-  | "youtube";
+  | "guild";
 
 export type PulseEvent = {
   source: PulseSource;
   at: number;
   /** Short label shown as the eyebrow on each pulse row, e.g.
-      "On Facebook". Widget renders with uppercase tracked spacing. */
+      "New essay". Widget renders with uppercase tracked spacing. */
   label: string;
   /** Body / snippet displayed under the label. */
   body: string;
@@ -50,7 +38,6 @@ export type PulseEvent = {
 };
 
 const RECENT_WORK_DEFAULT_LIMIT = 3;
-const ELSEWHERE_DEFAULT_LIMIT = 3;
 
 function parseDateMs(value: unknown): number | null {
   if (value instanceof Date) {
@@ -64,7 +51,7 @@ function parseDateMs(value: unknown): number | null {
   return null;
 }
 
-/* === Site sources (essays + field notes + future case files) ====== */
+/* === Site sources (essays + future case files) =================== */
 
 function essayPulses(limit: number): PulseEvent[] {
   const articles = getAllArticles();
@@ -82,51 +69,6 @@ function essayPulses(limit: number): PulseEvent[] {
     });
   }
   return out.sort((a, b) => b.at - a.at).slice(0, limit);
-}
-
-// In-memory cache for the field-note activity lookup. The desk page
-// re-renders on every visit and used to hit Redis 2x per journal
-// field note each time — a cold-cache cost of ~10+ commands per page
-// load just for this lane. 60s is short enough that a fresh entry
-// surfaces near-instantly to anyone who hasn't loaded the desk in the
-// last minute, long enough to absorb bursts when several members
-// land on the desk in the same minute. See the 2026-05-18 rate-limit
-// incident. Module-level state survives the request lifecycle in a
-// long-running Node process; serverless deployments will simply
-// recompute per cold-start, which is fine.
-const FIELD_NOTE_CACHE_TTL_MS = 60_000;
-let fieldNoteCache: { events: PulseEvent[]; expiresAt: number } | null = null;
-
-async function fieldNotePulses(limit: number): Promise<PulseEvent[]> {
-  const now = Date.now();
-  if (fieldNoteCache && fieldNoteCache.expiresAt > now) {
-    return fieldNoteCache.events.slice(0, limit);
-  }
-  // Journal-style field notes surface their latest *entry* (the
-  // working-journal updates Clay appends over the life of the piece)
-  // rather than the original creation date, so the desk feed reflects
-  // what's actually new. Legacy single-essay notes still surface by
-  // their frontmatter date with the note's own title as the body.
-  const notes = await getAllFieldNotesWithActivity();
-  const out: PulseEvent[] = [];
-  for (const n of notes) {
-    const at = n.lastActivityAt || parseDateMs(n.date) || 0;
-    if (!at) continue;
-    const hasEntry = n.kind === "journal" && !!n.latestEntryTitle;
-    out.push({
-      source: "field-note",
-      at,
-      label: hasEntry ? "Field note update" : "Field note",
-      body: hasEntry ? (n.latestEntryTitle as string) : n.title,
-      link: `/notes/field-notes/${n.slug}`,
-    });
-  }
-  const sorted = out.sort((a, b) => b.at - a.at);
-  fieldNoteCache = {
-    events: sorted,
-    expiresAt: now + FIELD_NOTE_CACHE_TTL_MS,
-  };
-  return sorted.slice(0, limit);
 }
 
 // Case files don't have a content source yet — the lane is placeholder
@@ -182,28 +124,6 @@ const PINNED_EVENTS: PulseEvent[] = [
   },
 ];
 
-/* === Social sources (admin-curated, Upstash) ====================== */
-
-const CHANNEL_SOURCE: Record<
-  ChannelPost["source"],
-  { source: PulseSource; label: string }
-> = {
-  fb: { source: "facebook", label: "On Facebook" },
-  x: { source: "x", label: "On X" },
-  youtube: { source: "youtube", label: "On YouTube" },
-};
-
-function channelPostToEvent(post: ChannelPost): PulseEvent {
-  const mapped = CHANNEL_SOURCE[post.source];
-  return {
-    source: mapped.source,
-    at: post.postedAt,
-    label: mapped.label,
-    body: post.text,
-    link: post.url,
-  };
-}
-
 /* === Lane aggregators ============================================ */
 
 /**
@@ -217,38 +137,11 @@ export async function getRecentWorkEvents({
 }: { limit?: number } = {}): Promise<PulseEvent[]> {
   const perLane = Math.max(2, Math.ceil(limit * 0.75));
 
-  const [essays, fieldNotes] = await Promise.all([
-    Promise.resolve(essayPulses(perLane)),
-    fieldNotePulses(perLane),
-  ]);
+  const essays = essayPulses(perLane);
 
-  const events: PulseEvent[] = [...PINNED_EVENTS, ...essays, ...fieldNotes];
+  const events: PulseEvent[] = [...PINNED_EVENTS, ...essays];
   events.sort((a, b) => b.at - a.at);
   return events.slice(0, limit);
 }
 
-/**
- * Social-channel pulse stream for the widget's "Elsewhere" section.
- * Reads admin-curated entries from channels:fb, channels:x, and
- * channels:youtube in Upstash, merges newest-first, slices to `limit`
- * (default 3).
- */
-export async function getElsewhereEvents({
-  limit = ELSEWHERE_DEFAULT_LIMIT,
-}: { limit?: number } = {}): Promise<PulseEvent[]> {
-  const perLane = Math.max(2, Math.ceil(limit * 0.75));
 
-  const [fbPosts, xPosts, youtubePosts] = await Promise.all([
-    listChannelPosts({ source: "fb", limit: perLane }),
-    listChannelPosts({ source: "x", limit: perLane }),
-    listChannelPosts({ source: "youtube", limit: perLane }),
-  ]);
-
-  const events: PulseEvent[] = [
-    ...fbPosts.map(channelPostToEvent),
-    ...xPosts.map(channelPostToEvent),
-    ...youtubePosts.map(channelPostToEvent),
-  ];
-  events.sort((a, b) => b.at - a.at);
-  return events.slice(0, limit);
-}

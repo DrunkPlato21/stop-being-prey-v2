@@ -110,14 +110,9 @@ export type WritersDeskState = {
   state: PresenceState;
   latestUpdate: DeskUpdate | null;
   awayNote: string | null;
-  /** Site-content stream: essays, field notes, issues, case files.
+  /** Site-content stream: essays, issues, pinned site events.
       Drives the "Recent work" section. Capped at 5. */
   recentWork: PulseEvent[];
-  /** Retired from the desk (Jul 2026): always []. The social-echo feed
-      duplicated recentWork and pointed members off-platform. Kept on the
-      type so the polling endpoint contract is unchanged; the archive of
-      these events still renders at /notes/elsewhere. */
-  elsewhere: PulseEvent[];
   // Member-side data — folded into the same snapshot so the widget's
   // polling loop keeps past notes (and Clay's reply when it lands)
   // fresh without a second endpoint.
@@ -390,9 +385,6 @@ export async function getWritersDeskState(
     latestUpdate: updates[0] ?? null,
     awayNote,
     recentWork,
-    // Retired from the desk (redundant with recentWork + pointed members
-    // off-platform). The archive still lives at /notes/elsewhere.
-    elsewhere: [],
     memberNotes,
     voiceMemo,
     activeWall,

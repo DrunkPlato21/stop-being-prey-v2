@@ -120,8 +120,8 @@ function PresenceLine({
   );
 }
 
-// Glyph extracted to its own file so the archive pages
-// (/notes/activity, /notes/elsewhere) can reuse the same vocabulary.
+// Glyph extracted to its own file so the /notes/activity archive can
+// reuse the same vocabulary.
 
 // Small olive pill marking content the viewer hasn't seen yet. Pinned
 // next to the source label or section eyebrow, never the body text.
