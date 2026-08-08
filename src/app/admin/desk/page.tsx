@@ -23,6 +23,14 @@ import { WatchFeedAdmin } from "@/components/WatchFeedAdmin";
 import { RoomPresenceControl } from "@/components/RoomPresenceControl";
 import { PromptScheduler } from "@/components/PromptScheduler";
 import { listWatchPosts } from "@/lib/watch-feed";
+import { DigestChamberPanel } from "@/components/DigestChamberPanel";
+import {
+  assembleDigest,
+  getChamberedNote,
+  getLastRun,
+  nextDigestFireAt,
+  type DigestPayload,
+} from "@/lib/digest";
 
 // Dark-mode toggle + no-flash script live in src/app/admin/layout.tsx
 // so every admin page shares the same control without each page
@@ -33,6 +41,47 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+
+// Compact preview of Sunday's digest for the chamber panel: one line
+// per section that will actually render, so Clay can glance at the
+// panel and know what patrons get without opening a test email.
+function digestPreviewLines(p: DigestPayload): string[] {
+  const clip = (s: string, n = 64) =>
+    s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s;
+  const lines: string[] = [];
+  if (p.note) {
+    lines.push("Leads with your chambered note.");
+  } else if (p.desk.statusBody) {
+    lines.push(`Leads with the desk status: “${clip(p.desk.statusBody)}”`);
+  } else if (p.desk.awayNote) {
+    lines.push(`Leads with your away note: “${clip(p.desk.awayNote)}”`);
+  } else {
+    lines.push("No lead loaded. It picks up whatever the desk says at send time.");
+  }
+  lines.push(
+    p.shipped.length > 0
+      ? `New work: ${p.shipped.map((s) => clip(s.title, 40)).join(" · ")}`
+      : "No new pieces this window. The floor below still sends."
+  );
+  if (p.rooms.qotw) {
+    lines.push(`Question of the week: “${clip(p.rooms.qotw.title, 48)}”`);
+  }
+  if (p.rooms.latestThread) {
+    lines.push(
+      `Live Guild thread: “${clip(p.rooms.latestThread.title, 48)}” (${p.rooms.latestThread.replyCount} replies)`
+    );
+  }
+  if (p.wall) {
+    lines.push(`Wall: “${clip(p.wall.title, 44)}”, ${p.wall.contributorCount} names`);
+  }
+  if (p.pool.waiting > 0) {
+    lines.push(`${p.pool.waiting} waiting on a covered seat`);
+  }
+  if (p.archive) {
+    lines.push(`From the case files: № ${p.archive.number}, “${clip(p.archive.title, 44)}”`);
+  }
+  return lines;
+}
 
 function formatTimestamp(ms: number): string {
   const d = new Date(ms);
@@ -78,6 +127,9 @@ export default async function DeskAdminPage() {
     wallOverride,
     presenceEntries,
     watchFeed,
+    digestPayload,
+    digestChamber,
+    digestLastRun,
   ] = await Promise.all([
     listRecentUpdates(1),
     getPresence(),
@@ -85,6 +137,9 @@ export default async function DeskAdminPage() {
     getWallOverride(),
     listPresenceSnapshot(presenceSinceMs, now),
     listWatchPosts(20),
+    assembleDigest(now),
+    getChamberedNote(),
+    getLastRun(),
   ]);
   const current = updates[0];
   const state = derivePresenceState(presence);
@@ -186,6 +241,18 @@ export default async function DeskAdminPage() {
           Schedule a starter + drip of host prompts that post as
           lounge posts over the night to keep the room talking. */}
       <PromptScheduler />
+
+      {/* === Section 2.8: The weekly digest ==================
+          The chamber. One optional note to patrons; the Sunday
+          digest leads with it and spends it. Collapsed by default —
+          the whole point is that this panel never demands anything,
+          so it must not read as a standing to-do. */}
+      <DigestChamberPanel
+        initialChamber={digestChamber}
+        lastRun={digestLastRun}
+        nextFireAt={nextDigestFireAt(now)}
+        previewLines={digestPreviewLines(digestPayload)}
+      />
 
       {/* === Section 3: Signals ==============================
           Broadcast notifications + the active-wall override. These
