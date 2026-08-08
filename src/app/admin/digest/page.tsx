@@ -49,6 +49,9 @@ function digestPreviewLines(p: DigestPayload): string[] {
       `Live Guild thread: “${clip(p.rooms.latestThread.title, 48)}” (${p.rooms.latestThread.replyCount} replies)`
     );
   }
+  if (p.rooms.loungePostsThisWeek > 0) {
+    lines.push(`Lounge: ${p.rooms.loungePostsThisWeek} posts this week`);
+  }
   if (p.wall) {
     lines.push(`Wall: “${clip(p.wall.title, 44)}”, ${p.wall.contributorCount} names`);
   }

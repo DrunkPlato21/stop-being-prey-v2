@@ -483,6 +483,20 @@ async function writePost(post: LoungePost): Promise<void> {
   await client.set(`${POST_PREFIX}${post.id}`, JSON.stringify(post));
 }
 
+/**
+ * Posts created since `sinceMs` — the weekly digest's Lounge pulse.
+ * Counts top-level posts only (replies live in per-post zsets and a
+ * one-line stat isn't worth N round-trips). Counts straight off the
+ * index, so hidden posts are included; as a pulse number, close
+ * enough is correct enough.
+ */
+export async function countPostsSince(sinceMs: number): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const n = await client.zcount(POSTS_INDEX, sinceMs, "+inf").catch(() => 0);
+  return typeof n === "number" ? n : 0;
+}
+
 export async function listVisiblePosts(opts?: {
   limit?: number;
   /** Cursor: lastActivityAt of the last post on the previous page.

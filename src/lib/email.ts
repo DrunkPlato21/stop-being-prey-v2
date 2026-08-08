@@ -2254,9 +2254,12 @@ function digestMoney(cents: number): string {
   return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
 }
 
+// Each section opens with a hairline rule + tracked eyebrow, so the
+// email reads as a structured report rather than a plain note. The
+// rule carries the rhythm; the eyebrow names the section.
 function digestSectionEyebrow(label: string): string {
   return `<tr>
-              <td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.66rem;letter-spacing:0.28em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding:18px 0 10px 0;">
+              <td style="border-top:1px solid #e2d9c1;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.66rem;letter-spacing:0.28em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding:22px 0 12px 0;">
                 ${escapeHtml(label)}
               </td>
             </tr>`;
@@ -2288,8 +2291,30 @@ export async function sendWeeklyDigestEmail(args: {
     url ? (url.startsWith("http") ? url : `${args.siteUrl}${url}`) : null;
 
   const subject = "this week at the desk";
+  const dateLabel = new Date(p.generatedAt).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
   const rows: string[] = [];
   const textLines: string[] = [];
+
+  // Masthead: title + dateline under the brand row, so the email
+  // opens like an issue of something rather than a bare note — and so
+  // a lead-less week (no chambered note, empty desk) still opens with
+  // structure instead of falling straight into a section eyebrow.
+  rows.push(`<tr>
+              <td align="center" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.55rem;font-weight:700;color:#1a1714;letter-spacing:-0.01em;padding-bottom:4px;">
+                This week at the desk
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="font-family:Georgia,serif;font-size:0.85rem;font-style:italic;color:#8a8077;padding-bottom:22px;">
+                ${escapeHtml(dateLabel)}
+              </td>
+            </tr>`);
+  textLines.push("THIS WEEK AT THE DESK", dateLabel, "");
 
   // Lead: the chambered note when one is loaded. Otherwise proof of
   // work straight off the desk — the status note, or the away note.
@@ -2349,11 +2374,19 @@ export async function sendWeeklyDigestEmail(args: {
       `Live in the Guild: "${p.rooms.latestThread.title}" (${p.rooms.latestThread.replyCount} replies)`
     );
   }
+  if (p.rooms.loungePostsThisWeek > 0) {
+    roomLines.push(
+      `The Lounge kept talking &middot; ${p.rooms.loungePostsThisWeek} ${p.rooms.loungePostsThisWeek === 1 ? "post" : "posts"} this week`
+    );
+    textLines.push(
+      `The Lounge kept talking: ${p.rooms.loungePostsThisWeek} ${p.rooms.loungePostsThisWeek === 1 ? "post" : "posts"} this week`
+    );
+  }
   if (roomLines.length > 0) {
     rows.push(digestSectionEyebrow("The rooms"));
     rows.push(`<tr>
               <td style="font-family:Georgia,serif;font-size:15px;line-height:1.8;color:#3d3530;padding-bottom:8px;">
-                ${roomLines.join("<br/>")}<br/><a href="${escapeHtml(`${args.siteUrl}/guild`)}" style="color:#8a7d20;">Step into the Guild</a>
+                ${roomLines.join("<br/>")}<br/><a href="${escapeHtml(`${args.siteUrl}/guild`)}" style="color:#8a7d20;">Step into the Guild</a>${p.rooms.loungePostsThisWeek > 0 ? ` &nbsp;&middot;&nbsp; <a href="${escapeHtml(`${args.siteUrl}/lounge`)}" style="color:#8a7d20;">The Lounge</a>` : ""}
               </td>
             </tr>`);
     textLines.push(`Step into the Guild: ${args.siteUrl}/guild`, "");

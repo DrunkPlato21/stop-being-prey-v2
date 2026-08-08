@@ -3,6 +3,7 @@ import { getWritersDeskState } from "./writers-desk-state";
 import { getRecentWorkEvents } from "./pulse";
 import { getDeskPoolSignal } from "./pool";
 import { getAllCaseFiles } from "./case-files";
+import { countPostsSince } from "./lounge";
 
 // The weekly digest — the patron report. One email a week to every
 // member, designed supporter-first: roughly half the membership never
@@ -96,7 +97,10 @@ export type DigestPayload = {
   rooms: {
     qotw: { title: string; replyCount: number } | null;
     latestThread: { title: string; replyCount: number } | null;
-    loungeActiveNow: number;
+    /** Lounge posts written inside this digest's window — the week's
+        pulse, not a moment-in-time presence count (which at Sunday
+        5pm says nothing about the week). */
+    loungePostsThisWeek: number;
   };
   wall: {
     title: string;
@@ -273,19 +277,31 @@ export function nextDigestFireAt(now: number = Date.now()): number {
 export async function assembleDigest(
   now: number = Date.now()
 ): Promise<DigestPayload> {
-  const [state, work, chamber, poolSignal] = await Promise.all([
-    getWritersDeskState(),
-    getRecentWorkEvents({ limit: 12 }),
-    getChamberedNote(),
-    getDeskPoolSignal().catch(() => ({ waiting: 0, note: null, potCents: 0 })),
-  ]);
+  // The window opens where the last send closed, so a piece published
+  // minutes after one digest can't fall in the crack before the next,
+  // and a piece published minutes before one can't be reported twice.
+  // First run ever (or after a long gap) falls back to the fixed window.
+  const lastRun = await getLastRun();
+  const since =
+    lastRun && now - lastRun.sentAt <= SHIPPED_WINDOW_MS * 2
+      ? lastRun.sentAt
+      : now - SHIPPED_WINDOW_MS;
+
+  const [state, work, chamber, poolSignal, loungePostsThisWeek] =
+    await Promise.all([
+      getWritersDeskState(),
+      getRecentWorkEvents({ limit: 12 }),
+      getChamberedNote(),
+      getDeskPoolSignal().catch(() => ({ waiting: 0, note: null, potCents: 0 })),
+      countPostsSince(since).catch(() => 0),
+    ]);
 
   // Shipped this week: site content only (essays, issues, field notes,
   // case files), inside the window. Social-echo sources stay out — the
   // digest reports the work, not the noise around it.
   const siteSources = new Set(["essay", "issue", "field-note", "case-file"]);
   const shipped = work
-    .filter((e) => siteSources.has(e.source) && now - e.at <= SHIPPED_WINDOW_MS)
+    .filter((e) => siteSources.has(e.source) && e.at >= since && e.at <= now)
     .map((e) => ({ label: e.label, title: e.body, url: e.link ?? null, at: e.at }));
 
   // Archive rotation: deterministic by week so every member sees the
@@ -327,7 +343,7 @@ export async function assembleDigest(
             replyCount: state.rooms.guild.latest.replyCount,
           }
         : null,
-      loungeActiveNow: state.rooms.lounge.activeNow,
+      loungePostsThisWeek,
     },
     wall: state.activeWall
       ? {
