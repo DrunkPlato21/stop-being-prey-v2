@@ -108,11 +108,10 @@ export function ActiveWallPanel({
             <span aria-hidden="true">&rarr;</span>
           </span>
         </Link>
-        {snapshot.otherActiveCount > 0 && (
-          <Link href="/walls" className="active-wall-more">
-            +&nbsp;{snapshot.otherActiveCount} more
-          </Link>
-        )}
+        {/* No "+N more" link here even when otherActiveCount > 0:
+            there is no /walls index page to send anyone to, so the
+            old link 404'd. If simultaneous walls ever become a real
+            state, build the index first and restore the link. */}
       </div>
     </article>
   );

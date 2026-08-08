@@ -19,6 +19,11 @@ import type {
 // frequency, not category. Top row is the day-to-day surfaces Clay
 // opens most; bottom row is everything else.
 //
+// Not every /admin route earns a link: /admin/presence duplicates the
+// desk masthead badge and /admin/lounge/moderation is a rarely-read
+// log; both stay reachable by URL only. Early access was removed
+// outright (see src/lib/early-access.ts for the history).
+//
 // `badges` flags unread state per section — see lib/admin-nav-badges.
 // Dot is hidden on the active item itself (you can't be "unread" on a
 // page you're currently looking at).
@@ -27,10 +32,10 @@ type NavItem = { href: string; label: string; badgeSection?: NavBadgeSection };
 
 const PRIMARY: NavItem[] = [
   { href: "/admin/desk", label: "Desk" },
+  { href: "/admin/notes", label: "Notes" },
   { href: "/admin/channels", label: "Elsewhere" },
   { href: "/admin/desk/voice", label: "Voice memos" },
   { href: "/admin/field-notes", label: "Field notes" },
-  { href: "/admin/early-access", label: "Early access" },
   { href: "/admin/lounge", label: "Lounge", badgeSection: "lounge" },
   { href: "/admin/comments", label: "Comments", badgeSection: "comments" },
 ];
@@ -44,6 +49,7 @@ const SECONDARY: NavItem[] = [
   { href: "/admin/book", label: "Book" },
   { href: "/admin/members", label: "Members" },
   { href: "/admin/pool", label: "Seat pool", badgeSection: "pool" },
+  { href: "/admin/walls", label: "Walls" },
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/sign-in-links", label: "Sign-in links" },
 ];
