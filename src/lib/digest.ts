@@ -45,6 +45,17 @@ const UNSUB_KEY = `${KEY_PREFIX}digest:unsub`;
 const RUN_PREFIX = `${KEY_PREFIX}digest:run:`;
 const RUNS_INDEX = `${KEY_PREFIX}digest:runs`;
 
+// Admin surfaces pass { prod: true } so chamber work done from a dev
+// server lands in the LIVE chamber, same convention as the pool admin.
+// Learned the hard way: the launch note was chambered from localhost on
+// 2026-08-08, went to dev:digest:chamber, and Sunday's live send
+// (correctly) found its own chamber empty. Admin intent is prod intent.
+const chamberKeyFor = (prod?: boolean) =>
+  prod ? "digest:chamber" : CHAMBER_KEY;
+const runKeyFor = (weekKey: string, prod?: boolean) =>
+  prod ? `digest:run:${weekKey}` : `${RUN_PREFIX}${weekKey}`;
+const runsIndexFor = (prod?: boolean) => (prod ? "digest:runs" : RUNS_INDEX);
+
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // How far back "shipped this week" looks. Slightly over seven days so
@@ -140,10 +151,12 @@ function parseJson<T>(raw: unknown): T | null {
 
 /* === The chamber ==================================================== */
 
-export async function getChamberedNote(): Promise<ChamberedNote | null> {
+export async function getChamberedNote(
+  opts?: { prod?: boolean }
+): Promise<ChamberedNote | null> {
   const client = getClient();
   if (!client) return null;
-  return parseJson<ChamberedNote>(await client.get(CHAMBER_KEY));
+  return parseJson<ChamberedNote>(await client.get(chamberKeyFor(opts?.prod)));
 }
 
 /**
@@ -152,7 +165,8 @@ export async function getChamberedNote(): Promise<ChamberedNote | null> {
  * chamber, never a queue.
  */
 export async function setChamberedNote(
-  body: string
+  body: string,
+  opts?: { prod?: boolean }
 ): Promise<
   | { ok: true; note: ChamberedNote }
   | { ok: false; error: "empty_body" | "storage_unavailable" }
@@ -162,14 +176,16 @@ export async function setChamberedNote(
   const clean = sanitizeChamberBody(body);
   if (!clean) return { ok: false, error: "empty_body" };
   const note: ChamberedNote = { body: clean, loadedAt: Date.now() };
-  await client.set(CHAMBER_KEY, JSON.stringify(note));
+  await client.set(chamberKeyFor(opts?.prod), JSON.stringify(note));
   return { ok: true, note };
 }
 
-export async function clearChamberedNote(): Promise<void> {
+export async function clearChamberedNote(
+  opts?: { prod?: boolean }
+): Promise<void> {
   const client = getClient();
   if (!client) return;
-  await client.del(CHAMBER_KEY);
+  await client.del(chamberKeyFor(opts?.prod));
 }
 
 /**
@@ -249,12 +265,18 @@ export async function finishWeeklyRun(run: DigestRun): Promise<void> {
   await client.zadd(RUNS_INDEX, { score: run.sentAt, member: run.weekKey });
 }
 
-export async function getLastRun(): Promise<DigestRun | null> {
+export async function getLastRun(
+  opts?: { prod?: boolean }
+): Promise<DigestRun | null> {
   const client = getClient();
   if (!client) return null;
-  const keys = (await client.zrange(RUNS_INDEX, 0, 0, { rev: true })) as string[];
+  const keys = (await client.zrange(runsIndexFor(opts?.prod), 0, 0, {
+    rev: true,
+  })) as string[];
   if (!keys.length) return null;
-  return parseJson<DigestRun>(await client.get(`${RUN_PREFIX}${keys[0]}`));
+  return parseJson<DigestRun>(
+    await client.get(runKeyFor(keys[0], opts?.prod))
+  );
 }
 
 /* === Schedule ======================================================== */

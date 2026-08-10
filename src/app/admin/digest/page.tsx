@@ -66,11 +66,16 @@ function digestPreviewLines(p: DigestPayload): string[] {
 
 export default async function DigestAdminPage() {
   const now = Date.now();
+  // Chamber + run come from the LIVE keyspace even on a dev server: this
+  // page manages Sunday's real send. The assembled preview stays env-
+  // local (it reads a dozen sources), so only its lead line is patched
+  // to the live chamber below — the rest is close enough for a glance.
   const [payload, chamber, lastRun] = await Promise.all([
     assembleDigest(now),
-    getChamberedNote(),
-    getLastRun(),
+    getChamberedNote({ prod: true }),
+    getLastRun({ prod: true }),
   ]);
+  payload.note = chamber?.body ?? null;
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-12 md:py-16">

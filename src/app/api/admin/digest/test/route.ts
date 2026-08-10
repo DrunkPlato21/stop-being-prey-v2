@@ -1,4 +1,4 @@
-import { assembleDigest } from "@/lib/digest";
+import { assembleDigest, getChamberedNote } from "@/lib/digest";
 import { signDigestToken } from "@/lib/auth";
 import { baseUrl } from "@/lib/membership";
 import { sendWeeklyDigestEmail } from "@/lib/email";
@@ -19,6 +19,10 @@ export async function POST() {
   }
 
   const payload = await assembleDigest();
+  // The note always previews from the LIVE chamber, so a test send shows
+  // the note that will actually ride on Sunday even from a dev server.
+  const chamber = await getChamberedNote({ prod: true });
+  payload.note = chamber?.body ?? null;
   const site = baseUrl();
   const token = await signDigestToken(adminEmail);
 
