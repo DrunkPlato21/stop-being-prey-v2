@@ -907,57 +907,92 @@ function UnreadBar({
 // The bell is filled when it's on, outline when it's off, and it always
 // carries the word — an icon alone would leave a member guessing whether
 // the bell means "you are subscribed" or "click to subscribe".
+//
+// The "auto" state (joined by posting, in-app notices only) gets a quiet
+// Mute beside the bell: it's the only state with something to escape that
+// the bell itself doesn't show, and without it the one-click exit doesn't
+// exist — you'd have to opt INTO email just to reach the off switch.
 function WatchControl({
   threadId,
-  watching,
+  state,
 }: {
   threadId: string;
-  watching: boolean;
+  state: "on" | "auto" | "off" | "none";
 }) {
+  const watching = state === "on";
   return (
-    <form action={setWatchAction} style={{ display: "inline-flex" }}>
-      <input type="hidden" name="threadId" value={threadId} />
-      <input type="hidden" name="watching" value={watching ? "0" : "1"} />
-      <button
-        type="submit"
-        aria-pressed={watching}
-        title={
-          watching
-            ? "You get an email when someone replies here. Click to stop."
-            : "Email me when someone replies here."
-        }
-        className="font-display uppercase tracking-[0.16em] transition-colors"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.45rem",
-          background: "transparent",
-          border: 0,
-          padding: 0,
-          fontSize: "0.66rem",
-          fontWeight: 600,
-          lineHeight: 1,
-          cursor: "pointer",
-          color: watching ? "var(--eye-deep)" : "var(--ink-faint)",
-        }}
-      >
-        <svg
-          aria-hidden="true"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill={watching ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+    <span
+      style={{ display: "inline-flex", alignItems: "center", gap: "1rem" }}
+    >
+      {state === "auto" && (
+        <form action={setWatchAction} style={{ display: "inline-flex" }}>
+          <input type="hidden" name="threadId" value={threadId} />
+          <input type="hidden" name="watching" value="0" />
+          <button
+            type="submit"
+            title="You get notices here because you posted. Mute stops them."
+            className="font-display uppercase tracking-[0.16em] transition-colors"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              background: "transparent",
+              border: 0,
+              padding: 0,
+              fontSize: "0.66rem",
+              fontWeight: 600,
+              lineHeight: 1,
+              cursor: "pointer",
+              color: "var(--ink-faint)",
+            }}
+          >
+            Mute
+          </button>
+        </form>
+      )}
+      <form action={setWatchAction} style={{ display: "inline-flex" }}>
+        <input type="hidden" name="threadId" value={threadId} />
+        <input type="hidden" name="watching" value={watching ? "0" : "1"} />
+        <button
+          type="submit"
+          aria-pressed={watching}
+          title={
+            watching
+              ? "You get an email when someone replies here. Click to stop."
+              : "Email me when someone replies here."
+          }
+          className="font-display uppercase tracking-[0.16em] transition-colors"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.45rem",
+            background: "transparent",
+            border: 0,
+            padding: 0,
+            fontSize: "0.66rem",
+            fontWeight: 600,
+            lineHeight: 1,
+            cursor: "pointer",
+            color: watching ? "var(--eye-deep)" : "var(--ink-faint)",
+          }}
         >
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" fill="none" />
-        </svg>
-        {watching ? "Watching" : "Watch"}
-      </button>
-    </form>
+          <svg
+            aria-hidden="true"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill={watching ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" fill="none" />
+          </svg>
+          {watching ? "Watching" : "Watch"}
+        </button>
+      </form>
+    </span>
   );
 }
 
@@ -975,7 +1010,7 @@ export function ThreadView({
   reactions,
   needsDisplayName,
   lastReadAt,
-  watching,
+  watchState,
 }: {
   thread: GuildThread;
   replies: GuildReply[];
@@ -994,8 +1029,8 @@ export function ThreadView({
   // the Guild-wide nav stamp: that one is cleared by a visit to the index,
   // which would claim they'd read threads they never opened.
   lastReadAt: number;
-  /** Is the viewer being notified about new replies here? */
-  watching: boolean;
+  /** The viewer's standing with this thread's notifications. */
+  watchState: "on" | "auto" | "off" | "none";
 }) {
   const [editing, setEditing] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -1141,7 +1176,7 @@ export function ThreadView({
           ← The Guild
         </Link>
         {!thread.deleted && (
-          <WatchControl threadId={thread.id} watching={watching} />
+          <WatchControl threadId={thread.id} state={watchState} />
         )}
       </div>
 

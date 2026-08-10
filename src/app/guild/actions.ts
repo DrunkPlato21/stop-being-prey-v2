@@ -13,7 +13,6 @@ import {
 import {
   autoWatchThread,
   claimReplyEmailCooldown,
-  claimWatcherNotifications,
   createReply,
   createThread,
   editReply,
@@ -33,7 +32,7 @@ import {
   unpinReply,
   unpinThread,
 } from "@/lib/guild";
-import { createNotification } from "@/lib/notifications";
+import { createNotification, upsertCollapsed } from "@/lib/notifications";
 import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
 import { sendGuildReplyNotification } from "@/lib/email";
 import { markOnboardingStep } from "@/lib/onboarding";
@@ -169,6 +168,24 @@ async function notifierName(email: string): Promise<string> {
   return profile?.displayName?.trim() || "A member";
 }
 
+// The title of a collapsed reply row. It has to carry the whole story on
+// one line, because the panel renders only title + thread title:
+//   "Trish replied"
+//   "Trish replied (3 new)"
+//   "Trish and Mark replied"
+//   "Trish, Mark and 2 others replied (7 new)"
+function guildReplyTitle(actors: string[], count: number): string {
+  const extra = actors.length - 2;
+  const names =
+    actors.length === 1
+      ? actors[0]
+      : actors.length === 2
+        ? `${actors[0]} and ${actors[1]}`
+        : `${actors[0]}, ${actors[1]} and ${extra} ${extra === 1 ? "other" : "others"}`;
+  const suffix = count > actors.length ? ` (${count} new)` : "";
+  return `${names} replied${suffix}`;
+}
+
 // --- Compose: thread -------------------------------------------------
 
 export async function postThreadAction(
@@ -254,15 +271,11 @@ export async function postReplyAction(
   // First-run: replying in the Guild ticks that onboarding step.
   await markOnboardingStep(session.email, "guild").catch(() => {});
 
-  // Notify the person being replied to: the parent reply's author for a
+  // Resolve who this reply lands on: the parent reply's author for a
   // nested reply, otherwise the thread author. Resolve against the reply's
-  // LANDED parent (createReply re-parents a grandchild up one tier), and
-  // use the thread title as the body so the notification is legible. Never
-  // notify yourself, and never let a notification hiccup break the reply.
-  // (Dev never touches prod here — the notifications keyspace is now
-  // dev-namespaced, same as the Guild.)
-  // Held outside the try so the mention fan-out below can skip whoever
-  // already got a reply notification for this exact post.
+  // LANDED parent (createReply re-parents a grandchild up one tier). They
+  // still get the direct EMAIL below, and the mention fan-out skips them;
+  // their in-app notice now travels with everyone else's.
   let directRecipient: string | null = null;
   let threadTitle = "";
   try {
@@ -279,17 +292,9 @@ export async function postReplyAction(
       recipient &&
       recipient.toLowerCase() !== session.email.toLowerCase()
     ) {
-      // In-app bell: always, on every reply.
-      await createNotification({
-        memberEmail: recipient,
-        type: "guild_reply",
-        title: "New reply in the Guild",
-        body: thread.title,
-        linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
-      });
-
-      // Email: preference-gated and batched to one per thread per window
-      // (the bell already covered the rest). Never sends from dev.
+      // Email: preference-gated and batched to one per thread per window.
+      // Never sends from dev, and never notifies yourself. A hiccup here
+      // must never break posting the reply.
       const [recipientProfile, replierProfile] = await Promise.all([
         getProfile(recipient),
         getProfile(session.email),
@@ -315,43 +320,45 @@ export async function postReplyAction(
   // Answering a thread means watching it, unless they've muted it before.
   await autoWatchThread(threadId, session.email).catch(() => {});
 
-  // Tell the rest of the room's participants. Until now a reply notified
-  // exactly one person — the parent author — so everyone else in a long
-  // thread was deaf to it, and a conversation they were part of carried on
-  // without them. The direct recipient already has their own, more
-  // specific notification, and nobody is told about their own reply.
+  const replierName = await notifierName(session.email);
+
+  // In-app: ONE rule for the whole room, one live alert per member per
+  // thread. Everyone still listening (bell-clickers and participants,
+  // plus whoever this reply landed on unless they muted) shares the same
+  // collapsed row: the first reply creates it, later replies fold in and
+  // bump it. A hot thread reads "Trish and 2 others replied", not ten
+  // identical rows. Nobody is told about their own reply. (Dev never
+  // touches prod here — the notifications keyspace is dev-namespaced,
+  // same as the Guild.)
   void (async () => {
     try {
       const states = await listWatchStates(threadId);
       const author = session.email.toLowerCase().trim();
       const direct = directRecipient?.toLowerCase().trim() ?? null;
-      // Everyone still listening gets the in-app notice. Only the ones who
-      // clicked the bell get mail — see WatchState. Taking part in a thread
-      // earns you a marker when you come back; it does not put anything in
-      // your inbox you didn't ask for.
-      const candidates = Object.entries(states)
-        .filter(([, s]) => s === "on" || s === "auto")
-        .map(([email]) => email)
-        .filter((w) => w !== author && w !== direct);
-      const due = await claimWatcherNotifications(threadId, candidates);
-      if (!due.length) return;
-      const replier = await getProfile(session.email).catch(() => null);
-      const replierName = isAdmin(session.email)
-        ? "Clay"
-        : replier?.displayName?.trim() || "A member";
+      const recipients = new Set(
+        Object.entries(states)
+          .filter(([, s]) => s === "on" || s === "auto")
+          .map(([email]) => email)
+      );
+      // Threads older than watching itself have no watch entry for their
+      // author; being replied to still has to ring unless they muted.
+      if (direct && states[direct] !== "off") recipients.add(direct);
+      recipients.delete(author);
       const path = `/guild/${threadId}#reply-${result.reply.id}`;
-      for (const email of due) {
-        await createNotification({
+      for (const email of recipients) {
+        await upsertCollapsed({
           memberEmail: email,
           type: "guild_reply",
-          title: "New reply in a thread you're in",
+          collapseKey: `guild-thread:${threadId}`,
+          actorName: replierName,
+          formatTitle: guildReplyTitle,
           body: threadTitle,
           linkUrl: path,
         });
-        // Email only for a deliberate opt-in. Beyond that it's the same
-        // terms as the direct recipient's: the member's own preference, and
-        // at most one per thread per window.
-        if (states[email] !== "on") continue;
+        // Email only for a deliberate opt-in (the bell), on the member's
+        // own preference, at most one per thread per window. The direct
+        // recipient had their (more specific) email shot above.
+        if (states[email] !== "on" || email === direct) continue;
         const profile = await getProfile(email).catch(() => null);
         if (!notifyOnReply(profile)) continue;
         if (!(await claimReplyEmailCooldown(email, threadId))) continue;
@@ -366,14 +373,14 @@ export async function postReplyAction(
         });
       }
     } catch (err) {
-      console.error("[notifications] guild watcher fan-out failed:", err);
+      console.error("[notifications] guild reply fan-out failed:", err);
     }
   })();
 
   notifyGuildMentions({
     body: result.reply.body,
     authorEmail: session.email,
-    authorName: await notifierName(session.email),
+    authorName: replierName,
     threadTitle,
     linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
     skip: directRecipient,

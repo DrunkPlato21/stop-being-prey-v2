@@ -1,5 +1,5 @@
-// Dev-only test for the watcher-notification contract, the one piece of
-// "watch a thread" whose whole job is to NOT fire. Run:
+// Dev-only test for the watch + notification contract, the pieces of
+// "watch a thread" whose whole job is to NOT fire (or fire once). Run:
 //
 //   npm run test:guild-watch
 //
@@ -7,15 +7,21 @@
 // before the guild module is loaded), so it never touches live threads.
 
 process.env.GUILD_KEY_PREFIX = "dev:";
+process.env.NOTIFICATIONS_KEY_PREFIX = "dev:";
 process.env.NODE_ENV = "development";
 
 import { readFileSync } from "fs";
 
 for (const line of readFileSync(".env.local", "utf8").split("\n")) {
   const m = line.match(/^([A-Z_]+)=(.*)$/);
-  // Don't let .env.local's own GUILD_KEY_PREFIX (empty = production
+  // Don't let .env.local's own *_KEY_PREFIX values (empty = production
   // keyspace) win. That's the whole safety of this file.
-  if (m && m[1] !== "GUILD_KEY_PREFIX" && !process.env[m[1]]) {
+  if (
+    m &&
+    m[1] !== "GUILD_KEY_PREFIX" &&
+    m[1] !== "NOTIFICATIONS_KEY_PREFIX" &&
+    !process.env[m[1]]
+  ) {
     process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "");
   }
 }
@@ -23,13 +29,13 @@ for (const line of readFileSync(".env.local", "utf8").split("\n")) {
 const {
   autoWatchThread,
   claimReplyEmailCooldown,
-  claimWatcherNotifications,
   getWatchState,
   listWatchStates,
   listWatchers,
-  markThreadRead,
   setWatchState,
 } = await import("../src/lib/guild.ts");
+const { upsertCollapsed, listForMember, markRead, unreadCount } =
+  await import("../src/lib/notifications.ts");
 
 const THREAD = `watch-test-${Date.now()}`;
 const alice = "alice@example.com";
@@ -95,39 +101,64 @@ await setWatchState(THREAD, bob, false);
 check("a muted member drops off entirely", await listWatchers(THREAD), [alice]);
 await setWatchState(THREAD, bob, true);
 
-// --- the suppression contract ----------------------------------------
-const t1 = Date.now();
+// --- the collapse contract -------------------------------------------
+// One live alert per (member, thread): replies fold into a single unread
+// row instead of stacking identical rows. Reading it resets the fold.
+const carol = `carol-${Date.now()}@example.com`;
+const KEY = `guild-thread:${THREAD}`;
+const fold = (actorName: string, linkUrl: string) =>
+  upsertCollapsed({
+    memberEmail: carol,
+    type: "guild_reply",
+    collapseKey: KEY,
+    actorName,
+    formatTitle: (actors, count) =>
+      `${actors.join(" and ")} replied${
+        count > actors.length ? ` (${count} new)` : ""
+      }`,
+    body: "Thread title",
+    linkUrl,
+  });
+
+const first = await fold("Alice", `/guild/${THREAD}#reply-1`);
+check("the first reply creates the row", first?.title, "Alice replied");
+
+const second = await fold("Bob", `/guild/${THREAD}#reply-2`);
+check("the second folds into the SAME row", second?.id, first?.id);
+check("and the title carries both names", second?.title, "Alice and Bob replied");
 check(
-  "first reply notifies everyone watching",
-  (await claimWatcherNotifications(THREAD, [alice, bob], t1)).sort(),
-  [alice, bob]
+  "the link still points at the first unseen reply",
+  second?.linkUrl,
+  `/guild/${THREAD}#reply-1`
 );
 
+const third = await fold("Alice", `/guild/${THREAD}#reply-3`);
 check(
-  "a second reply does NOT notify again while the ping is unread",
-  await claimWatcherNotifications(THREAD, [alice, bob], t1 + 1000),
-  []
+  "a repeat replier counts without repeating her name",
+  third?.title,
+  "Alice and Bob replied (3 new)"
 );
 
+check("three replies, ONE unread row on the badge", await unreadCount(carol), 1);
 check(
-  "and not on the third either",
-  await claimWatcherNotifications(THREAD, [alice, bob], t1 + 2000),
-  []
+  "and one row in the panel",
+  (await listForMember(carol)).filter((n) => !n.read).length,
+  1
 );
 
-// Alice goes and reads the thread. Bob doesn't.
-await markThreadRead(THREAD, alice, t1 + 3000);
-
+// Carol opens the panel; the row is read. The conversation moves on.
+if (first) await markRead(carol, [first.id]);
+const fourth = await fold("Bob", `/guild/${THREAD}#reply-4`);
 check(
-  "once she's been back, the next reply rings again — for her only",
-  await claimWatcherNotifications(THREAD, [alice, bob], t1 + 4000),
-  [alice]
+  "after she's seen it, the next reply starts a FRESH row",
+  fourth !== null && fourth.id !== first?.id,
+  true
 );
-
+check("with a fresh title", fourth?.title, "Bob replied");
 check(
-  "and she's quiet again until her next visit",
-  await claimWatcherNotifications(THREAD, [alice, bob], t1 + 5000),
-  []
+  "pointing at the first reply she hasn't seen",
+  fourth?.linkUrl,
+  `/guild/${THREAD}#reply-4`
 );
 
 // --- email volume ----------------------------------------------------

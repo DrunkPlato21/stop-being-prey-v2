@@ -69,12 +69,6 @@ const threadReadKey = (threadId: string) =>
 // they're already in is a manual step that mostly gets skipped.
 const threadWatchKey = (threadId: string) =>
   `${THREAD_PREFIX}${threadId}:watch`;
-// Per-thread HASH of member email -> when they were last told about a new
-// reply. Compared against their read stamp so a thread can only hold one
-// unread ping at a time. See notifyThreadWatchers.
-const threadNotifiedKey = (threadId: string) =>
-  `${THREAD_PREFIX}${threadId}:notified`;
-
 /** True when Guild writes land in the production keyspace (no prefix). */
 export function isGuildProduction(): boolean {
   return KEY_PREFIX === "";
@@ -886,54 +880,6 @@ export async function listWatchers(threadId: string): Promise<string[]> {
   return Object.entries(states)
     .filter(([, s]) => s === "on" || s === "auto")
     .map(([email]) => email);
-}
-
-/**
- * Which watchers should be told about a new reply.
- *
- * A watcher who already has an unread ping for this thread is skipped:
- * they were notified, they haven't been back since, and a second bell for
- * the same unread conversation is noise. Once they open the thread (which
- * writes a read stamp newer than the notice) the next reply rings again.
- * That bounds a hot thread to one notification per member per visit
- * instead of one per reply, which is what makes watching survivable.
- *
- * Returns the recipients and stamps them as notified in one go.
- */
-export async function claimWatcherNotifications(
-  threadId: string,
-  candidates: string[],
-  now: number = Date.now()
-): Promise<string[]> {
-  const client = getClient();
-  if (!client || !candidates.length) return [];
-  try {
-    const [reads, notices] = await Promise.all([
-      client.hgetall<Record<string, string | number>>(threadReadKey(threadId)),
-      client.hgetall<Record<string, string | number>>(
-        threadNotifiedKey(threadId)
-      ),
-    ]);
-    const num = (v: unknown) => {
-      const n = typeof v === "string" ? Number(v) : (v as number);
-      return typeof n === "number" && Number.isFinite(n) ? n : 0;
-    };
-    const due = candidates.filter((email) => {
-      const lastRead = num(reads?.[email]);
-      const lastNotified = num(notices?.[email]);
-      // Nothing pending only when they've been back since the last notice.
-      return lastNotified <= lastRead;
-    });
-    if (!due.length) return [];
-    await client.hset(
-      threadNotifiedKey(threadId),
-      Object.fromEntries(due.map((e) => [e, now]))
-    );
-    return due;
-  } catch {
-    // Fail closed: a missed bell beats a burst of them.
-    return [];
-  }
 }
 
 /**

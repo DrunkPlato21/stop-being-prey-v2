@@ -27,6 +27,13 @@ const KEY_PREFIX =
 const MEMBER_SET_PREFIX = `${KEY_PREFIX}notifications:member:`;
 const UNREAD_COUNTER_PREFIX = `${KEY_PREFIX}notifications:unread:`;
 const RECORD_PREFIX = `${KEY_PREFIX}notification:`;
+// Per-member HASH of collapseKey -> live notification id, so a stream of
+// same-source events (replies in one thread) folds into ONE unread row
+// instead of stacking identical rows. Entries go stale when their record
+// is read or pruned; that's fine — the next upsert sees a dead/read
+// record and overwrites the entry. Size is bounded by the number of
+// distinct sources a member was ever notified about, a few bytes each.
+const COLLAPSE_PREFIX = `${KEY_PREFIX}notifications:collapse:`;
 
 const UNREAD_RETENTION_MS = 60 * 24 * 60 * 60 * 1000; // 60 days
 const READ_RETENTION_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
@@ -63,6 +70,12 @@ export type Notification = {
   read: boolean;
   readAt: number | null;
   createdAt: number;
+  /** Present on collapsible rows: the stream this row accumulates. */
+  collapseKey?: string;
+  /** How many events this row stands for (collapsible rows only). */
+  count?: number;
+  /** Distinct actor names folded in so far, first-seen order, capped. */
+  actors?: string[];
 };
 
 let cached: Redis | null = null;
@@ -153,6 +166,119 @@ export async function createNotification(
     member: id,
   });
   await client.incr(`${UNREAD_COUNTER_PREFIX}${email}`);
+
+  return notification;
+}
+
+export type CollapseInput = {
+  memberEmail: string;
+  type: NotificationType;
+  /** One live (unread) row per (member, collapseKey). */
+  collapseKey: string;
+  /** Display name of whoever caused this event. */
+  actorName: string;
+  /** Composes the title from the accumulated actors + event count. */
+  formatTitle: (actors: string[], count: number) => string;
+  body: string;
+  linkUrl: string;
+};
+
+// Names shown in a collapsed title before "and N others" takes over.
+const MAX_ACTORS = 4;
+
+/**
+ * Write-or-fold: if the member already has an UNREAD notification for
+ * this collapseKey, the new event folds into it — the count goes up,
+ * the actor joins the title, the row bumps to the top of the panel —
+ * instead of minting an identical sibling row. The linkUrl of the
+ * original row is kept: it points at the first event they haven't
+ * seen, so clicking lands them where the news starts.
+ *
+ * Once the row is read (or pruned), the next event starts a fresh one.
+ * The unread badge counts rows, not events: it moves only on create.
+ *
+ * Best-effort like every write in this module — a race between two
+ * simultaneous events can at worst mint one extra row, never lose one.
+ */
+export async function upsertCollapsed(
+  input: CollapseInput
+): Promise<Notification | null> {
+  const client = getClient();
+  if (!client) return null;
+
+  const email = normEmail(input.memberEmail);
+  if (!email) return null;
+
+  const now = Date.now();
+  const actor = sanitizeLine(input.actorName, 40) || "A member";
+  const body = sanitizeLine(input.body, MAX_BODY);
+  const collapseHash = `${COLLAPSE_PREFIX}${email}`;
+
+  const existingId = await client
+    .hget<string>(collapseHash, input.collapseKey)
+    .catch(() => null);
+  const existing = existingId
+    ? parseRecord(
+        await client.get(`${RECORD_PREFIX}${existingId}`).catch(() => null)
+      )
+    : null;
+
+  if (
+    existing &&
+    !existing.read &&
+    existing.memberEmail === email &&
+    existing.collapseKey === input.collapseKey
+  ) {
+    const actors = (existing.actors ?? []).slice(0, MAX_ACTORS);
+    if (!actors.includes(actor) && actors.length < MAX_ACTORS) {
+      actors.push(actor);
+    }
+    const count = (existing.count ?? 1) + 1;
+    const next: Notification = {
+      ...existing,
+      title:
+        sanitizeLine(input.formatTitle(actors, count), MAX_TITLE) ||
+        existing.title,
+      body: body || existing.body,
+      actors,
+      count,
+      createdAt: now,
+    };
+    await client.set(`${RECORD_PREFIX}${existing.id}`, JSON.stringify(next));
+    await client.zadd(`${MEMBER_SET_PREFIX}${email}`, {
+      score: now,
+      member: existing.id,
+    });
+    // Still one unread row; the badge doesn't move.
+    return next;
+  }
+
+  const title = sanitizeLine(input.formatTitle([actor], 1), MAX_TITLE);
+  if (!title) return null;
+
+  const id = randomUUID();
+  const notification: Notification = {
+    id,
+    memberEmail: email,
+    type: input.type,
+    title,
+    body,
+    linkUrl: input.linkUrl,
+    read: false,
+    readAt: null,
+    createdAt: now,
+    collapseKey: input.collapseKey,
+    count: 1,
+    actors: [actor],
+  };
+
+  await client.set(`${RECORD_PREFIX}${id}`, JSON.stringify(notification));
+  await client.zadd(`${MEMBER_SET_PREFIX}${email}`, {
+    score: now,
+    member: id,
+  });
+  await client.incr(`${UNREAD_COUNTER_PREFIX}${email}`);
+  await client.hset(collapseHash, { [input.collapseKey]: id });
 
   return notification;
 }

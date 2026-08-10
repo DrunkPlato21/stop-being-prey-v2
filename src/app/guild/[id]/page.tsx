@@ -51,7 +51,8 @@ export default async function GuildThreadPage({
   const lastReadAt = await getThreadLastRead(id, session.email).catch(() => 0);
   // The bell reflects EMAIL, which is the only thing a member consents to:
   // "auto" (joined by taking part, in-app notices only) reads as not
-  // watching, so the control still offers the way in.
+  // watching, so the control still offers the way in. The auto state
+  // additionally gets a one-click Mute beside the bell.
   const watchState = await getWatchState(id, session.email).catch(
     () => "none" as const
   );
@@ -111,7 +112,7 @@ export default async function GuildThreadPage({
       reactions={reactions}
       needsDisplayName={needsDisplayName}
       lastReadAt={lastReadAt}
-      watching={watchState === "on"}
+      watchState={watchState}
     />
   );
 }
