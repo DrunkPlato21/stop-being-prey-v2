@@ -1,125 +1,16 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getProfile, isAdmin } from "@/lib/comments";
-import { getMember, getTierBadge, hasLiveSeat } from "@/lib/members";
-import { derivePresenceState, getPresence } from "@/lib/desk";
-import { IdentityMenu, type IdentityMenuProps } from "@/components/IdentityMenu";
-import { NotificationsBell } from "@/components/NotificationsBell";
-import { DeskPresenceIndicator } from "@/components/DeskPresenceIndicator";
-import { HeaderJoinLink } from "@/components/HeaderJoinLink";
+import { HeaderChrome } from "@/components/HeaderChrome";
 import { HeaderPublicNav } from "@/components/HeaderPublicNav";
 
-// Three chrome states:
-//   - Logged-out: presence indicator (only when Clay is active) + JOIN.
-//   - Logged-in, no paid membership (churned member, dev grant): same as
-//     logged-out — JOIN nudges them to (re)subscribe.
-//   - Paid member (or admin author): identity dropdown + bell + presence
-//     (always shown, even when away). No JOIN — redundant.
-//
-// "Paid member" here = admin OR member.status in {active, trialing}. Past-
-// due/canceled holders of valid 30-day session JWTs still see JOIN.
-//
-// Identity composition:
-//   - firstName: first word of display name, fallback to email local-part.
-//   - role: "author" for admin, "founder" with founderSlot, "charter"
-//     with charterSlot, else "member".
-//   - memberSinceMs: createdAt on the member record (null for the author
-//     since admins don't carry a member record).
+// Static header shell. The viewer-dependent chrome (identity menu,
+// bell, presence, JOIN) lives in HeaderChrome, which resolves itself
+// client-side from /api/chrome — this component must stay free of
+// cookies()/headers() so the pages that render it can be prerendered.
+// It used to resolve session + identity + presence server-side, which
+// made every route in the app dynamic and let a scraper bill us for
+// ~36k server renders a day (the 2026-08-10 incident).
 
-function firstWord(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  const space = trimmed.search(/\s/);
-  return space === -1 ? trimmed : trimmed.slice(0, space);
-}
-
-type IdentityResolution = {
-  identity: IdentityMenuProps;
-  isPaidMember: boolean;
-};
-
-async function resolveIdentity(email: string): Promise<IdentityResolution> {
-  const adminUser = isAdmin(email);
-  const fallbackName = email.split("@")[0] || email;
-
-  if (adminUser) {
-    const profile = await getProfile(email).catch(() => null);
-    const displayName = profile?.displayName || fallbackName;
-    return {
-      identity: {
-        firstName: firstWord(displayName) || fallbackName,
-        displayName,
-        email,
-        role: "author",
-        founderSlot: null,
-        charterSlot: null,
-        tierBadge: null,
-        memberSinceMs: null,
-        avatarUrl: null,
-      },
-      isPaidMember: true,
-    };
-  }
-
-  const [profile, member] = await Promise.all([
-    getProfile(email).catch(() => null),
-    getMember(email).catch(() => null),
-  ]);
-
-  const displayName = profile?.displayName || fallbackName;
-  const role: IdentityMenuProps["role"] =
-    member?.tier === "founder" && typeof member.founderSlot === "number"
-      ? "founder"
-      : member?.tier === "charter" && typeof member.charterSlot === "number"
-        ? "charter"
-        : "member";
-  const isPaidMember = hasLiveSeat(member);
-
-  return {
-    identity: {
-      firstName: firstWord(displayName) || fallbackName,
-      displayName,
-      email,
-      role,
-      founderSlot:
-        member?.tier === "founder" && typeof member.founderSlot === "number"
-          ? member.founderSlot
-          : null,
-      charterSlot:
-        member?.tier === "charter" && typeof member.charterSlot === "number"
-          ? member.charterSlot
-          : null,
-      tierBadge: getTierBadge(member),
-      memberSinceMs:
-        typeof member?.createdAt === "number" ? member.createdAt : null,
-      avatarUrl: member?.customAvatarUrl ?? null,
-    },
-    isPaidMember,
-  };
-}
-
-export async function Header() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  const session = await verifySession(token);
-
-  // Resolve identity (when signed in) + initial desk presence in
-  // parallel so the header's first paint is fully correct. The
-  // presence indicator refreshes itself client-side every 30s
-  // thereafter.
-  const [resolution, presenceState] = await Promise.all([
-    session ? resolveIdentity(session.email) : Promise.resolve(null),
-    getPresence().then((p) => derivePresenceState(p)),
-  ]);
-  const identity = resolution?.identity ?? null;
-  const isPaidMember = resolution?.isPaidMember ?? false;
-  // Non-paid viewers only see the presence indicator when Clay is
-  // actively at the desk — there's no value in showing "stepped away"
-  // to people who can't reach him anyway. Paid members get the
-  // indicator in every state.
-  const showPresence = isPaidMember || presenceState === "active";
-
+export function Header() {
   return (
     // Stacking context for the whole header so the identity dropdown
     // sits above any page section that creates its own stacking
@@ -152,36 +43,7 @@ export async function Header() {
             </span>
           </Link>
 
-          {isPaidMember && identity ? (
-            <div className="flex items-center gap-4 sm:gap-6">
-              <DeskPresenceIndicator initialState={presenceState} />
-              <div className="flex items-center gap-2">
-                <NotificationsBell />
-                <IdentityMenu {...identity} />
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 sm:gap-4">
-              {showPresence && (
-                <DeskPresenceIndicator
-                  initialState={presenceState}
-                  href="/membership?src=header"
-                  hideWhenAway
-                />
-              )}
-              {/* Quiet sign-in link for returning members on a new
-                  device or after session expiry. JOIN stays the loud
-                  primary CTA; this slots beside it as the secondary
-                  affordance so existing members aren't forced to
-                  know /notes/sign-in exists. */}
-              <Link href="/notes/sign-in" className="header-signin">
-                Sign in
-              </Link>
-              {/* Hidden on the join-flow pages where it would just point
-                  at the current page; see HeaderJoinLink. */}
-              <HeaderJoinLink />
-            </div>
-          )}
+          <HeaderChrome />
         </div>
       </div>
 

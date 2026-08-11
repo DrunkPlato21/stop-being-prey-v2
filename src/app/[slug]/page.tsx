@@ -20,7 +20,7 @@ import { InlineSubscribe } from "@/components/InlineSubscribe";
 import { ReadingTracker } from "@/components/ReadingTracker";
 import { ReadThisNext } from "@/components/ReadThisNext";
 import { splitForInlineCta, stripCtaMarker } from "@/lib/inline-cta";
-import { isPaidViewer } from "@/lib/viewer";
+import { HideForPaid, ShowForPaid } from "@/components/PaidViewerGate";
 import { recordEvent } from "@/lib/analytics";
 import { Comments } from "@/components/Comments";
 import type { Metadata } from "next";
@@ -170,11 +170,11 @@ export default async function ArticlePage({
     }));
 
   // Paying members (and the admin/author) are already on the list and in
-  // the room, so suppress the email-capture surfaces for them — the inline
-  // form and the end-of-piece "Two ways in" block. Everything else (read
-  // time, comments, recirculation, tip) stays. Cheap: the page is already
-  // dynamic via the layout's auth.
-  const hideCaptures = await isPaidViewer();
+  // the room, so the email-capture surfaces — the inline form and the
+  // end-of-piece "Two ways in" block — are suppressed for them CLIENT-side
+  // (HideForPaid/ShowForPaid over /api/chrome). Deciding it server-side
+  // read cookies() on every article and made published essays dynamic,
+  // which is what let a scraper bill us per page view.
 
   // Inline mid-article email capture, on every article (essayStyle pieces
   // split at an Act heading; both halves keep the ea-essay class so the
@@ -182,9 +182,7 @@ export default async function ArticlePage({
   // body pins the exact spot; `inlineCta: false` in frontmatter opts the
   // piece out entirely. splitForInlineCta returns null for short pieces.
   const inlineSplit =
-    hideCaptures || article.inlineCta === false
-      ? null
-      : splitForInlineCta(article.contentHtml);
+    article.inlineCta === false ? null : splitForInlineCta(article.contentHtml);
 
   // Article structured data (JSON-LD) for rich search results: headline,
   // author, dates, publisher. Emitted only for published essays.
@@ -326,7 +324,9 @@ export default async function ArticlePage({
               className={`prose-article${article.essayStyle ? " ea-essay" : ""}`}
               dangerouslySetInnerHTML={{ __html: inlineSplit.before }}
             />
-            <InlineSubscribe slug={article.slug} />
+            <HideForPaid>
+              <InlineSubscribe slug={article.slug} />
+            </HideForPaid>
             <div
               className={`prose-article${article.essayStyle ? " ea-essay" : ""}`}
               dangerouslySetInnerHTML={{ __html: inlineSplit.after }}
@@ -433,7 +433,7 @@ export default async function ArticlePage({
           free list). The two are NOT siblings — the fallback is narrower,
           smaller, unboxed, and its submit button is a ghost rather than a
           filled one. Suppressed entirely for paying patrons. === */}
-      {!hideCaptures && (
+      <HideForPaid>
       <section className="max-w-3xl mx-auto px-6 pt-14 pb-10 md:pb-14">
         {/* Prose, not a widget. No form controls on the page at all: the
             ask is three paragraphs in the essay's own body face and size,
@@ -470,7 +470,7 @@ export default async function ArticlePage({
           </div>
         </div>
       </section>
-      )}
+      </HideForPaid>
 
       {/* === The patron's closer. The ladder above is suppressed for people
           who already pay, which left them with no ask at all except the
@@ -482,7 +482,7 @@ export default async function ArticlePage({
           specific piece and signs their name to it, which is the thing a
           recurring subscription can't express. The quiet Wall line below
           is suppressed when this shows, so there is only ever one. === */}
-      {hideCaptures && (
+      <ShowForPaid>
       <section className="max-w-3xl mx-auto px-6 pt-14 pb-10 md:pb-14">
         <div className="mx-auto" style={{ maxWidth: "38rem" }}>
           <div
@@ -503,7 +503,7 @@ export default async function ArticlePage({
           </div>
         </div>
       </section>
-      )}
+      </ShowForPaid>
 
 
       <EyeDivider />
@@ -542,7 +542,7 @@ export default async function ArticlePage({
           fuller Wall closer up in the ask slot instead. Two Wall asks on
           one page would read as nagging, and the quiet one down here would
           be the weaker of the two. === */}
-      {!hideCaptures && (
+      <HideForPaid>
       <section className="max-w-2xl mx-auto px-6 mt-12 text-center">
         <p className="font-serif italic text-ink-muted leading-relaxed">
           Reader-supported.{" "}
@@ -560,7 +560,7 @@ export default async function ArticlePage({
           </Link>
         </p>
       </section>
-      )}
+      </HideForPaid>
 
       <EyeDivider />
 

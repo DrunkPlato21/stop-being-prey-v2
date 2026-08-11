@@ -9,11 +9,12 @@ import { getMember, hasLiveSeat } from "@/lib/members";
 // the list and in the room — a paid member doesn't need to be asked to
 // "join 9,304 readers."
 //
-// Mirrors the signed-in/paid resolution in StickyNavServer. Memoized per
-// request via React's cache() so multiple call sites in one render share a
-// single session verify + member lookup. Reads cookies(), but the root
-// layout already does (StickyNavServer), so this adds no rendering-mode
-// cost — article pages are dynamic regardless.
+// Memoized per request via React's cache() so multiple call sites in one
+// render share a single session verify + member lookup. Reads cookies(),
+// which makes the calling page DYNAMIC — only use this on pages that are
+// request-rendered anyway (e.g. sign-in). Prerendered pages must use the
+// client-side chrome instead (components/chrome.ts + PaidViewerGate);
+// calling this from an article page is what once broke article SSG.
 export const isPaidViewer = cache(async (): Promise<boolean> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   const session = await verifySession(token);

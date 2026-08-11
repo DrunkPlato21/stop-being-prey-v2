@@ -4,7 +4,7 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { StickyNavServer } from "@/components/StickyNavServer";
+import { StickyNavChrome } from "@/components/StickyNavChrome";
 import { ReadingProgressBar } from "@/components/ReadingProgressBar";
 import { PresenceBeacon } from "@/components/PresenceBeacon";
 import { FirstTouchTracker } from "@/components/FirstTouchTracker";
@@ -78,10 +78,10 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        {/* StickyNavServer renders at root (not inside Header) so its
+        {/* StickyNavChrome renders at root (not inside Header) so its
             position:fixed scroll bar isn't trapped in Header's stacking
             context. Self-suppresses on member routes via pathname. */}
-        <StickyNavServer />
+        <StickyNavChrome />
         {/* Reading-progress line. Rendered at root (beside StickyNav) so
             its position:fixed isn't trapped in a page-level stacking
             context. Self-hides on any route without an article body. */}

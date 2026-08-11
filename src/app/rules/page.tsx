@@ -52,7 +52,6 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = "force-dynamic";
 
 type Rule = {
   number: number;
