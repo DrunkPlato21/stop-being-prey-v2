@@ -555,10 +555,17 @@ export async function getCheckoutSessionInfo(sessionId: string): Promise<{
 /**
  * Create a Stripe Customer Portal session and return the URL. The
  * portal handles cancel, update card, billing history.
+ *
+ * The default return path is deliberately the members-area account
+ * page and NOT /membership/account. That route is a pure redirect into
+ * this same portal, so pointing Stripe's "return to site" button at it
+ * threw the member straight back into Stripe with no way out but the
+ * back button — the exact trap a member with a failed card walks into
+ * while trying to fix it. Return somewhere that is actually a page.
  */
 export async function createCustomerPortalSession(
   customerId: string,
-  returnPath: string = "/membership/account"
+  returnPath: string = "/notes/account"
 ): Promise<{ url: string } | { error: string }> {
   const stripe = client();
   if (!stripe) return { error: "stripe_not_configured" };

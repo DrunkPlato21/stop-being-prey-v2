@@ -91,6 +91,42 @@ export type MemberRecord = {
       churn reporting (when, not just how many). Backward compatible:
       legacy + active records read as undefined/null. */
   canceledAt?: number | null;
+  /** What Stripe actually said the last time a renewal failed. Set on
+      invoice.payment_failed, cleared the moment a payment clears.
+      Backward compatible: legacy records read as undefined. */
+  billingFailure?: BillingFailure | null;
+};
+
+/**
+ * The facts behind a `past_due` record, kept so the member area can
+ * state what happened instead of guessing.
+ *
+ * We used to store the status flip and nothing else, which left every
+ * member-facing surface assuming the one story we could tell without
+ * data: your card expired, replace it. That is wrong often enough to
+ * matter. A card declined for insufficient funds is a different
+ * situation than a reissued card, and telling someone to replace a card
+ * that is working fine reads as a system that isn't paying attention.
+ *
+ * Every field is nullable because Stripe doesn't guarantee any of it —
+ * the copy has to degrade to something true when a value is missing.
+ */
+export type BillingFailure = {
+  /** Stripe's network decline code ("insufficient_funds") when there is
+      one, else the PaymentIntent error code ("card_declined"). */
+  declineCode: string | null;
+  /** The card that failed, for "the Visa ending 1644". */
+  cardBrand: string | null;
+  cardLast4: string | null;
+  /** ms epoch of the most recent failed attempt. */
+  failedAt: number;
+  /** ms epoch of Stripe's next automatic retry. Null means the retry
+      window is spent and the seat closes on this invoice. */
+  nextAttemptAt: number | null;
+  /** Stripe's own attempt counter for the invoice. */
+  attemptCount: number;
+  /** What the failed renewal was for, in cents. */
+  amountCents: number | null;
 };
 
 /**
@@ -123,6 +159,39 @@ function nextCanceledAt(
   if (status === "canceled") return prev.canceledAt ?? Date.now();
   if (status === "active" || status === "trialing") return null;
   return prev.canceledAt ?? null;
+}
+
+/**
+ * Resolve billingFailure for a status transition. A member who is back
+ * on active/trialing has a working card by definition, so the stale
+ * decline goes with the status. Everything else keeps what it had:
+ * `canceled` in particular has to hold on to it, because the win-back
+ * surfaces are the last place the reason is still worth stating.
+ */
+function nextBillingFailure(
+  prev: MemberRecord,
+  status: MemberSubscriptionStatus
+): BillingFailure | null {
+  if (status === "active" || status === "trialing") return null;
+  return prev.billingFailure ?? null;
+}
+
+/**
+ * True when this record is mid-failed-renewal: Stripe has declined it
+ * and neither a retry nor a cancellation has resolved it yet. The
+ * member-area billing banner keys off this, so it deliberately excludes
+ * `canceled` (that seat is already gone, and a "your card failed" bar
+ * over a dead membership is just noise).
+ */
+export function isInDunning(
+  record: { status: MemberSubscriptionStatus | null } | null | undefined
+): boolean {
+  if (!record) return false;
+  return (
+    record.status === "past_due" ||
+    record.status === "unpaid" ||
+    record.status === "incomplete"
+  );
 }
 
 /**
@@ -548,10 +617,68 @@ export async function updateMemberStatus(
     ...member,
     status,
     canceledAt: nextCanceledAt(member, status),
+    billingFailure: nextBillingFailure(member, status),
     updatedAt: Date.now(),
   };
   const client = getClient();
   if (!client) return;
+  await client.set(
+    `${MEMBER_PREFIX}${normEmail(member.email)}`,
+    JSON.stringify(next)
+  );
+}
+
+/**
+ * Attach the facts behind a failed renewal to the member record.
+ *
+ * Called after the status flip on invoice.payment_failed, on every
+ * attempt, so the record always reflects the LATEST decline rather than
+ * the first one. That matters for the member-facing copy: a card that
+ * expired on attempt one and hit insufficient funds on attempt four
+ * should read as the second, because that's the wall they're standing
+ * at now.
+ *
+ * No-op when the record doesn't exist (same webhook-ordering guard as
+ * updateMemberStatus).
+ */
+export async function recordBillingFailure(
+  customerId: string,
+  failure: BillingFailure
+): Promise<void> {
+  const member = await getMemberByCustomerId(customerId);
+  if (!member) return;
+  const client = getClient();
+  if (!client) return;
+  const next: MemberRecord = {
+    ...member,
+    billingFailure: failure,
+    updatedAt: Date.now(),
+  };
+  await client.set(
+    `${MEMBER_PREFIX}${normEmail(member.email)}`,
+    JSON.stringify(next)
+  );
+}
+
+/**
+ * Drop the failed-renewal facts once money has actually moved.
+ *
+ * Belt and braces alongside nextBillingFailure: invoice.paid only flips
+ * the status when the member was delinquent, so a record that was
+ * already active (a retry that cleared before our webhook saw the
+ * failure, say) would otherwise keep a stale decline forever and show a
+ * banner to a member in perfectly good standing.
+ */
+export async function clearBillingFailure(customerId: string): Promise<void> {
+  const member = await getMemberByCustomerId(customerId);
+  if (!member || !member.billingFailure) return;
+  const client = getClient();
+  if (!client) return;
+  const next: MemberRecord = {
+    ...member,
+    billingFailure: null,
+    updatedAt: Date.now(),
+  };
   await client.set(
     `${MEMBER_PREFIX}${normEmail(member.email)}`,
     JSON.stringify(next)
@@ -579,6 +706,7 @@ export async function updateMemberSubscription(
     ...member,
     status: resolvedStatus,
     canceledAt: nextCanceledAt(member, resolvedStatus),
+    billingFailure: nextBillingFailure(member, resolvedStatus),
     interval: fields.interval ?? member.interval,
     amountCents:
       typeof fields.amountCents === "number"

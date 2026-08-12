@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
 import type { Metadata } from "next";
 import { SESSION_COOKIE } from "@/lib/auth";
+import { BillingAlert } from "@/components/BillingAlert";
 import { ManageSubscriptionButton } from "@/components/ManageSubscriptionButton";
 import { EditDisplayNameForm } from "@/components/EditDisplayNameForm";
 import { NotifyOnReplyToggle } from "@/components/NotifyOnReplyToggle";
@@ -113,6 +114,12 @@ export default async function AccountPage() {
       </section>
 
       <section className="max-w-xl mx-auto px-6 py-14 md:py-20">
+        {/* Failed renewal. Sits above the medallion on purpose: a member
+            whose card just declined should not have to read past their
+            own laurels to find out the seat is at risk. Renders nothing
+            at all for members in good standing. */}
+        <BillingAlert member={member} />
+
         {/* Tier plate — four states, mutually exclusive:
             - Admin (the author): AuthorPlate, no slot, no amount.
             - Founder: FounderMedallion with slot # + locked rate.

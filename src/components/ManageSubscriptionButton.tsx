@@ -6,7 +6,14 @@ import { useState } from "react";
 // returned URL, and redirects the browser into the Stripe Customer
 // Portal. The endpoint already handles auth + portal session creation.
 
-export function ManageSubscriptionButton() {
+export function ManageSubscriptionButton({
+  label = "Manage subscription",
+}: {
+  // The billing alert points the same portal trip at a narrower job
+  // ("Update the card"), so the label is caller-supplied. Default keeps
+  // every existing call site rendering exactly as before.
+  label?: string;
+} = {}) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +49,7 @@ export function ManageSubscriptionButton() {
         className="btn-primary"
         style={{ opacity: pending ? 0.6 : 1, cursor: pending ? "wait" : "pointer" }}
       >
-        <span>{pending ? "Opening portal…" : "Manage subscription"}</span>
+        <span>{pending ? "Opening portal…" : label}</span>
       </button>
       {error && (
         <p

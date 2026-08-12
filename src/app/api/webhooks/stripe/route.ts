@@ -16,14 +16,17 @@ import { consumeFounderAccess } from "@/lib/founder-access";
 import {
   claimCharterSlot,
   claimFounderSlot,
+  clearBillingFailure,
   getMember,
   getMemberByCustomerId,
   getMemberBySessionId,
   hasActiveGiftSeat,
+  recordBillingFailure,
   saveMember,
   updateMemberStatus,
   updateMemberSubscription,
   writeSessionIndex,
+  type BillingFailure,
   type MemberRecord,
   type MemberSubscriptionStatus,
   type Tier,
@@ -162,6 +165,54 @@ function amountLabelOf(member: MemberRecord): string {
     ? String(dollars)
     : dollars.toFixed(2);
   return `$${rendered}/${member.interval === "year" ? "yr" : "mo"}`;
+}
+
+/**
+ * Pull the actual reason a renewal was declined, plus the card it was
+ * declined on, out of a failed invoice.
+ *
+ * The invoice in the webhook payload carries the retry bookkeeping but
+ * not the decline: that lives on the PaymentIntent's last_payment_error,
+ * one expand away. On this API version an invoice no longer has a
+ * `payment_intent` field at all, so the path runs through the
+ * `payments` list. Worth the one extra call on an event that fires a
+ * handful of times a month, because the alternative is every surface
+ * telling the member their card expired when it didn't.
+ *
+ * Fails soft in every direction. A missing reason produces vaguer copy;
+ * a thrown error here must never cost the member their email.
+ */
+async function resolveDeclineDetails(
+  stripe: Stripe,
+  invoiceId: string
+): Promise<Pick<BillingFailure, "declineCode" | "cardBrand" | "cardLast4">> {
+  const empty = { declineCode: null, cardBrand: null, cardLast4: null };
+  try {
+    const invoice = await stripe.invoices.retrieve(invoiceId, {
+      expand: ["payments.data.payment_intent"],
+    });
+    // Last entry is the most recent attempt, which is the one that just
+    // failed and the only one whose reason is still true.
+    const payments = invoice.payments?.data ?? [];
+    for (let i = payments.length - 1; i >= 0; i--) {
+      const intent = payments[i]?.payment?.payment_intent;
+      if (!intent || typeof intent === "string") continue;
+      const error = intent.last_payment_error;
+      if (!error) continue;
+      const card = error.payment_method?.card ?? null;
+      return {
+        // decline_code is the specific one ("insufficient_funds"); code
+        // is the generic bucket ("card_declined"). Prefer the specific.
+        declineCode: error.decline_code ?? error.code ?? null,
+        cardBrand: card?.brand ?? null,
+        cardLast4: card?.last4 ?? null,
+      };
+    }
+    return empty;
+  } catch (err) {
+    console.error(`[billing] decline lookup failed for ${invoiceId}:`, err);
+    return empty;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -310,9 +361,55 @@ export async function POST(request: NextRequest) {
       const invoice = event.data.object as Stripe.Invoice;
       const customerId = customerIdOf(invoice.customer);
       if (customerId) {
+        // A subscription Stripe kills for non-payment emits one last
+        // invoice.payment_failed, and it can land AFTER the
+        // customer.subscription.deleted that closed the seat. Both
+        // founders who lapsed in July went canceled and then back to
+        // past_due inside a quarter of a second that way, which left
+        // two dead memberships parked in the live roster for a fortnight
+        // and their churn uncounted. A canceled seat does not reopen on
+        // a failed invoice, so the flip and every notice below stop here.
+        const existing = await getMemberByCustomerId(customerId).catch(
+          () => null
+        );
+        if (existing?.status === "canceled") {
+          return new Response("ok", { status: 200 });
+        }
+
         // Status flip is idempotent, so it stays outside the stage gate
         // and tracks every retry.
         await updateMemberStatus(customerId, "past_due");
+
+        const nextPaymentAttempt = invoice.next_payment_attempt ?? null;
+
+        // Record what actually happened on EVERY attempt, above the
+        // stage gate. The emails deliberately go quiet mid-window, but
+        // the member area must not: someone who wanders in on day nine
+        // needs the current decline and the real next-retry date, not
+        // whatever was true the morning it first failed.
+        if (invoice.id) {
+          const declineDetails = await resolveDeclineDetails(
+            getStripe(),
+            invoice.id
+          );
+          await recordBillingFailure(customerId, {
+            ...declineDetails,
+            failedAt: Date.now(),
+            nextAttemptAt: nextPaymentAttempt
+              ? nextPaymentAttempt * 1000
+              : null,
+            attemptCount: invoice.attempt_count ?? 1,
+            amountCents:
+              typeof invoice.amount_due === "number"
+                ? invoice.amount_due
+                : null,
+          }).catch((err) => {
+            console.error(
+              `[billing] recordBillingFailure failed for ${customerId}:`,
+              err
+            );
+          });
+        }
 
         // Stripe retries a failed invoice on its own dunning schedule
         // and fires this event on EVERY attempt. Emailing per event sent
@@ -320,7 +417,6 @@ export async function POST(request: NextRequest) {
         // which of the three touches this particular attempt earns, and
         // claims it atomically, so retries and webhook redeliveries
         // collapse into exactly one send.
-        const nextPaymentAttempt = invoice.next_payment_attempt ?? null;
         const stage = await claimFailureStage({
           invoiceId: invoice.id,
           attemptCount: invoice.attempt_count ?? 1,
@@ -424,6 +520,11 @@ export async function POST(request: NextRequest) {
         const existing = await getMemberByCustomerId(customerId);
         if (existing && existing.status !== "active") {
           await updateMemberStatus(customerId, "active");
+        } else {
+          // Already active, so the status flip above (which clears the
+          // decline as a side effect) never runs. Clear it directly, or
+          // a member in good standing keeps a billing banner forever.
+          await clearBillingFailure(customerId).catch(() => {});
         }
       }
       // Wipe the sequence for an invoice that finally cleared, so a
