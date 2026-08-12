@@ -17,6 +17,7 @@ export function StickyNavChrome() {
     <StickyNav
       signedIn={!!chrome?.signedIn}
       isPaidMember={!!chrome?.isPaidMember}
+      billingIssue={!!chrome?.billingIssue}
     />
   );
 }

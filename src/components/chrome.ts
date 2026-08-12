@@ -21,6 +21,10 @@ import type { PresenceState } from "@/lib/desk";
 export type ChromeState = {
   signedIn: boolean;
   isPaidMember: boolean;
+  /** True while a renewal is failing. The seat isn't live, but the
+      viewer is still a member and the chrome has to keep treating them
+      as one. */
+  billingIssue: boolean;
   identity: IdentityMenuProps | null;
   presence: PresenceState;
 };
@@ -38,6 +42,7 @@ function load(): Promise<ChromeState | null> {
           ? ({
               signedIn: !!data.signedIn,
               isPaidMember: !!data.isPaidMember,
+              billingIssue: !!data.billingIssue,
               identity: data.identity ?? null,
               presence: (data.presence ?? "auto-expired") as PresenceState,
             } satisfies ChromeState)

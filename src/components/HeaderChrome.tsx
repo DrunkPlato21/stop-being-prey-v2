@@ -11,8 +11,18 @@ import { HeaderJoinLink } from "@/components/HeaderJoinLink";
 //   - Logged-out: presence indicator (only when Clay is active) + JOIN.
 //   - Logged-in, no paid membership: same as logged-out — JOIN nudges
 //     them to (re)subscribe.
-//   - Paid member (or admin author): identity dropdown + bell +
-//     presence (always shown, even when away). No JOIN — redundant.
+//   - Paid member (or admin author, or a member mid-failed-renewal):
+//     identity dropdown + bell + presence (always shown, even when
+//     away). No JOIN — redundant.
+//
+// That third state deliberately includes members whose card is failing,
+// who are NOT paid members by hasLiveSeat. They used to fall into the
+// logged-out branch, which meant the site greeted a charter member of
+// two months with "Sign in / Join" and — much worse — took away the
+// notifications bell, the one place the "payment didn't go through"
+// alert lives. We were hiding the alarm from exactly the person it was
+// written for. A failing card is a member to be recovered, not a
+// stranger to be pitched.
 //
 // Rendered client-side from /api/chrome (see components/chrome.ts) so
 // the pages themselves can ship static. Until the chrome resolves this
@@ -22,13 +32,16 @@ import { HeaderJoinLink } from "@/components/HeaderJoinLink";
 export function HeaderChrome() {
   const chrome = useChrome();
 
-  if (chrome?.isPaidMember && chrome.identity) {
+  if ((chrome?.isPaidMember || chrome?.billingIssue) && chrome.identity) {
     return (
       <div className="flex items-center gap-4 sm:gap-6">
         <DeskPresenceIndicator initialState={chrome.presence} />
         <div className="flex items-center gap-2">
           <NotificationsBell />
-          <IdentityMenu {...chrome.identity} />
+          <IdentityMenu
+            {...chrome.identity}
+            billingIssue={!!chrome.billingIssue}
+          />
         </div>
       </div>
     );

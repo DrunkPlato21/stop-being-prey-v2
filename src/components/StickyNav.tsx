@@ -50,9 +50,17 @@ function isJoinFlowRoute(pathname: string): boolean {
 export type StickyNavProps = {
   signedIn: boolean;
   isPaidMember: boolean;
+  /** Member with a failing renewal. Keeps the member bar rather than
+      pitching JOIN at someone who already bought a seat and is trying
+      to keep it. */
+  billingIssue?: boolean;
 };
 
-export function StickyNav({ signedIn, isPaidMember }: StickyNavProps) {
+export function StickyNav({
+  signedIn,
+  isPaidMember,
+  billingIssue = false,
+}: StickyNavProps) {
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 
@@ -124,7 +132,15 @@ export function StickyNav({ signedIn, isPaidMember }: StickyNavProps) {
         </nav>
 
         <div className="flex items-center gap-3">
-          {isPaidMember ? (
+          {billingIssue ? (
+            <Link
+              href="/notes/account"
+              className="header-signin"
+              style={{ whiteSpace: "nowrap", color: "var(--blood)" }}
+            >
+              Payment failed &rarr;
+            </Link>
+          ) : isPaidMember ? (
             <Link
               href="/desk"
               className="header-signin"

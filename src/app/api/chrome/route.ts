@@ -1,7 +1,12 @@
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getProfile, isAdmin } from "@/lib/comments";
-import { getMember, getTierBadge, hasLiveSeat } from "@/lib/members";
+import {
+  getMember,
+  getTierBadge,
+  hasLiveSeat,
+  isInDunning,
+} from "@/lib/members";
 import { derivePresenceState, getPresence } from "@/lib/desk";
 import type { IdentityMenuProps } from "@/components/IdentityMenu";
 
@@ -31,6 +36,10 @@ function firstWord(value: string): string {
 type IdentityResolution = {
   identity: IdentityMenuProps;
   isPaidMember: boolean;
+  /** Mid-failed-renewal. Separate from isPaidMember on purpose: the seat
+      isn't live, but this is still a member the chrome must treat as
+      one. See HeaderChrome. */
+  billingIssue: boolean;
 };
 
 // Identity composition mirrors what the header always showed:
@@ -58,6 +67,7 @@ async function resolveIdentity(email: string): Promise<IdentityResolution> {
         avatarUrl: null,
       },
       isPaidMember: true,
+      billingIssue: false,
     };
   }
 
@@ -94,6 +104,7 @@ async function resolveIdentity(email: string): Promise<IdentityResolution> {
       avatarUrl: member?.customAvatarUrl ?? null,
     },
     isPaidMember: hasLiveSeat(member),
+    billingIssue: isInDunning(member),
   };
 }
 
@@ -113,6 +124,7 @@ export async function GET() {
       ok: true,
       signedIn: !!session,
       isPaidMember: resolution?.isPaidMember ?? false,
+      billingIssue: resolution?.billingIssue ?? false,
       identity: resolution?.identity ?? null,
       presence,
     },

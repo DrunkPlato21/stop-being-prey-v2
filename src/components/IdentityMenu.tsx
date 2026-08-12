@@ -35,6 +35,10 @@ export type IdentityMenuProps = {
   email: string;
   memberSinceMs: number | null;
   avatarUrl: string | null;
+  /** Renewal is failing. Marks the trigger and turns the account row
+      into the fix-it row. Supplied by the chrome, not by the identity
+      payload itself, so it defaults off everywhere else. */
+  billingIssue?: boolean;
 };
 
 function roleLabel(props: IdentityMenuProps): string {
@@ -246,6 +250,10 @@ export function IdentityMenu(props: IdentityMenuProps) {
             </span>
           </Link>
 
+          {/* Account row doubles as the billing alarm. A member whose
+              card is failing gets the reason to click stated on the row
+              itself, in oxblood, rather than a neutral label that looks
+              identical to the one they ignored last week. */}
           <Link
             href="/notes/account"
             role="menuitem"
@@ -254,14 +262,21 @@ export function IdentityMenu(props: IdentityMenuProps) {
             style={{
               fontFamily:
                 "var(--font-source-serif), Georgia, 'Times New Roman', serif",
-              color: "var(--ink)",
+              color: props.billingIssue ? "var(--blood)" : "var(--ink)",
               fontSize: "0.95rem",
             }}
           >
-            <span>Account &amp; billing</span>
+            <span>
+              {props.billingIssue ? "Payment failed" : "Account & billing"}
+            </span>
             <span
               aria-hidden="true"
-              style={{ color: "var(--ink-faint)", fontSize: "0.85rem" }}
+              style={{
+                color: props.billingIssue
+                  ? "var(--blood)"
+                  : "var(--ink-faint)",
+                fontSize: "0.85rem",
+              }}
             >
               &rarr;
             </span>
@@ -303,7 +318,9 @@ export function IdentityMenu(props: IdentityMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
-        aria-label={`Your account: ${props.firstName}, ${label}`}
+        aria-label={`Your account: ${props.firstName}, ${label}${
+          props.billingIssue ? ", payment failed" : ""
+        }`}
         className="header-identity header-identity-trigger flex items-center gap-2.5 whitespace-nowrap overflow-hidden"
         style={{
           maxWidth: "55vw",
@@ -335,9 +352,27 @@ export function IdentityMenu(props: IdentityMenuProps) {
             fontWeight: 600,
             letterSpacing: "0.02em",
             flexShrink: 0,
+            position: "relative",
           }}
         >
           {!props.avatarUrl && initialsText}
+          {/* Oxblood pip on the avatar. The dot is the only part of the
+              billing alarm visible without opening the menu, so it sits
+              on the one control that is on every page. */}
+          {props.billingIssue && (
+            <span
+              style={{
+                position: "absolute",
+                top: -1,
+                right: -1,
+                width: 9,
+                height: 9,
+                borderRadius: "50%",
+                background: "var(--blood)",
+                border: "1.5px solid var(--paper)",
+              }}
+            />
+          )}
         </span>
 
         <span
