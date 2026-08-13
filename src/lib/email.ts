@@ -1773,6 +1773,56 @@ export async function sendPoolClaimConfirmEmail(args: {
   });
 }
 
+/**
+ * The one nudge for a seat request that never got confirmed.
+ *
+ * Someone asked for a way in and then stalled on a single click, which
+ * left them invisible to the waitlist while funded seats went past them
+ * to people who asked later. The link inside is live: the cron restarts
+ * the 72h window as it sends, so this is never a second dead token.
+ *
+ * Deliberately does not mention seats going by. They asked for help;
+ * telling them what their delay cost is the last thing they need.
+ */
+export async function sendPoolConfirmNudgeEmail(args: {
+  to: string;
+  confirmUrl: string;
+}): Promise<SendResult> {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `\n[email] (dev) pool confirm NUDGE link for ${args.to}:\n${args.confirmUrl}\n`
+    );
+  }
+
+  // DRAFT copy — Clay finalizes.
+  const subject = "your seat is still waiting";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;">you asked for a seat a few days back and never confirmed it. that's the only thing standing between you and the room.</p>
+                <p style="margin:0 0 18px 0;">nothing has expired and nothing is owed. one tap and you're either in, or held in line for the next seat someone funds.</p>
+              </td>
+            </tr>
+            ${giftButtonRow(args.confirmUrl, "Confirm my seat")}`);
+  const text = [
+    "you asked for a seat a few days back and never confirmed it. that's the only thing standing between you and the room.",
+    "",
+    "nothing has expired and nothing is owed. one tap and you're either in, or held in line for the next seat someone funds.",
+    "",
+    `Confirm my seat: ${args.confirmUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "pool confirm nudge",
+  });
+}
+
 export async function sendPoolWelcomeEmail(args: {
   to: string;
   termLabel: string;

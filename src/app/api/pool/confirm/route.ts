@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import {
-  CONFIRM_TTL_MS,
   claimSeatOrWaitlist,
+  confirmExpiresAt,
   getPoolFund,
   getPoolRequestByToken,
   markRequestExpired,
@@ -83,8 +83,9 @@ export async function POST(req: NextRequest) {
     return Response.json({ state: "expired" });
   }
 
-  // pending_confirm. Honor the link window.
-  if (Date.now() > request.createdAt + CONFIRM_TTL_MS) {
+  // pending_confirm. Honor the link window, measured from whenever the
+  // window last started: the original ask, or the nudge that reopened it.
+  if (Date.now() > confirmExpiresAt(request)) {
     await markRequestExpired(request.id);
     return Response.json({ state: "expired" });
   }

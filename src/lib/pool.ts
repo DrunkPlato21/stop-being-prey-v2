@@ -164,10 +164,23 @@ export type PoolRequest = {
   /** "Keep your seat" reminder dispatched (the expiry cron sets this
       once). Absent on legacy/un-reminded grants. */
   reminderSentAt?: number | null;
+  /** The one nudge sent to someone who asked for a seat and never
+      confirmed. Set once, so nobody gets chased twice. */
+  confirmNudgeSentAt?: number | null;
+  /** When the confirm window last started. The nudge restarts it, so
+      the link inside that second email is live rather than a dead
+      token the reader has to guess at. Absent on legacy requests,
+      which fall back to createdAt and behave exactly as before. */
+  confirmTokenIssuedAt?: number | null;
 };
 
 /** Confirm links are good for 72h; after that the claimer re-submits. */
 export const CONFIRM_TTL_MS = 72 * 60 * 60 * 1000;
+
+/** When this request's confirm link expires. */
+export function confirmExpiresAt(request: PoolRequest): number {
+  return (request.confirmTokenIssuedAt ?? request.createdAt) + CONFIRM_TTL_MS;
+}
 
 /* === Redis client =========================================== */
 
@@ -664,6 +677,36 @@ export async function markRequestReminded(
   id: string
 ): Promise<PoolRequest | null> {
   return updatePoolRequest(id, { reminderSentAt: Date.now() });
+}
+
+/**
+ * Record the one confirm nudge AND restart the confirm window.
+ *
+ * Both halves matter. Someone who has already let the link go cold for
+ * a day or two would otherwise get a second email carrying a token that
+ * is either dead or about to be, which is a worse experience than
+ * silence. Same token, fresh 72 hours, so the original email starts
+ * working again too.
+ */
+export async function markRequestConfirmNudged(
+  id: string
+): Promise<PoolRequest | null> {
+  const now = Date.now();
+  return updatePoolRequest(id, {
+    confirmNudgeSentAt: now,
+    confirmTokenIssuedAt: now,
+  });
+}
+
+/** Requests still sitting at pending_confirm, oldest ask first. */
+export async function listUnconfirmedRequests(): Promise<PoolRequest[]> {
+  const ids = await listAllPoolRequestIds();
+  const out: PoolRequest[] = [];
+  for (const id of ids) {
+    const req = await getPoolRequest(id).catch(() => null);
+    if (req && req.status === "pending_confirm") out.push(req);
+  }
+  return out.sort((a, b) => a.createdAt - b.createdAt);
 }
 
 /** Every pool request id, for the daily expiry-reminder cron scan.

@@ -8,12 +8,15 @@ import {
 import {
   getPoolRequest,
   listAllPoolRequestIds,
+  listUnconfirmedRequests,
+  markRequestConfirmNudged,
   markRequestReminded,
 } from "@/lib/pool";
 import { getMember, saveMember } from "@/lib/members";
 import { baseUrl } from "@/lib/membership";
 import {
   sendGiftExpiryReminderEmail,
+  sendPoolConfirmNudgeEmail,
   sendPoolExpiryReminderEmail,
 } from "@/lib/email";
 import { createNotification } from "@/lib/notifications";
@@ -186,6 +189,56 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // === Unconfirmed pass: the people who asked and then stalled ======
+  // A seat request only becomes real when the claimer clicks the
+  // confirm link. Until then they are invisible to the waitlist, so a
+  // funded seat routes past them to someone who asked days later. That
+  // happened: a request sat at pending_confirm for four days while two
+  // seats were minted and granted over the top of it, and nothing in
+  // the system ever went back for him.
+  //
+  // One nudge, once, and only inside a sane window. Under a day is
+  // pestering someone who may still be getting to it; past a fortnight
+  // they have moved on and a reminder is just a stranger in the inbox.
+  const NUDGE_AFTER_MS = 24 * 60 * 60 * 1000;
+  const NUDGE_UNTIL_MS = 14 * 24 * 60 * 60 * 1000;
+  const unconfirmed = await listUnconfirmedRequests();
+  let confirmNudgesSent = 0;
+
+  for (const req of unconfirmed) {
+    if (req.confirmNudgeSentAt) continue;
+    const age = now - req.createdAt;
+    if (age < NUDGE_AFTER_MS || age > NUDGE_UNTIL_MS) continue;
+
+    // Never chase someone who found their own way in between asking and
+    // now (bought a seat, got gifted one, or is the author testing).
+    const member = await getMember(req.email).catch(() => null);
+    if (member && (member.status === "active" || member.status === "trialing")) {
+      continue;
+    }
+
+    // Mark BEFORE sending. A send that throws halfway costs one person
+    // one nudge; an unmarked send that succeeds costs them a duplicate
+    // every day until someone notices. The quieter failure wins. This
+    // also restarts the 72h confirm window, so the link below is live.
+    await markRequestConfirmNudged(req.id);
+
+    const confirmUrl = `${baseUrl()}/pool/confirm/${encodeURIComponent(
+      req.confirmToken
+    )}`;
+    const sent = await sendPoolConfirmNudgeEmail({
+      to: req.email,
+      confirmUrl,
+    });
+    if (sent.ok) {
+      confirmNudgesSent++;
+    } else {
+      console.error(
+        `[pool] confirm nudge failed for ${req.email}: ${sent.error}. Link: ${confirmUrl}`
+      );
+    }
+  }
+
   return Response.json({
     ok: true,
     scanned: ids.length,
@@ -194,5 +247,7 @@ export async function GET(req: NextRequest) {
     poolScanned: poolIds.length,
     poolRemindersSent,
     poolLapsed,
+    unconfirmedScanned: unconfirmed.length,
+    confirmNudgesSent,
   });
 }
