@@ -174,8 +174,26 @@ export type PoolRequest = {
   confirmTokenIssuedAt?: number | null;
 };
 
-/** Confirm links are good for 72h; after that the claimer re-submits. */
-export const CONFIRM_TTL_MS = 72 * 60 * 60 * 1000;
+/**
+ * How long a confirm link stays good; after that the claimer re-submits.
+ *
+ * Was 72 hours, borrowed from sign-in-link instincts that don't apply
+ * here. A sign-in link is short-lived because it opens an account to
+ * whoever holds it. This token only lets the owner of one mailbox
+ * confirm a request that was made from that same mailbox, and the thing
+ * it unlocks is a place in line for a free seat. Nobody is racing to
+ * steal that.
+ *
+ * Meanwhile the cost of the short clock was real and invisible: the
+ * people asking are, by definition, the ones with the least slack in
+ * their week, and three days is a fast clock for someone sorting out
+ * money. Miss it and they drop out silently, still reading
+ * pending_confirm forever, while funded seats route past them.
+ *
+ * Two weeks, which also outlives the nudge window so the second email
+ * is never the last thing standing between someone and the room.
+ */
+export const CONFIRM_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 /** When this request's confirm link expires. */
 export function confirmExpiresAt(request: PoolRequest): number {
@@ -685,7 +703,7 @@ export async function markRequestReminded(
  * Both halves matter. Someone who has already let the link go cold for
  * a day or two would otherwise get a second email carrying a token that
  * is either dead or about to be, which is a worse experience than
- * silence. Same token, fresh 72 hours, so the original email starts
+ * silence. Same token, fresh window, so the original email starts
  * working again too.
  */
 export async function markRequestConfirmNudged(

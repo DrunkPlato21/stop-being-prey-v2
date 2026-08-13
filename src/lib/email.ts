@@ -1779,7 +1779,7 @@ export async function sendPoolClaimConfirmEmail(args: {
  * Someone asked for a way in and then stalled on a single click, which
  * left them invisible to the waitlist while funded seats went past them
  * to people who asked later. The link inside is live: the cron restarts
- * the 72h window as it sends, so this is never a second dead token.
+ * the confirm window as it sends, so this is never a second dead token.
  *
  * Deliberately does not mention seats going by. They asked for help;
  * telling them what their delay cost is the last thing they need.

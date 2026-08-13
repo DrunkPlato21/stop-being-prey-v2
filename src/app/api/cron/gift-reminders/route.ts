@@ -220,7 +220,7 @@ export async function GET(req: NextRequest) {
     // Mark BEFORE sending. A send that throws halfway costs one person
     // one nudge; an unmarked send that succeeds costs them a duplicate
     // every day until someone notices. The quieter failure wins. This
-    // also restarts the 72h confirm window, so the link below is live.
+    // also restarts the confirm window, so the link below is live.
     await markRequestConfirmNudged(req.id);
 
     const confirmUrl = `${baseUrl()}/pool/confirm/${encodeURIComponent(
