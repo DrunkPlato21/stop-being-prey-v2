@@ -64,6 +64,36 @@ export function FormatToolbar({
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
     const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+    const lineEndIdx = value.indexOf("\n", end);
+    const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
+    const before = value.slice(lineStart, start);
+    const after = value.slice(end, lineEnd);
+
+    // A sentence selected mid-paragraph pops out onto its own quote
+    // line, with the rest of the paragraph kept intact above and below.
+    // The renderer is line-based, so without the split the "> " prefix
+    // would swallow the whole paragraph.
+    if (start !== end && (before.trim() !== "" || after.trim() !== "")) {
+      const quoted = value
+        .slice(start, end)
+        .split("\n")
+        .map((line) => (line.startsWith("> ") ? line : `> ${line.trim()}`))
+        .join("\n");
+      const beforeKept = before.trimEnd();
+      const pieces = [beforeKept, quoted, after.trimStart()].filter(
+        (p) => p !== ""
+      );
+      const next =
+        value.slice(0, lineStart) + pieces.join("\n") + value.slice(lineEnd);
+      const quotedStart =
+        lineStart + (beforeKept === "" ? 0 : beforeKept.length + 1);
+      onChange(next);
+      restoreSelection(quotedStart, quotedStart + quoted.length);
+      return;
+    }
+
+    // No selection, or the selection already spans whole lines: quote
+    // the full line(s), as before.
     const segment = value.slice(lineStart, end);
     const quoted = segment
       .split("\n")
