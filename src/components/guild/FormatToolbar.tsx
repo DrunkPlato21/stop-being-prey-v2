@@ -19,9 +19,18 @@ type Props = {
 };
 
 const TOOLS = [
-  { key: "bold", glyph: "B", title: "Bold", glyphStyle: { fontWeight: 700 } },
-  { key: "italic", glyph: "I", title: "Italic", glyphStyle: { fontStyle: "italic" } },
-  { key: "quote", glyph: "”", title: "Quote", glyphStyle: { fontWeight: 700, fontSize: "1.25rem" } },
+  { key: "bold", glyph: "B", label: "Bold", title: "Bold", glyphStyle: { fontWeight: 700 } },
+  { key: "italic", glyph: "I", label: "Italic", title: "Italic", glyphStyle: { fontStyle: "italic" } },
+  // The quote title spells out the selection behavior: a member's
+  // instinct is to select a sentence and expect it to pop out, and the
+  // tooltip is the only place to say that is exactly what happens.
+  {
+    key: "quote",
+    glyph: "”",
+    label: "Quote",
+    title: "Quote. Select any part of a paragraph to pop just that part out.",
+    glyphStyle: { fontWeight: 700, fontSize: "1.25rem" },
+  },
 ] as const;
 
 export function FormatToolbar({
@@ -127,7 +136,7 @@ export function FormatToolbar({
             key={t.key}
             type="button"
             title={t.title}
-            aria-label={t.title}
+            aria-label={t.label}
             disabled={previewing}
             onMouseEnter={() => setHovered(t.key)}
             onMouseLeave={() => setHovered(null)}
