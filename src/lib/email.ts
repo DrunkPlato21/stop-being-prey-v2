@@ -2431,28 +2431,32 @@ export async function sendWeeklyDigestEmail(args: {
     !!p.rooms.qotw || !!p.rooms.latestThread || p.rooms.loungePostsThisWeek > 0;
   if (hasRooms) {
     rows.push(digestSectionEyebrow("The rooms"));
+    // Thread titles link straight to the thread, same convention as the
+    // shipped-work entries: a title in this email is always clickable.
     if (p.rooms.qotw) {
+      const href = abs(p.rooms.qotw.url);
       rows.push(
         digestEntry({
           label: "Question of the week",
           meta: `${p.rooms.qotw.replyCount} ${p.rooms.qotw.replyCount === 1 ? "reply" : "replies"}`,
-          bodyHtml: `&ldquo;${escapeHtml(p.rooms.qotw.title)}&rdquo;`,
+          bodyHtml: `<a href="${escapeHtml(href ?? `${args.siteUrl}/guild`)}" style="color:#1a1714;">&ldquo;${escapeHtml(p.rooms.qotw.title)}&rdquo;</a>`,
         })
       );
       textLines.push(
-        `Question of the week: "${p.rooms.qotw.title}" (${p.rooms.qotw.replyCount} replies)`
+        `Question of the week: "${p.rooms.qotw.title}" (${p.rooms.qotw.replyCount} replies)${href ? ` ${href}` : ""}`
       );
     }
     if (p.rooms.latestThread) {
+      const href = abs(p.rooms.latestThread.url);
       rows.push(
         digestEntry({
           label: "Live in the Guild",
           meta: `${p.rooms.latestThread.replyCount} ${p.rooms.latestThread.replyCount === 1 ? "reply" : "replies"}`,
-          bodyHtml: `&ldquo;${escapeHtml(p.rooms.latestThread.title)}&rdquo;`,
+          bodyHtml: `<a href="${escapeHtml(href ?? `${args.siteUrl}/guild`)}" style="color:#1a1714;">&ldquo;${escapeHtml(p.rooms.latestThread.title)}&rdquo;</a>`,
         })
       );
       textLines.push(
-        `Live in the Guild: "${p.rooms.latestThread.title}" (${p.rooms.latestThread.replyCount} replies)`
+        `Live in the Guild: "${p.rooms.latestThread.title}" (${p.rooms.latestThread.replyCount} replies)${href ? ` ${href}` : ""}`
       );
     }
     if (p.rooms.loungePostsThisWeek > 0) {

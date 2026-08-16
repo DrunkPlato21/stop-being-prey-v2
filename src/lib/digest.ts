@@ -106,8 +106,10 @@ export type DigestPayload = {
   };
   shipped: { label: string; title: string; url: string | null; at: number }[];
   rooms: {
-    qotw: { title: string; replyCount: number } | null;
-    latestThread: { title: string; replyCount: number } | null;
+    /** url is the thread deep link — the title renders as the link in
+        the email, same convention as the shipped-work entries. */
+    qotw: { title: string; replyCount: number; url: string } | null;
+    latestThread: { title: string; replyCount: number; url: string } | null;
     /** Lounge posts written inside this digest's window — the week's
         pulse, not a moment-in-time presence count (which at Sunday
         5pm says nothing about the week). */
@@ -364,12 +366,14 @@ export async function assembleDigest(
         ? {
             title: state.rooms.guild.questionOfWeek.title,
             replyCount: state.rooms.guild.questionOfWeek.replyCount,
+            url: `/guild/${state.rooms.guild.questionOfWeek.id}`,
           }
         : null,
       latestThread: state.rooms.guild.latest
         ? {
             title: state.rooms.guild.latest.title,
             replyCount: state.rooms.guild.latest.replyCount,
+            url: `/guild/${state.rooms.guild.latest.id}`,
           }
         : null,
       loungePostsThisWeek,
