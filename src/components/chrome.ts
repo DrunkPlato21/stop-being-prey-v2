@@ -31,24 +31,53 @@ export type ChromeState = {
 
 const STORAGE_KEY = "sbp:chrome";
 
+// The sbp_who marker (set by /api/chrome, sign-in, and sign-out) routes
+// this fetch: a browser confirmed anonymous ("a") reads the CDN-cached
+// /api/presence and never wakes a function; anything else — member ("m")
+// or first visit (absent) — asks /api/chrome, which answers with the
+// marker for next time. This is what lets a spike of signed-out readers
+// cost cache hits instead of per-view invocations.
+function confirmedAnonymous(): boolean {
+  try {
+    return /(?:^|;\s*)sbp_who=a(?:;|$)/.test(document.cookie);
+  } catch {
+    return false;
+  }
+}
+
 let inflight: Promise<ChromeState | null> | null = null;
 
 function load(): Promise<ChromeState | null> {
   if (!inflight) {
-    inflight = fetch("/api/chrome", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) =>
-        data && data.ok
-          ? ({
-              signedIn: !!data.signedIn,
-              isPaidMember: !!data.isPaidMember,
-              billingIssue: !!data.billingIssue,
-              identity: data.identity ?? null,
-              presence: (data.presence ?? "auto-expired") as PresenceState,
-            } satisfies ChromeState)
-          : null
-      )
-      .catch(() => null);
+    inflight = confirmedAnonymous()
+      ? fetch("/api/presence")
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) =>
+            data && data.ok
+              ? ({
+                  signedIn: false,
+                  isPaidMember: false,
+                  billingIssue: false,
+                  identity: null,
+                  presence: (data.presence ?? "auto-expired") as PresenceState,
+                } satisfies ChromeState)
+              : null
+          )
+          .catch(() => null)
+      : fetch("/api/chrome", { cache: "no-store" })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) =>
+            data && data.ok
+              ? ({
+                  signedIn: !!data.signedIn,
+                  isPaidMember: !!data.isPaidMember,
+                  billingIssue: !!data.billingIssue,
+                  identity: data.identity ?? null,
+                  presence: (data.presence ?? "auto-expired") as PresenceState,
+                } satisfies ChromeState)
+              : null
+          )
+          .catch(() => null);
   }
   return inflight;
 }

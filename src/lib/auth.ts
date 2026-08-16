@@ -96,6 +96,27 @@ export function sessionCookieOptions() {
   };
 }
 
+// Client-readable companion to the httpOnly session: "m" (member session
+// exists) or "a" (confirmed anonymous). The chrome loader reads it to
+// decide between the per-viewer /api/chrome and the CDN-cached
+// /api/presence, so anonymous browsers stop paying a function invocation
+// per page view. Deliberately NOT httpOnly — its whole job is being
+// readable from document.cookie — and it carries no identity, only which
+// of two endpoints to ask. Absent means "unknown, ask /api/chrome once";
+// that call answers with the marker, so pre-existing member sessions
+// migrate on their first page view.
+export const WHO_COOKIE = "sbp_who";
+
+export function whoCookieOptions() {
+  return {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: SESSION_MAX_AGE_SECONDS,
+  };
+}
+
 /**
  * Rolling-session refresh. Given the current session cookie value, returns
  * a freshly signed token when the existing one is still valid but older than

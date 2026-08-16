@@ -5,6 +5,8 @@ import {
   safeNextPath,
   SESSION_COOKIE,
   sessionCookieOptions,
+  WHO_COOKIE,
+  whoCookieOptions,
 } from "@/lib/auth";
 
 // GET /api/auth/callback?token=xxx
@@ -37,6 +39,9 @@ export async function GET(req: NextRequest) {
   const next = safeNextPath(record.next);
   const response = NextResponse.redirect(new URL(next, req.url));
   response.cookies.set(SESSION_COOKIE, jwt, sessionCookieOptions());
+  // Marker beside the session so the chrome loader asks /api/chrome, not
+  // the anonymous cached endpoint, from the very first page after sign-in.
+  response.cookies.set(WHO_COOKIE, "m", whoCookieOptions());
   return response;
 }
 

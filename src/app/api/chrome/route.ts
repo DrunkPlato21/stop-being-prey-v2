@@ -1,5 +1,10 @@
 import { cookies } from "next/headers";
-import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import {
+  SESSION_COOKIE,
+  WHO_COOKIE,
+  verifySession,
+  whoCookieOptions,
+} from "@/lib/auth";
 import { getProfile, isAdmin } from "@/lib/comments";
 import {
   getMember,
@@ -118,6 +123,12 @@ export async function GET() {
       .then((p) => derivePresenceState(p))
       .catch(() => "auto-expired" as const),
   ]);
+
+  // Sort this browser for next time: members keep calling /api/chrome,
+  // confirmed-anonymous browsers switch to the CDN-cached /api/presence
+  // (see components/chrome.ts). Refreshing "m" on every call keeps the
+  // marker alive alongside the rolling session.
+  cookieStore.set(WHO_COOKIE, session ? "m" : "a", whoCookieOptions());
 
   return Response.json(
     {

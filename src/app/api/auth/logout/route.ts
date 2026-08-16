@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/auth";
+import { SESSION_COOKIE, WHO_COOKIE, whoCookieOptions } from "@/lib/auth";
 
 // POST /api/auth/logout
 // Clears the session cookie. No body. Redirects (303) to /notes/sign-in.
@@ -16,5 +16,8 @@ export async function POST(req: NextRequest) {
     path: "/",
     maxAge: 0,
   });
+  // Flip the routing marker straight to anonymous — no probe needed to
+  // learn what we already know.
+  response.cookies.set(WHO_COOKIE, "a", whoCookieOptions());
   return response;
 }
