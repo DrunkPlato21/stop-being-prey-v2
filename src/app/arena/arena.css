@@ -516,3 +516,23 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   .arsenal-plate { grid-template-columns: 60px 1fr; }
   .arsenal-stampblock { padding: 12px 4px; }
 }
+
+/* ── The commons: comments on a sealed bout ──── */
+/* A sheet of the site's paper pinned up in the dark room. The comment
+   machinery keeps its own styles; the sheet restores the light-theme
+   tokens the room remapped, so shared components render as they do on
+   the rest of the site. */
+.arena-commons { margin-top: 44px; }
+.arena-commons-note {
+  font-size: 0.85rem; font-style: italic; color: var(--a-ink-muted);
+  margin: 0 0 12px;
+}
+.arena-commons-paper {
+  background: #f5efe1; border-radius: 4px; padding: 10px 26px 26px;
+  color: #1a1714;
+  --ink-soft: #3d3530;
+}
+.arena-commons-paper a { color: #8a7d20; }
+@media (max-width: 480px) {
+  .arena-commons-paper { padding: 8px 16px 20px; }
+}

@@ -20,6 +20,7 @@ import { caseNoStr } from "@/lib/arena-constants";
 import { formatGuildBody, GUILD_BODY_STYLE } from "@/components/guild/format-body";
 import { TileEngage } from "@/components/arena/TileEngage";
 import { MoveChip } from "@/components/arena/MoveChip";
+import { Comments } from "@/components/Comments";
 import { ArenaBench } from "@/components/arena/ArenaBench";
 import { reopenBoutAction, sealBoutAction } from "../actions";
 
@@ -222,6 +223,23 @@ export default async function BoutPage({
           </div>
           {bout.sealedAt && <div className="when">{stamp(bout.sealedAt)}</div>}
         </div>
+      )}
+
+      {/* The social symmetry of the Arena: while a bout is open the
+          room is Clay's and members whisper, privately, into the work.
+          When it seals, whispers close and the commons opens: public,
+          approval-gated comments under the filed case, rendered as a
+          sheet of paper in the dark room. Nothing ever races the
+          verdict. Keyed by bout id (immutable), not case number. */}
+      {sealed && (
+        <section className="arena-commons">
+          <p className="arena-commons-note">
+            The bout is filed. The floor is open.
+          </p>
+          <div className="arena-commons-paper">
+            <Comments kind="case-file" slug={bout.id} />
+          </div>
+        </section>
       )}
 
       {admin && !sealed && (
