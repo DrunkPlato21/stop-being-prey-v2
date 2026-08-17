@@ -37,12 +37,13 @@ export type MemberNavDots = Partial<Record<string, boolean>>;
 // lives in the identity menu under the member's name in the header, so
 // this stays a clean list of destinations instead of a junk drawer.
 // Two clusters, no dividing lines, just whitespace:
-//   1. The rooms: Desk, Lounge, The Guild
+//   1. The rooms: Desk, Lounge, The Guild, The Arena
 //   2. The doctrine + the book: Rules, Case Files, Book
 const ITEMS: NavItem[] = [
   { href: "/desk", label: "Desk" },
   { href: "/lounge", label: "Lounge" },
   { href: "/guild", label: "The Guild" },
+  { href: "/arena", label: "The Arena" },
   { href: "/rules", label: "Rules", clusterBreak: true },
   { href: "/case-files", label: "Case Files" },
   { href: "/book", label: "Book" },
@@ -77,16 +78,26 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
         aria-label="Member area"
         className="md:hidden sticky top-0 z-20 bg-paper-deep/95 backdrop-blur-sm border-b border-rule"
       >
-        {/* A fixed 3-column grid rather than a free wrap: six items land
-            as a clean 3x2 block instead of the natural wrap orphaning the
-            last item on its own row. Stays within the viewport (no
-            sideways overflow). */}
+        {/* A fixed 3-column grid rather than a free wrap so items land
+            in clean rows with no sideways overflow. With a count that
+            leaves one item over (7 = 3+3+1), the straggler spans the
+            full row centered, so it reads as a deliberate closing row
+            rather than an orphan stuck in the left column. */}
         <ul className="grid grid-cols-3 max-w-md mx-auto">
-          {ITEMS.map((item) => {
+          {ITEMS.map((item, idx) => {
             const active = isActive(pathname, item.href);
             const showDot = hasDot(item.href);
+            const loneLast =
+              idx === ITEMS.length - 1 && ITEMS.length % 3 === 1;
             return (
-              <li key={item.href} className="flex justify-center">
+              <li
+                key={item.href}
+                className={
+                  loneLast
+                    ? "flex justify-center col-span-3"
+                    : "flex justify-center"
+                }
+              >
                 <Link
                   href={item.href}
                   className={

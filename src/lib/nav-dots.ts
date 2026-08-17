@@ -3,6 +3,7 @@ import { getAllCaseFiles } from "@/lib/case-files";
 import { getAllFieldNotesWithActivity } from "@/lib/field-notes";
 import { getLastViewed as getLoungeLastViewed } from "@/lib/lounge";
 import { getGuildLatestActivityAt } from "@/lib/guild";
+import { getArenaLatestActivityAt } from "@/lib/arena";
 import { latestReceivedCoinAt } from "@/lib/coins";
 
 // Per-section "new content since you were last here" indicators for the
@@ -29,7 +30,12 @@ import { latestReceivedCoinAt } from "@/lib/coins";
 
 const NAV_VIEWED_PREFIX = "nav:viewed:";
 
-export type DottedSection = "case-files" | "field-notes" | "coins" | "guild";
+export type DottedSection =
+  | "case-files"
+  | "field-notes"
+  | "coins"
+  | "guild"
+  | "arena";
 
 export type NavDotState = {
   caseFiles: boolean;
@@ -39,6 +45,9 @@ export type NavDotState = {
   // newer than this member's last visit to /guild. Shared content, like
   // lounge — bumped by markNavViewed when they load the Guild index.
   guild: boolean;
+  // Fires when the newest tile anywhere in the Arena is newer than this
+  // member's last visit to /arena. Same shared-content shape as guild.
+  arena: boolean;
   // Per-member: fires when this member has received a coin newer than
   // their last visit to /notes/coins. Unlike the others, "newness" is
   // personal, not shared content.
@@ -50,6 +59,7 @@ const EMPTY: NavDotState = {
   fieldNotes: false,
   lounge: false,
   guild: false,
+  arena: false,
   coins: false,
 };
 
@@ -145,22 +155,26 @@ export async function getNavDots(
     fieldNotesAt,
     loungeAt,
     guildAt,
+    arenaAt,
     coinsAt,
     viewedCaseFiles,
     viewedFieldNotes,
     viewedLounge,
     viewedGuild,
+    viewedArena,
     viewedCoins,
   ] = await Promise.all([
     getCaseFilesLatestAt(),
     getFieldNotesLatestAt(),
     getLoungeLatestActivityAt(),
     getGuildLatestActivityAt().catch(() => 0),
+    getArenaLatestActivityAt().catch(() => 0),
     latestReceivedCoinAt(e).catch(() => 0),
     getNavViewed(e, "case-files"),
     getNavViewed(e, "field-notes"),
     getLoungeLastViewed(e).catch(() => null),
     getNavViewed(e, "guild"),
+    getNavViewed(e, "arena"),
     getNavViewed(e, "coins"),
   ]);
 
@@ -169,6 +183,7 @@ export async function getNavDots(
     fieldNotes: fieldNotesAt > viewedFieldNotes,
     lounge: loungeAt > (viewedLounge ?? 0),
     guild: guildAt > viewedGuild,
+    arena: arenaAt > viewedArena,
     coins: coinsAt > viewedCoins,
   };
 }

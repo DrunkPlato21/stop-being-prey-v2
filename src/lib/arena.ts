@@ -264,6 +264,23 @@ export async function sealBout(
   return bout;
 }
 
+/** Wall-clock time of the newest tile anywhere in the Arena (the bouts
+    index is scored by lastTileAt), for the nav's new-since-last-visit
+    dot. 0 when the room is empty or unconfigured. */
+export async function getArenaLatestActivityAt(): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const result = await client
+    .zrange<(string | number)[]>(BOUTS_INDEX, 0, 0, {
+      rev: true,
+      withScores: true,
+    })
+    .catch(() => null);
+  if (!Array.isArray(result) || result.length < 2) return 0;
+  const score = Number(result[1]);
+  return Number.isFinite(score) ? score : 0;
+}
+
 /** Stamp announcement guards after a bell fan-out. */
 export async function setBoutFlags(
   id: string,

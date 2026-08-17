@@ -6,6 +6,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
 import { listBouts, type ArenaBout } from "@/lib/arena";
 import { caseNoStr } from "@/lib/arena-constants";
+import { markNavViewed } from "@/lib/nav-dots";
 import { createBoutAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -67,7 +68,11 @@ export default async function ArenaIndexPage() {
     redirect("/notes/sign-in?next=/arena");
   }
 
-  const bouts = await listBouts();
+  const [bouts] = await Promise.all([
+    listBouts(),
+    // Clears the nav's new-in-the-Arena dot, same as the Guild index.
+    markNavViewed("arena", session.email),
+  ]);
   const admin = isAdmin(session.email);
 
   return (
