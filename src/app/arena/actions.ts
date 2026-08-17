@@ -9,8 +9,11 @@ import {
   addTile,
   addWhisper,
   createBout,
+  getBout,
+  getTile,
   isTileType,
-  setBoutStatus,
+  reopenBout,
+  sealBout,
   setMyReaction,
 } from "@/lib/arena";
 
@@ -62,13 +65,29 @@ export async function addTileAction(formData: FormData): Promise<void> {
   revalidatePath(`/arena/${boutId}`);
 }
 
-export async function setBoutStatusAction(formData: FormData): Promise<void> {
+// Sealing IS filing: the stamp (case number, archetype, rules applied)
+// lands with the seal, and the sealed bout is the case file.
+export async function sealBoutAction(formData: FormData): Promise<void> {
   const session = await requireSession();
   if (!session || !isAdmin(session.email)) return;
   const boutId = String(formData.get("boutId") ?? "");
-  const status = String(formData.get("status") ?? "");
-  if (!boutId || (status !== "open" && status !== "sealed")) return;
-  await setBoutStatus(boutId, status);
+  if (!boutId) return;
+  const rawNo = Number.parseInt(String(formData.get("caseNo") ?? ""), 10);
+  await sealBout(boutId, {
+    caseNo: Number.isInteger(rawNo) && rawNo > 0 ? rawNo : null,
+    archetype: String(formData.get("archetype") ?? "") || null,
+    rulesApplied: String(formData.get("rulesApplied") ?? "") || null,
+  });
+  revalidatePath(`/arena/${boutId}`);
+  revalidatePath("/arena");
+}
+
+export async function reopenBoutAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  if (!session || !isAdmin(session.email)) return;
+  const boutId = String(formData.get("boutId") ?? "");
+  if (!boutId) return;
+  await reopenBout(boutId);
   revalidatePath(`/arena/${boutId}`);
   revalidatePath("/arena");
 }
@@ -92,5 +111,10 @@ export async function whisperAction(formData: FormData): Promise<void> {
   const tileId = String(formData.get("tileId") ?? "");
   const body = String(formData.get("body") ?? "");
   if (!tileId) return;
+  // Whispers land on open bouts only; a filed case is settled.
+  const tile = await getTile(tileId);
+  if (!tile) return;
+  const bout = await getBout(tile.boutId);
+  if (!bout || bout.status !== "open") return;
   await addWhisper(tileId, session.email, body);
 }

@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
-import { listBouts } from "@/lib/arena";
+import { listBouts, type ArenaBout } from "@/lib/arena";
+import { caseNoStr } from "@/lib/arena-constants";
 import { createBoutAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -22,6 +23,41 @@ function dateStr(ms: number): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function BoutRows({ bouts }: { bouts: ArenaBout[] }) {
+  return (
+    <>
+      {bouts.map((bout) => (
+        <Link
+          key={bout.id}
+          href={`/arena/${bout.id}`}
+          className="arena-bout-row"
+        >
+          <span className={`arena-chip ${bout.status}`}>
+            <span className="dot" />
+            {bout.status === "open"
+              ? "Open"
+              : bout.caseNo
+                ? `Case ${caseNoStr(bout.caseNo)}`
+                : "Sealed"}
+          </span>
+          <div className="row-title">{bout.title}</div>
+          <div className="arena-meta">
+            {[
+              bout.status === "sealed" && bout.archetype
+                ? bout.archetype
+                : null,
+              dateStr(bout.createdAt),
+              `${bout.tileCount} ${bout.tileCount === 1 ? "tile" : "tiles"}`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </div>
+        </Link>
+      ))}
+    </>
+  );
 }
 
 export default async function ArenaIndexPage() {
@@ -51,19 +87,18 @@ export default async function ArenaIndexPage() {
         </p>
       )}
 
-      {bouts.map((bout) => (
-        <Link key={bout.id} href={`/arena/${bout.id}`} className="arena-bout-row">
-          <span className={`arena-chip ${bout.status}`}>
-            <span className="dot" />
-            {bout.status === "open" ? "Open" : "Sealed"}
-          </span>
-          <div className="row-title">{bout.title}</div>
-          <div className="arena-meta">
-            {dateStr(bout.createdAt)} &middot; {bout.tileCount}{" "}
-            {bout.tileCount === 1 ? "tile" : "tiles"}
-          </div>
-        </Link>
-      ))}
+      <BoutRows bouts={bouts.filter((b) => b.status === "open")} />
+
+      {bouts.some((b) => b.status === "sealed") && (
+        <>
+          <h2 className="arena-shelf-head">The case files</h2>
+          <BoutRows
+            bouts={bouts
+              .filter((b) => b.status === "sealed")
+              .sort((a, b) => (b.caseNo ?? 0) - (a.caseNo ?? 0))}
+          />
+        </>
+      )}
 
       {admin && (
         <div className="arena-tools">

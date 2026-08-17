@@ -4,12 +4,19 @@
 // re-exported from lib/arena.ts.
 
 export const ARENA_MAX_TITLE = 120;
+export const ARENA_MAX_ARCHETYPE = 80;
+export const ARENA_MAX_RULES = 120;
 export const ARENA_MAX_BODY = 8000;
 export const ARENA_MAX_TRANSCRIPT = 8000;
 export const ARENA_MAX_HANDLE = 60;
 export const ARENA_MAX_WHISPER = 1200;
 export const ARENA_MAX_MOVES = 4;
 export const ARENA_MAX_MOVE_LEN = 60;
+
+/** Case numbers render zero-padded, continuing the 001-006 archive. */
+export function caseNoStr(n: number): string {
+  return String(n).padStart(3, "0");
+}
 
 // The tile grammar. Order in a bout is free — real fights don't follow a
 // script — but the types are fixed because they are the case-file

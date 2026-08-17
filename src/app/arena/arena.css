@@ -321,3 +321,18 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
 }
 .arena-tools .submit:hover, .arena-seal-btn:hover,
 .arena-tools .submit:focus-visible, .arena-seal-btn:focus-visible { background: rgba(201, 168, 76, 0.12); outline: none; }
+
+/* ── Case-file dress (sealed bouts) ──────────── */
+.arena-case-meta {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem;
+  letter-spacing: 0.08em; color: var(--a-gold);
+  border: 1px solid var(--a-gold-deep); border-radius: 3px;
+  background: rgba(201, 168, 76, 0.06);
+  display: inline-block; padding: 7px 12px; margin-top: 10px;
+}
+.arena-shelf-head {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--a-ink-muted);
+  border-top: 1px solid var(--a-rule); padding-top: 26px; margin: 34px 0 4px;
+}
+.arena-caseno-input { width: 110px; min-width: 0; flex: none; }

@@ -5,18 +5,22 @@ import { notFound, redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
 import {
+  ARENA_MAX_ARCHETYPE,
+  ARENA_MAX_RULES,
   getBout,
   getTileReactions,
   listTiles,
   listWhispers,
+  nextCaseNo,
   TILE_TYPE_LABEL,
   type ArenaTile,
   type ArenaWhisper,
 } from "@/lib/arena";
+import { caseNoStr } from "@/lib/arena-constants";
 import { formatGuildBody, GUILD_BODY_STYLE } from "@/components/guild/format-body";
 import { TileEngage } from "@/components/arena/TileEngage";
 import { ArenaBench } from "@/components/arena/ArenaBench";
-import { setBoutStatusAction } from "../actions";
+import { reopenBoutAction, sealBoutAction } from "../actions";
 
 export const metadata: Metadata = { title: "The Arena" };
 export const dynamic = "force-dynamic";
@@ -31,6 +35,16 @@ function stamp(ms: number): string {
       weekday: "short",
       hour: "numeric",
       minute: "2-digit",
+    })
+    .toUpperCase();
+}
+
+function fileDate(ms: number): string {
+  return new Date(ms)
+    .toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     })
     .toUpperCase();
 }
@@ -110,12 +124,16 @@ export default async function BoutPage({
   if (!bout) notFound();
 
   const admin = isAdmin(session.email);
+  const sealed = bout.status === "sealed";
   const tiles = await listTiles(id);
-  const [reactions, whispers] = await Promise.all([
+  const [reactions, whispers, defaultCaseNo] = await Promise.all([
     Promise.all(tiles.map((t) => getTileReactions(t.id, session.email))),
     admin
       ? Promise.all(tiles.map((t) => listWhispers(t.id)))
       : Promise.resolve(tiles.map(() => [] as ArenaWhisper[])),
+    admin && !sealed
+      ? bout.caseNo ?? nextCaseNo()
+      : Promise.resolve(null),
   ]);
 
   return (
@@ -127,14 +145,31 @@ export default async function BoutPage({
           </Link>
           <span className={`arena-chip ${bout.status}`}>
             <span className="dot" />
-            {bout.status === "open" ? "Open" : "Sealed"}
+            {!sealed
+              ? "Open"
+              : bout.caseNo
+                ? `Case ${caseNoStr(bout.caseNo)}`
+                : "Sealed"}
           </span>
         </div>
         <h1 className="arena-title">{bout.title}</h1>
-        <div className="arena-meta">
-          {bout.tileCount} {bout.tileCount === 1 ? "tile" : "tiles"} &middot;
-          full transcripts on file
-        </div>
+        {sealed ? (
+          <div className="arena-case-meta">
+            {[
+              bout.caseNo ? `CASE № ${caseNoStr(bout.caseNo)}` : null,
+              bout.archetype ? `ARCHETYPE: ${bout.archetype}` : null,
+              bout.rulesApplied ? `RULES APPLIED: ${bout.rulesApplied}` : null,
+              bout.sealedAt ? `FILED ${fileDate(bout.sealedAt)}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </div>
+        ) : (
+          <div className="arena-meta">
+            {bout.tileCount} {bout.tileCount === 1 ? "tile" : "tiles"} &middot;
+            full transcripts on file
+          </div>
+        )}
       </header>
 
       <div className="arena-tiles">
@@ -160,6 +195,7 @@ export default async function BoutPage({
                 tileId={tile.id}
                 counts={reactions[i].counts}
                 mine={reactions[i].mine}
+                sealed={sealed}
               />
               {admin && <AdminWhispers whispers={whispers[i]} />}
             </div>
@@ -177,31 +213,67 @@ export default async function BoutPage({
         )}
       </div>
 
-      {bout.status === "sealed" && (
+      {sealed && (
         <div className="arena-seal">
           <div className="mark">&#10022; SEALED &#10022;</div>
-          <div>This bout is part of the record.</div>
+          <div>
+            {bout.caseNo
+              ? `Filed as Case № ${caseNoStr(bout.caseNo)}. Part of the record.`
+              : "This bout is part of the record."}
+          </div>
           {bout.sealedAt && <div className="when">{stamp(bout.sealedAt)}</div>}
         </div>
       )}
 
-      {admin && (
+      {admin && !sealed && (
         <>
           <ArenaBench boutId={bout.id} />
           <div className="arena-tools" style={{ marginTop: 14 }}>
-            <form action={setBoutStatusAction}>
+            <h2>Seal &amp; file</h2>
+            <form action={sealBoutAction}>
               <input type="hidden" name="boutId" value={bout.id} />
+              <div className="row">
+                <label>
+                  Case &#8470;
+                  <br />
+                  <input
+                    name="caseNo"
+                    type="number"
+                    min={1}
+                    defaultValue={defaultCaseNo ?? undefined}
+                    className="arena-caseno-input"
+                  />
+                </label>
+                <input
+                  name="archetype"
+                  maxLength={ARENA_MAX_ARCHETYPE}
+                  defaultValue={bout.archetype ?? undefined}
+                  placeholder="Archetype (The Sniper, The Moralizer...)"
+                />
+              </div>
               <input
-                type="hidden"
-                name="status"
-                value={bout.status === "open" ? "sealed" : "open"}
+                name="rulesApplied"
+                maxLength={ARENA_MAX_RULES}
+                defaultValue={bout.rulesApplied ?? undefined}
+                placeholder="Rules applied (e.g. 1, 5)"
               />
               <button type="submit" className="arena-seal-btn">
-                {bout.status === "open" ? "Seal the bout" : "Reopen the bout"}
+                Seal the bout. File it.
               </button>
             </form>
           </div>
         </>
+      )}
+
+      {admin && sealed && (
+        <div className="arena-tools" style={{ marginTop: 14 }}>
+          <form action={reopenBoutAction}>
+            <input type="hidden" name="boutId" value={bout.id} />
+            <button type="submit" className="arena-seal-btn">
+              Reopen the bout
+            </button>
+          </form>
+        </div>
       )}
     </div>
   );

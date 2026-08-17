@@ -46,10 +46,12 @@ const tileWhispersKey = (tileId: string) => `${TILE_PREFIX}${tileId}:whispers`;
 // so the client bench can import them; re-exported here for lib
 // consumers, same split as the Guild's.
 export {
+  ARENA_MAX_ARCHETYPE,
   ARENA_MAX_BODY,
   ARENA_MAX_HANDLE,
   ARENA_MAX_MOVE_LEN,
   ARENA_MAX_MOVES,
+  ARENA_MAX_RULES,
   ARENA_MAX_TITLE,
   ARENA_MAX_TRANSCRIPT,
   ARENA_MAX_WHISPER,
@@ -59,10 +61,12 @@ export {
   type ArenaTileType,
 } from "./arena-constants";
 import {
+  ARENA_MAX_ARCHETYPE,
   ARENA_MAX_BODY,
   ARENA_MAX_HANDLE,
   ARENA_MAX_MOVE_LEN,
   ARENA_MAX_MOVES,
+  ARENA_MAX_RULES,
   ARENA_MAX_TITLE,
   ARENA_MAX_TRANSCRIPT,
   ARENA_MAX_WHISPER,
@@ -77,6 +81,14 @@ export type ArenaBout = {
   sealedAt: number | null;
   lastTileAt: number;
   tileCount: number;
+  // Case-file stamp, assigned at seal time. Sealing IS filing: the
+  // sealed bout is the case file, there is no second document. The
+  // number continues the published sequence (the old markdown files
+  // hold 001-006, so fresh bouts start at 007). Reopening a bout keeps
+  // the stamp so a re-seal doesn't retype it.
+  caseNo: number | null;
+  archetype: string | null;
+  rulesApplied: string | null;
 };
 
 export type ArenaTile = {
@@ -163,6 +175,9 @@ export async function createBout(title: string): Promise<ArenaBout | null> {
     sealedAt: null,
     lastTileAt: now,
     tileCount: 0,
+    caseNo: null,
+    archetype: null,
+    rulesApplied: null,
   };
   await client.set(`${BOUT_PREFIX}${bout.id}`, JSON.stringify(bout));
   await client.zadd(BOUTS_INDEX, { score: now, member: bout.id });
@@ -172,7 +187,13 @@ export async function createBout(title: string): Promise<ArenaBout | null> {
 export async function getBout(id: string): Promise<ArenaBout | null> {
   const client = getClient();
   if (!client) return null;
-  return parse<ArenaBout>(await client.get(`${BOUT_PREFIX}${id}`));
+  const bout = parse<ArenaBout>(await client.get(`${BOUT_PREFIX}${id}`));
+  if (!bout) return null;
+  // Bouts written before the case-file stamp existed lack the fields.
+  bout.caseNo = bout.caseNo ?? null;
+  bout.archetype = bout.archetype ?? null;
+  bout.rulesApplied = bout.rulesApplied ?? null;
+  return bout;
 }
 
 async function saveBout(bout: ArenaBout): Promise<void> {
@@ -192,16 +213,61 @@ export async function listBouts(limit = 30): Promise<ArenaBout[]> {
   return bouts.filter((b): b is ArenaBout => b !== null);
 }
 
-export async function setBoutStatus(
+/**
+ * Seal = file. The stamp (number, archetype, rules) lands with the seal;
+ * from here the bout reads as a case file. Passing caseNo null keeps an
+ * existing stamp's number (the re-seal path).
+ */
+export async function sealBout(
   id: string,
-  status: "open" | "sealed"
+  stamp: {
+    caseNo: number | null;
+    archetype?: string | null;
+    rulesApplied?: string | null;
+  }
 ): Promise<ArenaBout | null> {
   const bout = await getBout(id);
   if (!bout) return null;
-  bout.status = status;
-  bout.sealedAt = status === "sealed" ? Date.now() : null;
+  bout.status = "sealed";
+  bout.sealedAt = Date.now();
+  bout.caseNo =
+    stamp.caseNo && Number.isInteger(stamp.caseNo) && stamp.caseNo > 0
+      ? stamp.caseNo
+      : bout.caseNo;
+  bout.archetype =
+    stamp.archetype?.trim().slice(0, ARENA_MAX_ARCHETYPE) ||
+    bout.archetype ||
+    null;
+  bout.rulesApplied =
+    stamp.rulesApplied?.trim().slice(0, ARENA_MAX_RULES) ||
+    bout.rulesApplied ||
+    null;
   await saveBout(bout);
   return bout;
+}
+
+/** Reopen keeps the case-file stamp; only the status changes. */
+export async function reopenBout(id: string): Promise<ArenaBout | null> {
+  const bout = await getBout(id);
+  if (!bout) return null;
+  bout.status = "open";
+  bout.sealedAt = null;
+  await saveBout(bout);
+  return bout;
+}
+
+// The old markdown archive holds cases 001-006; fresh bouts continue
+// the sequence.
+const FIRST_CASE_NO = 7;
+
+/** Default number for the next seal: one past the highest on file. */
+export async function nextCaseNo(): Promise<number> {
+  const bouts = await listBouts(200);
+  const top = Math.max(
+    FIRST_CASE_NO - 1,
+    ...bouts.map((b) => b.caseNo ?? 0)
+  );
+  return top + 1;
 }
 
 // --------------------------------------------------------------------
@@ -222,7 +288,8 @@ export async function addTile(
   const client = getClient();
   const bout = await getBout(boutId);
   const body = input.body.trim().slice(0, ARENA_MAX_BODY);
-  if (!client || !bout || !body) return null;
+  // A sealed bout is a filed case: reopen it to add tiles.
+  if (!client || !bout || bout.status !== "open" || !body) return null;
 
   const now = Date.now();
   const tile: ArenaTile = {

@@ -25,10 +25,15 @@ export function TileEngage({
   tileId,
   counts,
   mine,
+  sealed = false,
 }: {
   tileId: string;
   counts: Partial<Record<ReactionKey, number>>;
   mine: ReactionKey | null;
+  // Sealed bout = filed case file. Whispers exist to shape an open bout,
+  // so the box closes at the seal; reactions stay — they're part of the
+  // record and late readers still get a voice.
+  sealed?: boolean;
 }) {
   const [local, setLocal] = useState(counts);
   const [my, setMy] = useState<ReactionKey | null>(mine);
@@ -122,16 +127,18 @@ export function TileEngage({
           </button>
         </span>
 
-        <button
-          type="button"
-          className="arena-whisper-btn"
-          onClick={() => setWhispering((w) => !w)}
-        >
-          Whisper
-        </button>
+        {!sealed && (
+          <button
+            type="button"
+            className="arena-whisper-btn"
+            onClick={() => setWhispering((w) => !w)}
+          >
+            Whisper
+          </button>
+        )}
       </div>
 
-      {whispering && !sent && (
+      {!sealed && whispering && !sent && (
         <form
           className="arena-whisper-box"
           action={async (formData: FormData) => {
