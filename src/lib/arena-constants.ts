@@ -18,6 +18,29 @@ export function caseNoStr(n: number): string {
   return String(n).padStart(3, "0");
 }
 
+/** Armory numerals are Roman (MOVE I, MOVE IV) so they read as a
+    different register than case numbers and can't be confused. */
+export function romanNumeral(n: number): string {
+  const table: [number, string][] = [
+    [50, "L"],
+    [40, "XL"],
+    [10, "X"],
+    [9, "IX"],
+    [5, "V"],
+    [4, "IV"],
+    [1, "I"],
+  ];
+  let out = "";
+  let rest = Math.max(1, Math.floor(n));
+  for (const [value, glyph] of table) {
+    while (rest >= value) {
+      out += glyph;
+      rest -= value;
+    }
+  }
+  return out;
+}
+
 // The tile grammar. Order in a bout is free — real fights don't follow a
 // script — but the types are fixed because they are the case-file
 // anatomy: what happened, what it was, what Clay did, what came of it,

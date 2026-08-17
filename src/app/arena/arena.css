@@ -431,3 +431,88 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   border-style: dashed; opacity: 0.75;
 }
 .arsenal-row.backroom .row-title { color: var(--a-ink-muted); font-weight: 400; font-size: 0.98rem; margin: 0; }
+
+/* ── The armory wall: rack plates ────────────── */
+/* Every move mounts the same way: screws, a stamp block (mark +
+   debut-order numeral), notches for bouts on record. The arsenal feel
+   comes from uniform mounting and earned wear, never per-move art. */
+.arsenal-plate {
+  display: grid; grid-template-columns: 74px 1fr;
+  border: 1px solid var(--a-rule); border-radius: 3px;
+  background:
+    linear-gradient(170deg, rgba(255, 245, 220, 0.028), rgba(0, 0, 0, 0.16)),
+    var(--a-tile);
+  margin-bottom: 14px; text-decoration: none; color: inherit;
+  position: relative; overflow: hidden;
+}
+.arena-room a.arsenal-plate { color: inherit; }
+.arsenal-plate::before, .arsenal-plate::after {
+  content: ""; position: absolute; width: 5px; height: 5px;
+  border-radius: 50%; background: #0c0906;
+  box-shadow: inset 0 1px 1px rgba(255, 240, 200, 0.22); top: 8px;
+}
+.arsenal-plate::before { left: 8px; }
+.arsenal-plate::after { right: 8px; }
+.arsenal-plate.opponent { border-left: 2px solid #6b3a26; }
+.arsenal-plate.clay { border-left: 2px solid var(--a-gold-deep); }
+.arsenal-plate:hover, .arsenal-plate:focus-visible {
+  border-color: var(--a-gold-deep); outline: none;
+}
+.arsenal-stampblock {
+  border-right: 1px solid var(--a-rule);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 5px; padding: 16px 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.arsenal-stampblock .mk { font-size: 0.85rem; }
+.arsenal-plate.opponent .mk { color: #d98a6b; }
+.arsenal-plate.clay .mk { color: var(--a-gold); }
+.arsenal-stampblock .num {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.62rem;
+  letter-spacing: 0.14em; color: var(--a-ink-faint); text-align: center;
+}
+.arsenal-stampblock .num b {
+  display: block; font-size: 0.95rem; color: var(--a-ink-muted);
+  font-weight: 400; letter-spacing: 0.08em;
+}
+.arsenal-platebody { display: block; padding: 14px 18px 12px; }
+.arsenal-plate .row-title {
+  display: block; font-size: 1.08rem; font-weight: 700;
+  color: var(--a-ink); letter-spacing: 0.01em; margin: 0;
+}
+.arsenal-plate .arsenal-def { margin-top: 3px; }
+
+.arsenal-notchrow {
+  display: flex; align-items: center; gap: 10px; margin-top: 10px;
+}
+.arsenal-notchgrp {
+  display: inline-flex; align-items: center; position: relative; height: 14px;
+}
+.arsenal-notch {
+  width: 2px; height: 13px; margin-right: 4px; border-radius: 1px;
+  background: linear-gradient(180deg, var(--a-ink-faint), #4a3d2a);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.55);
+}
+.arsenal-plate.opponent .arsenal-notch { background: linear-gradient(180deg, #8a4a30, #5c3220); }
+.arsenal-plate.clay .arsenal-notch { background: linear-gradient(180deg, var(--a-gold-deep), #5c521c); }
+.arsenal-notchcross {
+  position: absolute; left: -2px; right: 2px; top: 5px; height: 2px;
+  border-radius: 1px; transform: rotate(-24deg); background: var(--a-ink-faint);
+}
+.arsenal-plate.opponent .arsenal-notchcross { background: #8a4a30; }
+.arsenal-plate.clay .arsenal-notchcross { background: var(--a-gold-deep); }
+.arsenal-notchlabel {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.62rem;
+  letter-spacing: 0.12em; color: var(--a-ink-faint); text-transform: uppercase;
+}
+
+.arsenal-stamp-inline {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.68rem;
+  letter-spacing: 0.14em; color: var(--a-ink-muted);
+  border: 1px solid var(--a-rule); border-radius: 2px; padding: 4px 9px;
+}
+
+@media (max-width: 480px) {
+  .arsenal-plate { grid-template-columns: 60px 1fr; }
+  .arsenal-stampblock { padding: 12px 4px; }
+}

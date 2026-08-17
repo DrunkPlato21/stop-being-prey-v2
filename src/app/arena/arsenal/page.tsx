@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
 import { ARSENAL_MOVES, MOVE_ROLE_LABEL, type MoveRole } from "@/lib/arsenal";
-import { getMoveBoutCounts } from "@/lib/arena";
+import { getArsenalDebutOrder, getMoveBoutCounts } from "@/lib/arena";
+import { romanNumeral } from "@/lib/arena-constants";
 
 export const metadata: Metadata = {
   title: "The Arsenal",
@@ -22,6 +23,32 @@ export const dynamic = "force-dynamic";
 
 const SHELVES: MoveRole[] = ["opponent", "clay"];
 
+// Notches cut into the plate: one per bout on record, grouped in fives
+// (four strokes and a cross-stroke). Earned wear, straight off the
+// record. Capped at five groups; the label always carries the true
+// count.
+function Notches({ count }: { count: number }) {
+  const shown = Math.min(count, 25);
+  const groups: number[] = [];
+  for (let i = 0; i < Math.floor(shown / 5); i++) groups.push(5);
+  if (shown % 5 > 0) groups.push(shown % 5);
+  return (
+    <span className="arsenal-notchrow">
+      {groups.map((g, gi) => (
+        <span key={gi} className="arsenal-notchgrp" aria-hidden="true">
+          {Array.from({ length: g === 5 ? 4 : g }, (_, i) => (
+            <span key={i} className="arsenal-notch" />
+          ))}
+          {g === 5 && <span className="arsenal-notchcross" />}
+        </span>
+      ))}
+      <span className="arsenal-notchlabel">
+        {count} {count === 1 ? "bout" : "bouts"} on record
+      </span>
+    </span>
+  );
+}
+
 export default async function ArsenalPage() {
   const cookieStore = await cookies();
   const session = await verifySession(cookieStore.get(SESSION_COOKIE)?.value);
@@ -33,6 +60,8 @@ export default async function ArsenalPage() {
   const counts = await getMoveBoutCounts(ARSENAL_MOVES.map((m) => m.slug));
   const debuted = ARSENAL_MOVES.filter((m) => (counts[m.slug] ?? 0) > 0);
   const backroom = ARSENAL_MOVES.filter((m) => (counts[m.slug] ?? 0) === 0);
+  const order = await getArsenalDebutOrder(debuted.map((m) => m.slug));
+  const numeralOf = (slug: string) => romanNumeral(order.indexOf(slug) + 1);
 
   return (
     <div className="arena-wrap">
@@ -71,14 +100,23 @@ export default async function ArsenalPage() {
               <Link
                 key={m.slug}
                 href={`/arena/arsenal/${m.slug}`}
-                className={`arena-bout-row arsenal-row ${m.role}`}
+                className={`arsenal-plate ${m.role}`}
               >
-                <div className="row-title">{m.name}</div>
-                <div className="arsenal-def">{m.definition}</div>
-                <div className="arena-meta">
-                  {counts[m.slug]}{" "}
-                  {counts[m.slug] === 1 ? "bout" : "bouts"} on record
-                </div>
+                <span className="arsenal-stampblock">
+                  <span aria-hidden="true" className="mk">
+                    {m.role === "clay" ? "✦" : "◆"}
+                  </span>
+                  <span className="num">
+                    MOVE<b>{numeralOf(m.slug)}</b>
+                  </span>
+                </span>
+                <span className="arsenal-platebody">
+                  <span className="row-title">{m.name}</span>
+                  <span className="arsenal-def">
+                    {m.definition.replace(/\*/g, "")}
+                  </span>
+                  <Notches count={counts[m.slug] ?? 0} />
+                </span>
               </Link>
             ))}
           </section>

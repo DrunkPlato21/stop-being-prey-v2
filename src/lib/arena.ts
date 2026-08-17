@@ -46,6 +46,10 @@ const tileWhispersKey = (tileId: string) => `${TILE_PREFIX}${tileId}:whispers`;
 // that bout. This is the Arsenal's accretion: a move's page lists every
 // bout it has appeared in, newest first, fed automatically by tagging.
 const moveBoutsKey = (slug: string) => `${KEY_PREFIX}arena:move:${slug}:bouts`;
+// The armory register: ZSET slug -> first-tag timestamp, written NX so
+// the debut moment is permanent. Debut order assigns each move its
+// stamped numeral (MOVE I, MOVE II, ...) on the Arsenal wall.
+const ARSENAL_DEBUTS_KEY = `${KEY_PREFIX}arena:arsenal:debuts`;
 
 // Limits + the tile grammar live in arena-constants.ts (no server deps)
 // so the client bench can import them; re-exported here for lib
@@ -317,13 +321,20 @@ export async function addTile(
   };
   await client.set(`${TILE_PREFIX}${tile.id}`, JSON.stringify(tile));
   await client.zadd(boutTilesKey(boutId), { score: now, member: tile.id });
-  // Feed the Arsenal: each canonical move remembers this bout.
+  // Feed the Arsenal: each canonical move remembers this bout, and the
+  // register records its debut (NX: only the first tag ever counts).
   for (const m of tile.moves) {
-    if (findMove(m)) {
-      await client.zadd(moveBoutsKey(findMove(m)!.slug), {
+    const move = findMove(m);
+    if (move) {
+      await client.zadd(moveBoutsKey(move.slug), {
         score: now,
         member: boutId,
       });
+      await client.zadd(
+        ARSENAL_DEBUTS_KEY,
+        { nx: true },
+        { score: now, member: move.slug }
+      );
     }
   }
   bout.lastTileAt = now;
@@ -358,6 +369,39 @@ export async function getMoveBoutCounts(
     counts[slug] = typeof cards[i] === "number" ? cards[i] : 0;
   });
   return counts;
+}
+
+/**
+ * Slugs in debut order — the armory register that assigns each move its
+ * stamped numeral. Self-heals: a move that has bouts on record but no
+ * register entry (tagged before the register existed) gets one from its
+ * oldest bout score, written NX so the order stays permanent.
+ */
+export async function getArsenalDebutOrder(
+  countedSlugs: string[]
+): Promise<string[]> {
+  const client = getClient();
+  if (!client) return [];
+  let order = await client.zrange<string[]>(ARSENAL_DEBUTS_KEY, 0, -1);
+  const missing = countedSlugs.filter((s) => !order.includes(s));
+  for (const slug of missing) {
+    const first = await client.zrange<(string | number)[]>(
+      moveBoutsKey(slug),
+      0,
+      0,
+      { withScores: true }
+    );
+    const score = typeof first?.[1] === "number" ? first[1] : Date.now();
+    await client.zadd(
+      ARSENAL_DEBUTS_KEY,
+      { nx: true },
+      { score, member: slug }
+    );
+  }
+  if (missing.length > 0) {
+    order = await client.zrange<string[]>(ARSENAL_DEBUTS_KEY, 0, -1);
+  }
+  return order;
 }
 
 /** Bouts a move has appeared in, newest tag first. The Arsenal page's

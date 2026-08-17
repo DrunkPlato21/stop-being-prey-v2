@@ -5,8 +5,8 @@ import { notFound, redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
 import { findMove, MOVE_ROLE_LABEL } from "@/lib/arsenal";
-import { listBoutsForMove } from "@/lib/arena";
-import { caseNoStr } from "@/lib/arena-constants";
+import { getArsenalDebutOrder, listBoutsForMove } from "@/lib/arena";
+import { caseNoStr, romanNumeral } from "@/lib/arena-constants";
 import {
   formatGuildBody,
   GUILD_BODY_STYLE,
@@ -50,6 +50,10 @@ export default async function MovePage({
   // bout. Until then it exists solely in Clay's backroom.
   if (bouts.length === 0 && !admin) notFound();
 
+  const order =
+    bouts.length > 0 ? await getArsenalDebutOrder([move.slug]) : [];
+  const debutIdx = order.indexOf(move.slug);
+
   return (
     <div className="arena-wrap">
       <header className="arena-bout-header">
@@ -67,6 +71,11 @@ export default async function MovePage({
             </span>
             {MOVE_ROLE_LABEL[move.role]}
           </span>
+          {debutIdx >= 0 && (
+            <span className="arsenal-stamp-inline">
+              MOVE {romanNumeral(debutIdx + 1)}
+            </span>
+          )}
         </div>
         <h1 className="arena-title">{move.name}</h1>
         {move.status && <div className="arena-meta">{move.status}</div>}
