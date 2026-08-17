@@ -45,7 +45,9 @@ type Notification = {
     | "guild_mention"
     | "guild_reply"
     | "guild_reaction"
-    | "coin_received";
+    | "coin_received"
+    | "arena_bout"
+    | "arena_case";
   title: string;
   body: string;
   linkUrl: string;
@@ -91,6 +93,25 @@ function TypeGlyph({ type }: { type: Notification["type"] }) {
       return (
         <svg {...common} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+        </svg>
+      );
+    case "arena_bout":
+      // Crossed swords: a fresh fight on the slab.
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <line x1="4" y1="4" x2="19" y2="19" />
+          <line x1="20" y1="4" x2="5" y2="19" />
+          <line x1="3" y1="16" x2="8" y2="21" />
+          <line x1="21" y1="16" x2="16" y2="21" />
+        </svg>
+      );
+    case "arena_case":
+      // The seal: a filed case joins the record.
+      return (
+        <svg {...common} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="10" r="6" />
+          <path d="M12 7l1 2 2 1-2 1-1 2-1-2-2-1 2-1z" />
+          <path d="M9 15l-2 6 5-3 5 3-2-6" />
         </svg>
       );
     case "case_published":

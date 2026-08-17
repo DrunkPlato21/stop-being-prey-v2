@@ -58,7 +58,9 @@ export type NotificationType =
   | "guild_reply"
   | "guild_reaction"
   | "guild_mention"
-  | "coin_received";
+  | "coin_received"
+  | "arena_bout"
+  | "arena_case";
 
 export type Notification = {
   id: string;

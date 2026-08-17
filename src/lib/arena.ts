@@ -98,6 +98,11 @@ export type ArenaBout = {
   caseNo: number | null;
   archetype: string | null;
   rulesApplied: string | null;
+  // Bell fan-out guards: set once when the fight is announced (first
+  // tile) and when the filed case is announced (first seal), so a
+  // reopen-and-reseal never rings twice.
+  announcedAt: number | null;
+  sealAnnouncedAt: number | null;
 };
 
 export type ArenaTile = {
@@ -187,6 +192,8 @@ export async function createBout(title: string): Promise<ArenaBout | null> {
     caseNo: null,
     archetype: null,
     rulesApplied: null,
+    announcedAt: null,
+    sealAnnouncedAt: null,
   };
   await client.set(`${BOUT_PREFIX}${bout.id}`, JSON.stringify(bout));
   await client.zadd(BOUTS_INDEX, { score: now, member: bout.id });
@@ -202,6 +209,8 @@ export async function getBout(id: string): Promise<ArenaBout | null> {
   bout.caseNo = bout.caseNo ?? null;
   bout.archetype = bout.archetype ?? null;
   bout.rulesApplied = bout.rulesApplied ?? null;
+  bout.announcedAt = bout.announcedAt ?? null;
+  bout.sealAnnouncedAt = bout.sealAnnouncedAt ?? null;
   return bout;
 }
 
@@ -253,6 +262,20 @@ export async function sealBout(
     null;
   await saveBout(bout);
   return bout;
+}
+
+/** Stamp announcement guards after a bell fan-out. */
+export async function setBoutFlags(
+  id: string,
+  flags: { announcedAt?: number; sealAnnouncedAt?: number }
+): Promise<void> {
+  const bout = await getBout(id);
+  if (!bout) return;
+  if (flags.announcedAt !== undefined) bout.announcedAt = flags.announcedAt;
+  if (flags.sealAnnouncedAt !== undefined) {
+    bout.sealAnnouncedAt = flags.sealAnnouncedAt;
+  }
+  await saveBout(bout);
 }
 
 /** Reopen keeps the case-file stamp; only the status changes. */

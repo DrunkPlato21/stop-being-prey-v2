@@ -16,6 +16,7 @@ import {
   sealBout,
   setMyReaction,
 } from "@/lib/arena";
+import { announceBoutOpened, announceCaseFiled } from "@/lib/arena-notify";
 
 // Server Actions for the Arena. Same discipline as the Guild's: every
 // action re-verifies the session in the body, because actions are
@@ -48,7 +49,7 @@ export async function addTileAction(formData: FormData): Promise<void> {
   const boutId = String(formData.get("boutId") ?? "");
   const type = String(formData.get("type") ?? "");
   if (!boutId || !isTileType(type)) return;
-  await addTile(boutId, {
+  const tile = await addTile(boutId, {
     type,
     body: String(formData.get("body") ?? ""),
     handle: String(formData.get("handle") ?? "") || null,
@@ -62,6 +63,13 @@ export async function addTileAction(formData: FormData): Promise<void> {
     // /api/arena/upload. Validated against our Blob host in addTile.
     imageUrl: String(formData.get("imageUrl") ?? "") || null,
   });
+  // First tile = the fight is real: ring the bell once.
+  if (tile) {
+    const bout = await getBout(boutId);
+    if (bout && bout.tileCount === 1) {
+      await announceBoutOpened(bout, session.email);
+    }
+  }
   revalidatePath(`/arena/${boutId}`);
 }
 
@@ -73,11 +81,15 @@ export async function sealBoutAction(formData: FormData): Promise<void> {
   const boutId = String(formData.get("boutId") ?? "");
   if (!boutId) return;
   const rawNo = Number.parseInt(String(formData.get("caseNo") ?? ""), 10);
-  await sealBout(boutId, {
+  const bout = await sealBout(boutId, {
     caseNo: Number.isInteger(rawNo) && rawNo > 0 ? rawNo : null,
     archetype: String(formData.get("archetype") ?? "") || null,
     rulesApplied: String(formData.get("rulesApplied") ?? "") || null,
   });
+  // The filed case is the payoff the first bell row promised.
+  if (bout) {
+    await announceCaseFiled(bout, session.email);
+  }
   revalidatePath(`/arena/${boutId}`);
   revalidatePath("/arena");
 }

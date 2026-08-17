@@ -43,6 +43,36 @@ export function TileEngage({
   const [sent, setSent] = useState(false);
   const [, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Facebook grammar on desktop: hovering the React button opens the
+  // tray (after a short intent delay), leaving closes it (with a grace
+  // period so the pointer can travel into the tray), and a plain click
+  // is the quick toggle. Touch devices keep tap-to-open — hover events
+  // there are synthetic and would fight the tap.
+  function canHover() {
+    return (
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: hover)").matches
+    );
+  }
+  function hoverEnter() {
+    if (!canHover()) return;
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    openTimer.current = setTimeout(() => setTrayOpen(true), 300);
+  }
+  function hoverLeave() {
+    if (!canHover()) return;
+    if (openTimer.current) clearTimeout(openTimer.current);
+    closeTimer.current = setTimeout(() => setTrayOpen(false), 280);
+  }
+  useEffect(() => {
+    return () => {
+      if (openTimer.current) clearTimeout(openTimer.current);
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
 
   // Tap-away closes the tray.
   useEffect(() => {
@@ -92,7 +122,11 @@ export function TileEngage({
           </span>
         )}
 
-        <span className="arena-react-anchor">
+        <span
+          className="arena-react-anchor"
+          onMouseEnter={hoverEnter}
+          onMouseLeave={hoverLeave}
+        >
           {trayOpen && (
             <span className="arena-tray" role="menu">
               {ARENA_REACTIONS.map((k, i) => (
@@ -115,7 +149,15 @@ export function TileEngage({
             type="button"
             className={`arena-react-main${my ? " hit" : ""}`}
             aria-expanded={trayOpen}
-            onClick={() => setTrayOpen((o) => !o)}
+            onClick={() => {
+              // Desktop, tray already open via hover: click is the
+              // Facebook quick toggle (like, or un-react).
+              if (canHover() && trayOpen) {
+                choose(my ?? "like");
+                return;
+              }
+              setTrayOpen((o) => !o);
+            }}
           >
             {my ? (
               <span className="chosen" key={burst}>
