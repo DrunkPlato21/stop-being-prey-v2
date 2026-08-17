@@ -36,16 +36,21 @@ export type MemberNavDots = Partial<Record<string, boolean>>;
 // The nav holds only *places*. Personal stuff (account, coins, sign-out)
 // lives in the identity menu under the member's name in the header, so
 // this stays a clean list of destinations instead of a junk drawer.
-// Two clusters, no dividing lines, just whitespace:
-//   1. The rooms: Desk, Lounge, The Guild, The Arena
-//   2. The doctrine + the book: Rules, Case Files, Book
+// Two clusters, no dividing lines, just whitespace — and the second
+// cluster IS the pipeline: the doctrine, the doctrine applied live,
+// the doctrine bound.
+//   1. The rooms members speak in: Desk, Lounge, The Guild
+//   2. Rules, The Arena, Book
+// The Arena took Case Files' seat: sealing a bout is how case files
+// are made now. The old /case-files page stays live (public preview,
+// inbound links, the first six cases) — demoted, not deleted; the
+// Arena index links back to it under its own case-files shelf.
 const ITEMS: NavItem[] = [
   { href: "/desk", label: "Desk" },
   { href: "/lounge", label: "Lounge" },
   { href: "/guild", label: "The Guild" },
-  { href: "/arena", label: "The Arena" },
   { href: "/rules", label: "Rules", clusterBreak: true },
-  { href: "/case-files", label: "Case Files" },
+  { href: "/arena", label: "The Arena" },
   { href: "/book", label: "Book" },
 ];
 

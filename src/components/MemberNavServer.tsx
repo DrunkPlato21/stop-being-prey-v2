@@ -25,7 +25,8 @@ export async function MemberNavServer() {
     "/lounge": state.lounge,
     "/guild": state.guild,
     "/arena": state.arena,
-    "/case-files": state.caseFiles,
+    // "/case-files" left unmapped on purpose: the entry gave its nav
+    // seat to The Arena. The dot machinery stays for the page itself.
     "/notes/field-notes": state.fieldNotes,
     "/notes/coins": state.coins,
   };

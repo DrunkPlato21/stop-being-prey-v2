@@ -159,6 +159,10 @@ export default async function ArenaIndexPage() {
               .sort((a, b) => (b.caseNo ?? 0) - (a.caseNo ?? 0))}
             admin={admin}
           />
+          <p className="arena-archive-link">
+            Cases 001&ndash;006 predate the room.{" "}
+            <Link href="/case-files">They live in the archive &rarr;</Link>
+          </p>
         </>
       )}
 

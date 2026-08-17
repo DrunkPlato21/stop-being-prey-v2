@@ -591,3 +591,8 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   border: 1px solid var(--a-gold-deep); border-radius: 2px;
   padding: 1px 6px; margin-left: 10px;
 }
+
+.arena-archive-link {
+  font-size: 0.82rem; font-style: italic; color: var(--a-ink-faint);
+  margin: 4px 0 0;
+}
