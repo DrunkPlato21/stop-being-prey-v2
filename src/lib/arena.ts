@@ -30,51 +30,44 @@ const TILE_PREFIX = `${KEY_PREFIX}arena:tile:`;
 // Per-bout ZSET of tile ids, score = createdAt (chronological — the
 // tile order IS the bout's meaning).
 const boutTilesKey = (boutId: string) => `${BOUT_PREFIX}${boutId}:tiles`;
-// Per-tile HASH reaction key -> count, plus a per-(tile, reaction) SET of
-// member emails so a member can't double-react and can un-react.
-const tileReactsKey = (tileId: string) => `${TILE_PREFIX}${tileId}:reacts`;
-const tileReactedKey = (tileId: string, key: ReactionKey) =>
-  `${TILE_PREFIX}${tileId}:reacted:${key}`;
+// Per-tile HASH member email -> reaction key. One reaction per member
+// per tile, Facebook semantics: picking a new one replaces, picking the
+// same one removes. Counts are aggregated from this hash on read — a
+// tile's reaction volume is small, so one HGETALL beats maintaining
+// parallel counters that can drift.
+const tileReactedByKey = (tileId: string) =>
+  `${TILE_PREFIX}${tileId}:reactedby`;
 // Per-tile LIST of whisper JSON, newest last. Private: only the admin
 // surfaces read this, ever. Whispers are the member's voice TO Clay; the
 // room hears them only if he quotes one into a later tile.
 const tileWhispersKey = (tileId: string) => `${TILE_PREFIX}${tileId}:whispers`;
 
-export const ARENA_MAX_TITLE = 120;
-export const ARENA_MAX_BODY = 8000;
-export const ARENA_MAX_TRANSCRIPT = 8000;
-export const ARENA_MAX_HANDLE = 60;
-export const ARENA_MAX_WHISPER = 1200;
-export const ARENA_MAX_MOVES = 4;
-export const ARENA_MAX_MOVE_LEN = 60;
-
-// The tile grammar. Order in a bout is free — real fights don't follow a
-// script — but the types are fixed because they are the case-file
-// anatomy: what happened, what it was, what Clay did, what came of it,
-// what it teaches.
-export const TILE_TYPES = [
-  "specimen",
-  "read",
-  "counter",
-  "result",
-  "verdict",
-] as const;
-export type ArenaTileType = (typeof TILE_TYPES)[number];
-
-export function isTileType(value: unknown): value is ArenaTileType {
-  return (
-    typeof value === "string" &&
-    (TILE_TYPES as readonly string[]).includes(value)
-  );
-}
-
-export const TILE_TYPE_LABEL: Record<ArenaTileType, string> = {
-  specimen: "The Specimen",
-  read: "The Read",
-  counter: "The Counter",
-  result: "The Result",
-  verdict: "The Verdict",
-};
+// Limits + the tile grammar live in arena-constants.ts (no server deps)
+// so the client bench can import them; re-exported here for lib
+// consumers, same split as the Guild's.
+export {
+  ARENA_MAX_BODY,
+  ARENA_MAX_HANDLE,
+  ARENA_MAX_MOVE_LEN,
+  ARENA_MAX_MOVES,
+  ARENA_MAX_TITLE,
+  ARENA_MAX_TRANSCRIPT,
+  ARENA_MAX_WHISPER,
+  isTileType,
+  TILE_TYPE_LABEL,
+  TILE_TYPES,
+  type ArenaTileType,
+} from "./arena-constants";
+import {
+  ARENA_MAX_BODY,
+  ARENA_MAX_HANDLE,
+  ARENA_MAX_MOVE_LEN,
+  ARENA_MAX_MOVES,
+  ARENA_MAX_TITLE,
+  ARENA_MAX_TRANSCRIPT,
+  ARENA_MAX_WHISPER,
+  type ArenaTileType,
+} from "./arena-constants";
 
 export type ArenaBout = {
   id: string;
@@ -99,6 +92,10 @@ export type ArenaTile = {
   // Move names tagged on this tile. Free text in the prototype; becomes
   // taxonomy ids when the Arsenal is real.
   moves: string[];
+  // Pasted screenshot (Ctrl+V in the bench), resized client-side and
+  // stored in our Blob store. Any tile type may carry one; the specimen
+  // usually does.
+  imageUrl: string | null;
   createdAt: number;
 };
 
@@ -110,8 +107,25 @@ export type ArenaWhisper = {
 
 export type TileReactions = {
   counts: Partial<Record<ReactionKey, number>>;
-  mine: ReactionKey[];
+  mine: ReactionKey | null;
 };
+
+// Only tile images from our own Blob store render; same rule as the
+// Lounge and Guild, so a crafted URL can't make the site hotlink
+// arbitrary hosts.
+const BLOB_HOST_RE = /\.public\.blob\.vercel-storage\.com$/i;
+
+function sanitizeImageUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "https:" && BLOB_HOST_RE.test(url.hostname)
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 let cached: Redis | null = null;
 function getClient(): Redis | null {
@@ -202,6 +216,7 @@ export async function addTile(
     handle?: string | null;
     transcript?: string | null;
     moves?: string[];
+    imageUrl?: string | null;
   }
 ): Promise<ArenaTile | null> {
   const client = getClient();
@@ -221,6 +236,7 @@ export async function addTile(
       .map((m) => m.trim().slice(0, ARENA_MAX_MOVE_LEN))
       .filter(Boolean)
       .slice(0, ARENA_MAX_MOVES),
+    imageUrl: sanitizeImageUrl(input.imageUrl),
     createdAt: now,
   };
   await client.set(`${TILE_PREFIX}${tile.id}`, JSON.stringify(tile));
@@ -251,23 +267,29 @@ export async function listTiles(boutId: string): Promise<ArenaTile[]> {
 // Reactions (public, wordless, per tile)
 // --------------------------------------------------------------------
 
-export async function toggleReaction(
+/**
+ * Facebook semantics: one reaction per member per tile. A new key
+ * replaces the old one; passing the member's current key (or null)
+ * removes it.
+ */
+export async function setMyReaction(
   tileId: string,
   email: string,
-  key: string
-): Promise<TileReactions | null> {
+  key: string | null
+): Promise<void> {
   const client = getClient();
-  if (!client || !isReactionKey(key)) return null;
-  const setKey = tileReactedKey(tileId, key);
-  const already = await client.sismember(setKey, email);
-  if (already) {
-    await client.srem(setKey, email);
-    await client.hincrby(tileReactsKey(tileId), key, -1);
-  } else {
-    await client.sadd(setKey, email);
-    await client.hincrby(tileReactsKey(tileId), key, 1);
+  if (!client) return;
+  const hashKey = tileReactedByKey(tileId);
+  if (key === null || !isReactionKey(key)) {
+    await client.hdel(hashKey, email);
+    return;
   }
-  return getTileReactions(tileId, email);
+  const current = await client.hget<string>(hashKey, email);
+  if (current === key) {
+    await client.hdel(hashKey, email);
+  } else {
+    await client.hset(hashKey, { [email]: key });
+  }
 }
 
 export async function getTileReactions(
@@ -275,24 +297,16 @@ export async function getTileReactions(
   email: string | null
 ): Promise<TileReactions> {
   const client = getClient();
-  if (!client) return { counts: {}, mine: [] };
+  if (!client) return { counts: {}, mine: null };
   const raw =
-    (await client.hgetall<Record<string, string | number>>(
-      tileReactsKey(tileId)
-    )) ?? {};
+    (await client.hgetall<Record<string, string>>(tileReactedByKey(tileId))) ??
+    {};
   const counts: Partial<Record<ReactionKey, number>> = {};
-  for (const [k, v] of Object.entries(raw)) {
-    const n = Number(v);
-    if (isReactionKey(k) && n > 0) counts[k] = n;
-  }
-  const mine: ReactionKey[] = [];
-  if (email) {
-    await Promise.all(
-      (Object.keys(counts) as ReactionKey[]).map(async (k) => {
-        if (await client.sismember(tileReactedKey(tileId, k), email))
-          mine.push(k);
-      })
-    );
+  let mine: ReactionKey | null = null;
+  for (const [member, k] of Object.entries(raw)) {
+    if (!isReactionKey(k)) continue;
+    counts[k] = (counts[k] ?? 0) + 1;
+    if (email && member === email) mine = k;
   }
   return { counts, mine };
 }

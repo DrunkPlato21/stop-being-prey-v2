@@ -9,14 +9,14 @@ import {
   getTileReactions,
   listTiles,
   listWhispers,
-  TILE_TYPES,
   TILE_TYPE_LABEL,
   type ArenaTile,
   type ArenaWhisper,
 } from "@/lib/arena";
 import { formatGuildBody, GUILD_BODY_STYLE } from "@/components/guild/format-body";
 import { TileEngage } from "@/components/arena/TileEngage";
-import { addTileAction, setBoutStatusAction } from "../actions";
+import { ArenaBench } from "@/components/arena/ArenaBench";
+import { setBoutStatusAction } from "../actions";
 
 export const metadata: Metadata = { title: "The Arena" };
 export const dynamic = "force-dynamic";
@@ -35,11 +35,20 @@ function stamp(ms: number): string {
     .toUpperCase();
 }
 
+// Plain <img> for tile shots on purpose: Blob URLs on a member-only
+// page; next/image transforms would bill per unique screenshot for an
+// audience of members.
+function TileShot({ url }: { url: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className="arena-tile-img" src={url} alt="Screenshot" />;
+}
+
 function TileBody({ tile }: { tile: ArenaTile }) {
   if (tile.type === "specimen") {
     return (
       <>
         <div className="arena-shot">
+          {tile.imageUrl && <TileShot url={tile.imageUrl} />}
           {tile.handle && <div className="arena-shot-handle">{tile.handle}</div>}
           <div className="arena-shot-body">{tile.body}</div>
         </div>
@@ -57,10 +66,16 @@ function TileBody({ tile }: { tile: ArenaTile }) {
       <>
         <div className="arena-counter-line">&ldquo;{tile.body}&rdquo;</div>
         <div className="arena-byline">Clay &middot; posted live</div>
+        {tile.imageUrl && <TileShot url={tile.imageUrl} />}
       </>
     );
   }
-  return <div style={GUILD_BODY_STYLE}>{formatGuildBody(tile.body)}</div>;
+  return (
+    <>
+      <div style={GUILD_BODY_STYLE}>{formatGuildBody(tile.body)}</div>
+      {tile.imageUrl && <TileShot url={tile.imageUrl} />}
+    </>
+  );
 }
 
 function AdminWhispers({ whispers }: { whispers: ArenaWhisper[] }) {
@@ -171,43 +186,22 @@ export default async function BoutPage({
       )}
 
       {admin && (
-        <div className="arena-tools">
-          <h2>The bench</h2>
-          <form action={addTileAction}>
-            <input type="hidden" name="boutId" value={bout.id} />
-            <div className="row">
-              <label>
-                Tile
-                <br />
-                <select name="type">
-                  {TILE_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {TILE_TYPE_LABEL[t]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <input name="handle" maxLength={60} placeholder="Handle (specimen only, optional)" />
-            </div>
-            <textarea name="body" required placeholder="The tile. Their words for a specimen, your line for a counter, your read for the rest." />
-            <textarea name="transcript" placeholder="Full transcript (specimen only, optional). The durable record." />
-            <input name="moves" maxLength={260} placeholder="Move tags, comma-separated (optional)" />
-            <button type="submit" className="submit">
-              Post tile
-            </button>
-          </form>
-          <form action={setBoutStatusAction} style={{ marginTop: 14 }}>
-            <input type="hidden" name="boutId" value={bout.id} />
-            <input
-              type="hidden"
-              name="status"
-              value={bout.status === "open" ? "sealed" : "open"}
-            />
-            <button type="submit" className="arena-seal-btn">
-              {bout.status === "open" ? "Seal the bout" : "Reopen the bout"}
-            </button>
-          </form>
-        </div>
+        <>
+          <ArenaBench boutId={bout.id} />
+          <div className="arena-tools" style={{ marginTop: 14 }}>
+            <form action={setBoutStatusAction}>
+              <input type="hidden" name="boutId" value={bout.id} />
+              <input
+                type="hidden"
+                name="status"
+                value={bout.status === "open" ? "sealed" : "open"}
+              />
+              <button type="submit" className="arena-seal-btn">
+                {bout.status === "open" ? "Seal the bout" : "Reopen the bout"}
+              </button>
+            </form>
+          </div>
+        </>
       )}
     </div>
   );

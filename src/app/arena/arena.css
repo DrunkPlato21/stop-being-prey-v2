@@ -133,22 +133,67 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
   text-transform: uppercase; color: var(--a-gold);
 }
 
-/* Engagement row */
+/* Engagement row — Facebook grammar: the row shows only what the tile
+   has earned (the cluster + count); the tray appears on demand. */
 .arena-engage {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   border-top: 1px solid var(--a-rule-soft);
   margin-top: 12px; padding-top: 10px;
 }
-.arena-react-btn {
+.arena-sum {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--a-ink-muted); font-size: 0.9rem;
+  animation: arena-bump 0.35s ease-out;
+}
+.arena-sum-emoji { display: inline-flex; }
+.arena-sum-emoji span { margin-right: -4px; text-shadow: 0 0 4px var(--a-ground); }
+.arena-sum-emoji span:last-child { margin-right: 0; }
+.arena-sum .n { font-family: ui-monospace, Consolas, monospace; font-size: 0.74rem; font-variant-numeric: tabular-nums; margin-left: 6px; }
+@keyframes arena-bump { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+
+.arena-react-anchor { position: relative; display: inline-flex; }
+.arena-react-main {
   font-family: inherit; cursor: pointer; border-radius: 3px;
   background: transparent; border: 1px solid var(--a-rule);
-  color: var(--a-ink-muted); font-size: 0.82rem; padding: 3px 10px;
-  display: inline-flex; gap: 6px; align-items: center;
+  color: var(--a-ink-muted); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; padding: 6px 14px;
   transition: border-color 0.15s, color 0.15s;
 }
-.arena-react-btn .n { font-family: ui-monospace, Consolas, monospace; font-size: 0.7rem; font-variant-numeric: tabular-nums; }
-.arena-react-btn:hover, .arena-react-btn:focus-visible { border-color: var(--a-gold-deep); color: var(--a-gold); outline: none; }
-.arena-react-btn.hit { border-color: var(--a-gold-deep); color: var(--a-gold); }
+.arena-react-main:hover, .arena-react-main:focus-visible { border-color: var(--a-gold-deep); color: var(--a-gold); outline: none; }
+.arena-react-main.hit { border-color: var(--a-gold-deep); color: var(--a-gold); }
+.arena-react-main .chosen { display: inline-block; animation: arena-pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes arena-pop {
+  0% { transform: scale(0.4) rotate(-12deg); }
+  55% { transform: scale(1.35) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* The tray: pops up over the React button, each face staggering in. */
+.arena-tray {
+  position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 20;
+  display: flex; gap: 2px; padding: 6px 8px;
+  background: var(--a-raised); border: 1px solid var(--a-gold-deep);
+  border-radius: 22px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
+}
+.arena-tray-btn {
+  cursor: pointer; background: transparent; border: 0;
+  font-size: 1.35rem; line-height: 1; padding: 4px 5px; border-radius: 50%;
+  transform-origin: bottom center;
+  animation: arena-tray-in 0.28s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  transition: transform 0.12s ease-out;
+}
+.arena-tray-btn:hover, .arena-tray-btn:focus-visible { transform: scale(1.45) translateY(-4px); outline: none; }
+.arena-tray-btn.mine { background: rgba(201, 168, 76, 0.18); }
+@keyframes arena-tray-in {
+  0% { opacity: 0; transform: translateY(10px) scale(0.3); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arena-sum, .arena-react-main .chosen { animation: none; }
+  .arena-tray-btn { animation: none; transition: none; }
+  .arena-tray-btn:hover, .arena-tray-btn:focus-visible { transform: scale(1.15); }
+}
 .arena-whisper-btn {
   margin-left: auto; cursor: pointer; border-radius: 3px;
   background: transparent; border: 1px solid var(--a-rule);
@@ -220,6 +265,35 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
 .arena-bout-row:hover { border-color: var(--a-gold-deep); }
 .arena-bout-row .row-title { color: var(--a-ink); font-size: 1.1rem; font-weight: 700; margin: 6px 0 4px; }
 .arena-empty { color: var(--a-ink-faint); font-style: italic; padding: 30px 0; }
+
+/* Tile screenshots */
+.arena-tile-img {
+  display: block; max-width: 100%; height: auto;
+  border: 1px solid var(--a-rule-soft); border-radius: 6px;
+  margin: 4px 0 10px;
+}
+.arena-shot .arena-tile-img { border: 0; border-radius: 4px; margin: 0 0 10px; }
+
+/* Bench image affordances */
+.arena-bench-note { font-size: 0.78rem; color: var(--a-ink-faint); font-style: italic; }
+.arena-bench-err { font-size: 0.78rem; color: var(--a-rust); }
+.arena-bench-pick {
+  cursor: pointer; background: none; border: 0; padding: 0;
+  color: var(--a-gold); font: inherit; font-style: italic; text-decoration: underline;
+}
+.arena-bench-pick:focus-visible { outline: 1px solid var(--a-gold-deep); }
+.arena-bench-preview { display: flex; align-items: flex-start; gap: 12px; }
+.arena-bench-preview img {
+  max-width: 220px; max-height: 160px; height: auto;
+  border: 1px solid var(--a-rule); border-radius: 4px;
+}
+.arena-bench-remove {
+  cursor: pointer; background: transparent; border: 1px solid var(--a-rule);
+  color: var(--a-ink-muted); border-radius: 3px; padding: 5px 10px;
+  font-family: inherit; font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+.arena-bench-remove:hover { border-color: var(--a-rust); color: var(--a-rust); }
 
 /* ── Clay's tools (composer, seal) ───────────── */
 .arena-tools {

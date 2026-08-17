@@ -11,7 +11,7 @@ import {
   createBout,
   isTileType,
   setBoutStatus,
-  toggleReaction,
+  setMyReaction,
 } from "@/lib/arena";
 
 // Server Actions for the Arena. Same discipline as the Guild's: every
@@ -55,6 +55,9 @@ export async function addTileAction(formData: FormData): Promise<void> {
       .split(",")
       .map((m) => m.trim())
       .filter(Boolean),
+    // Set by the bench after a Ctrl+V paste uploads through
+    // /api/arena/upload. Validated against our Blob host in addTile.
+    imageUrl: String(formData.get("imageUrl") ?? "") || null,
   });
   revalidatePath(`/arena/${boutId}`);
 }
@@ -72,13 +75,13 @@ export async function setBoutStatusAction(formData: FormData): Promise<void> {
 
 // ---- Members -------------------------------------------------------
 
-export async function toggleReactionAction(
+export async function setReactionAction(
   tileId: string,
-  key: string
+  key: string | null
 ): Promise<void> {
   const session = await requireSession();
   if (!session || !tileId) return;
-  await toggleReaction(tileId, session.email, key);
+  await setMyReaction(tileId, session.email, key);
   // No revalidate: the client updates optimistically; the true counts
   // arrive on the next natural render. Calm surface, no refresh churn.
 }
