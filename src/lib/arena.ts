@@ -339,6 +339,27 @@ export async function getTile(id: string): Promise<ArenaTile | null> {
   return parse<ArenaTile>(await client.get(`${TILE_PREFIX}${id}`));
 }
 
+/**
+ * How many bouts each move has been tagged in. The Arsenal's visibility
+ * rule reads straight off the record: a move is public the first time
+ * Clay tags it in a bout, never before. Read-side truth (ZCARD per
+ * move) so there is no debut flag to manage or drift.
+ */
+export async function getMoveBoutCounts(
+  slugs: string[]
+): Promise<Record<string, number>> {
+  const client = getClient();
+  const counts: Record<string, number> = {};
+  if (!client) return counts;
+  const cards = await Promise.all(
+    slugs.map((slug) => client.zcard(moveBoutsKey(slug)).catch(() => 0))
+  );
+  slugs.forEach((slug, i) => {
+    counts[slug] = typeof cards[i] === "number" ? cards[i] : 0;
+  });
+  return counts;
+}
+
 /** Bouts a move has appeared in, newest tag first. The Arsenal page's
     "seen in the record" list. */
 export async function listBoutsForMove(slug: string): Promise<ArenaBout[]> {

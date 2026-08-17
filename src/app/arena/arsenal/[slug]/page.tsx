@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { isAdmin } from "@/lib/comments";
 import { findMove, MOVE_ROLE_LABEL } from "@/lib/arsenal";
 import { listBoutsForMove } from "@/lib/arena";
 import { caseNoStr } from "@/lib/arena-constants";
@@ -43,7 +44,11 @@ export default async function MovePage({
   const move = findMove(slug);
   if (!move) notFound();
 
+  const admin = isAdmin(session.email);
   const bouts = await listBoutsForMove(move.slug);
+  // Visibility law: a move is public only once it has appeared in a
+  // bout. Until then it exists solely in Clay's backroom.
+  if (bouts.length === 0 && !admin) notFound();
 
   return (
     <div className="arena-wrap">
@@ -93,8 +98,8 @@ export default async function MovePage({
         <h2 className="arena-shelf-head">Seen in the record</h2>
         {bouts.length === 0 && (
           <p className="arena-empty">
-            Not yet tagged in a bout. It will show up here the first time
-            it does.
+            Still in the backroom. It goes public the first time you tag
+            it in a bout.
           </p>
         )}
         {bouts.map((bout) => (

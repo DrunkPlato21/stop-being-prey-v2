@@ -419,3 +419,15 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   font-family: ui-monospace, Consolas, monospace; font-size: 0.7rem;
   color: var(--a-ink-faint); padding-top: 8px;
 }
+
+/* ── The backroom (Clay's undebuted moves) ───── */
+.arsenal-backroom { margin-top: 44px; }
+.arsenal-backroom .arena-shelf-head { color: var(--a-ink-faint); border-top-style: dashed; }
+.arsenal-backroom-note {
+  font-size: 0.85rem; font-style: italic; color: var(--a-ink-faint);
+  margin: 0 0 14px; max-width: 52ch;
+}
+.arsenal-row.backroom {
+  border-style: dashed; opacity: 0.75;
+}
+.arsenal-row.backroom .row-title { color: var(--a-ink-muted); font-weight: 400; font-size: 0.98rem; margin: 0; }
