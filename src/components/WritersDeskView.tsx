@@ -1142,10 +1142,24 @@ export function WritersDeskView({
                 </Link>
               </div>
               {rooms.lounge.latest ? (
+                // Same murmur grammar as the Guild's "Active now": small
+                // faint eyebrow over an italic line over a byline, so the
+                // section's quiet tier reads as one voice.
                 <Link
                   href={`/lounge#post-${rooms.lounge.latest.id}`}
-                  className="group block no-underline mt-1.5"
+                  className="group block no-underline mt-4"
                 >
+                  <p
+                    className="eyebrow"
+                    style={{
+                      color: "var(--ink-faint)",
+                      letterSpacing: "0.22em",
+                      fontSize: "0.58rem",
+                      marginBottom: "0.35rem",
+                    }}
+                  >
+                    Overheard
+                  </p>
                   <p
                     className="font-serif italic text-ink leading-snug line-clamp-2 group-hover:text-eye-deep transition-colors"
                     style={{ fontSize: "1.02rem" }}

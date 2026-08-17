@@ -165,27 +165,6 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
             );
           })}
         </ul>
-
-        {/* Ornamental tail beneath the sidebar items. Three olive
-            dots, generous tracking, decorative only. Anchors the
-            nav as a contained unit and adds editorial polish. */}
-        <p
-          aria-hidden="true"
-          className="font-display text-center select-none"
-          style={{
-            color: "var(--eye-deep)",
-            fontSize: "1.1rem",
-            letterSpacing: "0.6em",
-            marginTop: "3rem",
-            marginBottom: "1rem",
-            // Letter-spacing on the last char pushes the visual
-            // center right; nudge back so the row sits centered.
-            paddingRight: "0.6em",
-            opacity: 0.78,
-          }}
-        >
-          &middot;&middot;&middot;
-        </p>
       </aside>
     </>
   );

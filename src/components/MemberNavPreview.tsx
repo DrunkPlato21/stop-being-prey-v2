@@ -115,24 +115,6 @@ export function MemberNavPreview() {
             </li>
           ))}
         </ul>
-
-        {/* Ornamental tail. Mirrors MemberNav's three-dot rule so
-            the preview reads as the same chrome. */}
-        <p
-          aria-hidden="true"
-          className="font-display text-center select-none"
-          style={{
-            color: "var(--eye-deep)",
-            fontSize: "1.1rem",
-            letterSpacing: "0.6em",
-            marginTop: "3rem",
-            marginBottom: "1rem",
-            paddingRight: "0.6em",
-            opacity: 0.78,
-          }}
-        >
-          &middot;&middot;&middot;
-        </p>
       </aside>
     </>
   );
