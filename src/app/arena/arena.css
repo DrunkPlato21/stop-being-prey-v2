@@ -528,9 +528,15 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   margin: 0 0 12px;
 }
 .arena-commons-paper {
-  background: #f5efe1; border-radius: 4px; padding: 10px 26px 26px;
+  /* Toned a notch below the site's full cream and seated with a
+     shadow, so it reads as a lit document on the dark desk rather
+     than a glowing white hole in the page. */
+  background: linear-gradient(180deg, #f0e8d5, #e9dfc9);
+  border: 1px solid #4a3d28;
+  border-radius: 4px; padding: 10px 26px 26px;
   color: #1a1714;
   --ink-soft: #3d3530;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 .arena-commons-paper a { color: #8a7d20; }
 @media (max-width: 480px) {
@@ -562,3 +568,9 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   font-size: 0.78rem; font-style: italic; color: var(--a-ink-faint);
   margin: 10px 0 0; max-width: 52ch;
 }
+
+.arena-lock-note {
+  font-size: 0.78rem; font-style: italic; color: var(--a-ink-muted);
+  margin-top: 8px;
+}
+.arena-lock-note a { color: var(--a-gold); }

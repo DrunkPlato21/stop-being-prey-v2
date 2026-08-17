@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { isAdmin } from "@/lib/comments";
+import { isAdmin, isApproved, listCommentsForSlug } from "@/lib/comments";
 import {
   ARENA_MAX_ARCHETYPE,
   ARENA_MAX_RULES,
@@ -155,6 +155,15 @@ export default async function BoutPage({
   const anon = !session;
   const admin = session ? isAdmin(session.email) : false;
   const sealed = bout.status === "sealed";
+  // Public readers only see the comments sheet when there's real member
+  // discussion on it (social proof). An empty sheet would be a glowing
+  // blank rectangle whose only content is a second membership pitch —
+  // the "Take a seat" block below stays the single pitch instead.
+  const showCommons =
+    sealed &&
+    (!anon ||
+      (await listCommentsForSlug("case-file", bout.id)).filter(isApproved)
+        .length > 0);
   const tiles = await listTiles(id);
   const [reactions, whispers, defaultCaseNo] = await Promise.all([
     Promise.all(
@@ -262,7 +271,7 @@ export default async function BoutPage({
           approval-gated comments under the filed case, rendered as a
           sheet of paper in the dark room. Nothing ever races the
           verdict. Keyed by bout id (immutable), not case number. */}
-      {sealed && (
+      {showCommons && (
         <section className="arena-commons">
           <p className="arena-commons-note">
             The bout is filed. The floor is open.

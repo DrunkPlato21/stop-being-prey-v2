@@ -46,6 +46,7 @@ export function TileEngage({
   const [burst, setBurst] = useState(0);
   const [whispering, setWhispering] = useState(false);
   const [sent, setSent] = useState(false);
+  const [lockNote, setLockNote] = useState(false);
   const [, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -111,21 +112,42 @@ export function TileEngage({
   const total = present.reduce((sum, k) => sum + (local[k] ?? 0), 0);
 
   if (!canEngage) {
-    if (total === 0) return null;
+    // Public reader: the earned reactions are part of the record, and
+    // the React button is deliberately present but locked — pressing it
+    // is the strongest conversion moment on the page, so the itch gets
+    // the pitch right where it happens.
     return (
-      <div className="arena-engage">
-        <span className="arena-sum">
-          <span className="arena-sum-emoji">
-            {present
-              .sort((a, b) => (local[b] ?? 0) - (local[a] ?? 0))
-              .slice(0, 3)
-              .map((k) => (
-                <span key={k}>{REACTION_EMOJI[k]}</span>
-              ))}
-          </span>
-          <span className="n">{total}</span>
-        </span>
-      </div>
+      <>
+        <div className="arena-engage">
+          {total > 0 && (
+            <span className="arena-sum">
+              <span className="arena-sum-emoji">
+                {present
+                  .sort((a, b) => (local[b] ?? 0) - (local[a] ?? 0))
+                  .slice(0, 3)
+                  .map((k) => (
+                    <span key={k}>{REACTION_EMOJI[k]}</span>
+                  ))}
+              </span>
+              <span className="n">{total}</span>
+            </span>
+          )}
+          <button
+            type="button"
+            className="arena-react-main"
+            aria-expanded={lockNote}
+            onClick={() => setLockNote((v) => !v)}
+          >
+            React
+          </button>
+        </div>
+        {lockNote && (
+          <div className="arena-lock-note">
+            Reactions belong to the room.{" "}
+            <a href="/membership?src=arena-react">Take a seat &rarr;</a>
+          </div>
+        )}
+      </>
     );
   }
 
