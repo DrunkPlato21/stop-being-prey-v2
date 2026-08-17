@@ -26,35 +26,87 @@ function dateStr(ms: number): string {
   });
 }
 
-function BoutRows({ bouts }: { bouts: ArenaBout[] }) {
+function relative(ms: number, now: number): string {
+  const diff = Math.max(0, now - ms);
+  const min = Math.floor(diff / 60_000);
+  if (min < 60) return `${Math.max(1, min)}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const days = Math.floor(hr / 24);
+  if (days < 30) return `${days}d ago`;
+  return dateStr(ms);
+}
+
+// An open bout is LIVE while the breakdown is actually moving; after
+// the window it's honestly OPEN. Never a stale LIVE badge — that's the
+// performance tax the workshop design refuses to pay.
+const LIVE_WINDOW_MS = 12 * 60 * 60 * 1000;
+
+// Open bouts: the slab. LIVE with a pulse while the breakdown is
+// moving, OPEN after; relative time so freshness reads at a glance.
+function OpenRows({ bouts, now }: { bouts: ArenaBout[]; now: number }) {
+  return (
+    <>
+      {bouts.map((bout) => {
+        const live = now - bout.lastTileAt < LIVE_WINDOW_MS;
+        return (
+          <Link
+            key={bout.id}
+            href={`/arena/${bout.id}`}
+            className={`arena-bout-row slab${live ? " live" : ""}`}
+          >
+            <span className={`arena-chip ${live ? "open" : "sealed"}`}>
+              <span className="dot" />
+              {live ? "Live" : "Open"}
+            </span>
+            <div className="row-title">{bout.title}</div>
+            <div className="arena-meta">
+              {bout.tileCount === 0
+                ? `opened ${relative(bout.createdAt, now)}`
+                : `${bout.tileCount} ${bout.tileCount === 1 ? "tile" : "tiles"} · ${relative(bout.lastTileAt, now)}`}
+            </div>
+          </Link>
+        );
+      })}
+    </>
+  );
+}
+
+// Filed cases: the drawer. Same stamp-plate grammar as the Arsenal
+// wall, so the whole room speaks one language.
+function CaseRows({ bouts, admin }: { bouts: ArenaBout[]; admin: boolean }) {
   return (
     <>
       {bouts.map((bout) => (
         <Link
           key={bout.id}
           href={`/arena/${bout.id}`}
-          className="arena-bout-row"
+          className="arsenal-plate case"
         >
-          <span className={`arena-chip ${bout.status}`}>
-            <span className="dot" />
-            {bout.status === "open"
-              ? "Open"
-              : bout.caseNo
-                ? `Case ${caseNoStr(bout.caseNo)}`
-                : "Sealed"}
+          <span className="arsenal-stampblock">
+            <span aria-hidden="true" className="mk">
+              &#10022;
+            </span>
+            <span className="num">
+              CASE
+              <b>{bout.caseNo ? caseNoStr(bout.caseNo) : "—"}</b>
+            </span>
           </span>
-          <div className="row-title">{bout.title}</div>
-          <div className="arena-meta">
-            {[
-              bout.status === "sealed" && bout.archetype
-                ? bout.archetype
-                : null,
-              dateStr(bout.createdAt),
-              `${bout.tileCount} ${bout.tileCount === 1 ? "tile" : "tiles"}`,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </div>
+          <span className="arsenal-platebody">
+            <span className="row-title">{bout.title}</span>
+            <span className="arena-meta" style={{ display: "block", marginTop: 4 }}>
+              {[
+                bout.archetype,
+                bout.sealedAt ? `filed ${dateStr(bout.sealedAt)}` : null,
+                `${bout.tileCount} ${bout.tileCount === 1 ? "tile" : "tiles"}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              {admin && bout.publicAt && (
+                <span className="arena-public-tag">PUBLIC</span>
+              )}
+            </span>
+          </span>
         </Link>
       ))}
     </>
@@ -93,15 +145,19 @@ export default async function ArenaIndexPage() {
         </p>
       )}
 
-      <BoutRows bouts={bouts.filter((b) => b.status === "open")} />
+      <OpenRows
+        bouts={bouts.filter((b) => b.status === "open")}
+        now={Date.now()}
+      />
 
       {bouts.some((b) => b.status === "sealed") && (
         <>
           <h2 className="arena-shelf-head">The case files</h2>
-          <BoutRows
+          <CaseRows
             bouts={bouts
               .filter((b) => b.status === "sealed")
               .sort((a, b) => (b.caseNo ?? 0) - (a.caseNo ?? 0))}
+            admin={admin}
           />
         </>
       )}

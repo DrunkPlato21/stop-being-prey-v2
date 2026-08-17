@@ -574,3 +574,20 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   margin-top: 8px;
 }
 .arena-lock-note a { color: var(--a-gold); }
+
+/* ── Index dressing ──────────────────────────── */
+.arena-bout-row.slab { border-left: 2px solid var(--a-rule); }
+.arena-bout-row.slab.live {
+  border-left: 2px solid var(--a-gold-deep);
+  background:
+    linear-gradient(90deg, rgba(201, 168, 76, 0.06), transparent 40%),
+    var(--a-tile);
+}
+.arsenal-plate.case { border-left: 2px solid var(--a-gold-deep); }
+.arsenal-plate.case .mk { color: var(--a-gold); font-size: 0.75rem; }
+.arena-public-tag {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.58rem;
+  letter-spacing: 0.14em; color: var(--a-gold);
+  border: 1px solid var(--a-gold-deep); border-radius: 2px;
+  padding: 1px 6px; margin-left: 10px;
+}
