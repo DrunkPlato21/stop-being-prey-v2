@@ -20,6 +20,7 @@ import {
 import { getLastVisited } from "./desk-visits";
 import { getDeskPoolSignal, POOL_SEAT_FILL_PRICE_CENTS } from "./pool";
 import { getLatestReply, getPinnedThread, listActiveThreads } from "./guild";
+import { listBouts } from "./arena";
 import {
   countRoomPresence,
   getLatestReply as getLatestLoungeReply,
@@ -83,6 +84,23 @@ export type DeskRoomsSignal = {
       body: string;
       createdAt: number;
       lastActivityAt: number;
+    } | null;
+  };
+  /** The Arena's pulse: the live fight if one is open, else the latest
+      filed case. When both are null the desk shows no Arena door at
+      all — the room doesn't exist until there's been a fight. */
+  arena: {
+    open: {
+      id: string;
+      title: string;
+      tileCount: number;
+      lastTileAt: number;
+    } | null;
+    latestCase: {
+      id: string;
+      title: string;
+      caseNo: number | null;
+      sealedAt: number | null;
     } | null;
   };
 };
@@ -157,6 +175,7 @@ export async function getWritersDeskState(
     pinnedThread,
     loungeActiveNow,
     loungeLatest,
+    arenaBouts,
   ] = await Promise.all([
     listRecentUpdates(1),
     getPresence(),
@@ -180,6 +199,9 @@ export async function getWritersDeskState(
     // reply can bump), then pick the genuinely newest post by when it
     // was written so the desk peek's name + timestamp always agree.
     listVisiblePosts({ limit: 10 }),
+    // Newest-active first; enough to find the top open bout and the
+    // newest filed case without walking the whole index.
+    listBouts(12),
   ]);
   const now = Date.now();
   const state = derivePresenceState(presence, now);
@@ -377,6 +399,30 @@ export async function getWritersDeskState(
             }
           : null,
     },
+    arena: (() => {
+      const openBout = arenaBouts.find((b) => b.status === "open") ?? null;
+      const sealed = arenaBouts
+        .filter((b) => b.status === "sealed")
+        .sort((a, b) => (b.sealedAt ?? 0) - (a.sealedAt ?? 0))[0];
+      return {
+        open: openBout
+          ? {
+              id: openBout.id,
+              title: openBout.title,
+              tileCount: openBout.tileCount,
+              lastTileAt: openBout.lastTileAt,
+            }
+          : null,
+        latestCase: sealed
+          ? {
+              id: sealed.id,
+              title: sealed.title,
+              caseNo: sealed.caseNo,
+              sealedAt: sealed.sealedAt,
+            }
+          : null,
+      };
+    })(),
   };
 
   return {

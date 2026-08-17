@@ -463,6 +463,132 @@ function FirstRunPanel({ firstRun }: { firstRun: FirstRunState }) {
   );
 }
 
+// The Arena's door on the Desk. Same name-as-door pattern as the Guild
+// and Lounge, but the preview card wears the Arena's own dark livery —
+// the doorway shows the different room behind it. State-driven and
+// self-hiding: a live fight outranks everything (the caller renders
+// this first in the rooms section), otherwise it's a quiet archive
+// door to the latest filed case, and an empty Arena renders nothing.
+function ArenaDoor({
+  arena,
+  now,
+}: {
+  arena: WritersDeskState["rooms"]["arena"];
+  now: number;
+}) {
+  const open = arena?.open ?? null;
+  const latestCase = arena?.latestCase ?? null;
+  if (!open && !latestCase) return null;
+  const caseNo =
+    latestCase?.caseNo != null
+      ? String(latestCase.caseNo).padStart(3, "0")
+      : null;
+  return (
+    <div className="mb-7">
+      <Link
+        href="/arena"
+        className="group inline-flex items-center gap-2.5 no-underline"
+      >
+        <span
+          className={open ? "doorway doorway-lit" : "doorway"}
+          style={{ fontSize: "1.05rem" }}
+          aria-hidden="true"
+        >
+          ⚔
+        </span>
+        <span
+          className="font-display text-ink group-hover:text-eye-deep transition-colors"
+          style={{ fontSize: "1.25rem", fontWeight: 600 }}
+        >
+          The Arena
+        </span>
+        <span
+          className="text-eye-deep transition-transform group-hover:translate-x-0.5"
+          aria-hidden="true"
+          style={{ fontSize: "0.95rem" }}
+        >
+          &rarr;
+        </span>
+      </Link>
+      <Link
+        href={`/arena/${open ? open.id : latestCase!.id}`}
+        className="group flex items-center justify-between gap-4 no-underline mt-4"
+        style={{
+          background: "#141009",
+          border: "1px solid rgba(201, 168, 76, 0.4)",
+          borderRadius: 3,
+          padding: "0.9rem 1.05rem",
+        }}
+      >
+        <span className="min-w-0 block">
+          <span
+            className="eyebrow flex items-center gap-2"
+            style={{
+              color: "#c9a84c",
+              letterSpacing: "0.24em",
+              fontSize: "0.6rem",
+              marginBottom: "0.45rem",
+            }}
+          >
+            {open && (
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#c9a84c",
+                  boxShadow: "0 0 8px rgba(201, 168, 76, 0.7)",
+                }}
+              />
+            )}
+            {open ? "On the slab now" : `Latest case · № ${caseNo ?? "—"}`}
+          </span>
+          <span
+            className="font-display leading-[1.15] block group-hover:text-white transition-colors"
+            style={{
+              color: "#ede4d3",
+              fontSize: "1.2rem",
+              fontWeight: 600,
+              letterSpacing: "-0.015em",
+            }}
+          >
+            {open ? open.title : latestCase!.title}
+          </span>
+          <span
+            className="font-serif italic block mt-1.5"
+            style={{ color: "#a3906f", fontSize: "0.78rem" }}
+          >
+            {open
+              ? `${open.tileCount} ${open.tileCount === 1 ? "tile" : "tiles"} · ${formatRelative(open.lastTileAt, now)}`
+              : "Sealed. Part of the record."}
+          </span>
+        </span>
+        <span
+          className="shrink-0 flex items-center gap-1.5 transition-colors"
+          style={{
+            color: "#c9a84c",
+            fontSize: "0.66rem",
+            fontWeight: 700,
+            letterSpacing: "0.18em",
+          }}
+        >
+          <span className="font-display uppercase whitespace-nowrap">
+            {open ? "Watch" : "Read it"}
+          </span>
+          <span
+            className="transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+            style={{ fontSize: "0.95rem" }}
+          >
+            &rarr;
+          </span>
+        </span>
+      </Link>
+    </div>
+  );
+}
+
 export function WritersDeskView({
   initialState,
 }: {
@@ -829,6 +955,9 @@ export function WritersDeskView({
           <div className="mt-10 pt-8 border-t border-rule">
             <SectionHeader>The rooms</SectionHeader>
 
+            {/* A live fight outranks everything on the desk. */}
+            {rooms.arena?.open && <ArenaDoor arena={rooms.arena} now={now} />}
+
             {/* The Guild — the room name IS the door: name + arrow link
                 straight in, so where it goes is obvious. A live preview
                 of the latest thread sits beneath. */}
@@ -1052,6 +1181,14 @@ export function WritersDeskView({
                 </p>
               )}
             </div>
+
+            {/* No live fight: the Arena door waits quietly at the end,
+                pointing at the latest filed case. */}
+            {rooms.arena && !rooms.arena.open && (
+              <div className="mt-7">
+                <ArenaDoor arena={rooms.arena} now={now} />
+              </div>
+            )}
           </div>
         )}
 
