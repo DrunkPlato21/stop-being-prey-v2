@@ -1,6 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { randomUUID } from "crypto";
 import { isReactionKey, type ReactionKey } from "./lounge";
+import { findMove } from "./arsenal";
 
 // The Arena — Clay's combat surface. A bout is a fight being broken down
 // in public: a chronological sequence of typed tiles (specimen, read,
@@ -41,6 +42,10 @@ const tileReactedByKey = (tileId: string) =>
 // surfaces read this, ever. Whispers are the member's voice TO Clay; the
 // room hears them only if he quotes one into a later tile.
 const tileWhispersKey = (tileId: string) => `${TILE_PREFIX}${tileId}:whispers`;
+// Per-move ZSET of bout ids, score = last time the move was tagged in
+// that bout. This is the Arsenal's accretion: a move's page lists every
+// bout it has appeared in, newest first, fed automatically by tagging.
+const moveBoutsKey = (slug: string) => `${KEY_PREFIX}arena:move:${slug}:bouts`;
 
 // Limits + the tile grammar live in arena-constants.ts (no server deps)
 // so the client bench can import them; re-exported here for lib
@@ -299,15 +304,28 @@ export async function addTile(
     body,
     handle: input.handle?.trim().slice(0, ARENA_MAX_HANDLE) || null,
     transcript: input.transcript?.trim().slice(0, ARENA_MAX_TRANSCRIPT) || null,
+    // Canonical tags normalize to their Arsenal slug (whether typed as
+    // slug or full name); anything else stays as typed = unnamed move.
     moves: (input.moves ?? [])
       .map((m) => m.trim().slice(0, ARENA_MAX_MOVE_LEN))
       .filter(Boolean)
+      .map((m) => findMove(m)?.slug ?? m)
+      .filter((m, i, all) => all.indexOf(m) === i)
       .slice(0, ARENA_MAX_MOVES),
     imageUrl: sanitizeImageUrl(input.imageUrl),
     createdAt: now,
   };
   await client.set(`${TILE_PREFIX}${tile.id}`, JSON.stringify(tile));
   await client.zadd(boutTilesKey(boutId), { score: now, member: tile.id });
+  // Feed the Arsenal: each canonical move remembers this bout.
+  for (const m of tile.moves) {
+    if (findMove(m)) {
+      await client.zadd(moveBoutsKey(findMove(m)!.slug), {
+        score: now,
+        member: boutId,
+      });
+    }
+  }
   bout.lastTileAt = now;
   bout.tileCount += 1;
   await saveBout(bout);
@@ -319,6 +337,18 @@ export async function getTile(id: string): Promise<ArenaTile | null> {
   const client = getClient();
   if (!client) return null;
   return parse<ArenaTile>(await client.get(`${TILE_PREFIX}${id}`));
+}
+
+/** Bouts a move has appeared in, newest tag first. The Arsenal page's
+    "seen in the record" list. */
+export async function listBoutsForMove(slug: string): Promise<ArenaBout[]> {
+  const client = getClient();
+  if (!client) return [];
+  const ids = await client.zrange<string[]>(moveBoutsKey(slug), 0, 29, {
+    rev: true,
+  });
+  const bouts = await Promise.all(ids.map((id) => getBout(id)));
+  return bouts.filter((b): b is ArenaBout => b !== null);
 }
 
 /** Chronological — the bout as it unfolded. */

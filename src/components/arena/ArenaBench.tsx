@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { resizeImageToWebp } from "@/lib/image-resize";
 import { addTileAction } from "@/app/arena/actions";
 import { TILE_TYPES, TILE_TYPE_LABEL } from "@/lib/arena-constants";
+import { MovePicker } from "./MovePicker";
 
 // Clay's bench: the tile composer. The one ergonomic requirement that
 // decides whether the Arena gets used at all: Ctrl+V a screenshot
@@ -138,11 +139,7 @@ export function ArenaBench({ boutId }: { boutId: string }) {
           name="transcript"
           placeholder="Full transcript (specimen only, optional). The durable record. Pasting a screenshot fills this in for you."
         />
-        <input
-          name="moves"
-          maxLength={260}
-          placeholder="Move tags, comma-separated (optional)"
-        />
+        <MovePicker />
 
         {uploading && <div className="arena-bench-note">Attaching&hellip;</div>}
         {reading && (

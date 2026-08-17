@@ -77,7 +77,8 @@ export default async function ArenaIndexPage() {
         <h1 className="arena-title">The fights, broken down.</h1>
         <p className="arena-index-sub">
           Case files, written in front of you. React on any tile. Whisper
-          when you have a better line.
+          when you have a better line.{" "}
+          <Link href="/arena/arsenal">Browse the Arsenal &rarr;</Link>
         </p>
       </header>
 

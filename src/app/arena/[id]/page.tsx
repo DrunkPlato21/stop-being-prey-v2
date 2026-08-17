@@ -19,6 +19,7 @@ import {
 import { caseNoStr } from "@/lib/arena-constants";
 import { formatGuildBody, GUILD_BODY_STYLE } from "@/components/guild/format-body";
 import { TileEngage } from "@/components/arena/TileEngage";
+import { MoveChip } from "@/components/arena/MoveChip";
 import { ArenaBench } from "@/components/arena/ArenaBench";
 import { reopenBoutAction, sealBoutAction } from "../actions";
 
@@ -183,11 +184,9 @@ export default async function BoutPage({
               </div>
               <TileBody tile={tile} />
               {tile.moves.length > 0 && (
-                <div>
+                <div className="arena-tile-moves">
                   {tile.moves.map((m) => (
-                    <span key={m} className="arena-move-tag">
-                      {m}
-                    </span>
+                    <MoveChip key={m} tag={m} />
                   ))}
                 </div>
               )}

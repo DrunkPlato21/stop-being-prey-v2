@@ -336,3 +336,86 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
   border-top: 1px solid var(--a-rule); padding-top: 26px; margin: 34px 0 4px;
 }
 .arena-caseno-input { width: 110px; min-width: 0; flex: none; }
+
+/* ── Move chips: the tag grammar ─────────────── */
+/* rust ◆ = their move, gold ✦ = Clay's technique, faint = unnamed. */
+.arena-chip-move {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.68rem;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  border-radius: 2px; padding: 4px 9px; margin: 0 8px 8px 0;
+  text-decoration: none; border: 1px solid var(--a-rule);
+}
+.arena-chip-move .mark { font-size: 0.6rem; }
+.arena-chip-move.opponent {
+  color: #d98a6b; border-color: #6b3a26; background: rgba(168, 84, 56, 0.1);
+}
+.arena-chip-move.clay {
+  color: var(--a-gold); border-color: var(--a-gold-deep);
+  background: rgba(201, 168, 76, 0.08);
+}
+.arena-chip-move.unnamed {
+  color: var(--a-ink-muted); border-style: dashed; font-style: italic;
+  text-transform: none;
+}
+a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
+  border-color: currentColor; outline: none;
+}
+.arena-tile-moves { padding-top: 4px; }
+
+/* ── The bench's move picker ─────────────────── */
+.arena-movepicker { position: relative; }
+.arena-movepicker-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0;
+  background: #0d0a07; border: 1px solid var(--a-rule); border-radius: 4px;
+  padding: 6px 8px 0 8px;
+}
+.arena-movepicker-row input {
+  flex: 1; min-width: 180px; border: 0 !important; background: transparent !important;
+  padding: 4px 4px 10px !important;
+}
+.arena-movepicker-row .arena-chip-move.picked {
+  cursor: pointer; font-family: ui-monospace, Consolas, monospace;
+  margin-bottom: 6px;
+}
+.arena-chip-move.picked .x { color: var(--a-ink-faint); margin-left: 2px; }
+.arena-chip-move.picked:hover .x { color: var(--a-ink); }
+.arena-movepicker-menu {
+  position: absolute; z-index: 5; left: 0; right: 0; margin-top: 4px;
+  background: var(--a-raised); border: 1px solid var(--a-rule);
+  border-radius: 4px; overflow: hidden;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+.arena-movepicker-opt {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  text-align: left; cursor: pointer; background: transparent; border: 0;
+  font-family: Georgia, serif; font-size: 0.92rem; color: var(--a-ink);
+  padding: 9px 14px;
+}
+.arena-movepicker-opt:hover, .arena-movepicker-opt:focus-visible {
+  background: rgba(201, 168, 76, 0.08); outline: none;
+}
+.arena-movepicker-opt .mark { font-size: 0.6rem; }
+.arena-movepicker-opt.opponent .mark { color: #d98a6b; }
+.arena-movepicker-opt.clay .mark { color: var(--a-gold); }
+.arena-movepicker-hint {
+  font-size: 0.75rem; font-style: italic; color: var(--a-ink-faint);
+  padding-top: 5px;
+}
+
+/* ── The Arsenal ─────────────────────────────── */
+.arena-shelf-head.arsenal-opponent { color: #d98a6b; }
+.arena-shelf-head.arsenal-clay { color: var(--a-gold); }
+.arsenal-row.opponent { border-left: 2px solid #6b3a26; }
+.arsenal-row.clay { border-left: 2px solid var(--a-gold-deep); }
+.arsenal-def {
+  font-size: 0.88rem; color: var(--a-ink-muted); line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.arsenal-entry section { margin-bottom: 4px; }
+.arsenal-entry p { font-size: 1.02rem; line-height: 1.75; color: var(--a-ink); margin: 0 0 10px; }
+.arsenal-source {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.7rem;
+  color: var(--a-ink-faint); padding-top: 8px;
+}
