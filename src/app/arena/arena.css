@@ -1,0 +1,249 @@
+/* The Arena — a deliberately dark room inside a paper site. The rest of
+   the members' area is warm paper; the Arena announces itself as a
+   different kind of place. Tokens are scoped to .arena-room so nothing
+   leaks into the site's palette. From the approved bout mockup. */
+
+.arena-room {
+  --a-ground: #141009;
+  --a-tile: #1d1712;
+  --a-raised: #241b13;
+  --a-rule: #33291c;
+  --a-rule-soft: #2a2117;
+  --a-ink: #ede4d3;
+  --a-ink-muted: #a3906f;
+  --a-ink-faint: #6f6046;
+  --a-gold: #c9a84c;
+  --a-gold-deep: #8a7d20;
+  --a-rust: #a85438;
+
+  background: var(--a-ground);
+  color: var(--a-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1.7;
+  padding: 8px 20px 90px;
+
+  /* The shared Guild body renderer paints text with the site's --ink-soft,
+     which is dark ink for the paper theme. Remap it inside the room so
+     shared renderers stay readable on the dark ground. */
+  --ink-soft: var(--a-ink);
+}
+.arena-wrap { max-width: 680px; margin: 0 auto; }
+.arena-room a { color: var(--a-gold); }
+
+.arena-eyebrow {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--a-gold);
+}
+
+/* ── Bout header ─────────────────────────────── */
+.arena-bout-header { padding: 48px 0 28px; border-bottom: 1px solid var(--a-rule); }
+.arena-bout-line { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.arena-title {
+  font-size: clamp(1.6rem, 5vw, 2.3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 10px 0 6px;
+  text-wrap: balance;
+  color: var(--a-ink);
+}
+.arena-meta { font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem; color: var(--a-ink-muted); }
+
+.arena-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 3px;
+}
+.arena-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+.arena-chip.open { color: var(--a-gold); border: 1px solid var(--a-gold-deep); background: rgba(201, 168, 76, 0.07); }
+.arena-chip.open .dot { background: var(--a-gold); box-shadow: 0 0 8px rgba(201, 168, 76, 0.7); }
+.arena-chip.sealed { color: var(--a-ink-muted); border: 1px solid var(--a-rule); background: var(--a-tile); }
+.arena-chip.sealed .dot { background: var(--a-ink-faint); }
+
+/* ── Spine + tiles ───────────────────────────── */
+.arena-tiles { position: relative; padding: 34px 0 0 46px; }
+.arena-tiles::before {
+  content: ""; position: absolute; left: 13px; top: 40px; bottom: 14px;
+  width: 1px; background: linear-gradient(var(--a-gold-deep), var(--a-rule) 80%);
+}
+.arena-tile { position: relative; margin-bottom: 30px; }
+.arena-tile-no {
+  position: absolute; left: -46px; top: 0;
+  width: 27px; height: 27px; border-radius: 50%;
+  background: var(--a-ground); border: 1px solid var(--a-gold-deep);
+  color: var(--a-gold); font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.7rem; font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; justify-content: center;
+}
+.arena-tile-card {
+  background: var(--a-tile); border: 1px solid var(--a-rule);
+  border-radius: 4px; padding: 18px 20px 12px;
+}
+.arena-tile-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px;
+}
+.arena-stamp { font-family: ui-monospace, Consolas, monospace; font-size: 0.66rem; color: var(--a-ink-faint); white-space: nowrap; }
+.arena-tile-card p { margin: 0 0 0.9em; }
+
+/* Specimen — the only place the rust marker appears */
+.arena-tile.specimen .arena-tile-card { border-left: 2px solid var(--a-rust); }
+.arena-tile.specimen .arena-eyebrow { color: var(--a-rust); }
+.arena-shot {
+  background: #0d0a07; border: 1px solid var(--a-rule-soft); border-radius: 6px;
+  padding: 14px 16px; margin: 4px 0 10px;
+}
+.arena-shot-handle { font-family: ui-monospace, Consolas, monospace; font-size: 0.78rem; color: var(--a-ink-muted); margin-bottom: 6px; }
+.arena-shot-body { font-size: 0.98rem; color: #d8cdb8; line-height: 1.6; }
+details.arena-transcript { margin: 10px 0 6px; }
+details.arena-transcript summary {
+  cursor: pointer; list-style: none;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--a-ink-faint);
+}
+details.arena-transcript summary:hover,
+details.arena-transcript summary:focus-visible { color: var(--a-gold); outline: none; }
+details.arena-transcript[open] summary { color: var(--a-gold); }
+.arena-transcript-body {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.78rem; line-height: 1.8;
+  color: var(--a-ink-muted); background: #0d0a07; border: 1px solid var(--a-rule-soft);
+  border-radius: 4px; padding: 12px 14px; margin-top: 8px;
+  white-space: pre-wrap; overflow-x: auto;
+}
+
+/* Counter styling — Clay's line */
+.arena-counter-line {
+  border-left: 2px solid var(--a-gold-deep);
+  padding: 4px 0 4px 16px; margin: 6px 0 12px;
+  font-style: italic; font-size: 1.05rem;
+}
+.arena-byline { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--a-gold); }
+
+/* Move tags */
+.arena-move-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--a-gold-deep); border-radius: 3px;
+  background: rgba(201, 168, 76, 0.06);
+  padding: 5px 12px; margin: 2px 8px 8px 0;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--a-gold);
+}
+
+/* Engagement row */
+.arena-engage {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  border-top: 1px solid var(--a-rule-soft);
+  margin-top: 12px; padding-top: 10px;
+}
+.arena-react-btn {
+  font-family: inherit; cursor: pointer; border-radius: 3px;
+  background: transparent; border: 1px solid var(--a-rule);
+  color: var(--a-ink-muted); font-size: 0.82rem; padding: 3px 10px;
+  display: inline-flex; gap: 6px; align-items: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.arena-react-btn .n { font-family: ui-monospace, Consolas, monospace; font-size: 0.7rem; font-variant-numeric: tabular-nums; }
+.arena-react-btn:hover, .arena-react-btn:focus-visible { border-color: var(--a-gold-deep); color: var(--a-gold); outline: none; }
+.arena-react-btn.hit { border-color: var(--a-gold-deep); color: var(--a-gold); }
+.arena-whisper-btn {
+  margin-left: auto; cursor: pointer; border-radius: 3px;
+  background: transparent; border: 1px solid var(--a-rule);
+  color: var(--a-ink-muted); font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase; padding: 6px 12px;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s;
+}
+.arena-whisper-btn:hover, .arena-whisper-btn:focus-visible { border-color: var(--a-gold-deep); color: var(--a-gold); outline: none; }
+.arena-whisper-box { margin-top: 10px; }
+.arena-whisper-box textarea {
+  width: 100%; box-sizing: border-box; min-height: 68px; resize: vertical;
+  background: #0d0a07; border: 1px solid var(--a-rule); border-radius: 4px;
+  color: var(--a-ink); font-family: inherit; font-size: 0.92rem;
+  padding: 10px 12px;
+}
+.arena-whisper-box textarea:focus-visible { outline: none; border-color: var(--a-gold-deep); }
+.arena-whisper-note { font-size: 0.72rem; color: var(--a-ink-faint); font-style: italic; margin-top: 5px; }
+.arena-whisper-send {
+  margin-top: 8px; cursor: pointer; border-radius: 3px;
+  background: transparent; border: 1px solid var(--a-gold-deep);
+  color: var(--a-gold); font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase; padding: 7px 14px;
+  font-family: inherit;
+}
+.arena-whisper-send:hover, .arena-whisper-send:focus-visible { background: rgba(201, 168, 76, 0.12); outline: none; }
+.arena-whisper-sent { font-size: 0.8rem; color: var(--a-gold); font-style: italic; margin-top: 8px; }
+
+/* Whispers (admin view under a tile) */
+.arena-whisper-quote {
+  background: var(--a-raised); border: 1px solid var(--a-rule);
+  border-radius: 4px; padding: 10px 14px; margin: 8px 0;
+  font-size: 0.92rem;
+}
+.arena-whisper-quote .who { font-family: ui-monospace, Consolas, monospace; font-size: 0.66rem; color: var(--a-ink-faint); margin-top: 4px; }
+
+/* Open-bout ember */
+.arena-developing { position: relative; display: flex; align-items: center; gap: 12px; padding: 4px 0 0 46px; color: var(--a-ink-faint); }
+.arena-developing .pulse {
+  position: absolute; left: 7px; width: 13px; height: 13px; border-radius: 50%;
+  border: 1px solid var(--a-gold-deep); background: var(--a-ground);
+}
+.arena-developing .pulse::after {
+  content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--a-gold);
+  animation: arena-breathe 2.2s ease-in-out infinite;
+}
+@keyframes arena-breathe { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .arena-developing .pulse::after { animation: none; opacity: 0.7; } }
+.arena-developing em { font-size: 0.88rem; }
+
+/* Seal block */
+.arena-seal {
+  border: 1px solid var(--a-gold-deep); border-radius: 4px;
+  background: rgba(201, 168, 76, 0.05);
+  padding: 20px 24px; margin: 6px 0 0 46px; text-align: center;
+}
+.arena-seal .mark { font-size: 1.4rem; letter-spacing: 0.3em; color: var(--a-gold); margin-bottom: 6px; }
+.arena-seal .when { font-family: ui-monospace, Consolas, monospace; font-size: 0.68rem; color: var(--a-ink-faint); margin-top: 6px; }
+
+/* ── Index ───────────────────────────────────── */
+.arena-index-header { padding: 48px 0 12px; }
+.arena-index-sub { color: var(--a-ink-muted); font-style: italic; margin: 4px 0 24px; }
+.arena-bout-row {
+  display: block; text-decoration: none;
+  background: var(--a-tile); border: 1px solid var(--a-rule); border-radius: 4px;
+  padding: 16px 20px; margin-bottom: 12px;
+  transition: border-color 0.15s;
+}
+.arena-bout-row:hover { border-color: var(--a-gold-deep); }
+.arena-bout-row .row-title { color: var(--a-ink); font-size: 1.1rem; font-weight: 700; margin: 6px 0 4px; }
+.arena-empty { color: var(--a-ink-faint); font-style: italic; padding: 30px 0; }
+
+/* ── Clay's tools (composer, seal) ───────────── */
+.arena-tools {
+  margin-top: 44px; border: 1px dashed var(--a-rule); border-radius: 4px;
+  padding: 18px 20px;
+}
+.arena-tools h2 { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--a-gold); margin: 0 0 14px; }
+.arena-tools form { display: flex; flex-direction: column; gap: 10px; }
+.arena-tools .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.arena-tools input, .arena-tools select, .arena-tools textarea {
+  background: #0d0a07; border: 1px solid var(--a-rule); border-radius: 4px;
+  color: var(--a-ink); font-family: inherit; font-size: 0.92rem;
+  padding: 9px 12px; box-sizing: border-box;
+}
+.arena-tools textarea { width: 100%; min-height: 90px; resize: vertical; }
+.arena-tools input { flex: 1; min-width: 140px; }
+.arena-tools input:focus-visible, .arena-tools select:focus-visible, .arena-tools textarea:focus-visible { outline: none; border-color: var(--a-gold-deep); }
+.arena-tools label { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--a-ink-faint); }
+.arena-tools .submit, .arena-seal-btn {
+  align-self: flex-start; cursor: pointer; border-radius: 3px;
+  background: transparent; border: 1px solid var(--a-gold-deep);
+  color: var(--a-gold); font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase; padding: 9px 18px;
+  font-family: inherit;
+}
+.arena-tools .submit:hover, .arena-seal-btn:hover,
+.arena-tools .submit:focus-visible, .arena-seal-btn:focus-visible { background: rgba(201, 168, 76, 0.12); outline: none; }
