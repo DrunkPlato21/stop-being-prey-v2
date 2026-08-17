@@ -332,6 +332,12 @@ export default async function BoutPage({
                 defaultValue={bout.rulesApplied ?? undefined}
                 placeholder="Rules applied (e.g. 1, 5)"
               />
+              <input
+                name="dispatch"
+                maxLength={280}
+                defaultValue={bout.dispatch ?? undefined}
+                placeholder="One line for the Sunday email, your voice: how this one found you (optional)"
+              />
               <button type="submit" className="arena-seal-btn">
                 Seal the bout. File it.
               </button>

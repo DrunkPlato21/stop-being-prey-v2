@@ -4,6 +4,8 @@ import { getRecentWorkEvents } from "./pulse";
 import { getDeskPoolSignal } from "./pool";
 import { getAllCaseFiles } from "./case-files";
 import { countPostsSince } from "./lounge";
+import { listBouts, listTiles, TILE_TYPE_LABEL } from "./arena";
+import { findMove } from "./arsenal";
 
 // The weekly digest — the patron report. One email a week to every
 // member, designed supporter-first: roughly half the membership never
@@ -122,9 +124,35 @@ export type DigestPayload = {
     status: "active" | "closed";
   } | null;
   pool: { waiting: number; potCents: number };
+  /** Every Arena case sealed inside this digest's window, in full —
+      the email carries the whole filed case, not a teaser. The rule is
+      dumb on purpose: sealed one, they get one; sealed none, the
+      section vanishes. Oldest first so the numbers read forward. */
+  cases: {
+    id: string;
+    title: string;
+    caseNo: number | null;
+    archetype: string | null;
+    rulesApplied: string | null;
+    /** Clay's one-line letter-voice opener from the seal form. */
+    dispatch: string | null;
+    sealedAt: number;
+    url: string;
+    tiles: {
+      type: string;
+      label: string;
+      body: string;
+      handle: string | null;
+      transcript: string | null;
+      imageUrl: string | null;
+      /** Canonical tags resolved to display names; unnamed as typed. */
+      moves: string[];
+    }[];
+  }[];
   /** Evergreen rotation so the email always has a floor, even on a
       week where every live slot came up empty. Carries the archetype
-      so the email can present it as a real entry, not a bare link. */
+      so the email can present it as a real entry, not a bare link.
+      Suppressed when fresh cases shipped — the floor isn't needed. */
   archive: {
     number: number;
     title: string;
@@ -317,14 +345,52 @@ export async function assembleDigest(
       ? lastRun.sentAt
       : now - SHIPPED_WINDOW_MS;
 
-  const [state, work, chamber, poolSignal, loungePostsThisWeek] =
+  const [state, work, chamber, poolSignal, loungePostsThisWeek, allBouts] =
     await Promise.all([
       getWritersDeskState(),
       getRecentWorkEvents({ limit: 12 }),
       getChamberedNote(),
       getDeskPoolSignal().catch(() => ({ waiting: 0, note: null, potCents: 0 })),
       countPostsSince(since).catch(() => 0),
+      listBouts(30).catch(() => []),
     ]);
+
+  // Every case sealed inside the window rides the email in full,
+  // oldest first so the case numbers read forward. Specimen tiles show
+  // the screenshot OR the transcript, never both (the email renderer
+  // decides); moves resolve to their Arsenal display names.
+  const sealedThisWeek = allBouts
+    .filter(
+      (b) =>
+        b.status === "sealed" &&
+        b.sealedAt !== null &&
+        b.sealedAt >= since &&
+        b.sealedAt <= now
+    )
+    .sort((a, b) => (a.sealedAt ?? 0) - (b.sealedAt ?? 0));
+  const cases: DigestPayload["cases"] = [];
+  for (const bout of sealedThisWeek) {
+    const tiles = await listTiles(bout.id);
+    cases.push({
+      id: bout.id,
+      title: bout.title,
+      caseNo: bout.caseNo,
+      archetype: bout.archetype,
+      rulesApplied: bout.rulesApplied,
+      dispatch: bout.dispatch,
+      sealedAt: bout.sealedAt ?? now,
+      url: `/arena/${bout.id}`,
+      tiles: tiles.map((t) => ({
+        type: t.type,
+        label: TILE_TYPE_LABEL[t.type],
+        body: t.body,
+        handle: t.handle,
+        transcript: t.transcript,
+        imageUrl: t.imageUrl,
+        moves: t.moves.map((m) => findMove(m)?.name ?? m),
+      })),
+    });
+  }
 
   // Shipped this week: site content only (essays, issues, field notes,
   // case files), inside the window. Social-echo sources stay out — the
@@ -341,7 +407,7 @@ export async function assembleDigest(
     .slice()
     .sort((a, b) => a.number - b.number);
   let archive: DigestPayload["archive"] = null;
-  if (caseFiles.length > 0) {
+  if (caseFiles.length > 0 && cases.length === 0) {
     const pick = caseFiles[Math.floor(now / WEEK_MS) % caseFiles.length];
     archive = {
       number: pick.number,
@@ -387,6 +453,7 @@ export async function assembleDigest(
         }
       : null,
     pool: { waiting: poolSignal.waiting, potCents: poolSignal.potCents },
+    cases,
     archive,
   };
 }

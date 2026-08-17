@@ -2339,27 +2339,15 @@ function digestEntry(args: {
             </tr>`;
 }
 
-export async function sendWeeklyDigestEmail(args: {
-  to: string;
+/**
+ * Pure builder for the weekly digest email — no client, no send — so
+ * the admin preview (and tests) can render exactly what Sunday ships.
+ */
+export function renderWeeklyDigestEmail(args: {
   payload: DigestPayload;
-  /** Absolute origin (no trailing slash) for turning site-relative
-      links into clickable ones. */
   siteUrl: string;
-  /** The human unsubscribe page (footer link). */
   unsubPageUrl: string;
-  /** The RFC 8058 one-click POST endpoint (mail-client header). */
-  unsubPostUrl: string;
-}): Promise<SendResult> {
-  const resend = client();
-  if (!resend) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(
-        `[email] RESEND_API_KEY not set, weekly digest skipped. To: ${args.to}`
-      );
-    }
-    return { ok: false, error: "email_not_configured" };
-  }
-
+}): { subject: string; html: string; text: string } {
   const p = args.payload;
   const abs = (url: string | null): string | null =>
     url ? (url.startsWith("http") ? url : `${args.siteUrl}${url}`) : null;
@@ -2479,6 +2467,123 @@ export async function sendWeeklyDigestEmail(args: {
     textLines.push(`Step into the Guild: ${args.siteUrl}/guild`, "");
   }
 
+  // The week's fresh case files, in full — the email carries the whole
+  // filed case (mockup-ratified design): Clay's dispatch line, the
+  // stamp bar, then the tiles as stacked report sections. Specimen
+  // shows the screenshot if there is one, else the transcript — never
+  // both. Section title is "The case files" (a name members know);
+  // "Arena" appears only on the closing link.
+  if (p.cases.length > 0) {
+    rows.push(digestSectionEyebrow("The case files"));
+    textLines.push("THE CASE FILES", "");
+    p.cases.forEach((cf, ci) => {
+      const href = abs(cf.url)!;
+      const stamp = [
+        cf.caseNo != null
+          ? `CASE &#8470; ${String(cf.caseNo).padStart(3, "0")}`
+          : null,
+        cf.archetype ? escapeHtml(cf.archetype.toUpperCase()) : null,
+        cf.rulesApplied
+          ? `RULES ${escapeHtml(cf.rulesApplied.toUpperCase())}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" &middot; ");
+      if (ci > 0) {
+        rows.push(`<tr><td style="border-top:1px solid #e2d9c1;padding-top:22px;"></td></tr>`);
+      }
+      if (cf.dispatch) {
+        rows.push(`<tr>
+              <td style="padding-bottom:12px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;width:100%;">
+                  <tr><td style="font-family:Georgia,serif;font-size:16px;font-style:italic;line-height:1.65;color:#3d3530;padding:2px 0 2px 16px;">${escapeHtml(cf.dispatch)}</td></tr>
+                </table>
+              </td>
+            </tr>`);
+        textLines.push(cf.dispatch, "");
+      }
+      rows.push(`<tr>
+              <td style="padding-bottom:4px;">
+                <span style="display:inline-block;font-family:ui-monospace,Consolas,monospace;font-size:11px;letter-spacing:0.06em;color:#8a7d20;border:1px solid #cdbd8a;background:#f3ecd8;padding:5px 9px;">${stamp || "FILED"}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:1.3rem;font-weight:700;color:#1a1714;letter-spacing:-0.01em;line-height:1.2;padding:6px 0 2px;">
+                <a href="${escapeHtml(href)}" style="color:#1a1714;text-decoration:none;">${escapeHtml(cf.title)}</a>
+              </td>
+            </tr>`);
+      textLines.push(
+        `${cf.caseNo != null ? `CASE ${String(cf.caseNo).padStart(3, "0")}: ` : ""}${cf.title}${cf.archetype ? ` (${cf.archetype})` : ""}`,
+        ""
+      );
+      for (const tile of cf.tiles) {
+        rows.push(`<tr>
+              <td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:${tile.type === "specimen" ? "#9c4a2f" : "#8a8077"};font-weight:700;padding:14px 0 6px;">
+                ${escapeHtml(tile.label)}
+              </td>
+            </tr>`);
+        textLines.push(`-- ${tile.label} --`);
+        if (tile.type === "specimen") {
+          if (tile.imageUrl) {
+            rows.push(`<tr>
+              <td style="padding-bottom:4px;">
+                <img src="${escapeHtml(tile.imageUrl)}" alt="Screenshot of the exchange" width="456" style="width:100%;max-width:456px;height:auto;border:1px solid #d8cfb8;border-radius:6px;" />
+                <div style="font-family:Georgia,serif;font-size:11.5px;font-style:italic;color:#a89e90;padding-top:5px;">Full transcript on file in the record.</div>
+              </td>
+            </tr>`);
+            textLines.push(tile.transcript || tile.body);
+          } else {
+            const record = tile.transcript || tile.body;
+            rows.push(`<tr>
+              <td style="padding-bottom:4px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid #9c4a2f;background:#f5efe1;width:100%;">
+                  <tr><td style="font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.7;color:#4a4238;padding:10px 14px;white-space:pre-wrap;">${escapeHtml(record)}</td></tr>
+                </table>
+              </td>
+            </tr>`);
+            textLines.push(record);
+          }
+        } else if (tile.type === "counter") {
+          rows.push(`<tr>
+              <td style="padding-bottom:4px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;width:100%;">
+                  <tr><td style="font-family:Georgia,serif;font-size:17px;font-style:italic;line-height:1.6;color:#1a1714;padding:2px 0 2px 16px;">&ldquo;${escapeHtml(tile.body)}&rdquo;</td></tr>
+                  <tr><td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding:7px 0 0 16px;">Clay &middot; posted live</td></tr>
+                </table>
+              </td>
+            </tr>`);
+          textLines.push(`"${tile.body}" — Clay, posted live`);
+        } else {
+          rows.push(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#3d3530;padding-bottom:4px;white-space:pre-wrap;">${escapeHtml(tile.body)}</td>
+            </tr>`);
+          textLines.push(tile.body);
+        }
+        if (tile.moves.length > 0) {
+          rows.push(`<tr>
+              <td style="padding:6px 0 2px;">
+                ${tile.moves.map((m) => `<span style="display:inline-block;font-family:ui-monospace,Consolas,monospace;font-size:10.5px;letter-spacing:0.08em;color:#8a7d20;border:1px solid #cdbd8a;border-radius:2px;padding:3px 8px;margin:0 6px 4px 0;">${escapeHtml(m.toUpperCase())}</span>`).join("")}
+              </td>
+            </tr>`);
+          textLines.push(`Moves: ${tile.moves.join(", ")}`);
+        }
+        textLines.push("");
+      }
+      rows.push(`<tr>
+              <td style="text-align:center;padding:16px 0 20px;">
+                <div style="color:#8a7d20;font-size:0.95rem;letter-spacing:0.3em;">&#10022; SEALED &#10022;</div>
+              </td>
+            </tr>`);
+      textLines.push("SEALED", "");
+    });
+    rows.push(`<tr>
+              <td style="font-family:Georgia,serif;font-size:14px;padding:0 0 8px 0;">
+                <a href="${escapeHtml(`${args.siteUrl}/arena`)}" style="color:#8a7d20;">Visit the Arena</a>
+              </td>
+            </tr>`);
+    textLines.push(`Visit the Arena: ${args.siteUrl}/arena`, "");
+  }
+
   const patronLines: string[] = [];
   if (p.wall) {
     const wallLine = `The wall &ldquo;${escapeHtml(p.wall.title)}&rdquo; carries ${p.wall.contributorCount} ${p.wall.contributorCount === 1 ? "name" : "names"} and ${digestMoney(p.wall.totalRaisedCents)}.`;
@@ -2571,6 +2676,31 @@ export async function sendWeeklyDigestEmail(args: {
     `Stop the weekly digest (nothing else changes): ${args.unsubPageUrl}`
   );
   const text = textLines.join("\n");
+  return { subject, html, text };
+}
+
+export async function sendWeeklyDigestEmail(args: {
+  to: string;
+  payload: DigestPayload;
+  /** Absolute origin (no trailing slash) for turning site-relative
+      links into clickable ones. */
+  siteUrl: string;
+  /** The human unsubscribe page (footer link). */
+  unsubPageUrl: string;
+  /** The RFC 8058 one-click POST endpoint (mail-client header). */
+  unsubPostUrl: string;
+}): Promise<SendResult> {
+  const resend = client();
+  if (!resend) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[email] RESEND_API_KEY not set, weekly digest skipped. To: ${args.to}`
+      );
+    }
+    return { ok: false, error: "email_not_configured" };
+  }
+
+  const { subject, html, text } = renderWeeklyDigestEmail(args);
 
   try {
     const result = await resend.emails.send({

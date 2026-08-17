@@ -57,6 +57,7 @@ const ARSENAL_DEBUTS_KEY = `${KEY_PREFIX}arena:arsenal:debuts`;
 export {
   ARENA_MAX_ARCHETYPE,
   ARENA_MAX_BODY,
+  ARENA_MAX_DISPATCH,
   ARENA_MAX_HANDLE,
   ARENA_MAX_MOVE_LEN,
   ARENA_MAX_MOVES,
@@ -72,6 +73,7 @@ export {
 import {
   ARENA_MAX_ARCHETYPE,
   ARENA_MAX_BODY,
+  ARENA_MAX_DISPATCH,
   ARENA_MAX_HANDLE,
   ARENA_MAX_MOVE_LEN,
   ARENA_MAX_MOVES,
@@ -98,6 +100,10 @@ export type ArenaBout = {
   caseNo: number | null;
   archetype: string | null;
   rulesApplied: string | null;
+  // One optional line in Clay's letter voice, written at seal time: how
+  // the fight found him. The Sunday digest opens the case with it — the
+  // difference between a record retrieved and a note from the desk.
+  dispatch: string | null;
   // Bell fan-out guards: set once when the fight is announced (first
   // tile) and when the filed case is announced (first seal), so a
   // reopen-and-reseal never rings twice.
@@ -197,6 +203,7 @@ export async function createBout(title: string): Promise<ArenaBout | null> {
     caseNo: null,
     archetype: null,
     rulesApplied: null,
+    dispatch: null,
     announcedAt: null,
     sealAnnouncedAt: null,
     publicAt: null,
@@ -215,6 +222,7 @@ export async function getBout(id: string): Promise<ArenaBout | null> {
   bout.caseNo = bout.caseNo ?? null;
   bout.archetype = bout.archetype ?? null;
   bout.rulesApplied = bout.rulesApplied ?? null;
+  bout.dispatch = bout.dispatch ?? null;
   bout.announcedAt = bout.announcedAt ?? null;
   bout.sealAnnouncedAt = bout.sealAnnouncedAt ?? null;
   bout.publicAt = bout.publicAt ?? null;
@@ -249,6 +257,7 @@ export async function sealBout(
     caseNo: number | null;
     archetype?: string | null;
     rulesApplied?: string | null;
+    dispatch?: string | null;
   }
 ): Promise<ArenaBout | null> {
   const bout = await getBout(id);
@@ -266,6 +275,10 @@ export async function sealBout(
   bout.rulesApplied =
     stamp.rulesApplied?.trim().slice(0, ARENA_MAX_RULES) ||
     bout.rulesApplied ||
+    null;
+  bout.dispatch =
+    stamp.dispatch?.trim().slice(0, ARENA_MAX_DISPATCH) ||
+    bout.dispatch ||
     null;
   await saveBout(bout);
   return bout;

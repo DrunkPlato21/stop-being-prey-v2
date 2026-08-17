@@ -86,6 +86,7 @@ export async function sealBoutAction(formData: FormData): Promise<void> {
     caseNo: Number.isInteger(rawNo) && rawNo > 0 ? rawNo : null,
     archetype: String(formData.get("archetype") ?? "") || null,
     rulesApplied: String(formData.get("rulesApplied") ?? "") || null,
+    dispatch: String(formData.get("dispatch") ?? "") || null,
   });
   // The filed case is the payoff the first bell row promised.
   if (bout) {

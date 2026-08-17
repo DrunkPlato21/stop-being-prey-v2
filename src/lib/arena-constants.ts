@@ -6,6 +6,7 @@
 export const ARENA_MAX_TITLE = 120;
 export const ARENA_MAX_ARCHETYPE = 80;
 export const ARENA_MAX_RULES = 120;
+export const ARENA_MAX_DISPATCH = 280;
 export const ARENA_MAX_BODY = 8000;
 export const ARENA_MAX_TRANSCRIPT = 8000;
 export const ARENA_MAX_HANDLE = 60;
