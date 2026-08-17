@@ -536,3 +536,29 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
 @media (max-width: 480px) {
   .arena-commons-paper { padding: 8px 16px 20px; }
 }
+
+/* ── Public promotional bout ─────────────────── */
+.arena-join {
+  margin-top: 44px; text-align: center;
+  border: 1px solid var(--a-gold-deep); border-radius: 4px;
+  background: rgba(201, 168, 76, 0.05);
+  padding: 30px 24px;
+}
+.arena-join p {
+  max-width: 46ch; margin: 10px auto 18px; font-size: 1.02rem;
+  line-height: 1.7; color: var(--a-ink);
+}
+.arena-join-cta {
+  display: inline-block; background: var(--a-gold); color: #141009;
+  text-decoration: none; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  padding: 13px 26px; border-radius: 3px;
+}
+.arena-room a.arena-join-cta { color: #141009; }
+.arena-join-cta:hover, .arena-join-cta:focus-visible {
+  background: #e0c268; outline: none;
+}
+.arena-public-note {
+  font-size: 0.78rem; font-style: italic; color: var(--a-ink-faint);
+  margin: 10px 0 0; max-width: 52ch;
+}

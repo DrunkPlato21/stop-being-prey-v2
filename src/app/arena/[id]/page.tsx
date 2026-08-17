@@ -9,6 +9,7 @@ import {
   ARENA_MAX_RULES,
   getBout,
   getTileReactions,
+  isBoutPublic,
   listTiles,
   listWhispers,
   nextCaseNo,
@@ -22,10 +23,34 @@ import { TileEngage } from "@/components/arena/TileEngage";
 import { MoveChip } from "@/components/arena/MoveChip";
 import { Comments } from "@/components/Comments";
 import { ArenaBench } from "@/components/arena/ArenaBench";
-import { reopenBoutAction, sealBoutAction } from "../actions";
+import {
+  reopenBoutAction,
+  sealBoutAction,
+  setBoutPublicAction,
+} from "../actions";
 
-export const metadata: Metadata = { title: "The Arena" };
 export const dynamic = "force-dynamic";
+
+// Members see every bout; anonymous readers see only bouts Clay has
+// deliberately made public (sealed, promotional). Public pages get real
+// metadata so the shared link carries a title on social cards.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const bout = await getBout(id);
+  if (bout && isBoutPublic(bout)) {
+    return {
+      title: bout.title,
+      description: bout.caseNo
+        ? `Case № ${caseNoStr(bout.caseNo)} from the Arena. A real fight, broken down move by move.`
+        : "A real fight from the Arena, broken down move by move.",
+    };
+  }
+  return { title: "The Arena" };
+}
 
 // One bout: the fight as it unfolded, tile by tile. Clay's tools (the
 // tile composer, the seal) render only for him, beneath the bout —
@@ -118,18 +143,23 @@ export default async function BoutPage({
   const { id } = await params;
   const cookieStore = await cookies();
   const session = await verifySession(cookieStore.get(SESSION_COOKIE)?.value);
-  if (!session) {
-    redirect(`/notes/sign-in?next=/arena/${id}`);
-  }
-
   const bout = await getBout(id);
   if (!bout) notFound();
 
-  const admin = isAdmin(session.email);
+  // Anonymous readers pass only on a deliberately-public sealed bout;
+  // everything else redirects to sign-in as before.
+  if (!session && !isBoutPublic(bout)) {
+    redirect(`/notes/sign-in?next=/arena/${id}`);
+  }
+
+  const anon = !session;
+  const admin = session ? isAdmin(session.email) : false;
   const sealed = bout.status === "sealed";
   const tiles = await listTiles(id);
   const [reactions, whispers, defaultCaseNo] = await Promise.all([
-    Promise.all(tiles.map((t) => getTileReactions(t.id, session.email))),
+    Promise.all(
+      tiles.map((t) => getTileReactions(t.id, session?.email ?? null))
+    ),
     admin
       ? Promise.all(tiles.map((t) => listWhispers(t.id)))
       : Promise.resolve(tiles.map(() => [] as ArenaWhisper[])),
@@ -196,6 +226,7 @@ export default async function BoutPage({
                 counts={reactions[i].counts}
                 mine={reactions[i].mine}
                 sealed={sealed}
+                canEngage={!anon}
               />
               {admin && <AdminWhispers whispers={whispers[i]} />}
             </div>
@@ -242,6 +273,24 @@ export default async function BoutPage({
         </section>
       )}
 
+      {/* The conversion block, public readers only: they just read one
+          finished fight; the pitch is the room where all of them
+          happen. Speaks in the Arena's own voice, links the membership
+          funnel with its own source tag. */}
+      {anon && (
+        <section className="arena-join">
+          <div className="arena-eyebrow">You just watched one fight</div>
+          <p>
+            This is how predators argue, and how you stop being prey.
+            Members are in the room for every bout: live, move by move,
+            verdict on file.
+          </p>
+          <Link href="/membership?src=arena" className="arena-join-cta">
+            Take a seat
+          </Link>
+        </section>
+      )}
+
       {admin && !sealed && (
         <>
           <ArenaBench boutId={bout.id} />
@@ -284,12 +333,38 @@ export default async function BoutPage({
 
       {admin && sealed && (
         <div className="arena-tools" style={{ marginTop: 14 }}>
-          <form action={reopenBoutAction}>
-            <input type="hidden" name="boutId" value={bout.id} />
-            <button type="submit" className="arena-seal-btn">
-              Reopen the bout
-            </button>
-          </form>
+          <div className="row">
+            <form action={reopenBoutAction}>
+              <input type="hidden" name="boutId" value={bout.id} />
+              <button type="submit" className="arena-seal-btn">
+                Reopen the bout
+              </button>
+            </form>
+            <form action={setBoutPublicAction}>
+              <input type="hidden" name="boutId" value={bout.id} />
+              <input
+                type="hidden"
+                name="public"
+                value={bout.publicAt ? "" : "1"}
+              />
+              <button type="submit" className="arena-seal-btn">
+                {bout.publicAt ? "Take it private" : "Make it public"}
+              </button>
+            </form>
+          </div>
+          {bout.publicAt ? (
+            <p className="arena-public-note">
+              Public. Anyone with the link can read this case; the rest
+              of the Arena stays members-only. Reopening takes it
+              private again.
+            </p>
+          ) : (
+            <p className="arena-public-note">
+              Members-only. Make it public to use this case as the free
+              sample: the link becomes shareable, readers get a seat
+              pitch at the end.
+            </p>
+          )}
         </div>
       )}
     </div>

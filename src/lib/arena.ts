@@ -103,6 +103,11 @@ export type ArenaBout = {
   // reopen-and-reseal never rings twice.
   announcedAt: number | null;
   sealAnnouncedAt: number | null;
+  // Promotional unlock: a sealed bout Clay has made publicly readable
+  // (the conversion asset — one finished fight as the free sample).
+  // Only ever honored on sealed bouts; reopening takes it private
+  // again automatically because the gate checks status too.
+  publicAt: number | null;
 };
 
 export type ArenaTile = {
@@ -194,6 +199,7 @@ export async function createBout(title: string): Promise<ArenaBout | null> {
     rulesApplied: null,
     announcedAt: null,
     sealAnnouncedAt: null,
+    publicAt: null,
   };
   await client.set(`${BOUT_PREFIX}${bout.id}`, JSON.stringify(bout));
   await client.zadd(BOUTS_INDEX, { score: now, member: bout.id });
@@ -211,6 +217,7 @@ export async function getBout(id: string): Promise<ArenaBout | null> {
   bout.rulesApplied = bout.rulesApplied ?? null;
   bout.announcedAt = bout.announcedAt ?? null;
   bout.sealAnnouncedAt = bout.sealAnnouncedAt ?? null;
+  bout.publicAt = bout.publicAt ?? null;
   return bout;
 }
 
@@ -295,14 +302,33 @@ export async function setBoutFlags(
   await saveBout(bout);
 }
 
-/** Reopen keeps the case-file stamp; only the status changes. */
+/** Reopen keeps the case-file stamp; only the status changes. The
+    public unlock is cleared — an open fight is never public. */
 export async function reopenBout(id: string): Promise<ArenaBout | null> {
   const bout = await getBout(id);
   if (!bout) return null;
   bout.status = "open";
   bout.sealedAt = null;
+  bout.publicAt = null;
   await saveBout(bout);
   return bout;
+}
+
+/** Promotional unlock toggle. Only sealed bouts can go public. */
+export async function setBoutPublic(
+  id: string,
+  isPublic: boolean
+): Promise<ArenaBout | null> {
+  const bout = await getBout(id);
+  if (!bout) return null;
+  bout.publicAt = isPublic && bout.status === "sealed" ? Date.now() : null;
+  await saveBout(bout);
+  return bout;
+}
+
+/** The gate the bout page checks for anonymous readers. */
+export function isBoutPublic(bout: ArenaBout): boolean {
+  return bout.status === "sealed" && bout.publicAt !== null;
 }
 
 // The old markdown archive holds cases 001-006; fresh bouts continue

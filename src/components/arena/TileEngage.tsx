@@ -26,6 +26,7 @@ export function TileEngage({
   counts,
   mine,
   sealed = false,
+  canEngage = true,
 }: {
   tileId: string;
   counts: Partial<Record<ReactionKey, number>>;
@@ -34,6 +35,10 @@ export function TileEngage({
   // so the box closes at the seal; reactions stay — they're part of the
   // record and late readers still get a voice.
   sealed?: boolean;
+  // Anonymous readers on a public promotional bout: the earned
+  // reactions render as part of the record, but there's nothing to
+  // press — engagement belongs to members.
+  canEngage?: boolean;
 }) {
   const [local, setLocal] = useState(counts);
   const [my, setMy] = useState<ReactionKey | null>(mine);
@@ -104,6 +109,25 @@ export function TileEngage({
 
   const present = ARENA_REACTIONS.filter((k) => (local[k] ?? 0) > 0);
   const total = present.reduce((sum, k) => sum + (local[k] ?? 0), 0);
+
+  if (!canEngage) {
+    if (total === 0) return null;
+    return (
+      <div className="arena-engage">
+        <span className="arena-sum">
+          <span className="arena-sum-emoji">
+            {present
+              .sort((a, b) => (local[b] ?? 0) - (local[a] ?? 0))
+              .slice(0, 3)
+              .map((k) => (
+                <span key={k}>{REACTION_EMOJI[k]}</span>
+              ))}
+          </span>
+          <span className="n">{total}</span>
+        </span>
+      </div>
+    );
+  }
 
   return (
     <>

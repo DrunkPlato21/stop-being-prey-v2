@@ -14,6 +14,7 @@ import {
   isTileType,
   reopenBout,
   sealBout,
+  setBoutPublic,
   setMyReaction,
 } from "@/lib/arena";
 import { announceBoutOpened, announceCaseFiled } from "@/lib/arena-notify";
@@ -90,6 +91,18 @@ export async function sealBoutAction(formData: FormData): Promise<void> {
   if (bout) {
     await announceCaseFiled(bout, session.email);
   }
+  revalidatePath(`/arena/${boutId}`);
+  revalidatePath("/arena");
+}
+
+// Promotional unlock: flips a sealed bout publicly readable (the
+// conversion sample) or takes it private again.
+export async function setBoutPublicAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  if (!session || !isAdmin(session.email)) return;
+  const boutId = String(formData.get("boutId") ?? "");
+  if (!boutId) return;
+  await setBoutPublic(boutId, String(formData.get("public") ?? "") === "1");
   revalidatePath(`/arena/${boutId}`);
   revalidatePath("/arena");
 }
