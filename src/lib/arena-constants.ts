@@ -14,6 +14,10 @@ export const ARENA_MAX_WHISPER = 1200;
 export const ARENA_MAX_MOVES = 4;
 export const ARENA_MAX_MOVE_LEN = 60;
 
+/** An open bout wears LIVE (pulse) while its newest tile is inside
+    this window, plain OPEN after. Time-honest: never a stale LIVE. */
+export const ARENA_LIVE_WINDOW_MS = 12 * 60 * 60 * 1000;
+
 /** Case numbers render zero-padded, continuing the 001-006 archive. */
 export function caseNoStr(n: number): string {
   return String(n).padStart(3, "0");

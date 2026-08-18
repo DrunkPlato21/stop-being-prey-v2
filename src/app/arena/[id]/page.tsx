@@ -17,7 +17,7 @@ import {
   type ArenaTile,
   type ArenaWhisper,
 } from "@/lib/arena";
-import { caseNoStr } from "@/lib/arena-constants";
+import { ARENA_LIVE_WINDOW_MS, caseNoStr } from "@/lib/arena-constants";
 import { formatGuildBody, GUILD_BODY_STYLE } from "@/components/guild/format-body";
 import { TileEngage } from "@/components/arena/TileEngage";
 import { MoveChip } from "@/components/arena/MoveChip";
@@ -155,6 +155,10 @@ export default async function BoutPage({
   const anon = !session;
   const admin = session ? isAdmin(session.email) : false;
   const sealed = bout.status === "sealed";
+  // Same time-honest badge as the index: LIVE while the breakdown
+  // moved inside the window, OPEN after, never a stale LIVE.
+  const liveNow =
+    !sealed && Date.now() - bout.lastTileAt < ARENA_LIVE_WINDOW_MS;
   // Public readers only see the comments sheet when there's real member
   // discussion on it (social proof). An empty sheet would be a glowing
   // blank rectangle whose only content is a second membership pitch —
@@ -184,10 +188,12 @@ export default async function BoutPage({
           <Link href="/arena" className="arena-eyebrow" style={{ textDecoration: "none" }}>
             The Arena
           </Link>
-          <span className={`arena-chip ${bout.status}`}>
+          <span className={`arena-chip ${liveNow ? "open" : "sealed"}`}>
             <span className="dot" />
             {!sealed
-              ? "Open"
+              ? liveNow
+                ? "Live"
+                : "Open"
               : bout.caseNo
                 ? `Case ${caseNoStr(bout.caseNo)}`
                 : "Sealed"}

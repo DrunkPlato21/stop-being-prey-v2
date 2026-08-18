@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
 import { listBouts, type ArenaBout } from "@/lib/arena";
-import { caseNoStr } from "@/lib/arena-constants";
+import { ARENA_LIVE_WINDOW_MS, caseNoStr } from "@/lib/arena-constants";
 import { markNavViewed } from "@/lib/nav-dots";
 import { createBoutAction } from "./actions";
 
@@ -37,10 +37,6 @@ function relative(ms: number, now: number): string {
   return dateStr(ms);
 }
 
-// An open bout is LIVE while the breakdown is actually moving; after
-// the window it's honestly OPEN. Never a stale LIVE badge — that's the
-// performance tax the workshop design refuses to pay.
-const LIVE_WINDOW_MS = 12 * 60 * 60 * 1000;
 
 // Open bouts: the slab. LIVE with a pulse while the breakdown is
 // moving, OPEN after; relative time so freshness reads at a glance.
@@ -48,7 +44,7 @@ function OpenRows({ bouts, now }: { bouts: ArenaBout[]; now: number }) {
   return (
     <>
       {bouts.map((bout) => {
-        const live = now - bout.lastTileAt < LIVE_WINDOW_MS;
+        const live = now - bout.lastTileAt < ARENA_LIVE_WINDOW_MS;
         return (
           <Link
             key={bout.id}
