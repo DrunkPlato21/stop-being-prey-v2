@@ -7,9 +7,9 @@ import { transcribeSpecimen } from "@/lib/arena-transcribe";
 // POST /api/arena/transcribe  { image: "data:image/webp;base64,..." }
 // Clay-only. Runs a pasted specimen screenshot through the vision model
 // and returns { handle, transcript, timestamp } for the bench to
-// auto-fill. Costs a model call, so it shares the channels admin's
-// 10-per-hour budget; the bench treats every failure as "fill it in
-// yourself", never as a blocker.
+// auto-fill. Costs a model call, so it carries its own hourly fuse (see
+// arena-transcribe.ts); the bench treats every failure as "fill it in
+// yourself", never as a blocker, but it does say which failure it was.
 
 export const runtime = "nodejs";
 export const maxDuration = 60;

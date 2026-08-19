@@ -26,6 +26,7 @@ export function ArenaBench({ boutId }: { boutId: string }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [reading, setReading] = useState(false);
+  const [readNote, setReadNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -38,6 +39,7 @@ export function ArenaBench({ boutId }: { boutId: string }) {
   // transcription miss just leaves the fields manual.
   async function transcribe(dataUrl: string) {
     setReading(true);
+    setReadNote(null);
     try {
       const res = await fetch("/api/arena/transcribe", {
         method: "POST",
@@ -45,7 +47,16 @@ export function ArenaBench({ boutId }: { boutId: string }) {
         body: JSON.stringify({ image: dataUrl }),
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.ok) return;
+      if (!res.ok || !data?.ok) {
+        // Never a blocker, but never a mystery either: a silent
+        // no-fill mid-fight reads as a broken bench.
+        setReadNote(
+          data?.error === "rate_limited"
+            ? "Screenshot reading is capped for this hour. Transcript is yours to type."
+            : "Could not read that screenshot. Transcript is yours to type."
+        );
+        return;
+      }
       if (transcriptRef.current && !transcriptRef.current.value.trim()) {
         const stamp = data.timestamp ? `[${data.timestamp}] ` : "";
         transcriptRef.current.value = `${stamp}${data.transcript}`;
@@ -54,7 +65,7 @@ export function ArenaBench({ boutId }: { boutId: string }) {
         handleRef.current.value = data.handle;
       }
     } catch {
-      // Silent: the transcript is a convenience, never a gate.
+      setReadNote("Could not read that screenshot. Transcript is yours to type.");
     } finally {
       setReading(false);
     }
@@ -62,6 +73,7 @@ export function ArenaBench({ boutId }: { boutId: string }) {
 
   async function attach(file: File) {
     setError(null);
+    setReadNote(null);
     setUploading(true);
     try {
       const { blob } = await resizeImageToWebp(file);
@@ -144,6 +156,9 @@ export function ArenaBench({ boutId }: { boutId: string }) {
         {uploading && <div className="arena-bench-note">Attaching&hellip;</div>}
         {reading && (
           <div className="arena-bench-note">Reading the screenshot&hellip;</div>
+        )}
+        {!reading && readNote && (
+          <div className="arena-bench-note">{readNote}</div>
         )}
         {error && <div className="arena-bench-err">{error}</div>}
         {imageUrl && (

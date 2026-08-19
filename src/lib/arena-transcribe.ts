@@ -9,12 +9,21 @@ import { Redis } from "@upstash/redis";
 //
 // Pattern-replicated from screenshot-analyze.ts (the channels admin's
 // analyzer): same OpenRouter -> Claude vision call shape, and the SAME
-// rate-limit log key, so both features share one 10-calls-per-hour
-// budget and one billing trail.
+// log key, so there is still one billing trail for every vision call
+// the site makes.
+//
+// The BUDGET, though, is the Arena's own. Sharing the analyzer's ten an
+// hour was wrong for a live fight: a busy bout pastes a dozen
+// screenshots in twenty minutes, and the eleventh would have gone quiet
+// with no way to tell a cap from a bug. Entries carry their source, so
+// the cap counts Arena calls only. Twenty an hour is above any real
+// fight and still a hard stop on a runaway loop. The calls cost about a
+// cent each; this limit is a fuse, not a budget.
 
 const LOG_KEY = "ai:analyze-log";
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
-const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_MAX = 20;
+const LOG_SOURCE = "arena";
 const LOG_TRIM_KEEP = 500;
 const TIMEOUT_MS = 30_000;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -118,10 +127,21 @@ export async function transcribeSpecimen(
   const client = getRedis();
   if (client) {
     const since = now - RATE_LIMIT_WINDOW_MS;
-    const calls = await client.zcount(LOG_KEY, since, now).catch(() => 0);
-    if (typeof calls === "number" && calls >= RATE_LIMIT_MAX) {
-      return { ok: false, error: "rate_limited" };
-    }
+    // Count this feature's own calls inside the window. One shared log,
+    // separate fuses.
+    const window = await client
+      .zrange<string[]>(LOG_KEY, since, now, { byScore: true })
+      .catch(() => [] as string[]);
+    const calls = window.filter((entry) => {
+      try {
+        const parsed =
+          typeof entry === "string" ? JSON.parse(entry) : (entry as unknown);
+        return (parsed as { source?: string })?.source === LOG_SOURCE;
+      } catch {
+        return false;
+      }
+    }).length;
+    if (calls >= RATE_LIMIT_MAX) return { ok: false, error: "rate_limited" };
   }
 
   const controller = new AbortController();
@@ -195,7 +215,7 @@ export async function transcribeSpecimen(
             outputTokens: data.usage?.completion_tokens ?? 0,
             cacheReadInputTokens: 0,
             cacheCreationInputTokens: 0,
-            source: "arena",
+            source: LOG_SOURCE,
           }),
         })
         .catch(() => null);
