@@ -1,11 +1,18 @@
 import type { NextRequest } from "next/server";
 import { getNote, isNotesConfigured, setReply } from "@/lib/notes";
 import { createNotification } from "@/lib/notifications";
+import { sendNoteReply } from "@/lib/email";
+import { baseUrl } from "@/lib/membership";
 
 // POST /api/admin/notes/[id]/reply  body: { body }
-// Persists Clay's reply (posts to the public board), flips status to
-// "replied". No email dispatch — the private channel is direct email
-// to clay@stopbeingprey.com, separate from this system.
+// Persists Clay's reply, flips status to "replied", then emails the
+// member. Email is the delivery channel that actually reaches people:
+// the bell only works for members who sign in, and a member who just
+// canceled (or never signs in) would otherwise never see the reply.
+// The reply is persisted first — a failed send must not eat the reply —
+// and the response reports email: "sent" | "skipped" | "failed" so the
+// admin UI can surface a failed send instead of implying delivery.
+// Editing a reply re-sends only when the text actually changed.
 
 export const runtime = "nodejs";
 
@@ -29,6 +36,10 @@ export async function POST(
   if (typeof rawBody !== "string") {
     return Response.json({ error: "missing_body" }, { status: 400 });
   }
+
+  // Snapshot the pre-edit reply so an unchanged re-save doesn't
+  // re-email the member.
+  const prev = await getNote(id);
 
   const result = await setReply(id, rawBody);
   if (!result.ok) {
@@ -58,7 +69,23 @@ export async function POST(
     });
   }
 
-  return Response.json({ ok: true, note: result.note });
+  // Email the member the reply itself. The full text goes in the
+  // email body, so delivery doesn't depend on the member being able
+  // to sign back in.
+  let email: "sent" | "skipped" | "failed" = "skipped";
+  if (replied.fromEmail && replied.clayReply !== prev?.clayReply) {
+    const send = await sendNoteReply({
+      to: replied.fromEmail,
+      memberName: replied.fromName,
+      reply: replied.clayReply ?? "",
+      originalNote: replied.body,
+      visibility: replied.visibility,
+      notesUrl: `${baseUrl()}/desk`,
+    });
+    email = send.ok ? "sent" : "failed";
+  }
+
+  return Response.json({ ok: true, note: result.note, email });
 }
 
 // Optional helper for "preview the email" — not strictly needed but

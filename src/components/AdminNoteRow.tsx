@@ -105,7 +105,7 @@ export function AdminNoteRow({ note: initialNote }: { note: Note }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: replyDraft }),
       });
-      const data: { note?: Note; error?: string } = await res
+      const data: { note?: Note; error?: string; email?: string } = await res
         .json()
         .catch(() => ({}));
       if (!res.ok || !data.note) {
@@ -113,6 +113,13 @@ export function AdminNoteRow({ note: initialNote }: { note: Note }) {
       } else {
         setNote(data.note);
         setReplyOpen(false);
+        // Reply saved but the email didn't go out — say so, or a
+        // never-signs-in member silently never sees the reply.
+        if (data.email === "failed") {
+          setError(
+            "Reply saved, but the email to the member failed to send. Check Resend."
+          );
+        }
         router.refresh();
       }
     } finally {
@@ -230,7 +237,7 @@ export function AdminNoteRow({ note: initialNote }: { note: Note }) {
               }
               rows={3}
               maxLength={MAX_REPLY}
-              placeholder="Short answer. Members see this on the public board."
+              placeholder="Short answer. Sent to them by email."
               disabled={pending}
               className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
               style={{ fontSize: "0.98rem", lineHeight: 1.55 }}
@@ -241,8 +248,7 @@ export function AdminNoteRow({ note: initialNote }: { note: Note }) {
               className="font-serif italic text-ink-faint"
               style={{ fontSize: "0.78rem" }}
             >
-              {replyDraft.length} / {MAX_REPLY} · posts to the public
-              board
+              {replyDraft.length} / {MAX_REPLY} · emailed to the member
             </span>
             <div className="flex items-center gap-3">
               <button
