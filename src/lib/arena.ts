@@ -418,6 +418,16 @@ export async function sealBout(
       assigned += 1;
     }
   }
+  // A re-seal that lands on a different number releases the old claim,
+  // same as a stamp edit does — otherwise the register keeps a phantom
+  // that silently renumbers whoever asks for it next.
+  const client = getClient();
+  if (client && bout.caseNo != null && bout.caseNo !== assigned) {
+    const owner = await client.hget<string>(CASE_NOS_KEY, String(bout.caseNo));
+    if (owner === bout.id) {
+      await client.hdel(CASE_NOS_KEY, String(bout.caseNo));
+    }
+  }
   bout.caseNo = assigned;
 
   bout.archetype =
@@ -457,7 +467,9 @@ export async function getArenaLatestActivityAt(): Promise<number> {
 /** Stamp announcement guards after a bell fan-out. */
 export async function setBoutFlags(
   id: string,
-  flags: { announcedAt?: number; sealAnnouncedAt?: number }
+  // null releases a claim (a failed fan-out hands the ring back);
+  // undefined leaves the flag alone.
+  flags: { announcedAt?: number | null; sealAnnouncedAt?: number | null }
 ): Promise<void> {
   const bout = await getBout(id);
   if (!bout) return;

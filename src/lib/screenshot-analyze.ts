@@ -135,8 +135,22 @@ export async function recentCallCount(now: number = Date.now()): Promise<number>
   const client = getRedis();
   if (!client) return 0;
   const since = now - RATE_LIMIT_WINDOW_MS;
-  const count = await client.zcount(LOG_KEY, since, now).catch(() => 0);
-  return typeof count === "number" ? count : 0;
+  // The log is shared with the Arena's screenshot reader (one billing
+  // trail), but the fuses are separate: its entries carry source
+  // "arena" and count against its own cap, never this one's. A bare
+  // ZCOUNT here would let a busy fight blow the analyzer's fuse.
+  const window = await client
+    .zrange<string[]>(LOG_KEY, since, now, { byScore: true })
+    .catch(() => [] as string[]);
+  return window.filter((entry) => {
+    try {
+      const parsed =
+        typeof entry === "string" ? JSON.parse(entry) : (entry as unknown);
+      return (parsed as { source?: string })?.source !== "arena";
+    } catch {
+      return true;
+    }
+  }).length;
 }
 
 export type AnalyzeLogEntry = {

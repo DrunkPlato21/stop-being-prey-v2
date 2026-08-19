@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { getNote, isNotesConfigured, setReply } from "@/lib/notes";
+import { getNote, isNotesConfigured, markReplyEmailed, setReply } from "@/lib/notes";
 import { createNotification } from "@/lib/notifications";
 import { sendNoteReply } from "@/lib/email";
 import { baseUrl } from "@/lib/membership";
@@ -37,9 +37,6 @@ export async function POST(
     return Response.json({ error: "missing_body" }, { status: 400 });
   }
 
-  // Snapshot the pre-edit reply so an unchanged re-save doesn't
-  // re-email the member.
-  const prev = await getNote(id);
 
   const result = await setReply(id, rawBody);
   if (!result.ok) {
@@ -72,8 +69,11 @@ export async function POST(
   // Email the member the reply itself. The full text goes in the
   // email body, so delivery doesn't depend on the member being able
   // to sign back in.
+  // Send when the text changed OR the current text was never
+  // successfully emailed (a failed send stays retryable by
+  // resubmitting the same reply).
   let email: "sent" | "skipped" | "failed" = "skipped";
-  if (replied.fromEmail && replied.clayReply !== prev?.clayReply) {
+  if (replied.fromEmail && !replied.replyEmailedAt) {
     const send = await sendNoteReply({
       to: replied.fromEmail,
       memberName: replied.fromName,
@@ -83,6 +83,7 @@ export async function POST(
       notesUrl: `${baseUrl()}/desk`,
     });
     email = send.ok ? "sent" : "failed";
+    if (send.ok) await markReplyEmailed(id);
   }
 
   return Response.json({ ok: true, note: result.note, email });

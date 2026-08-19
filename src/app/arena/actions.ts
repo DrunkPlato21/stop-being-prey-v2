@@ -244,16 +244,20 @@ export async function setReactionAction(
   // arrive on the next natural render. Calm surface, no refresh churn.
 }
 
-export async function whisperAction(formData: FormData): Promise<void> {
+// Returns whether the whisper actually landed, so the client never
+// confirms one that was dropped (bout sealed mid-typing, tile deleted,
+// empty body). The member deserves the truth about whether Clay will
+// see it.
+export async function whisperAction(formData: FormData): Promise<boolean> {
   const session = await requireSession();
-  if (!session) return;
+  if (!session) return false;
   const tileId = String(formData.get("tileId") ?? "");
   const body = String(formData.get("body") ?? "");
-  if (!tileId) return;
+  if (!tileId) return false;
   // Whispers land on open bouts only; a filed case is settled.
   const tile = await getTile(tileId);
-  if (!tile) return;
+  if (!tile) return false;
   const bout = await getBout(tile.boutId);
-  if (!bout || bout.status !== "open") return;
-  await addWhisper(tileId, session.email, body);
+  if (!bout || bout.status !== "open") return false;
+  return addWhisper(tileId, session.email, body);
 }

@@ -46,6 +46,7 @@ export function TileEngage({
   const [burst, setBurst] = useState(0);
   const [whispering, setWhispering] = useState(false);
   const [sent, setSent] = useState(false);
+  const [dropped, setDropped] = useState(false);
   const [lockNote, setLockNote] = useState(false);
   const [, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -230,8 +231,12 @@ export function TileEngage({
         <form
           className="arena-whisper-box"
           action={async (formData: FormData) => {
-            await whisperAction(formData);
-            setSent(true);
+            // Honest confirmation only: the action says whether the
+            // whisper landed (the bout can seal mid-typing, the tile
+            // can be deleted under it), and a dropped one says so.
+            const landed = await whisperAction(formData);
+            if (landed) setSent(true);
+            else setDropped(true);
           }}
         >
           <input type="hidden" name="tileId" value={tileId} />
@@ -250,6 +255,11 @@ export function TileEngage({
         </form>
       )}
       {sent && <div className="arena-whisper-sent">Whispered. Only Clay heard it.</div>}
+      {dropped && (
+        <div className="arena-whisper-sent">
+          That one didn&rsquo;t land. The bout closed while you were writing.
+        </div>
+      )}
     </>
   );
 }

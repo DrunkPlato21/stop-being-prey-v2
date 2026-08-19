@@ -2527,7 +2527,7 @@ export function renderWeeklyDigestEmail(args: {
           if (tile.imageUrl) {
             rows.push(`<tr>
               <td style="padding-bottom:4px;">
-                <img src="${escapeHtml(tile.imageUrl)}" alt="Screenshot of the exchange" width="456" style="width:100%;max-width:456px;height:auto;border:1px solid #d8cfb8;border-radius:6px;" />
+                <img src="${escapeHtml(abs(tile.imageUrl) ?? tile.imageUrl)}" alt="Screenshot of the exchange" width="456" style="width:100%;max-width:456px;height:auto;border:1px solid #d8cfb8;border-radius:6px;" />
                 <div style="font-family:Georgia,serif;font-size:11.5px;font-style:italic;color:#a89e90;padding-top:5px;">Full transcript on file in the record.</div>
               </td>
             </tr>`);

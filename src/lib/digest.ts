@@ -353,7 +353,11 @@ export async function assembleDigest(
       getChamberedNote(),
       getDeskPoolSignal().catch(() => ({ waiting: 0, note: null, potCents: 0 })),
       countPostsSince(since).catch(() => 0),
-      listBouts(30).catch(() => []),
+      // Deep read on purpose: the index ranks by lastTileAt and sealing
+      // never bumps that score, so a dormant bout sealed this week (or
+      // an old filed case the rotation should still reach) would fall
+      // out of a shallow window as the room grows.
+      listBouts(200).catch(() => []),
     ]);
 
   // Every case sealed inside the window rides the email in full,
