@@ -23,6 +23,7 @@ const MEMBER_PREFIXES = [
   "/notes",
   "/book",
   "/case-files",
+  "/arena",
   "/rules",
 ];
 
