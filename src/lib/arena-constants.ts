@@ -27,7 +27,9 @@ export function boutHref(bout: { id: string; slug?: string | null }): string {
   return `/arena/${bout.slug ?? bout.id}`;
 }
 
-/** Case numbers render zero-padded, continuing the 001-006 archive. */
+/** Case numbers render zero-padded (001, 002...). The room's own
+    sequence, from 001: the old /case-files page keeps its separate
+    numbering and stays up for reference only. */
 export function caseNoStr(n: number): string {
   return String(n).padStart(3, "0");
 }
