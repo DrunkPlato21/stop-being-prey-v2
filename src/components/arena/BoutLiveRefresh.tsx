@@ -40,6 +40,19 @@ export function BoutLiveRefresh({
   useEffect(() => {
     let cancelled = false;
 
+    // Arm the arrival glow: tiles already on the page settle silently,
+    // and only nodes inserted AFTER this point (a refresh pulling in a
+    // fresh tile) run the ember animation. CSS keys on the pairing of
+    // .live-armed + :not([data-settled]), so the initial render never
+    // flashes and an arrived tile glows exactly once.
+    const room = document.querySelector(".arena-tiles");
+    if (room) {
+      room
+        .querySelectorAll(".arena-tile")
+        .forEach((el) => el.setAttribute("data-settled", ""));
+      room.classList.add("live-armed");
+    }
+
     function isTyping(): boolean {
       const el = document.activeElement;
       if (!el) return false;

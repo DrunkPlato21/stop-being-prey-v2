@@ -120,6 +120,9 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
   border-left: 2px solid var(--a-gold-deep);
   padding: 4px 0 4px 16px; margin: 6px 0 12px;
   font-style: italic; font-size: 1.05rem;
+  /* The body renders through the Guild formatter (bold/italic), which
+     relies on preserved line breaks rather than block wrappers. */
+  white-space: pre-wrap;
 }
 .arena-byline { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--a-gold); }
 
@@ -675,3 +678,49 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
 
 /* The count links jump to a tile; keep the landing clear of the top. */
 .arena-tile { scroll-margin-top: 24px; }
+
+/* ── Chips on the case plates ────────────────── */
+/* The filed shelf wears its loadout: each plate carries the moves on
+   record in the case, same grammar as the tiles (rust ◆ theirs, gold
+   ✦ Clay's, faint = spotted, not yet coined). Spans, not links — the
+   whole plate is already one. */
+.arena-caserow-moves {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+}
+.arena-chip-move.more {
+  color: var(--a-ink-faint); border-style: dashed;
+}
+
+/* ── The room breathes (live bouts only) ─────── */
+/* BoutLiveRefresh settles every tile already on the page and arms the
+   container; only a node inserted afterwards — a fresh tile pulled in
+   by the pulse — runs the ember. Once, on arrival, then it is simply
+   part of the record. */
+@media (prefers-reduced-motion: no-preference) {
+  .arena-tiles.live-armed .arena-tile:not([data-settled]) .arena-tile-card {
+    animation: arena-tile-arrive 1.8s ease-out;
+  }
+  @keyframes arena-tile-arrive {
+    0% {
+      opacity: 0; transform: translateY(6px);
+      box-shadow: 0 0 0 1px var(--a-gold-deep), 0 0 22px rgba(201, 168, 76, 0.28);
+    }
+    35% {
+      opacity: 1; transform: translateY(0);
+      box-shadow: 0 0 0 1px var(--a-gold-deep), 0 0 22px rgba(201, 168, 76, 0.28);
+    }
+    100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+  }
+
+  /* The seal's one ceremony: the stamp comes down when a case is
+     first filed (?filed=1 rides the seal redirect, so only that
+     landing sees it). A later visit gets a still, dry stamp. */
+  .arena-seal .mark.just-filed {
+    animation: arena-stamp-down 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  }
+  @keyframes arena-stamp-down {
+    0% { opacity: 0; transform: scale(2.1) rotate(-6deg); }
+    55% { opacity: 1; transform: scale(0.94) rotate(1.5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+}

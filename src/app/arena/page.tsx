@@ -8,6 +8,7 @@ import { boutHref, listBouts, type ArenaBout } from "@/lib/arena";
 import { ARENA_LIVE_WINDOW_MS, caseNoStr } from "@/lib/arena-constants";
 import { markNavViewed } from "@/lib/nav-dots";
 import { createBoutAction } from "./actions";
+import { MoveChip } from "@/components/arena/MoveChip";
 
 export const metadata: Metadata = {
   title: "The Arena",
@@ -102,6 +103,18 @@ function CaseRows({ bouts, admin }: { bouts: ArenaBout[]; admin: boolean }) {
                 <span className="arena-public-tag">PUBLIC</span>
               )}
             </span>
+            {bout.moves.length > 0 && (
+              <span className="arena-caserow-moves">
+                {bout.moves.slice(0, 4).map((m) => (
+                  <MoveChip key={m} tag={m} linked={false} />
+                ))}
+                {bout.moves.length > 4 && (
+                  <span className="arena-chip-move more">
+                    +{bout.moves.length - 4}
+                  </span>
+                )}
+              </span>
+            )}
           </span>
         </Link>
       ))}

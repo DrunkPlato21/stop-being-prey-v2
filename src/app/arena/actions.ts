@@ -153,12 +153,13 @@ export async function sealBoutAction(formData: FormData): Promise<void> {
   // The filed case is the payoff the first bell row promised.
   await announceCaseFiled(bout, session.email);
   refreshBout(boutId, bout.slug);
-  // Sealing mints the readable link, so land on it. The query param
-  // only rides along when the register had to move the stamp.
+  // Sealing mints the readable link, so land on it. `filed` fires the
+  // stamp's one-time settle; `renumbered` only rides along when the
+  // register had to move the stamp.
   redirect(
     renumberedFrom
-      ? `${boutHref(bout)}?renumbered=${renumberedFrom}`
-      : boutHref(bout)
+      ? `${boutHref(bout)}?filed=1&renumbered=${renumberedFrom}`
+      : `${boutHref(bout)}?filed=1`
   );
 }
 

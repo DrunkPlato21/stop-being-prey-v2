@@ -6,7 +6,16 @@ import { findMove } from "@/lib/arsenal";
 // the wild but not yet coined into the Library. Canonical chips link to
 // the move's Arsenal page and carry the definition as a hover title.
 
-export function MoveChip({ tag }: { tag: string }) {
+// `linked: false` renders the same chip as a plain span — for surfaces
+// that already live inside a link (the case plates on the index), where
+// a nested anchor would be invalid HTML.
+export function MoveChip({
+  tag,
+  linked = true,
+}: {
+  tag: string;
+  linked?: boolean;
+}) {
   const move = findMove(tag);
   if (!move) {
     return (
@@ -18,16 +27,31 @@ export function MoveChip({ tag }: { tag: string }) {
       </span>
     );
   }
+  const inner = (
+    <>
+      <span aria-hidden="true" className="mark">
+        {move.role === "clay" ? "✦" : "◆"}
+      </span>
+      {move.name}
+    </>
+  );
+  if (!linked) {
+    return (
+      <span
+        className={`arena-chip-move ${move.role}`}
+        title={move.definition}
+      >
+        {inner}
+      </span>
+    );
+  }
   return (
     <Link
       href={`/arena/arsenal/${move.slug}`}
       className={`arena-chip-move ${move.role}`}
       title={move.definition}
     >
-      <span aria-hidden="true" className="mark">
-        {move.role === "clay" ? "✦" : "◆"}
-      </span>
-      {move.name}
+      {inner}
     </Link>
   );
 }

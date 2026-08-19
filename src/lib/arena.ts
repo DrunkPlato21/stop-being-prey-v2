@@ -138,6 +138,11 @@ export type ArenaBout = {
   // Only ever honored on sealed bouts; reopening takes it private
   // again automatically because the gate checks status too.
   publicAt: number | null;
+  // Every move tagged anywhere in the bout, first-tagged order. Kept
+  // in step by the tile writes so the index can dress a case plate
+  // with its chips from the one bout read it already does, instead of
+  // fetching every tile of every case on the shelf.
+  moves: string[];
 };
 
 /** What a seal returns: the filed bout, plus the number Clay asked for
@@ -247,6 +252,7 @@ export async function createBout(title: string): Promise<ArenaBout | null> {
     updatedAt: now,
     slug: null,
     publicAt: null,
+    moves: [],
   };
   await client.set(`${BOUT_PREFIX}${bout.id}`, JSON.stringify(bout));
   await client.zadd(BOUTS_INDEX, { score: now, member: bout.id });
@@ -268,6 +274,7 @@ export async function getBout(id: string): Promise<ArenaBout | null> {
   bout.slug = bout.slug ?? null;
   bout.updatedAt = bout.updatedAt ?? bout.lastTileAt;
   bout.publicAt = bout.publicAt ?? null;
+  bout.moves = bout.moves ?? [];
   return bout;
 }
 
@@ -739,6 +746,7 @@ export async function addTile(
   await indexMoves(boutId, tile.moves, now);
   bout.lastTileAt = now;
   bout.tileCount += 1;
+  bout.moves = [...new Set([...bout.moves, ...tile.moves])];
   await saveBout(bout);
   await client.zadd(BOUTS_INDEX, { score: now, member: boutId });
   return tile;
@@ -792,7 +800,11 @@ export async function updateTile(
   };
   await client.set(`${TILE_PREFIX}${tile.id}`, JSON.stringify(updated));
   // A fix changes what the room is reading, so the version marker has
-  // to move even though no counter did.
+  // to move even though no counter did. The chip aggregate recomputes
+  // from the record: an edit can add or drop tags.
+  bout.moves = [
+    ...new Set((await listTiles(tile.boutId)).flatMap((t) => t.moves)),
+  ];
   await saveBout(bout);
   // Arsenal bookkeeping both ways: new tags join the move's record,
   // dropped tags leave it unless another tile still carries them.
@@ -827,6 +839,7 @@ export async function deleteTile(tileId: string): Promise<ArenaTile | null> {
 
   const remaining = await listTiles(tile.boutId);
   bout.tileCount = remaining.length;
+  bout.moves = [...new Set(remaining.flatMap((t) => t.moves))];
   bout.lastTileAt =
     remaining.length > 0
       ? remaining[remaining.length - 1].createdAt

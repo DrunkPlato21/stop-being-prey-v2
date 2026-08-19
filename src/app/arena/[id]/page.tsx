@@ -118,9 +118,14 @@ function TileBody({ tile }: { tile: ArenaTile }) {
     );
   }
   if (tile.type === "counter") {
+    // The counter is Clay's own line, and he writes with emphasis:
+    // same tiny markdown subset as the Guild (**bold**, *italic*),
+    // so a posted reply keeps its weight instead of showing asterisks.
     return (
       <>
-        <div className="arena-counter-line">&ldquo;{tile.body}&rdquo;</div>
+        <div className="arena-counter-line">
+          &ldquo;{formatGuildBody(tile.body)}&rdquo;
+        </div>
         <div className="arena-byline">Clay &middot; posted live</div>
         {tile.imageUrl && <TileShot url={tile.imageUrl} />}
       </>
@@ -171,7 +176,7 @@ export default async function BoutPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ renumbered?: string; taken?: string }>;
+  searchParams: Promise<{ renumbered?: string; taken?: string; filed?: string }>;
 }) {
   const { id } = await params;
   const cookieStore = await cookies();
@@ -377,7 +382,11 @@ export default async function BoutPage({
 
       {sealed && (
         <div className="arena-seal">
-          <div className="mark">&#10022; SEALED &#10022;</div>
+          {/* just-filed rides the seal redirect: the stamp lands once,
+              for the person who just sealed, never on a later visit. */}
+          <div className={`mark${stampNote.filed ? " just-filed" : ""}`}>
+            &#10022; SEALED &#10022;
+          </div>
           <div>
             {bout.caseNo
               ? `Filed as Case № ${caseNoStr(bout.caseNo)}. Part of the record.`

@@ -127,6 +127,13 @@ console.log("\nEDIT: a fix keeps the tile's place, and re-tags the Arsenal");
     (await listBoutsForMove(MOVE_A)).some((b) => b.id === bout.id)
   );
 
+  // The chip aggregate (bout.moves) has to follow every edit: it is
+  // what dresses the case plate on the index.
+  check(
+    "the bout's chip aggregate drops the removed tag",
+    !(await getBout(bout.id))?.moves.includes(MOVE_B)
+  );
+
   await updateTile(second.id, {
     type: "read",
     body: "What it is.",
@@ -135,6 +142,11 @@ console.log("\nEDIT: a fix keeps the tile's place, and re-tags the Arsenal");
   check(
     "re-tagging puts the bout back on the move's wall",
     (await listBoutsForMove(MOVE_B)).some((b) => b.id === bout.id)
+  );
+  const retagged = await getBout(bout.id);
+  check(
+    "the chip aggregate carries every tag on the record",
+    Boolean(retagged?.moves.includes(MOVE_A) && retagged?.moves.includes(MOVE_B))
   );
 }
 
@@ -178,6 +190,10 @@ console.log("\nDELETE: counters come from the record, not a decrement");
   check(
     "the last tag out drops the bout from the move",
     !(await listBoutsForMove(MOVE_B)).some((b) => b.id === bout.id)
+  );
+  check(
+    "an emptied bout's chip aggregate is empty too",
+    empty?.moves.length === 0
   );
   check(
     "the bout survives losing every tile",

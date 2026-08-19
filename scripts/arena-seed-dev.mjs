@@ -127,7 +127,7 @@ const BOUTS = [
       },
       {
         type: "counter",
-        body: "Then it should take you one sentence. Name the error. Quote the line. Credentials answer questions; they don’t replace them.",
+        body: "Then it should take you one sentence. **Name the error. Quote the line.** Credentials answer questions; they don’t *replace* them.",
         moves: ["the-reversal-receipt"],
         at: now - 9 * DAY + 2 * HOUR,
         reactions: { fire: 7, hundred: 3 },
@@ -284,6 +284,8 @@ for (const bout of BOUTS) {
     // minted, so dev exercises the same URLs (and the same slug
     // register) production will use.
     slug: bout.status === "sealed" ? slugify(bout.title) : null,
+    // The chip aggregate the tile writes maintain in production.
+    moves: [...new Set(tiles.flatMap((t) => t.moves ?? []))],
   };
   await redis.set(k(`arena:bout:${bout.id}`), JSON.stringify(record));
   await redis.zadd(k("arena:bouts"), { score: lastTileAt, member: bout.id });
