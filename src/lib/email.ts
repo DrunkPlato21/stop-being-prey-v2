@@ -2622,14 +2622,14 @@ export function renderWeeklyDigestEmail(args: {
                     <td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.35rem;font-weight:700;color:#8a7d20;padding-right:14px;vertical-align:top;line-height:1.3;">&#8470;&nbsp;${p.archive.number}</td>
                     <td style="vertical-align:top;">
                       <div style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.4;color:#1a1714;"><a href="${escapeHtml(href)}" style="color:#1a1714;">${escapeHtml(p.archive.title)}</a></div>
-                      <div style="font-family:Georgia,serif;font-size:12.5px;font-style:italic;color:#8a8077;padding-top:3px;">${escapeHtml(p.archive.archetype)}</div>
+                      ${p.archive.archetype ? `<div style="font-family:Georgia,serif;font-size:12.5px;font-style:italic;color:#8a8077;padding-top:3px;">${escapeHtml(p.archive.archetype)}</div>` : ""}
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>`);
     textLines.push(
-      `From the case files: No. ${p.archive.number}, ${p.archive.title} (${p.archive.archetype}) ${href}`,
+      `From the case files: No. ${p.archive.number}, ${p.archive.title}${p.archive.archetype ? ` (${p.archive.archetype})` : ""} ${href}`,
       ""
     );
   }

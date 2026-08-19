@@ -2,9 +2,8 @@ import { Redis } from "@upstash/redis";
 import { getWritersDeskState } from "./writers-desk-state";
 import { getRecentWorkEvents } from "./pulse";
 import { getDeskPoolSignal } from "./pool";
-import { getAllCaseFiles } from "./case-files";
 import { countPostsSince } from "./lounge";
-import { listBouts, listTiles, TILE_TYPE_LABEL } from "./arena";
+import { boutHref, listBouts, listTiles, TILE_TYPE_LABEL } from "./arena";
 import { findMove } from "./arsenal";
 
 // The weekly digest — the patron report. One email a week to every
@@ -156,7 +155,9 @@ export type DigestPayload = {
   archive: {
     number: number;
     title: string;
-    archetype: string;
+    // Null when the filed case never got an archetype: the room does
+    // not require one, so the email has to render without it.
+    archetype: string | null;
     url: string;
   } | null;
 };
@@ -379,7 +380,7 @@ export async function assembleDigest(
       rulesApplied: bout.rulesApplied,
       dispatch: bout.dispatch,
       sealedAt: bout.sealedAt ?? now,
-      url: `/arena/${bout.id}`,
+      url: boutHref(bout),
       tiles: tiles.map((t) => ({
         type: t.type,
         label: TILE_TYPE_LABEL[t.type],
@@ -400,20 +401,23 @@ export async function assembleDigest(
     .filter((e) => siteSources.has(e.source) && e.at >= since && e.at <= now)
     .map((e) => ({ label: e.label, title: e.body, url: e.link ?? null, at: e.at }));
 
-  // Archive rotation: deterministic by week so every member sees the
-  // same pick and a retry can't shuffle it. Case files ordered by
-  // number; the rotation walks them oldest-first, forever.
-  const caseFiles = getAllCaseFiles()
-    .slice()
-    .sort((a, b) => a.number - b.number);
+  // Archive rotation: on a week with no fresh case, the email reaches
+  // back for one already on file. Deterministic by week so every member
+  // sees the same pick and a retry can't shuffle it. It rotates the
+  // ROOM's filed cases: the old markdown archive keeps its own
+  // numbering and is no longer part of the site, so pulling from it
+  // would put two different "Case 003"s in front of the same reader.
+  const filed = allBouts
+    .filter((b) => b.status === "sealed" && b.caseNo !== null)
+    .sort((a, b) => (a.caseNo ?? 0) - (b.caseNo ?? 0));
   let archive: DigestPayload["archive"] = null;
-  if (caseFiles.length > 0 && cases.length === 0) {
-    const pick = caseFiles[Math.floor(now / WEEK_MS) % caseFiles.length];
+  if (filed.length > 0 && cases.length === 0) {
+    const pick = filed[Math.floor(now / WEEK_MS) % filed.length];
     archive = {
-      number: pick.number,
+      number: pick.caseNo ?? 0,
       title: pick.title,
       archetype: pick.archetype,
-      url: `/case-files/${pick.slug}`,
+      url: boutHref(pick),
     };
   }
 
