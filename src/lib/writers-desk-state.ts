@@ -92,12 +92,14 @@ export type DeskRoomsSignal = {
   arena: {
     open: {
       id: string;
+      slug: string | null;
       title: string;
       tileCount: number;
       lastTileAt: number;
     } | null;
     latestCase: {
       id: string;
+      slug: string | null;
       title: string;
       caseNo: number | null;
       sealedAt: number | null;
@@ -408,6 +410,7 @@ export async function getWritersDeskState(
         open: openBout
           ? {
               id: openBout.id,
+              slug: openBout.slug,
               title: openBout.title,
               tileCount: openBout.tileCount,
               lastTileAt: openBout.lastTileAt,
@@ -416,6 +419,7 @@ export async function getWritersDeskState(
         latestCase: sealed
           ? {
               id: sealed.id,
+              slug: sealed.slug,
               title: sealed.title,
               caseNo: sealed.caseNo,
               sealedAt: sealed.sealedAt,

@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
-import { listBouts, type ArenaBout } from "@/lib/arena";
+import { boutHref, listBouts, type ArenaBout } from "@/lib/arena";
 import { ARENA_LIVE_WINDOW_MS, caseNoStr } from "@/lib/arena-constants";
 import { markNavViewed } from "@/lib/nav-dots";
 import { createBoutAction } from "./actions";
@@ -48,7 +48,7 @@ function OpenRows({ bouts, now }: { bouts: ArenaBout[]; now: number }) {
         return (
           <Link
             key={bout.id}
-            href={`/arena/${bout.id}`}
+            href={boutHref(bout)}
             className={`arena-bout-row slab${live ? " live" : ""}`}
           >
             <span className={`arena-chip ${live ? "open" : "sealed"}`}>
@@ -76,7 +76,7 @@ function CaseRows({ bouts, admin }: { bouts: ArenaBout[]; admin: boolean }) {
       {bouts.map((bout) => (
         <Link
           key={bout.id}
-          href={`/arena/${bout.id}`}
+          href={boutHref(bout)}
           className="arsenal-plate case"
         >
           <span className="arsenal-stampblock">
@@ -155,10 +155,6 @@ export default async function ArenaIndexPage() {
               .sort((a, b) => (b.caseNo ?? 0) - (a.caseNo ?? 0))}
             admin={admin}
           />
-          <p className="arena-archive-link">
-            Cases 001&ndash;006 predate the room.{" "}
-            <Link href="/case-files">They live in the archive &rarr;</Link>
-          </p>
         </>
       )}
 

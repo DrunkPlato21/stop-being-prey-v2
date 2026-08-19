@@ -252,6 +252,18 @@ const BOUTS = [
 // ---------------------------------------------------------------------
 
 const k = (s) => `${PREFIX}${s}`;
+// Same rule as slugify() in lib/arena.ts. Kept in step by hand: this is
+// furniture for dev, not the source of truth for a real seal.
+const slugify = (title) =>
+  title
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+    .replace(/-+$/g, "");
+
 let tileCounter = 0;
 
 for (const bout of BOUTS) {
@@ -268,9 +280,19 @@ for (const bout of BOUTS) {
     caseNo: bout.caseNo ?? null,
     archetype: bout.archetype ?? null,
     rulesApplied: bout.rulesApplied ?? null,
+    // Sealed seeds carry the readable slug a real seal would have
+    // minted, so dev exercises the same URLs (and the same slug
+    // register) production will use.
+    slug: bout.status === "sealed" ? slugify(bout.title) : null,
   };
   await redis.set(k(`arena:bout:${bout.id}`), JSON.stringify(record));
   await redis.zadd(k("arena:bouts"), { score: lastTileAt, member: bout.id });
+  if (record.slug) await redis.set(k(`arena:slug:${record.slug}`), bout.id);
+  // The case-number register: seeded so a dev seal picks the next free
+  // number instead of colliding with the furniture.
+  if (record.caseNo != null) {
+    await redis.hset(k("arena:casenos"), { [String(record.caseNo)]: bout.id });
+  }
 
   for (const t of tiles) {
     const tileId = `seed-tile-${bout.id}-${tileCounter++}`;

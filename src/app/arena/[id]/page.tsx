@@ -3,11 +3,18 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { isAdmin, isApproved, listCommentsForSlug } from "@/lib/comments";
+import {
+  getProfilesByEmails,
+  isAdmin,
+  isApproved,
+  listCommentsForSlug,
+} from "@/lib/comments";
 import {
   ARENA_MAX_ARCHETYPE,
   ARENA_MAX_RULES,
-  getBout,
+  boutHref,
+  getBoutByParam,
+  getPublicBoutView,
   getTileReactions,
   isBoutPublic,
   listTiles,
@@ -23,10 +30,14 @@ import { TileEngage } from "@/components/arena/TileEngage";
 import { MoveChip } from "@/components/arena/MoveChip";
 import { Comments } from "@/components/Comments";
 import { ArenaBench } from "@/components/arena/ArenaBench";
+import { TileAdminTools } from "@/components/arena/TileAdminTools";
+import { DeleteBoutButton } from "@/components/arena/DeleteBoutButton";
+import { BoutLiveRefresh } from "@/components/arena/BoutLiveRefresh";
 import {
   reopenBoutAction,
   sealBoutAction,
   setBoutPublicAction,
+  updateBoutStampAction,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -40,13 +51,17 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const bout = await getBout(id);
+  const bout = await getBoutByParam(id);
   if (bout && isBoutPublic(bout)) {
     return {
       title: bout.title,
       description: bout.caseNo
         ? `Case № ${caseNoStr(bout.caseNo)} from the Arena. A real fight, broken down move by move.`
         : "A real fight from the Arena, broken down move by move.",
+      // The case has one address: the slug. Reached by id (an old link,
+      // a member coming from the index), the page still points search
+      // engines and shares at the readable one.
+      alternates: { canonical: boutHref(bout) },
     };
   }
   return { title: "The Arena" };
@@ -119,31 +134,56 @@ function TileBody({ tile }: { tile: ArenaTile }) {
   );
 }
 
-function AdminWhispers({ whispers }: { whispers: ArenaWhisper[] }) {
+// Whispers are private to Clay, and the point of one is usually "who
+// is this, and do they know what they're talking about". A raw email
+// answers neither, so the name he'd recognize from the Lounge and the
+// Guild leads, with the email under it for the members who never set
+// one (and for when he needs to reply outside the room).
+function AdminWhispers({
+  whispers,
+  names,
+}: {
+  whispers: ArenaWhisper[];
+  names: Map<string, string | null>;
+}) {
   if (whispers.length === 0) return null;
   return (
     <div>
-      {whispers.map((w, i) => (
-        <div key={i} className="arena-whisper-quote">
-          <div>{w.body}</div>
-          <div className="who">
-            {w.email} &middot; {stamp(w.createdAt)}
+      {whispers.map((w, i) => {
+        const name = names.get(w.email.toLowerCase()) ?? null;
+        return (
+          <div key={i} className="arena-whisper-quote">
+            <div>{w.body}</div>
+            <div className="who">
+              {name && <b>{name}</b>}
+              {name ? " · " : ""}
+              {w.email} &middot; {stamp(w.createdAt)}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
 export default async function BoutPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ renumbered?: string; taken?: string }>;
 }) {
   const { id } = await params;
   const cookieStore = await cookies();
   const session = await verifySession(cookieStore.get(SESSION_COOKIE)?.value);
-  const bout = await getBout(id);
+
+  // Two read paths on purpose. Members get the live record (their own
+  // reaction has to be theirs, and Clay's bench has to show what he
+  // just posted). Anonymous readers get the cached public view: this
+  // is the shared link, the one strangers and crawlers land on, and it
+  // costs the same whether one of them arrives or a thousand.
+  const publicView = session ? null : await getPublicBoutView(id);
+  const bout = publicView?.bout ?? (await getBoutByParam(id));
   if (!bout) notFound();
 
   // Anonymous readers pass only on a deliberately-public sealed bout;
@@ -155,6 +195,10 @@ export default async function BoutPage({
   const anon = !session;
   const admin = session ? isAdmin(session.email) : false;
   const sealed = bout.status === "sealed";
+  // Set when the case-number register had to move the stamp Clay typed.
+  const stampNote = admin ? await searchParams : {};
+  const renumberedFrom = stampNote.renumbered;
+  const numberTaken = stampNote.taken;
   // Same time-honest badge as the index: LIVE while the breakdown
   // moved inside the window, OPEN after, never a stale LIVE.
   const liveNow =
@@ -168,11 +212,14 @@ export default async function BoutPage({
     (!anon ||
       (await listCommentsForSlug("case-file", bout.id)).filter(isApproved)
         .length > 0);
-  const tiles = await listTiles(id);
+  const tiles = publicView?.tiles ?? (await listTiles(bout.id));
+
   const [reactions, whispers, defaultCaseNo] = await Promise.all([
-    Promise.all(
-      tiles.map((t) => getTileReactions(t.id, session?.email ?? null))
-    ),
+    publicView
+      ? Promise.resolve(publicView.reactions)
+      : Promise.all(
+          tiles.map((t) => getTileReactions(t.id, session?.email ?? null))
+        ),
     admin
       ? Promise.all(tiles.map((t) => listWhispers(t.id)))
       : Promise.resolve(tiles.map(() => [] as ArenaWhisper[])),
@@ -180,6 +227,29 @@ export default async function BoutPage({
       ? bout.caseNo ?? nextCaseNo()
       : Promise.resolve(null),
   ]);
+
+  // One batched read for every whisperer on the bout, so a tile with
+  // five whispers doesn't cost five profile lookups.
+  const whisperNames = admin
+    ? new Map(
+        Array.from(
+          (
+            await getProfilesByEmails(
+              whispers.flat().map((w) => w.email)
+            ).catch(() => new Map())
+          ).entries()
+        ).map(([email, profile]) => [
+          email,
+          (profile as { displayName?: string } | null)?.displayName ?? null,
+        ])
+      )
+    : new Map<string, string | null>();
+  // What's waiting for him, and where: a count at the head of the bout
+  // beats scrolling eight tiles to find out whether anyone whispered.
+  const whisperTiles = whispers
+    .map((list, i) => ({ n: i + 1, count: list.length }))
+    .filter((t) => t.count > 0);
+  const whisperTotal = whisperTiles.reduce((sum, t) => sum + t.count, 0);
 
   return (
     <div className="arena-wrap">
@@ -219,9 +289,52 @@ export default async function BoutPage({
         )}
       </header>
 
+      {renumberedFrom && (
+        <p className="arena-renumbered">
+          Case &#8470; {caseNoStr(Number(renumberedFrom))} was already on
+          file. This one filed as &#8470;{" "}
+          {bout.caseNo ? caseNoStr(bout.caseNo) : "—"}.
+        </p>
+      )}
+      {numberTaken && (
+        <p className="arena-renumbered">
+          Case &#8470; {caseNoStr(Number(numberTaken))} belongs to another
+          case, so this one kept &#8470;{" "}
+          {bout.caseNo ? caseNoStr(bout.caseNo) : "—"}. Free the other one
+          first if you want to swap them.
+        </p>
+      )}
+
+      {admin && whisperTotal > 0 && (
+        <p className="arena-whisper-tally">
+          <b>
+            {whisperTotal} {whisperTotal === 1 ? "whisper" : "whispers"}
+          </b>{" "}
+          on this bout, under{" "}
+          {whisperTiles.map((t, i) => (
+            <span key={t.n}>
+              {i > 0 ? ", " : ""}
+              <a href={`#tile-${t.n}`}>
+                tile {t.n}
+                {t.count > 1 ? ` (${t.count})` : ""}
+              </a>
+            </span>
+          ))}
+          . Only you can see them.
+        </p>
+      )}
+
+      {!sealed && !anon && (
+        <BoutLiveRefresh boutId={bout.id} version={bout.updatedAt} />
+      )}
+
       <div className="arena-tiles">
         {tiles.map((tile, i) => (
-          <div key={tile.id} className={`arena-tile ${tile.type}`}>
+          <div
+            key={tile.id}
+            id={`tile-${i + 1}`}
+            className={`arena-tile ${tile.type}`}
+          >
             <div className="arena-tile-no">{i + 1}</div>
             <div className="arena-tile-card">
               <div className="arena-tile-head">
@@ -243,7 +356,10 @@ export default async function BoutPage({
                 sealed={sealed}
                 canEngage={!anon}
               />
-              {admin && <AdminWhispers whispers={whispers[i]} />}
+              {admin && <TileAdminTools tile={tile} />}
+              {admin && (
+                <AdminWhispers whispers={whispers[i]} names={whisperNames} />
+              )}
             </div>
           </div>
         ))}
@@ -348,13 +464,65 @@ export default async function BoutPage({
                 Seal the bout. File it.
               </button>
             </form>
+            <div className="arena-danger">
+              <DeleteBoutButton boutId={bout.id} />
+            </div>
           </div>
         </>
       )}
 
       {admin && sealed && (
         <div className="arena-tools" style={{ marginTop: 14 }}>
-          <div className="row">
+          <h2>The stamp</h2>
+          <form action={updateBoutStampAction}>
+            <input type="hidden" name="boutId" value={bout.id} />
+            <input
+              name="title"
+              maxLength={120}
+              defaultValue={bout.title}
+              placeholder="Title. Name the fight."
+            />
+            <div className="row">
+              <label>
+                Case &#8470;
+                <br />
+                <input
+                  name="caseNo"
+                  type="number"
+                  min={1}
+                  defaultValue={bout.caseNo ?? undefined}
+                  className="arena-caseno-input"
+                />
+              </label>
+              <input
+                name="archetype"
+                maxLength={ARENA_MAX_ARCHETYPE}
+                defaultValue={bout.archetype ?? ""}
+                placeholder="Archetype (The Sniper, The Moralizer...)"
+              />
+            </div>
+            <input
+              name="rulesApplied"
+              maxLength={ARENA_MAX_RULES}
+              defaultValue={bout.rulesApplied ?? ""}
+              placeholder="Rules applied (e.g. 1, 5)"
+            />
+            <input
+              name="dispatch"
+              maxLength={280}
+              defaultValue={bout.dispatch ?? ""}
+              placeholder="One line for the Sunday email, your voice: how this one found you (optional)"
+            />
+            <button type="submit" className="submit">
+              Save the stamp
+            </button>
+          </form>
+          <p className="arena-public-note">
+            Tiles stay fixable after the seal. Use Edit on any tile above.
+            Adding a NEW tile still needs a reopen, because that changes
+            what the case says.
+          </p>
+          <div className="row" style={{ marginTop: 16 }}>
             <form action={reopenBoutAction}>
               <input type="hidden" name="boutId" value={bout.id} />
               <button type="submit" className="arena-seal-btn">
@@ -378,6 +546,10 @@ export default async function BoutPage({
               Public. Anyone with the link can read this case; the rest
               of the Arena stays members-only. Reopening takes it
               private again.
+              <br />
+              <span className="arena-public-link">
+                stopbeingprey.com{boutHref(bout)}
+              </span>
             </p>
           ) : (
             <p className="arena-public-note">
@@ -386,6 +558,9 @@ export default async function BoutPage({
               pitch at the end.
             </p>
           )}
+          <div className="arena-danger">
+            <DeleteBoutButton boutId={bout.id} />
+          </div>
         </div>
       )}
     </div>

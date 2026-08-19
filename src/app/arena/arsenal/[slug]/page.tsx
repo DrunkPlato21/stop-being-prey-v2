@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
 import { findMove, MOVE_ROLE_LABEL } from "@/lib/arsenal";
-import { getArsenalDebutOrder, listBoutsForMove } from "@/lib/arena";
+import { boutHref, getArsenalDebutOrder, listBoutsForMove } from "@/lib/arena";
 import { caseNoStr, romanNumeral } from "@/lib/arena-constants";
 import {
   formatGuildBody,
@@ -114,7 +114,7 @@ export default async function MovePage({
         {bouts.map((bout) => (
           <Link
             key={bout.id}
-            href={`/arena/${bout.id}`}
+            href={boutHref(bout)}
             className="arena-bout-row"
           >
             <span className={`arena-chip ${bout.status}`}>

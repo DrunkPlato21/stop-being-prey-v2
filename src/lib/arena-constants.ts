@@ -18,6 +18,15 @@ export const ARENA_MAX_MOVE_LEN = 60;
     this window, plain OPEN after. Time-honest: never a stale LIVE. */
 export const ARENA_LIVE_WINDOW_MS = 12 * 60 * 60 * 1000;
 
+/** The canonical link for a bout: the readable slug once a seal has
+    minted one, the raw id until then. Lives here, not in arena.ts, so
+    client surfaces (the Desk door) can link a bout without pulling
+    Redis into the bundle. Every surface goes through it, so a filed
+    case is never advertised by its uuid. */
+export function boutHref(bout: { id: string; slug?: string | null }): string {
+  return `/arena/${bout.slug ?? bout.id}`;
+}
+
 /** Case numbers render zero-padded, continuing the 001-006 archive. */
 export function caseNoStr(n: number): string {
   return String(n).padStart(3, "0");

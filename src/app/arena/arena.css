@@ -596,3 +596,82 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   font-size: 0.82rem; font-style: italic; color: var(--a-ink-faint);
   margin: 4px 0 0;
 }
+
+/* ── Tile tools (Clay, open bouts) ───────────── */
+/* Sits under the reaction row, quiet as the whisper controls: a fix is
+   maintenance, never a feature of the page members are reading. */
+.arena-tile-admin {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin-top: 10px; padding-top: 9px;
+  border-top: 1px dashed var(--a-rule-soft);
+}
+.arena-tile-admin button {
+  cursor: pointer; background: transparent; border: 1px solid var(--a-rule);
+  color: var(--a-ink-faint); font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase;
+  border-radius: 2px; padding: 4px 10px; margin-right: 8px;
+}
+.arena-tile-admin button:hover, .arena-tile-admin button:focus-visible {
+  border-color: var(--a-gold-deep); color: var(--a-gold); outline: none;
+}
+.arena-tile-admin button.danger { color: #d98a6b; border-color: #6b3a26; }
+.arena-tile-admin button.danger:hover,
+.arena-tile-admin button.danger:focus-visible {
+  background: rgba(168, 84, 56, 0.12); border-color: #a85438; color: #e8a086;
+}
+
+/* The editor is the bench, opened inside the tile it is fixing. */
+.arena-tile-editor {
+  margin-top: 12px; border-style: solid; border-color: var(--a-rule-soft);
+  background: rgba(0, 0, 0, 0.18); padding: 14px 15px;
+}
+
+/* ── Seal aftermath ──────────────────────────── */
+.arena-renumbered {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem;
+  letter-spacing: 0.04em; color: var(--a-gold);
+  border: 1px solid var(--a-gold-deep); border-radius: 3px;
+  background: rgba(201, 168, 76, 0.06);
+  padding: 9px 12px; margin: 14px 0 0;
+}
+.arena-public-link {
+  display: inline-block; margin-top: 6px;
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem;
+  font-style: normal; letter-spacing: 0.02em; color: var(--a-gold);
+  word-break: break-all;
+}
+
+/* ── Binning a case ──────────────────────────── */
+/* Rust, set apart, and never beside the everyday controls. */
+.arena-danger {
+  margin-top: 20px; padding-top: 14px;
+  border-top: 1px dashed var(--a-rule-soft);
+}
+.arena-seal-btn.danger { border-color: #6b3a26; color: #d98a6b; }
+.arena-seal-btn.danger:hover, .arena-seal-btn.danger:focus-visible {
+  background: rgba(168, 84, 56, 0.14); border-color: #a85438; color: #e8a086;
+}
+.arena-delete-confirm p {
+  font-size: 0.82rem; color: var(--a-ink-muted); max-width: 54ch;
+  margin: 0 0 12px;
+}
+.arena-delete-confirm .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.arena-delete-confirm form { display: inline; }
+
+/* ── The whisper tally (Clay only) ───────────── */
+/* What's waiting and where, at the head of the bout. Gold on the room's
+   own ground: it is a note to himself, not part of what members read. */
+.arena-whisper-tally {
+  font-size: 0.8rem; color: var(--a-ink-muted);
+  border: 1px dashed var(--a-rule); border-radius: 3px;
+  padding: 9px 13px; margin: 14px 0 0;
+}
+.arena-whisper-tally b { color: var(--a-gold); font-weight: 700; }
+.arena-whisper-tally a {
+  color: var(--a-gold); text-decoration: underline;
+  text-underline-offset: 3px; text-decoration-thickness: 1px;
+}
+.arena-whisper-quote .who b { color: var(--a-ink-muted); font-weight: 700; }
+
+/* The count links jump to a tile; keep the landing clear of the top. */
+.arena-tile { scroll-margin-top: 24px; }

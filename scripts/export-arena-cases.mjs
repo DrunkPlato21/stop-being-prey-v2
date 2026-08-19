@@ -116,6 +116,7 @@ for (const id of boutIds) {
     `sealed_at: ${yq(iso(bout.sealedAt ?? bout.lastTileAt))}`,
     `public: ${bout.publicAt ? "true" : "false"}`,
     `bout_id: ${yq(bout.id)}`,
+    `url: ${yq(`https://stopbeingprey.com/arena/${bout.slug ?? bout.id}`)}`,
     `tile_count: ${tiles.length}`,
     allMoves.length
       ? `moves:\n${allMoves

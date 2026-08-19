@@ -1,7 +1,7 @@
 import { listActiveMemberEmails } from "./members";
 import { createForMembers } from "./notifications";
 import { caseNoStr } from "./arena-constants";
-import { setBoutFlags, type ArenaBout } from "./arena";
+import { boutHref, setBoutFlags, type ArenaBout } from "./arena";
 
 // Arena bell fan-outs. Exactly two moments per fight, by design:
 // "Fresh on the slab" when the first tile lands (a bout with no tiles
@@ -26,7 +26,7 @@ export async function announceBoutOpened(
       type: "arena_bout",
       title: "Fresh on the slab",
       body: bout.title,
-      linkUrl: `/arena/${bout.id}`,
+      linkUrl: boutHref(bout),
     },
     { skipEmail }
   );
@@ -47,7 +47,7 @@ export async function announceCaseFiled(
         ? `Case № ${caseNoStr(bout.caseNo)} is on file`
         : "A bout was sealed",
       body: bout.title,
-      linkUrl: `/arena/${bout.id}`,
+      linkUrl: boutHref(bout),
     },
     { skipEmail }
   );

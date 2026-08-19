@@ -11,8 +11,10 @@ import { ARENA_MAX_MOVES } from "@/lib/arena-constants";
 // Submits as the same comma-separated "moves" field the action already
 // parses: canonical picks go over as slugs, free text goes as typed.
 
-export function MovePicker() {
-  const [tags, setTags] = useState<string[]>([]);
+// `initial` is what the tile editor passes: the tags already on a
+// posted tile, so a fix starts from what's there instead of a blank row.
+export function MovePicker({ initial }: { initial?: string[] } = {}) {
+  const [tags, setTags] = useState<string[]>(initial ?? []);
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);

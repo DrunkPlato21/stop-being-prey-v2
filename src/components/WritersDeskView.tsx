@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { boutHref } from "@/lib/arena-constants";
 import Link from "next/link";
 import type {
   WritersDeskState,
@@ -511,7 +512,7 @@ function ArenaDoor({
         </span>
       </Link>
       <Link
-        href={`/arena/${open ? open.id : latestCase!.id}`}
+        href={boutHref(open ?? latestCase!)}
         className="group flex items-center justify-between gap-4 no-underline mt-4"
         style={{
           background: "#141009",
