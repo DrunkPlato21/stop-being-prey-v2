@@ -69,6 +69,22 @@ function OpenRows({ bouts, now }: { bouts: ArenaBout[]; now: number }) {
   );
 }
 
+// The archetype filter hides until the drawer needs it. A filter over
+// four cases is chrome pretending the room is bigger than it is, and the
+// room launches empty — so it stays invisible the way the Desk door does
+// until there is furniture, then appears on its own.
+const FILTER_MIN_CASES = 6;
+const FILTER_MIN_ARCHETYPES = 3;
+
+// Archetypes are free text typed at seal time, so the URL word is
+// derived, never stored. Same shape as the bout slug: ASCII, hyphenated.
+function archetypeSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 // Filed cases: the drawer. Same stamp-plate grammar as the Arsenal
 // wall, so the whole room speaks one language.
 function CaseRows({ bouts, admin }: { bouts: ArenaBout[]; admin: boolean }) {
@@ -122,7 +138,12 @@ function CaseRows({ bouts, admin }: { bouts: ArenaBout[]; admin: boolean }) {
   );
 }
 
-export default async function ArenaIndexPage() {
+export default async function ArenaIndexPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ a?: string }>;
+}) {
+  const sp = await searchParams;
   const cookieStore = await cookies();
   const session = await verifySession(cookieStore.get(SESSION_COOKIE)?.value);
   if (!session) {
@@ -135,6 +156,45 @@ export default async function ArenaIndexPage() {
     markNavViewed("arena", session.email),
   ]);
   const admin = isAdmin(session.email);
+
+  // The shelf, newest case first. NOTE: listBouts() reads the top 30, so
+  // the drawer (and therefore this filter) covers the last 30 bouts. At
+  // a weekly cadence that binds in about half a year; whoever raises the
+  // cap should raise it here rather than let the filter quietly report
+  // on a slice.
+  const sealed = bouts
+    .filter((b) => b.status === "sealed")
+    .sort((a, b) => (b.caseNo ?? 0) - (a.caseNo ?? 0));
+
+  const counts = new Map<string, { label: string; count: number }>();
+  for (const bout of sealed) {
+    const label = bout.archetype?.trim();
+    if (!label) continue;
+    const slug = archetypeSlug(label);
+    if (!slug) continue;
+    const seen = counts.get(slug);
+    if (seen) seen.count += 1;
+    else counts.set(slug, { label, count: 1 });
+  }
+  // Commonest first, so the chips a member reaches for sit leftmost.
+  const archetypes = [...counts.entries()]
+    .map(([slug, v]) => ({ slug, ...v }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+
+  const showFilter =
+    sealed.length >= FILTER_MIN_CASES &&
+    archetypes.length >= FILTER_MIN_ARCHETYPES;
+  // An unknown or stale ?a= reads as no filter, so an old link lands on
+  // the full drawer instead of an empty shelf.
+  const active =
+    showFilter && sp.a && archetypes.some((x) => x.slug === sp.a)
+      ? sp.a
+      : null;
+  const shown = active
+    ? sealed.filter(
+        (b) => b.archetype && archetypeSlug(b.archetype) === active
+      )
+    : sealed;
 
   return (
     <div className="arena-wrap">
@@ -158,15 +218,38 @@ export default async function ArenaIndexPage() {
         now={Date.now()}
       />
 
-      {bouts.some((b) => b.status === "sealed") && (
+      {sealed.length > 0 && (
         <>
           <h2 className="arena-shelf-head">The case files</h2>
-          <CaseRows
-            bouts={bouts
-              .filter((b) => b.status === "sealed")
-              .sort((a, b) => (b.caseNo ?? 0) - (a.caseNo ?? 0))}
-            admin={admin}
-          />
+          {showFilter && (
+            <nav
+              className="arena-filter"
+              aria-label="Filter the case files by archetype"
+            >
+              <Link
+                href="/arena"
+                className={`arena-filter-chip${active ? "" : " on"}`}
+                aria-current={active ? undefined : "page"}
+              >
+                All
+                <span className="n">{sealed.length}</span>
+              </Link>
+              {archetypes.map((a) => (
+                <Link
+                  key={a.slug}
+                  href={`/arena?a=${a.slug}`}
+                  className={`arena-filter-chip${
+                    active === a.slug ? " on" : ""
+                  }`}
+                  aria-current={active === a.slug ? "page" : undefined}
+                >
+                  {a.label}
+                  <span className="n">{a.count}</span>
+                </Link>
+              ))}
+            </nav>
+          )}
+          <CaseRows bouts={shown} admin={admin} />
         </>
       )}
 

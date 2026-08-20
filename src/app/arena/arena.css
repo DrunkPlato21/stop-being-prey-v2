@@ -380,6 +380,40 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
 }
 .arena-caseno-input { width: 110px; min-width: 0; flex: none; }
 
+/* ── The archetype filter ────────────────────── */
+/* Sits on the list it filters, in the room's own chip grammar: outlined
+   and quiet at rest, gold when it's the one doing the work. Deliberately
+   NOT the rust/gold move-chip marks — those mean a move, and a filter
+   that borrowed them would read as one. */
+.arena-filter {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 12px 0 16px;
+}
+.arena-room a.arena-filter-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  padding: 6px 11px; border-radius: 3px;
+  border: 1px solid var(--a-rule); color: var(--a-ink-muted);
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+.arena-room a.arena-filter-chip:hover { border-color: var(--a-gold-deep); color: var(--a-ink); }
+.arena-room a.arena-filter-chip.on {
+  border-color: var(--a-gold-deep); color: var(--a-gold);
+  background: rgba(201, 168, 76, 0.07);
+}
+.arena-filter-chip .n {
+  font-size: 0.58rem; color: var(--a-ink-faint);
+  font-variant-numeric: tabular-nums; letter-spacing: 0.06em;
+}
+.arena-filter-chip.on .n { color: var(--a-gold-deep); }
+@media (max-width: 480px) {
+  .arena-filter { gap: 6px; }
+  .arena-room a.arena-filter-chip { letter-spacing: 0.1em; padding: 6px 9px; }
+}
+
 /* ── Move chips: the tag grammar ─────────────── */
 /* rust ◆ = their move, gold ✦ = Clay's technique, faint = unnamed. */
 .arena-chip-move {
