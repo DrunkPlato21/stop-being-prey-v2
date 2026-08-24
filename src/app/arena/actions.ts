@@ -12,6 +12,7 @@ import {
   ARENA_PUBLIC_TAG,
   boutHref,
   createBout,
+  isCaseKind,
   deleteBout,
   deleteTile,
   getBout,
@@ -20,6 +21,7 @@ import {
   reopenBout,
   sealBout,
   setBoutPublic,
+  setBoutSource,
   setMyReaction,
   updateBoutStamp,
   updateTile,
@@ -58,10 +60,37 @@ export async function createBoutAction(formData: FormData): Promise<void> {
   const session = await requireSession();
   if (!session || !isAdmin(session.email)) return;
   const title = String(formData.get("title") ?? "");
-  const bout = await createBout(title);
+  // Bout unless the bench explicitly says post-mortem. Anything
+  // unrecognised falls back to a bout inside createBout, so a mangled
+  // form can never mint a case of an unknown kind.
+  const kind = String(formData.get("kind") ?? "bout");
+  const bout = await createBout(title, isCaseKind(kind) ? kind : "bout");
   if (!bout) return;
+  // Where it came from, if he had the link to hand. Optional on purpose:
+  // a fight is often opened before the tab it happened in gets found
+  // again, so the bench carries the same field for filling in later.
+  await setBoutSource(bout.id, { url: String(formData.get("sourceUrl") ?? "") });
   revalidatePath("/arena");
   redirect(`/arena/${bout.id}`);
+}
+
+/** Record or clear a bout's source link. Private to Clay: nothing this
+    writes is ever read by a member-facing surface. */
+export async function setBoutSourceAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  if (!session || !isAdmin(session.email)) return;
+  const boutId = String(formData.get("boutId") ?? "");
+  if (!boutId) return;
+  const bout = await getBout(boutId);
+  if (!bout) return;
+  await setBoutSource(boutId, {
+    url: String(formData.get("sourceUrl") ?? ""),
+    archiveUrl: String(formData.get("archiveUrl") ?? ""),
+  });
+  // The note is invisible to the room, so only the bench needs redrawing
+  // — no tag bust, nothing anonymous readers can see has changed.
+  revalidatePath(`/arena/${boutId}`);
+  if (bout.slug) revalidatePath(`/arena/${bout.slug}`);
 }
 
 export async function addTileAction(formData: FormData): Promise<void> {

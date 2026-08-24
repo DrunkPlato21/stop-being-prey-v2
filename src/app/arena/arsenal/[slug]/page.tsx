@@ -6,7 +6,11 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
 import { findMove, MOVE_ROLE_LABEL } from "@/lib/arsenal";
 import { boutHref, getArsenalDebutOrder, listBoutsForMove } from "@/lib/arena";
-import { caseNoStr, romanNumeral } from "@/lib/arena-constants";
+import {
+  ARENA_LIVE_WINDOW_MS,
+  caseNoStr,
+  romanNumeral,
+} from "@/lib/arena-constants";
 import {
   formatGuildBody,
   GUILD_BODY_STYLE,
@@ -14,10 +18,26 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// One move's page: the Library entry (definition, mechanism, counter)
-// over "Seen in the record" — every bout the move has been tagged in,
-// fed automatically by the bench. The entry text is canon from
-// one-shot-db; nothing here edits it.
+// One move, up close.
+//
+// The wall mounts every move on the same plate — screws, stamp block,
+// notches. This page is that plate taken down and read: the same
+// mounting, enlarged, holding the entry (definition, mechanism, counter)
+// as a spec sheet instead of a stack of loose paragraphs separated by
+// full-width rules. Underneath sits "Seen in the record", every bout the
+// move has been tagged in, fed automatically by the bench and dressed in
+// the same case plates as the drawer on the index — so the way out of
+// this page looks like the way in.
+//
+// The entry text is canon from one-shot-db; nothing here edits it.
+
+function dateStr(ms: number): string {
+  return new Date(ms).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export async function generateMetadata({
   params,
@@ -53,58 +73,74 @@ export default async function MovePage({
   const order =
     bouts.length > 0 ? await getArsenalDebutOrder([move.slug]) : [];
   const debutIdx = order.indexOf(move.slug);
+  const mark = move.role === "clay" ? "✦" : "◆";
+  const now = Date.now();
 
   return (
     <div className="arena-wrap">
-      <header className="arena-bout-header">
-        <div className="arena-bout-line">
-          <Link
-            href="/arena/arsenal"
-            className="arena-eyebrow"
-            style={{ textDecoration: "none" }}
-          >
-            The Arsenal
-          </Link>
-          <span className={`arena-chip-move ${move.role}`}>
-            <span aria-hidden="true" className="mark">
-              {move.role === "clay" ? "✦" : "◆"}
+      <Link href="/arena/arsenal" className="arena-backlink">
+        <span aria-hidden="true">&larr;</span> All moves
+      </Link>
+
+      <article className={`arsenal-card ${move.role}`}>
+        <header className="arsenal-card-head">
+          <span className="arsenal-card-stamp">
+            <span aria-hidden="true" className="mk">
+              {mark}
             </span>
+            {debutIdx >= 0 ? `Move ${romanNumeral(debutIdx + 1)}` : "Undebuted"}
+          </span>
+          <span className="arsenal-card-role">
             {MOVE_ROLE_LABEL[move.role]}
           </span>
-          {debutIdx >= 0 && (
-            <span className="arsenal-stamp-inline">
-              MOVE {romanNumeral(debutIdx + 1)}
-            </span>
+        </header>
+
+        <div className="arsenal-card-title">
+          <h1 className="arena-title">{move.name}</h1>
+          {move.status && (
+            <p className="arsenal-card-status">{move.status}</p>
           )}
         </div>
-        <h1 className="arena-title">{move.name}</h1>
-        {move.status && <div className="arena-meta">{move.status}</div>}
-      </header>
 
-      <div className="arsenal-entry">
-        <section>
-          <h2 className="arena-shelf-head">What it is</h2>
-          <div style={GUILD_BODY_STYLE}>{formatGuildBody(move.definition)}</div>
-        </section>
-        {move.mechanism && (
-          <section>
-            <h2 className="arena-shelf-head">How it works</h2>
-            <div style={GUILD_BODY_STYLE}>{formatGuildBody(move.mechanism)}</div>
-          </section>
-        )}
-        {move.counterMove && move.role === "opponent" && (
-          <section>
-            <h2 className="arena-shelf-head">The counter</h2>
-            <div style={GUILD_BODY_STYLE}>
-              {formatGuildBody(move.counterMove)}
+        <dl className="arsenal-card-rows">
+          <div className="arsenal-def-row">
+            <dt className="label">What it is</dt>
+            <dd className="body" style={GUILD_BODY_STYLE}>
+              {formatGuildBody(move.definition)}
+            </dd>
+          </div>
+          {move.mechanism && (
+            <div className="arsenal-def-row">
+              <dt className="label">How it works</dt>
+              <dd className="body" style={GUILD_BODY_STYLE}>
+                {formatGuildBody(move.mechanism)}
+              </dd>
             </div>
-          </section>
+          )}
+          {move.counterMove && move.role === "opponent" && (
+            <div className="arsenal-def-row counter">
+              <dt className="label">The counter</dt>
+              <dd className="body" style={GUILD_BODY_STYLE}>
+                {formatGuildBody(move.counterMove)}
+              </dd>
+            </div>
+          )}
+        </dl>
+
+        {move.source && (
+          <footer className="arsenal-card-foot">{move.source}</footer>
         )}
-        {move.source && <p className="arsenal-source">{move.source}</p>}
-      </div>
+      </article>
 
       <section>
-        <h2 className="arena-shelf-head">Seen in the record</h2>
+        <h2 className="arena-shelf-head">
+          Seen in the record
+          {bouts.length > 0 && (
+            <span className="n">
+              {bouts.length} {bouts.length === 1 ? "bout" : "bouts"}
+            </span>
+          )}
+        </h2>
         {bouts.length === 0 && (
           <p className="arena-empty">
             Still in the backroom. It goes public the first time you tag
@@ -115,17 +151,46 @@ export default async function MovePage({
           <Link
             key={bout.id}
             href={boutHref(bout)}
-            className="arena-bout-row"
+            className={`arsenal-plate case${
+              bout.status === "open" &&
+              now - bout.lastTileAt < ARENA_LIVE_WINDOW_MS
+                ? " live"
+                : ""
+            }`}
           >
-            <span className={`arena-chip ${bout.status}`}>
-              <span className="dot" />
-              {bout.status === "open"
-                ? "Open"
-                : bout.caseNo
-                  ? `Case ${caseNoStr(bout.caseNo)}`
-                  : "Sealed"}
+            <span className="arsenal-stampblock">
+              <span aria-hidden="true" className="mk">
+                &#10022;
+              </span>
+              <span className="num">
+                {bout.status === "open" ? (
+                  <>
+                    ON THE
+                    <b>SLAB</b>
+                  </>
+                ) : (
+                  <>
+                    CASE
+                    <b>{bout.caseNo ? caseNoStr(bout.caseNo) : "—"}</b>
+                  </>
+                )}
+              </span>
             </span>
-            <div className="row-title">{bout.title}</div>
+            <span className="arsenal-platebody">
+              <span className="row-title">{bout.title}</span>
+              <span
+                className="arena-meta"
+                style={{ display: "block", marginTop: 4 }}
+              >
+                {[
+                  bout.archetype,
+                  bout.sealedAt ? `filed ${dateStr(bout.sealedAt)}` : null,
+                  `${bout.tileCount} ${bout.tileCount === 1 ? "tile" : "tiles"}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </span>
           </Link>
         ))}
       </section>

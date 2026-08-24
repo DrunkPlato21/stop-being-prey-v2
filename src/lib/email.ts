@@ -2299,6 +2299,7 @@ export async function sendBillingAdminAlert(args: {
    one-click out. */
 
 import type { DigestPayload } from "@/lib/digest";
+import { showsPostedLive } from "@/lib/arena-constants";
 
 function digestMoney(cents: number): string {
   return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
@@ -2548,11 +2549,21 @@ export function renderWeeklyDigestEmail(args: {
               <td style="padding-bottom:4px;">
                 <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;width:100%;">
                   <tr><td style="font-family:Georgia,serif;font-size:17px;font-style:italic;line-height:1.6;color:#1a1714;padding:2px 0 2px 16px;">&ldquo;${escapeHtml(tile.body)}&rdquo;</td></tr>
-                  <tr><td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding:7px 0 0 16px;">Clay &middot; posted live</td></tr>
+                  ${
+                    showsPostedLive(cf.kind)
+                      ? `<tr><td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding:7px 0 0 16px;">Clay &middot; posted live</td></tr>`
+                      : ""
+                  }
                 </table>
               </td>
             </tr>`);
-          textLines.push(`"${tile.body}" — Clay, posted live`);
+          // In a post-mortem the counter is the line nobody threw, so it
+          // carries no byline. Same rule the case page follows.
+          textLines.push(
+            showsPostedLive(cf.kind)
+              ? `"${tile.body}" — Clay, posted live`
+              : `"${tile.body}"`
+          );
         } else {
           rows.push(`<tr>
               <td style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#3d3530;padding-bottom:4px;white-space:pre-wrap;">${escapeHtml(tile.body)}</td>

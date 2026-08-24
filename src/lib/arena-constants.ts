@@ -13,6 +13,10 @@ export const ARENA_MAX_HANDLE = 60;
 export const ARENA_MAX_WHISPER = 1200;
 export const ARENA_MAX_MOVES = 4;
 export const ARENA_MAX_MOVE_LEN = 60;
+/** Source links are pasted from the wild — share URLs carry long
+    tracking tails — so the cap is generous. It exists to stop a bad
+    paste from becoming a megabyte, not to police the shape. */
+export const ARENA_MAX_SOURCE_URL = 500;
 
 /** An open bout wears LIVE (pulse) while its newest tile is inside
     this window, plain OPEN after. Time-honest: never a stale LIVE. */
@@ -84,3 +88,60 @@ export const TILE_TYPE_LABEL: Record<ArenaTileType, string> = {
   result: "The Result",
   verdict: "The Verdict",
 };
+
+// What kind of fight the case is. A bout is one Clay was in. A
+// post-mortem is a public exchange between other people, dissected
+// after the fact. Same lifecycle, same tiles, same case numbers, same
+// seal — the kind changes only how the case is framed on the page:
+// the label a tile wears, whether the counter is attributed to Clay
+// as something he posted live, and whether The Record is allowed to
+// call it live. It is a presentation flag, never a state.
+export const CASE_KINDS = ["bout", "post_mortem"] as const;
+export type ArenaCaseKind = (typeof CASE_KINDS)[number];
+
+export function isCaseKind(value: unknown): value is ArenaCaseKind {
+  return (
+    typeof value === "string" &&
+    (CASE_KINDS as readonly string[]).includes(value)
+  );
+}
+
+/** How a case type names itself where the room has to say it out loud.
+    "bout" is deliberately absent from the UI: it is the default and the
+    overwhelming majority, so labelling it would add chrome to every
+    existing case to distinguish the rare one. Only the post-mortem
+    announces itself. */
+export const CASE_KIND_LABEL: Record<ArenaCaseKind, string> = {
+  bout: "Bout",
+  post_mortem: "Post-mortem",
+};
+
+// Tile labels that differ in a post-mortem. Sparse on purpose: it is an
+// override map, not a second grammar. The specimen is still the
+// specimen and the read is still the read, because those describe the
+// exchange, which happened either way. Only the counter changes, and it
+// changes because in a bout it is the line Clay threw and in a
+// post-mortem it is the line nobody did.
+const POST_MORTEM_TILE_LABEL: Partial<Record<ArenaTileType, string>> = {
+  counter: "The Counter They Missed",
+};
+
+/** The label a tile wears, given the kind of case it sits in. Every
+    surface that prints a tile heading goes through this, so the bout
+    page, the bench and the Sunday digest can never drift apart. */
+export function tileTypeLabel(
+  type: ArenaTileType,
+  kind: ArenaCaseKind = "bout"
+): string {
+  if (kind === "post_mortem") {
+    return POST_MORTEM_TILE_LABEL[type] ?? TILE_TYPE_LABEL[type];
+  }
+  return TILE_TYPE_LABEL[type];
+}
+
+/** Whether a counter tile carries the "Clay - posted live" byline. Only
+    a bout earns it: in a post-mortem Clay was not in the room, and the
+    counter is the one that was never thrown. */
+export function showsPostedLive(kind: ArenaCaseKind = "bout"): boolean {
+  return kind === "bout";
+}

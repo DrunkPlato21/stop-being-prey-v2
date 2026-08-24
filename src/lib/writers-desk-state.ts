@@ -32,6 +32,20 @@ import {
 // Keeps stale memos from dominating the layout weeks after the fact.
 const VOICE_MEMO_FRESH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
+// The DESK's "live fight" cutoff. Deliberately not the same constant as
+// arena-constants' ARENA_LIVE_WINDOW_MS (12h), which decides whether the
+// room itself prints LIVE on a bout. This one is longer and answers a
+// different question: how long a fight keeps the loud dark card at the
+// top of the Desk's rooms section. Same idea as the voice memo's. A bout is
+// open until it's sealed, which is right for the room but wrong for the
+// Desk: an open bout nobody has added to in days is not a fight anyone
+// would call live, and it would otherwise pin the loud dark card to the
+// top of the rooms section forever with a byline counting up. Past this
+// window the bout stays open — only the Desk's loud treatment expires.
+// Reopening a sealed case to fix something doesn't reset lastTileAt, so
+// a repair goes quiet on its own; adding a real tile makes it live again.
+const ARENA_DESK_LIVE_WINDOW_MS = 72 * 60 * 60 * 1000;
+
 // One-shot snapshot used by both the server component (initial paint)
 // and the polling endpoint (live updates). Member-specific fields
 // (memberNotes, isAdmin, isSignedIn) populate only when a viewer is
@@ -97,6 +111,11 @@ export type DeskRoomsSignal = {
       tileCount: number;
       lastTileAt: number;
     } | null;
+    /** Whether `open` is fresh enough to earn the Desk's live-fight
+        treatment (see ARENA_DESK_LIVE_WINDOW_MS). False for a stalled bout,
+        which stays open in the room but goes quiet on the Desk. Always
+        false when `open` is null. */
+    openIsLive: boolean;
     latestCase: {
       id: string;
       slug: string | null;
@@ -416,6 +435,9 @@ export async function getWritersDeskState(
               lastTileAt: openBout.lastTileAt,
             }
           : null,
+        openIsLive:
+          !!openBout &&
+          Date.now() - openBout.lastTileAt <= ARENA_DESK_LIVE_WINDOW_MS,
         latestCase: sealed
           ? {
               id: sealed.id,

@@ -69,11 +69,13 @@ const {
   deleteTile,
   getBout,
   getBoutByParam,
+  getBoutSource,
   getBoutVersion,
   listBouts,
   listBoutsForMove,
   listTiles,
   sealBout,
+  setBoutSource,
   updateBoutStamp,
   updateTile,
 } = await import("../src/lib/arena.ts");
@@ -369,6 +371,66 @@ console.log("\nBIN: deleting a case takes everything with it");
   await addTile(reuse!.id, { type: "verdict", body: "Filed." });
   const reused = await sealBout(reuse!.id, { caseNo: 41 });
   check("its case number went back in the pool", reused?.bout.caseNo === 41);
+}
+
+console.log("\nSOURCE: the private note holds, and never rides the bout");
+{
+  const bout = (await createBout("Where it came from"))!;
+
+  check("a fresh bout has no source", (await getBoutSource(bout.id)) === null);
+
+  const saved = await setBoutSource(bout.id, {
+    url: "https://x.com/someone/status/123",
+  });
+  check(
+    "a pasted link is kept",
+    saved?.url === "https://x.com/someone/status/123"
+  );
+  check("it is stamped when caught", typeof saved?.capturedAt === "number");
+  check("the archive slot starts empty", saved?.archiveUrl === null);
+
+  // The whole point of the timestamp: it answers "was the original still
+  // live when I filed this?", so a later edit must not restate it.
+  const caughtAt = saved!.capturedAt;
+  await new Promise((r) => setTimeout(r, 5));
+  const archived = await setBoutSource(bout.id, {
+    url: "https://x.com/someone/status/123",
+    archiveUrl: "https://archive.ph/abcd",
+  });
+  check(
+    "adding an archive copy keeps it",
+    archived?.archiveUrl === "https://archive.ph/abcd"
+  );
+  check("and does not restamp the capture", archived?.capturedAt === caughtAt);
+
+  const moved = await setBoutSource(bout.id, {
+    url: "https://x.com/someone/status/999",
+  });
+  check("a genuinely new link restamps", (moved?.capturedAt ?? 0) > caughtAt);
+
+  // The value is rendered as an anchor on the bench, so a scheme that
+  // isn't http(s) has to read as "nothing saved", not as a live link.
+  await setBoutSource(bout.id, { url: "javascript:alert(1)" });
+  check("a hostile scheme is refused", (await getBoutSource(bout.id)) === null);
+
+  await setBoutSource(bout.id, { url: "https://example.com/post" });
+  await setBoutSource(bout.id, { url: "   " });
+  check("an empty paste clears the note", (await getBoutSource(bout.id)) === null);
+
+  // The reason it lives outside the record at all: the bout object is
+  // what member-facing surfaces and the Sunday digest read.
+  await setBoutSource(bout.id, { url: "https://example.com/post" });
+  const record = await getBout(bout.id);
+  check(
+    "the bout record carries no trace of it",
+    !JSON.stringify(record).includes("example.com")
+  );
+
+  await deleteBout(bout.id);
+  check(
+    "binning the bout takes the note with it",
+    (await getBoutSource(bout.id)) === null
+  );
 }
 
 await wipe();

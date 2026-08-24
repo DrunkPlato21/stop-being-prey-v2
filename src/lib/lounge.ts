@@ -93,8 +93,27 @@ export const REACTION_KEYS = [
   "wow",
   "cry",
   "hundred",
+  "think",
+  "angry",
 ] as const;
 export type ReactionKey = (typeof REACTION_KEYS)[number];
+
+// What the Lounge and the Guild actually offer in their pickers: the
+// warm set, unchanged. REACTION_KEYS above is the full storage union
+// (it also orders shared surfaces like the reactors popover), but the
+// Arena curates its own tray and is the only room that offers anger.
+// In the Arena a reaction usually lands on the specimen — the
+// opponent's own words — so anger has a legitimate object. In here the
+// object would be another member, which is a different thing entirely.
+export const SOCIAL_REACTION_KEYS = [
+  "like",
+  "love",
+  "fire",
+  "laugh",
+  "wow",
+  "cry",
+  "hundred",
+] as const satisfies readonly ReactionKey[];
 
 export function isReactionKey(value: unknown): value is ReactionKey {
   return (
@@ -111,6 +130,8 @@ export const REACTION_EMOJI: Record<ReactionKey, string> = {
   wow: "😮",
   cry: "😢",
   hundred: "💯",
+  think: "🤔",
+  angry: "😡",
 };
 
 export const REACTION_LABEL: Record<ReactionKey, string> = {
@@ -121,12 +142,17 @@ export const REACTION_LABEL: Record<ReactionKey, string> = {
   wow: "Wow",
   cry: "Cry",
   hundred: "Hundred",
+  think: "Think",
+  angry: "Angry",
 };
 
 export type ReactionCounts = Record<ReactionKey, number>;
 
 export function emptyReactionCounts(): ReactionCounts {
-  return { like: 0, love: 0, fire: 0, laugh: 0, wow: 0, cry: 0, hundred: 0 };
+  return {
+    like: 0, love: 0, fire: 0, laugh: 0, wow: 0, cry: 0, hundred: 0,
+    think: 0, angry: 0,
+  };
 }
 
 export type LoungePost = {

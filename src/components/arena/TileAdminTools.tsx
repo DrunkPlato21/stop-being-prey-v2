@@ -3,7 +3,11 @@
 import { useRef, useState } from "react";
 import { resizeImageToWebp } from "@/lib/image-resize";
 import { deleteTileAction, updateTileAction } from "@/app/arena/actions";
-import { TILE_TYPES, TILE_TYPE_LABEL } from "@/lib/arena-constants";
+import {
+  TILE_TYPES,
+  tileTypeLabel,
+  type ArenaCaseKind,
+} from "@/lib/arena-constants";
 import type { ArenaTile } from "@/lib/arena";
 import { MovePicker } from "./MovePicker";
 
@@ -14,7 +18,13 @@ import { MovePicker } from "./MovePicker";
 // move anything). Delete confirms inline rather than through a browser
 // dialog, same calm-surface rule as the rest of the room.
 
-export function TileAdminTools({ tile }: { tile: ArenaTile }) {
+export function TileAdminTools({
+  tile,
+  kind = "bout",
+}: {
+  tile: ArenaTile;
+  kind?: ArenaCaseKind;
+}) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(tile.imageUrl);
@@ -98,7 +108,7 @@ export function TileAdminTools({ tile }: { tile: ArenaTile }) {
             <select name="type" defaultValue={tile.type}>
               {TILE_TYPES.map((t) => (
                 <option key={t} value={t}>
-                  {TILE_TYPE_LABEL[t]}
+                  {tileTypeLabel(t, kind)}
                 </option>
               ))}
             </select>

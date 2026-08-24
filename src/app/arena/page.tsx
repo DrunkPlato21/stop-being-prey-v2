@@ -5,7 +5,12 @@ import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
 import { boutHref, listBouts, type ArenaBout } from "@/lib/arena";
-import { ARENA_LIVE_WINDOW_MS, caseNoStr } from "@/lib/arena-constants";
+import {
+  ARENA_LIVE_WINDOW_MS,
+  CASE_KIND_LABEL,
+  ARENA_MAX_SOURCE_URL,
+  caseNoStr,
+} from "@/lib/arena-constants";
 import { markNavViewed } from "@/lib/nav-dots";
 import { createBoutAction } from "./actions";
 import { MoveChip } from "@/components/arena/MoveChip";
@@ -45,18 +50,31 @@ function OpenRows({ bouts, now }: { bouts: ArenaBout[]; now: number }) {
   return (
     <>
       {bouts.map((bout) => {
-        const live = now - bout.lastTileAt < ARENA_LIVE_WINDOW_MS;
+        // Only a bout can be live. A post-mortem dissects something that
+        // already finished somewhere else, so a pulse on it would be
+        // claiming heat the case does not have.
+        const live =
+          bout.kind === "bout" && now - bout.lastTileAt < ARENA_LIVE_WINDOW_MS;
         return (
           <Link
             key={bout.id}
             href={boutHref(bout)}
             className={`arena-bout-row slab${live ? " live" : ""}`}
           >
-            <span className={`arena-chip ${live ? "open" : "sealed"}`}>
+            {/* Banked, not sealed: this fight is still on the slab,
+                it just hasn't moved in a while. */}
+            <span className={`arena-chip ${live ? "open" : "banked"}`}>
               <span className="dot" />
               {live ? "Live" : "Open"}
             </span>
-            <div className="row-title">{bout.title}</div>
+            <div className="row-title">
+              {bout.kind !== "bout" && (
+                <span className="arena-kind-tag">
+                  {CASE_KIND_LABEL[bout.kind]}
+                </span>
+              )}
+              {bout.title}
+            </div>
             <div className="arena-meta">
               {bout.tileCount === 0
                 ? `opened ${relative(bout.createdAt, now)}`
@@ -106,7 +124,14 @@ function CaseRows({ bouts, admin }: { bouts: ArenaBout[]; admin: boolean }) {
             </span>
           </span>
           <span className="arsenal-platebody">
-            <span className="row-title">{bout.title}</span>
+            <span className="row-title">
+              {bout.kind !== "bout" && (
+                <span className="arena-kind-tag">
+                  {CASE_KIND_LABEL[bout.kind]}
+                </span>
+              )}
+              {bout.title}
+            </span>
             <span className="arena-meta" style={{ display: "block", marginTop: 4 }}>
               {[
                 bout.archetype,
@@ -199,11 +224,9 @@ export default async function ArenaIndexPage({
   return (
     <div className="arena-wrap">
       <header className="arena-index-header">
-        <span className="arena-eyebrow">The Arena</span>
         <h1 className="arena-title">The fights, broken down.</h1>
         <p className="arena-index-sub">
-          Real fights. Dissected right in front of you.{" "}
-          <Link href="/arena/arsenal">Browse the Arsenal&nbsp;&rarr;</Link>
+          Real fights. Dissected right in front of you.
         </p>
       </header>
 
@@ -255,13 +278,38 @@ export default async function ArenaIndexPage({
 
       {admin && (
         <div className="arena-tools">
-          <h2>Open a bout</h2>
+          <h2>Open a case</h2>
           <form action={createBoutAction}>
             <input
               name="title"
               required
               maxLength={120}
-              placeholder="Bout title. Name the fight."
+              placeholder="Case title. Name the fight."
+            />
+            {/* Same control the bench uses for the tile type, because
+                this is the same job: pick one of a fixed few. Bare
+                radios do not survive in here — .arena-tools styles every
+                input as a flexing text field, which blows a radio row
+                apart. Bout is the default; a post-mortem is a deliberate
+                choice. Everything after this point is identical: same
+                bench, same tiles, same seal, same number. */}
+            <div className="row">
+              <label>
+                Kind
+                <br />
+                <select name="kind" defaultValue="bout">
+                  <option value="bout">Bout (a fight I was in)</option>
+                  <option value="post_mortem">
+                    Post-mortem (someone else&apos;s exchange)
+                  </option>
+                </select>
+              </label>
+            </div>
+            <input
+              name="sourceUrl"
+              type="url"
+              maxLength={ARENA_MAX_SOURCE_URL}
+              placeholder="Link to the post it came from (optional, private to you)"
             />
             <button type="submit" className="submit">
               Open it

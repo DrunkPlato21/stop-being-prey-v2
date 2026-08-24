@@ -43,6 +43,14 @@ const tileReactedByKey = (tileId: string) =>
 // surfaces read this, ever. Whispers are the member's voice TO Clay; the
 // room hears them only if he quotes one into a later tile.
 const tileWhispersKey = (tileId: string) => `${TILE_PREFIX}${tileId}:whispers`;
+// Where the fight came from: the link back to the original post. Clay's
+// own bookkeeping, never the room's. Kept OFF the ArenaBout record on
+// purpose — the bout object is what gets read into member-facing renders
+// and fed to the Sunday digest, so a field living on it is one careless
+// spread away from a reader's inbox. A note that isn't in the object
+// cannot leak from it. Costs the bench one extra read; costs the member
+// view nothing, because the member view never asks.
+const boutSourceKey = (boutId: string) => `${BOUT_PREFIX}${boutId}:source`;
 // Per-move ZSET of bout ids, score = last time the move was tagged in
 // that bout. This is the Arsenal's accretion: a move's page lists every
 // bout it has appeared in, newest first, fed automatically by tagging.
@@ -76,12 +84,19 @@ export {
   ARENA_MAX_MOVE_LEN,
   ARENA_MAX_MOVES,
   ARENA_MAX_RULES,
+  ARENA_MAX_SOURCE_URL,
   ARENA_MAX_TITLE,
   ARENA_MAX_TRANSCRIPT,
   ARENA_MAX_WHISPER,
   isTileType,
+  isCaseKind,
+  showsPostedLive,
+  tileTypeLabel,
+  CASE_KIND_LABEL,
+  CASE_KINDS,
   TILE_TYPE_LABEL,
   TILE_TYPES,
+  type ArenaCaseKind,
   type ArenaTileType,
 } from "./arena-constants";
 import {
@@ -93,9 +108,12 @@ import {
   ARENA_MAX_MOVE_LEN,
   ARENA_MAX_MOVES,
   ARENA_MAX_RULES,
+  ARENA_MAX_SOURCE_URL,
   ARENA_MAX_TITLE,
   ARENA_MAX_TRANSCRIPT,
   ARENA_MAX_WHISPER,
+  isCaseKind,
+  type ArenaCaseKind,
   type ArenaTileType,
 } from "./arena-constants";
 
@@ -103,6 +121,12 @@ export type ArenaBout = {
   id: string;
   title: string;
   status: "open" | "sealed";
+  // Bout (a fight Clay was in) or post-mortem (a public exchange
+  // between other people, dissected after the fact). Purely a framing
+  // flag: identical lifecycle, tiles, numbering and seal. Records
+  // written before post-mortems existed have no field at all, so every
+  // read normalises it — see getBout.
+  kind: ArenaCaseKind;
   createdAt: number;
   sealedAt: number | null;
   lastTileAt: number;
@@ -172,6 +196,18 @@ export type ArenaTile = {
   createdAt: number;
 };
 
+/** The provenance note on a bout: where the fight actually happened.
+    capturedAt is when the link was recorded, not when the post was
+    written — the point of it is knowing whether the URL was still good
+    when the case was filed, because it will rot. The transcript on the
+    specimen stays the durable record; this is only the pointer home. */
+export type ArenaBoutSource = {
+  url: string;
+  /** Optional archive.today / Wayback copy, for when the original goes. */
+  archiveUrl: string | null;
+  capturedAt: number;
+};
+
 export type ArenaWhisper = {
   email: string;
   body: string;
@@ -230,7 +266,10 @@ function parse<T>(raw: unknown): T | null {
 // Bouts
 // --------------------------------------------------------------------
 
-export async function createBout(title: string): Promise<ArenaBout | null> {
+export async function createBout(
+  title: string,
+  kind: ArenaCaseKind = "bout"
+): Promise<ArenaBout | null> {
   const client = getClient();
   const clean = title.trim().slice(0, ARENA_MAX_TITLE);
   if (!client || !clean) return null;
@@ -239,6 +278,7 @@ export async function createBout(title: string): Promise<ArenaBout | null> {
     id: randomUUID(),
     title: clean,
     status: "open",
+    kind: isCaseKind(kind) ? kind : "bout",
     createdAt: now,
     sealedAt: null,
     lastTileAt: now,
@@ -275,6 +315,11 @@ export async function getBout(id: string): Promise<ArenaBout | null> {
   bout.updatedAt = bout.updatedAt ?? bout.lastTileAt;
   bout.publicAt = bout.publicAt ?? null;
   bout.moves = bout.moves ?? [];
+  // Every case written before post-mortems existed is a bout. Normalised
+  // on read rather than by a migration: the field defaults, so the whole
+  // archive backfills itself the next time each record is saved, and
+  // nothing has to go rewrite the live keyspace to ship this.
+  bout.kind = isCaseKind(bout.kind) ? bout.kind : "bout";
   return bout;
 }
 
@@ -594,6 +639,8 @@ export async function deleteBout(
     const owner = await client.hget<string>(CASE_NOS_KEY, String(bout.caseNo));
     if (owner === id) await client.hdel(CASE_NOS_KEY, String(bout.caseNo));
   }
+
+  await client.del(boutSourceKey(id));
 
   await client.zrem(BOUTS_INDEX, id);
   await client.del(`${BOUT_PREFIX}${id}`);
@@ -955,14 +1002,24 @@ export async function setMyReaction(
   const hashKey = tileReactedByKey(tileId);
   if (key === null || !isReactionKey(key)) {
     await client.hdel(hashKey, email);
-    return;
-  }
-  const current = await client.hget<string>(hashKey, email);
-  if (current === key) {
-    await client.hdel(hashKey, email);
   } else {
-    await client.hset(hashKey, { [email]: key });
+    const current = await client.hget<string>(hashKey, email);
+    if (current === key) {
+      await client.hdel(hashKey, email);
+    } else {
+      await client.hset(hashKey, { [email]: key });
+    }
   }
+  // A reaction is the one thing in the room that says other people are
+  // here with you, so it moves the version marker the watching room
+  // polls (see BoutLiveRefresh) and lands without a reload. Whispers
+  // deliberately do not: they are private until the seal turns them
+  // into comments. Open bouts only — a filed case has no watchers, and
+  // its record should not take a new version stamp for a reaction.
+  const tile = await getTile(tileId);
+  if (!tile) return;
+  const bout = await getBout(tile.boutId);
+  if (bout && bout.status === "open") await saveBout(bout);
 }
 
 export async function getTileReactions(
@@ -982,6 +1039,69 @@ export async function getTileReactions(
     if (email && member === email) mine = k;
   }
   return { counts, mine };
+}
+
+// --------------------------------------------------------------------
+// The source note (private, per bout, Clay's eyes only)
+// --------------------------------------------------------------------
+
+/** A pasted link, or null if it isn't one. Only http(s) survives: the
+    value gets rendered as an anchor on the bench, so javascript: and
+    data: have no business reaching it, and a typo should read as
+    "nothing saved" rather than as a dead link that looks saved. */
+function normalizeSourceUrl(raw: string | null | undefined): string | null {
+  const clean = (raw ?? "").trim().slice(0, ARENA_MAX_SOURCE_URL);
+  if (!clean) return null;
+  try {
+    const parsed = new URL(clean);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    return clean;
+  } catch {
+    return null;
+  }
+}
+
+/** Admin-only read. Callers must gate on isAdmin BEFORE calling. */
+export async function getBoutSource(
+  boutId: string
+): Promise<ArenaBoutSource | null> {
+  const client = getClient();
+  if (!client) return null;
+  return parse<ArenaBoutSource>(await client.get(boutSourceKey(boutId)));
+}
+
+/**
+ * Record (or clear) where a bout came from. Clearing is deliberate: an
+ * empty url deletes the note rather than storing a blank, so "no source
+ * on file" is one state and not two.
+ *
+ * capturedAt survives an edit that leaves the url alone — adding the
+ * archive copy months later must not restate when the original was
+ * caught, because that timestamp is the whole answer to "was this still
+ * live when I filed it?"
+ */
+export async function setBoutSource(
+  boutId: string,
+  input: { url: string | null; archiveUrl?: string | null }
+): Promise<ArenaBoutSource | null> {
+  const client = getClient();
+  if (!client) return null;
+  const url = normalizeSourceUrl(input.url);
+  if (!url) {
+    await client.del(boutSourceKey(boutId));
+    return null;
+  }
+  const existing = await getBoutSource(boutId);
+  const source: ArenaBoutSource = {
+    url,
+    archiveUrl: normalizeSourceUrl(input.archiveUrl),
+    capturedAt:
+      existing && existing.url === url ? existing.capturedAt : Date.now(),
+  };
+  await client.set(boutSourceKey(boutId), JSON.stringify(source));
+  return source;
 }
 
 // --------------------------------------------------------------------

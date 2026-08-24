@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { MemberNavServer } from "@/components/MemberNavServer";
 import { MemberNavPreview } from "@/components/MemberNavPreview";
+import { ArenaRoomBar } from "@/components/arena/ArenaRoomBar";
 import "./arena.css";
 
 // The Arena's dark room. The site is warm paper; the Arena deliberately
@@ -15,6 +16,11 @@ import "./arena.css";
 // anonymous reader who lands on the one public case gets the
 // MemberNavPreview — the member-area chrome with every link routing to
 // /membership, so the free sample sits inside the room it is selling.
+//
+// Members also get the room bar: the Arena holds two places (the record
+// and the wall) under one nav item, so the room states its own map at
+// the top of every page. The preview reader has one page and nowhere to
+// go but the membership pitch, so the bar stays off for them.
 
 export default async function ArenaLayout({
   children,
@@ -27,9 +33,12 @@ export default async function ArenaLayout({
 
   return (
     <div className="md:flex md:max-w-6xl md:mx-auto md:gap-10 md:px-6">
-      {previewMode ? <MemberNavPreview /> : <MemberNavServer />}
+      {previewMode ? <MemberNavPreview active="The Arena" /> : <MemberNavServer />}
       <div className="md:flex-1 md:min-w-0">
-        <div className="arena-room">{children}</div>
+        <div className="arena-room">
+          {!previewMode && <ArenaRoomBar />}
+          {children}
+        </div>
       </div>
     </div>
   );

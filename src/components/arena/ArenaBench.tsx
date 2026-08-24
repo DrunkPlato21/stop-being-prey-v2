@@ -3,7 +3,11 @@
 import { useRef, useState } from "react";
 import { resizeImageToWebp } from "@/lib/image-resize";
 import { addTileAction } from "@/app/arena/actions";
-import { TILE_TYPES, TILE_TYPE_LABEL } from "@/lib/arena-constants";
+import {
+  TILE_TYPES,
+  tileTypeLabel,
+  type ArenaCaseKind,
+} from "@/lib/arena-constants";
 import { MovePicker } from "./MovePicker";
 
 // Clay's bench: the tile composer. The one ergonomic requirement that
@@ -22,7 +26,15 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-export function ArenaBench({ boutId }: { boutId: string }) {
+// `kind` only reaches the type picker, so the button Clay presses says
+// the same words the tile will wear once it lands.
+export function ArenaBench({
+  boutId,
+  kind = "bout",
+}: {
+  boutId: string;
+  kind?: ArenaCaseKind;
+}) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [reading, setReading] = useState(false);
@@ -129,7 +141,7 @@ export function ArenaBench({ boutId }: { boutId: string }) {
             <select name="type">
               {TILE_TYPES.map((t) => (
                 <option key={t} value={t}>
-                  {TILE_TYPE_LABEL[t]}
+                  {tileTypeLabel(t, kind)}
                 </option>
               ))}
             </select>

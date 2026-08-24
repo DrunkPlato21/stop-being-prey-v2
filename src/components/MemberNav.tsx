@@ -36,21 +36,36 @@ export type MemberNavDots = Partial<Record<string, boolean>>;
 // The nav holds only *places*. Personal stuff (account, coins, sign-out)
 // lives in the identity menu under the member's name in the header, so
 // this stays a clean list of destinations instead of a junk drawer.
-// Two clusters, no dividing lines, just whitespace — and the second
-// cluster IS the pipeline: the doctrine, the doctrine applied live,
-// the doctrine bound.
-//   1. The rooms members speak in: Desk, Lounge, The Guild
-//   2. Rules, The Arena, Book
-// The Arena took Case Files' seat: sealing a bout is how case files
-// are made now. The old /case-files page stays live (public preview,
+// Two clusters, no dividing lines, just whitespace, split by what the
+// thing DOES rather than what it is about:
+//   1. What moves: Desk, The Arena, The Guild, Lounge
+//   2. What is fixed: Rules, Book
+//
+// The Arena sits second, directly under the landing. It first took Case
+// Files' seat down in the lower cluster (sealing a bout is how case
+// files are made now), which read as a pipeline — the doctrine, the
+// doctrine applied, the doctrine bound — but put the single most active
+// surface on the site fifth of six, under three quieter rooms and
+// between a static doctrine page and a coming-soon cover. It is also
+// the only room that can say LIVE, and its new-since-you-were-here dot
+// is a summons in second place and noise in fifth.
+//
+// Nothing is lost by breaking the old adjacency: a sidebar does not
+// teach a pipeline. The doctrine link is made where a member is
+// actually looking, in the sealed bout header that prints RULES
+// APPLIED. The old /case-files page stays live (public preview,
 // inbound links, the first six cases) — demoted, not deleted; the
 // Arena index links back to it under its own case-files shelf.
+//
+// Within the moving cluster the order matches the Desk's own "The
+// rooms" section — Arena, Guild (deep threads), Lounge (live talk) —
+// so the two places a member reads the same four doors agree.
 const ITEMS: NavItem[] = [
   { href: "/desk", label: "Desk" },
-  { href: "/lounge", label: "Lounge" },
-  { href: "/guild", label: "The Guild" },
-  { href: "/rules", label: "Rules", clusterBreak: true },
   { href: "/arena", label: "The Arena" },
+  { href: "/guild", label: "The Guild" },
+  { href: "/lounge", label: "Lounge" },
+  { href: "/rules", label: "Rules", clusterBreak: true },
   { href: "/book", label: "Book" },
 ];
 

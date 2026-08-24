@@ -14,6 +14,7 @@ import {
   ARENA_MAX_RULES,
   boutHref,
   getBoutByParam,
+  getBoutSource,
   getPublicBoutView,
   getTileReactions,
   isBoutPublic,
@@ -24,7 +25,15 @@ import {
   type ArenaTile,
   type ArenaWhisper,
 } from "@/lib/arena";
-import { ARENA_LIVE_WINDOW_MS, caseNoStr } from "@/lib/arena-constants";
+import {
+  ARENA_LIVE_WINDOW_MS,
+  showsPostedLive,
+  tileTypeLabel,
+  CASE_KIND_LABEL,
+  type ArenaCaseKind,
+  ARENA_MAX_SOURCE_URL,
+  caseNoStr,
+} from "@/lib/arena-constants";
 import { formatGuildBody, GUILD_BODY_STYLE } from "@/components/guild/format-body";
 import { TileEngage } from "@/components/arena/TileEngage";
 import { MoveChip } from "@/components/arena/MoveChip";
@@ -37,6 +46,7 @@ import {
   reopenBoutAction,
   sealBoutAction,
   setBoutPublicAction,
+  setBoutSourceAction,
   updateBoutStampAction,
 } from "../actions";
 
@@ -81,6 +91,23 @@ function stamp(ms: number): string {
     .toUpperCase();
 }
 
+// A pasted share URL is mostly tracking tail. The bench shows the part
+// that tells him which fight it was — host plus path — and lets the
+// anchor carry the rest. Falls back to the raw string: this only ever
+// renders a value that already passed the http(s) check on write, but a
+// label helper has no business throwing either way.
+function sourceLabel(url: string): string {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, "");
+    const path = pathname === "/" ? "" : pathname;
+    const label = `${host}${path}`;
+    return label.length > 58 ? `${label.slice(0, 57)}…` : label;
+  } catch {
+    return url;
+  }
+}
+
 function fileDate(ms: number): string {
   return new Date(ms)
     .toLocaleDateString("en-US", {
@@ -99,7 +126,13 @@ function TileShot({ url }: { url: string }) {
   return <img className="arena-tile-img" src={url} alt="Screenshot" />;
 }
 
-function TileBody({ tile }: { tile: ArenaTile }) {
+function TileBody({
+  tile,
+  kind,
+}: {
+  tile: ArenaTile;
+  kind: ArenaCaseKind;
+}) {
   if (tile.type === "specimen") {
     return (
       <>
@@ -126,7 +159,9 @@ function TileBody({ tile }: { tile: ArenaTile }) {
         <div className="arena-counter-line">
           &ldquo;{formatGuildBody(tile.body)}&rdquo;
         </div>
-        <div className="arena-byline">Clay &middot; posted live</div>
+        {showsPostedLive(kind) && (
+          <div className="arena-byline">Clay &middot; posted live</div>
+        )}
         {tile.imageUrl && <TileShot url={tile.imageUrl} />}
       </>
     );
@@ -207,7 +242,9 @@ export default async function BoutPage({
   // Same time-honest badge as the index: LIVE while the breakdown
   // moved inside the window, OPEN after, never a stale LIVE.
   const liveNow =
-    !sealed && Date.now() - bout.lastTileAt < ARENA_LIVE_WINDOW_MS;
+    !sealed &&
+    bout.kind === "bout" &&
+    Date.now() - bout.lastTileAt < ARENA_LIVE_WINDOW_MS;
   // Public readers only see the comments sheet when there's real member
   // discussion on it (social proof). An empty sheet would be a glowing
   // blank rectangle whose only content is a second membership pitch —
@@ -219,7 +256,7 @@ export default async function BoutPage({
         .length > 0);
   const tiles = publicView?.tiles ?? (await listTiles(bout.id));
 
-  const [reactions, whispers, defaultCaseNo] = await Promise.all([
+  const [reactions, whispers, defaultCaseNo, source] = await Promise.all([
     publicView
       ? Promise.resolve(publicView.reactions)
       : Promise.all(
@@ -231,6 +268,9 @@ export default async function BoutPage({
     admin && !sealed
       ? bout.caseNo ?? nextCaseNo()
       : Promise.resolve(null),
+    // Provenance, and only ever for him: a member's render never asks
+    // Redis for this key at all.
+    admin ? getBoutSource(bout.id) : Promise.resolve(null),
   ]);
 
   // One batched read for every whisperer on the bout, so a tile with
@@ -256,14 +296,98 @@ export default async function BoutPage({
     .filter((t) => t.count > 0);
   const whisperTotal = whisperTiles.reduce((sum, t) => sum + t.count, 0);
 
+  // Where the fight came from. Rendered on the bench in both states —
+  // open, because the link usually turns up after the bout does; sealed,
+  // because that is when he goes looking for it again. One definition,
+  // used twice, so the two can never drift apart.
+  const sourceTools = (
+    <div className="arena-source">
+      <h3>Where it came from</h3>
+      <form action={setBoutSourceAction}>
+        <input type="hidden" name="boutId" value={bout.id} />
+        <input
+          name="sourceUrl"
+          type="url"
+          maxLength={ARENA_MAX_SOURCE_URL}
+          defaultValue={source?.url ?? ""}
+          placeholder="Link to the original post"
+        />
+        <input
+          name="archiveUrl"
+          type="url"
+          maxLength={ARENA_MAX_SOURCE_URL}
+          defaultValue={source?.archiveUrl ?? ""}
+          placeholder="Archive copy (optional — for when the original goes)"
+        />
+        <button type="submit" className="submit">
+          {source ? "Update the link" : "Save the link"}
+        </button>
+      </form>
+      {source ? (
+        <p className="arena-source-note">
+          <a
+            href={source.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="arena-source-link"
+          >
+            {sourceLabel(source.url)}
+          </a>
+          {source.archiveUrl && (
+            <>
+              {" · "}
+              <a
+                href={source.archiveUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="arena-source-link"
+              >
+                archived copy
+              </a>
+            </>
+          )}
+          <br />
+          Caught {fileDate(source.capturedAt)}. Yours only — never
+          rendered for members, never in the Sunday email.
+        </p>
+      ) : (
+        <p className="arena-source-note">
+          No link on file. The transcript stays the record; this is only
+          the way back to where it happened.
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <div className="arena-wrap">
+      {/* The way out, dressed as navigation rather than as a label —
+          the same step-back the Arsenal's move page gives. The room bar
+          overhead names the two halves of the room, but it says where
+          the room's indexes are, not "leave this case", and a member
+          deep in a long transcript wants the one obvious tap back up.
+          Preview readers get the eyebrow below instead: they have no
+          room bar and no member chrome at all. */}
+      {!anon && (
+        <Link href="/arena" className="arena-backlink">
+          <span aria-hidden="true">&larr;</span> The Record
+        </Link>
+      )}
       <header className="arena-bout-header">
         <div className="arena-bout-line">
-          <Link href="/arena" className="arena-eyebrow" style={{ textDecoration: "none" }}>
-            The Arena
-          </Link>
-          <span className={`arena-chip ${liveNow ? "open" : "sealed"}`}>
+          {/* The preview reader has no room bar and no backlink above,
+              so the eyebrow stays for them as the one thread back out
+              of the page. */}
+          {anon && (
+            <Link href="/arena" className="arena-eyebrow" style={{ textDecoration: "none" }}>
+              The Arena
+            </Link>
+          )}
+          <span
+            className={`arena-chip ${
+              liveNow ? "open" : sealed ? "sealed" : "banked"
+            }`}
+          >
             <span className="dot" />
             {!sealed
               ? liveNow
@@ -273,12 +397,22 @@ export default async function BoutPage({
                 ? `Case ${caseNoStr(bout.caseNo)}`
                 : "Sealed"}
           </span>
+          {/* What kind of case this is, stated where the reader meets it.
+              Only the post-mortem announces itself: a bout is the room's
+              default and labelling it would put chrome on every case to
+              distinguish the occasional one. */}
+          {bout.kind !== "bout" && (
+            <span className="arena-kind-tag">{CASE_KIND_LABEL[bout.kind]}</span>
+          )}
         </div>
         <h1 className="arena-title">{bout.title}</h1>
         {sealed ? (
           <div className="arena-case-meta">
             {[
               bout.caseNo ? `CASE № ${caseNoStr(bout.caseNo)}` : null,
+              bout.kind !== "bout"
+                ? CASE_KIND_LABEL[bout.kind].toUpperCase()
+                : null,
               bout.archetype ? `ARCHETYPE: ${bout.archetype}` : null,
               bout.rulesApplied ? `RULES APPLIED: ${bout.rulesApplied}` : null,
               bout.sealedAt ? `FILED ${fileDate(bout.sealedAt)}` : null,
@@ -343,10 +477,12 @@ export default async function BoutPage({
             <div className="arena-tile-no">{i + 1}</div>
             <div className="arena-tile-card">
               <div className="arena-tile-head">
-                <span className="arena-eyebrow">{TILE_TYPE_LABEL[tile.type]}</span>
+                <span className="arena-eyebrow">
+                  {tileTypeLabel(tile.type, bout.kind)}
+                </span>
                 <span className="arena-stamp">{stamp(tile.createdAt)}</span>
               </div>
-              <TileBody tile={tile} />
+              <TileBody tile={tile} kind={bout.kind} />
               {tile.moves.length > 0 && (
                 <div className="arena-tile-moves">
                   {tile.moves.map((m) => (
@@ -361,7 +497,7 @@ export default async function BoutPage({
                 sealed={sealed}
                 canEngage={!anon}
               />
-              {admin && <TileAdminTools tile={tile} />}
+              {admin && <TileAdminTools tile={tile} kind={bout.kind} />}
               {admin && (
                 <AdminWhispers whispers={whispers[i]} names={whisperNames} />
               )}
@@ -433,7 +569,7 @@ export default async function BoutPage({
 
       {admin && !sealed && (
         <>
-          <ArenaBench boutId={bout.id} />
+          <ArenaBench boutId={bout.id} kind={bout.kind} />
           <div className="arena-tools" style={{ marginTop: 14 }}>
             <h2>Seal &amp; file</h2>
             <form action={sealBoutAction}>
@@ -473,6 +609,7 @@ export default async function BoutPage({
                 Seal the bout. File it.
               </button>
             </form>
+            {sourceTools}
             <div className="arena-danger">
               <DeleteBoutButton boutId={bout.id} />
             </div>
@@ -567,6 +704,7 @@ export default async function BoutPage({
               pitch at the end.
             </p>
           )}
+          {sourceTools}
           <div className="arena-danger">
             <DeleteBoutButton boutId={bout.id} />
           </div>

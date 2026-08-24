@@ -1,18 +1,17 @@
 import Link from "next/link";
 
 // Preview clone of the member-area nav. Renders the same visual
-// shell members see (small-caps Cormorant items, three clusters,
-// olive accent on the active row, ornamental tail) so an
-// unauthenticated visitor landing on a public-preview case file
-// feels like they're already inside. Every link points at the
-// membership sales page — the moment they try to navigate away
-// from this single permitted page, the funnel converts.
+// shell members see (small-caps Cormorant items, two clusters,
+// olive accent on the active row) so an unauthenticated visitor
+// landing on a public-preview case feels like they're already
+// inside. Every link points at the membership sales page — the
+// moment they try to navigate away from this single permitted
+// page, the funnel converts.
 //
-// "Case Files" is marked active because the only place this nav
-// renders is inside a public-preview case file detail page.
-//
-// Kept structurally parallel to MemberNav.tsx so visual updates
-// to the real nav can be mirrored here with minimal drift.
+// Kept structurally parallel to MemberNav.tsx: same labels, same
+// order, same cluster break. It is a sales asset, so drift is not
+// cosmetic. A preview listing rooms that do not exist sells a
+// member area the buyer will not find.
 
 type NavItem = {
   label: string;
@@ -20,24 +19,38 @@ type NavItem = {
       desktop sidebar so it reads as the start of a new cluster.
       Mobile horizontal strip ignores this flag. */
   clusterBreak?: boolean;
-  /** The one item that lights up as "you are here." Drives the
-      olive border + color treatment on both surfaces. */
-  active?: boolean;
 };
 
+// Mirrors MemberNav's ITEMS exactly: same labels, same order, same
+// cluster break. It had drifted badly — Field Notes and Account had
+// been gone from the real nav for a while, The Guild and The Arena had
+// never arrived, and "Case Files" was the lit item on a page that IS
+// an Arena case. A stranger's first look at the member area was a menu
+// of rooms that do not exist, with the wrong one glowing.
+//
+// Which item lights up is a property of the page doing the rendering,
+// not of this list — two surfaces share this nav (/arena and
+// /case-files), so the caller names it.
 const ITEMS: NavItem[] = [
   { label: "Desk" },
+  { label: "The Arena" },
+  { label: "The Guild" },
   { label: "Lounge" },
   { label: "Rules", clusterBreak: true },
-  { label: "Field Notes" },
-  { label: "Case Files", active: true },
   { label: "Book" },
-  { label: "Account", clusterBreak: true },
 ];
 
 const HREF = "/membership";
 
-export function MemberNavPreview() {
+export function MemberNavPreview({
+  active = "The Arena",
+}: {
+  /** Label of the item to light as "you are here." Both current
+      callers are Arena-world pages: the room itself, and the retired
+      case files the room's index shelves. */
+  active?: string;
+} = {}) {
+  const isActive = (label: string) => label === active;
   return (
     <>
       {/* === Mobile: sticky horizontal strip === */}
@@ -52,14 +65,14 @@ export function MemberNavPreview() {
                 href={HREF}
                 className={
                   "font-display uppercase tracking-[0.22em] no-underline px-4 py-3 transition-colors whitespace-nowrap " +
-                  (item.active
+                  (isActive(item.label)
                     ? "text-eye-deep"
                     : "text-ink-muted hover:text-ink")
                 }
                 style={{
                   fontSize: "0.7rem",
                   fontWeight: 600,
-                  borderBottom: item.active
+                  borderBottom: isActive(item.label)
                     ? "2px solid var(--eye-deep)"
                     : "2px solid transparent",
                 }}
@@ -94,14 +107,14 @@ export function MemberNavPreview() {
                 href={HREF}
                 className={
                   "block font-display uppercase tracking-[0.22em] no-underline py-2.5 pl-4 pr-3 transition-colors " +
-                  (item.active
+                  (isActive(item.label)
                     ? "text-eye-deep"
                     : "text-ink-muted hover:text-ink")
                 }
                 style={{
                   fontSize: "0.74rem",
                   fontWeight: 600,
-                  borderLeft: item.active
+                  borderLeft: isActive(item.label)
                     ? "2px solid var(--eye-deep)"
                     : "2px solid var(--rule)",
                   display: "flex",

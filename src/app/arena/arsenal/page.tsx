@@ -66,13 +66,6 @@ export default async function ArsenalPage() {
   return (
     <div className="arena-wrap">
       <header className="arena-index-header">
-        <Link
-          href="/arena"
-          className="arena-eyebrow"
-          style={{ textDecoration: "none" }}
-        >
-          The Arena
-        </Link>
         <h1 className="arena-title">The Arsenal</h1>
         <p className="arena-index-sub">
           Every move on this wall has been used in the record. Naming it

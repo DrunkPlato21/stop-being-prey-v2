@@ -3,7 +3,13 @@ import { getWritersDeskState } from "./writers-desk-state";
 import { getRecentWorkEvents } from "./pulse";
 import { getDeskPoolSignal } from "./pool";
 import { countPostsSince } from "./lounge";
-import { boutHref, listBouts, listTiles, TILE_TYPE_LABEL } from "./arena";
+import {
+  boutHref,
+  listBouts,
+  listTiles,
+  tileTypeLabel,
+  type ArenaCaseKind,
+} from "./arena";
 import { findMove } from "./arsenal";
 
 // The weekly digest — the patron report. One email a week to every
@@ -40,6 +46,13 @@ import { findMove } from "./arsenal";
 const KEY_PREFIX =
   process.env.DIGEST_KEY_PREFIX ??
   (process.env.NODE_ENV === "production" ? "" : "dev:");
+
+// True only when Arena is reading the live register. Mirrors the prefix
+// resolution in arena.ts — kept as a read-only check, never a write, so
+// the two can't drift into disagreeing about which room is real.
+const ARENA_IS_LIVE =
+  (process.env.ARENA_KEY_PREFIX ??
+    (process.env.NODE_ENV === "production" ? "" : "dev:")) === "";
 
 const CHAMBER_KEY = `${KEY_PREFIX}digest:chamber`;
 const UNSUB_KEY = `${KEY_PREFIX}digest:unsub`;
@@ -130,6 +143,10 @@ export type DigestPayload = {
   cases: {
     id: string;
     title: string;
+    /** Bout or post-mortem. The email needs it for the same two reasons
+        the page does: the counter tile's label, and whether that tile
+        carries Clay's "posted live" byline. */
+    kind: ArenaCaseKind;
     caseNo: number | null;
     archetype: string | null;
     rulesApplied: string | null;
@@ -346,7 +363,7 @@ export async function assembleDigest(
       ? lastRun.sentAt
       : now - SHIPPED_WINDOW_MS;
 
-  const [state, work, chamber, poolSignal, loungePostsThisWeek, allBouts] =
+  const [state, work, chamber, poolSignal, loungePostsThisWeek, boutsOnFile] =
     await Promise.all([
       getWritersDeskState(),
       getRecentWorkEvents({ limit: 12 }),
@@ -359,6 +376,15 @@ export async function assembleDigest(
       // out of a shallow window as the room grows.
       listBouts(200).catch(() => []),
     ]);
+
+  // The email is a PRODUCTION artifact even when a dev server builds it.
+  // The admin chamber and the test send both run from localhost, where
+  // arena.ts is still pointed at its dev: keyspace — full of invented
+  // seed cases (scripts/arena-seed-dev.mjs). The chamber reads prod for
+  // everything else, so without this the preview offers a real audience
+  // a fight that never happened. Only the live register rides the email:
+  // off the prod keyspace, the room contributes nothing.
+  const allBouts = ARENA_IS_LIVE ? boutsOnFile : [];
 
   // Every case sealed inside the window rides the email in full,
   // oldest first so the case numbers read forward. Specimen tiles show
@@ -379,6 +405,7 @@ export async function assembleDigest(
     cases.push({
       id: bout.id,
       title: bout.title,
+      kind: bout.kind,
       caseNo: bout.caseNo,
       archetype: bout.archetype,
       rulesApplied: bout.rulesApplied,
@@ -387,7 +414,7 @@ export async function assembleDigest(
       url: boutHref(bout),
       tiles: tiles.map((t) => ({
         type: t.type,
-        label: TILE_TYPE_LABEL[t.type],
+        label: tileTypeLabel(t.type, bout.kind),
         body: t.body,
         handle: t.handle,
         transcript: t.transcript,

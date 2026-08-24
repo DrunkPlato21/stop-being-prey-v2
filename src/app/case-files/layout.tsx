@@ -27,7 +27,7 @@ export default async function CaseFilesLayout({
 
   return (
     <div className="md:flex md:max-w-6xl md:mx-auto md:gap-10 md:px-6">
-      {previewMode ? <MemberNavPreview /> : <MemberNavServer />}
+      {previewMode ? <MemberNavPreview active="The Arena" /> : <MemberNavServer />}
       <div className="md:flex-1 md:min-w-0">{children}</div>
     </div>
   );

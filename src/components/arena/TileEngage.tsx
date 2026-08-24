@@ -12,6 +12,18 @@ import { setReactionAction, whisperAction } from "@/app/arena/actions";
 // is the private channel: only Clay reads it, and the room hears it
 // only if he quotes it into a later tile. No comments, by design.
 
+// The room's own tray, not the site's. "think" and "angry" are offered
+// only here: this is the one room where a reaction usually lands on the
+// specimen — the opponent's own words — so anger has a real object, and
+// "that made me stop and think" is the most useful thing a member can
+// say about a read. "cry" is the site's Sad and exists everywhere; the
+// Arena had been the one room leaving it out, which is backwards, since
+// the subject matter here is the one that actually earns it.
+//
+// Order follows the reaction set people already have muscle memory for:
+// the warm ones first, the two heavy ones last and adjacent. No eyeroll
+// on purpose — the stance is workshop, not colosseum, and a sneer
+// button is the fastest way to lose it.
 const ARENA_REACTIONS: ReactionKey[] = [
   "like",
   "love",
@@ -19,6 +31,9 @@ const ARENA_REACTIONS: ReactionKey[] = [
   "laugh",
   "wow",
   "hundred",
+  "think",
+  "cry",
+  "angry",
 ];
 
 export function TileEngage({
