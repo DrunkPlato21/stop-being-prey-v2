@@ -14,7 +14,8 @@
     "comments:export": "node scripts/export-comments.mjs",
     "test:guild-watch": "tsx scripts/guild-watch-test.mts",
     "test:seat-pool": "tsx scripts/seat-pool-test.mts",
-    "test:dunning": "tsx scripts/dunning-test.mts"
+    "test:dunning": "tsx scripts/dunning-test.mts",
+    "test:arena": "tsx scripts/arena-test.mts"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.4",

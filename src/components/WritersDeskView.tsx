@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { boutHref } from "@/lib/arena-constants";
 import Link from "next/link";
 import type {
   WritersDeskState,
@@ -463,6 +464,178 @@ function FirstRunPanel({ firstRun }: { firstRun: FirstRunState }) {
   );
 }
 
+// The Arena's door on the Desk. Same name-as-door pattern as the Guild
+// and Lounge, and the same two-tier grammar: a live fight gets the dark
+// livery card (the doorway shows the different room behind it), a
+// finished one drops to the quiet murmur line the Guild and Lounge use
+// for their own resting state. The dark card is reserved for a fight in
+// progress on purpose — a bout is live for hours and sealed for weeks,
+// and the loudest object on the desk should not be an archive link.
+// Self-hiding: an empty Arena renders nothing at all.
+function ArenaDoor({
+  arena,
+  now,
+}: {
+  arena: WritersDeskState["rooms"]["arena"];
+  now: number;
+}) {
+  // Three tiers, loudest first: a fight that is actually moving, then
+  // the last filed case, then a stalled open bout. A sealed case beats a
+  // stalled one because it is the more interesting thing to hand a
+  // member who just walked in.
+  const openBout = arena?.open ?? null;
+  const live = arena?.openIsLive ? openBout : null;
+  const latestCase = arena?.latestCase ?? null;
+  const resting = latestCase
+    ? { href: boutHref(latestCase), eyebrow: "Last sealed", title: latestCase.title,
+        meta: `${latestCase.caseNo != null ? `№ ${String(latestCase.caseNo).padStart(3, "0")}` : "On the record"}${latestCase.sealedAt ? ` · ${formatRelative(latestCase.sealedAt, now)}` : ""}` }
+    : openBout
+      ? { href: boutHref(openBout), eyebrow: "On the slab", title: openBout.title,
+          meta: `${openBout.tileCount} ${openBout.tileCount === 1 ? "tile" : "tiles"} · ${formatRelative(openBout.lastTileAt, now)}` }
+      : null;
+  if (!live && !resting) return null;
+  return (
+    // Bottom margin only when a live fight puts this above the other
+    // rooms. Sealed, it renders last and the caller owns the spacing.
+    <div className={live ? "mb-7" : ""}>
+      <Link
+        href="/arena"
+        className="group inline-flex items-center gap-2.5 no-underline"
+      >
+        <span
+          className={live ? "doorway doorway-lit" : "doorway"}
+          style={{ fontSize: "1.05rem" }}
+          aria-hidden="true"
+        >
+          ⚔
+        </span>
+        <span
+          className="font-display text-ink group-hover:text-eye-deep transition-colors"
+          style={{ fontSize: "1.25rem", fontWeight: 600 }}
+        >
+          The Arena
+        </span>
+        <span
+          className="text-eye-deep transition-transform group-hover:translate-x-0.5"
+          aria-hidden="true"
+          style={{ fontSize: "0.95rem" }}
+        >
+          &rarr;
+        </span>
+      </Link>
+
+      {live ? (
+        // Live fight. The one time the Arena is allowed to be the
+        // loudest thing on a warm paper desk.
+        <Link
+          href={boutHref(live)}
+          className="group flex items-center justify-between gap-4 no-underline mt-4"
+          style={{
+            background: "#141009",
+            border: "1px solid rgba(201, 168, 76, 0.4)",
+            borderRadius: 3,
+            padding: "0.9rem 1.05rem",
+          }}
+        >
+          <span className="min-w-0 block">
+            <span
+              className="eyebrow flex items-center gap-2"
+              style={{
+                color: "#c9a84c",
+                letterSpacing: "0.24em",
+                fontSize: "0.6rem",
+                marginBottom: "0.45rem",
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#c9a84c",
+                  boxShadow: "0 0 8px rgba(201, 168, 76, 0.7)",
+                }}
+              />
+              On the slab now
+            </span>
+            <span
+              className="font-display leading-[1.15] block group-hover:text-white transition-colors"
+              style={{
+                color: "#ede4d3",
+                fontSize: "1.2rem",
+                fontWeight: 600,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              {live.title}
+            </span>
+            <span
+              className="font-serif italic block mt-1.5"
+              style={{ color: "#a3906f", fontSize: "0.78rem" }}
+            >
+              {live.tileCount} {live.tileCount === 1 ? "tile" : "tiles"}
+              {" · "}
+              {formatRelative(live.lastTileAt, now)}
+            </span>
+          </span>
+          <span
+            className="shrink-0 flex items-center gap-1.5 transition-colors"
+            style={{
+              color: "#c9a84c",
+              fontSize: "0.66rem",
+              fontWeight: 700,
+              letterSpacing: "0.18em",
+            }}
+          >
+            <span className="font-display uppercase whitespace-nowrap">
+              Watch
+            </span>
+            <span
+              className="transition-transform group-hover:translate-x-0.5"
+              aria-hidden="true"
+              style={{ fontSize: "0.95rem" }}
+            >
+              &rarr;
+            </span>
+          </span>
+        </Link>
+      ) : (
+        // Nothing live. Same murmur grammar as the Guild's "Active now"
+        // and the Lounge's "Overheard": faint eyebrow, italic line, byline.
+        <Link
+          href={resting!.href}
+          className="group block no-underline mt-4"
+        >
+          <p
+            className="eyebrow"
+            style={{
+              color: "var(--ink-faint)",
+              letterSpacing: "0.22em",
+              fontSize: "0.58rem",
+              marginBottom: "0.35rem",
+            }}
+          >
+            {resting!.eyebrow}
+          </p>
+          <p
+            className="font-serif italic text-ink leading-snug group-hover:text-eye-deep transition-colors"
+            style={{ fontSize: "1.02rem" }}
+          >
+            {resting!.title}
+          </p>
+          <p
+            className="font-serif italic text-ink-faint mt-1"
+            style={{ fontSize: "0.78rem" }}
+          >
+            {resting!.meta}
+          </p>
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export function WritersDeskView({
   initialState,
 }: {
@@ -829,6 +1002,11 @@ export function WritersDeskView({
           <div className="mt-10 pt-8 border-t border-rule">
             <SectionHeader>The rooms</SectionHeader>
 
+            {/* A live fight outranks everything on the desk. */}
+            {rooms.arena?.openIsLive && (
+              <ArenaDoor arena={rooms.arena} now={now} />
+            )}
+
             {/* The Guild — the room name IS the door: name + arrow link
                 straight in, so where it goes is obvious. A live preview
                 of the latest thread sits beneath. */}
@@ -1013,10 +1191,24 @@ export function WritersDeskView({
                 </Link>
               </div>
               {rooms.lounge.latest ? (
+                // Same murmur grammar as the Guild's "Active now": small
+                // faint eyebrow over an italic line over a byline, so the
+                // section's quiet tier reads as one voice.
                 <Link
                   href={`/lounge#post-${rooms.lounge.latest.id}`}
-                  className="group block no-underline mt-1.5"
+                  className="group block no-underline mt-4"
                 >
+                  <p
+                    className="eyebrow"
+                    style={{
+                      color: "var(--ink-faint)",
+                      letterSpacing: "0.22em",
+                      fontSize: "0.58rem",
+                      marginBottom: "0.35rem",
+                    }}
+                  >
+                    Overheard
+                  </p>
                   <p
                     className="font-serif italic text-ink leading-snug line-clamp-2 group-hover:text-eye-deep transition-colors"
                     style={{ fontSize: "1.02rem" }}
@@ -1052,6 +1244,15 @@ export function WritersDeskView({
                 </p>
               )}
             </div>
+
+            {/* No live fight: the Arena door waits quietly at the end,
+                pointing at the latest filed case in the same murmur
+                grammar the Guild and Lounge use above. */}
+            {rooms.arena && !rooms.arena.openIsLive && (
+              <div className="mt-7">
+                <ArenaDoor arena={rooms.arena} now={now} />
+              </div>
+            )}
           </div>
         )}
 

@@ -36,15 +36,36 @@ export type MemberNavDots = Partial<Record<string, boolean>>;
 // The nav holds only *places*. Personal stuff (account, coins, sign-out)
 // lives in the identity menu under the member's name in the header, so
 // this stays a clean list of destinations instead of a junk drawer.
-// Two clusters, no dividing lines, just whitespace:
-//   1. The rooms: Desk, Lounge, The Guild
-//   2. The doctrine + the book: Rules, Case Files, Book
+// Two clusters, no dividing lines, just whitespace, split by what the
+// thing DOES rather than what it is about:
+//   1. What moves: Desk, The Arena, The Guild, Lounge
+//   2. What is fixed: Rules, Book
+//
+// The Arena sits second, directly under the landing. It first took Case
+// Files' seat down in the lower cluster (sealing a bout is how case
+// files are made now), which read as a pipeline — the doctrine, the
+// doctrine applied, the doctrine bound — but put the single most active
+// surface on the site fifth of six, under three quieter rooms and
+// between a static doctrine page and a coming-soon cover. It is also
+// the only room that can say LIVE, and its new-since-you-were-here dot
+// is a summons in second place and noise in fifth.
+//
+// Nothing is lost by breaking the old adjacency: a sidebar does not
+// teach a pipeline. The doctrine link is made where a member is
+// actually looking, in the sealed bout header that prints RULES
+// APPLIED. The old /case-files page stays live (public preview,
+// inbound links, the first six cases) — demoted, not deleted; the
+// Arena index links back to it under its own case-files shelf.
+//
+// Within the moving cluster the order matches the Desk's own "The
+// rooms" section — Arena, Guild (deep threads), Lounge (live talk) —
+// so the two places a member reads the same four doors agree.
 const ITEMS: NavItem[] = [
   { href: "/desk", label: "Desk" },
-  { href: "/lounge", label: "Lounge" },
+  { href: "/arena", label: "The Arena" },
   { href: "/guild", label: "The Guild" },
+  { href: "/lounge", label: "Lounge" },
   { href: "/rules", label: "Rules", clusterBreak: true },
-  { href: "/case-files", label: "Case Files" },
   { href: "/book", label: "Book" },
 ];
 
@@ -77,16 +98,26 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
         aria-label="Member area"
         className="md:hidden sticky top-0 z-20 bg-paper-deep/95 backdrop-blur-sm border-b border-rule"
       >
-        {/* A fixed 3-column grid rather than a free wrap: six items land
-            as a clean 3x2 block instead of the natural wrap orphaning the
-            last item on its own row. Stays within the viewport (no
-            sideways overflow). */}
+        {/* A fixed 3-column grid rather than a free wrap so items land
+            in clean rows with no sideways overflow. With a count that
+            leaves one item over (7 = 3+3+1), the straggler spans the
+            full row centered, so it reads as a deliberate closing row
+            rather than an orphan stuck in the left column. */}
         <ul className="grid grid-cols-3 max-w-md mx-auto">
-          {ITEMS.map((item) => {
+          {ITEMS.map((item, idx) => {
             const active = isActive(pathname, item.href);
             const showDot = hasDot(item.href);
+            const loneLast =
+              idx === ITEMS.length - 1 && ITEMS.length % 3 === 1;
             return (
-              <li key={item.href} className="flex justify-center">
+              <li
+                key={item.href}
+                className={
+                  loneLast
+                    ? "flex justify-center col-span-3"
+                    : "flex justify-center"
+                }
+              >
                 <Link
                   href={item.href}
                   className={
@@ -165,27 +196,6 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
             );
           })}
         </ul>
-
-        {/* Ornamental tail beneath the sidebar items. Three olive
-            dots, generous tracking, decorative only. Anchors the
-            nav as a contained unit and adds editorial polish. */}
-        <p
-          aria-hidden="true"
-          className="font-display text-center select-none"
-          style={{
-            color: "var(--eye-deep)",
-            fontSize: "1.1rem",
-            letterSpacing: "0.6em",
-            marginTop: "3rem",
-            marginBottom: "1rem",
-            // Letter-spacing on the last char pushes the visual
-            // center right; nudge back so the row sits centered.
-            paddingRight: "0.6em",
-            opacity: 0.78,
-          }}
-        >
-          &middot;&middot;&middot;
-        </p>
       </aside>
     </>
   );

@@ -2,8 +2,15 @@ import { Redis } from "@upstash/redis";
 import { getWritersDeskState } from "./writers-desk-state";
 import { getRecentWorkEvents } from "./pulse";
 import { getDeskPoolSignal } from "./pool";
-import { getAllCaseFiles } from "./case-files";
 import { countPostsSince } from "./lounge";
+import {
+  boutHref,
+  listBouts,
+  listTiles,
+  tileTypeLabel,
+  type ArenaCaseKind,
+} from "./arena";
+import { findMove } from "./arsenal";
 
 // The weekly digest — the patron report. One email a week to every
 // member, designed supporter-first: roughly half the membership never
@@ -39,6 +46,13 @@ import { countPostsSince } from "./lounge";
 const KEY_PREFIX =
   process.env.DIGEST_KEY_PREFIX ??
   (process.env.NODE_ENV === "production" ? "" : "dev:");
+
+// True only when Arena is reading the live register. Mirrors the prefix
+// resolution in arena.ts — kept as a read-only check, never a write, so
+// the two can't drift into disagreeing about which room is real.
+const ARENA_IS_LIVE =
+  (process.env.ARENA_KEY_PREFIX ??
+    (process.env.NODE_ENV === "production" ? "" : "dev:")) === "";
 
 const CHAMBER_KEY = `${KEY_PREFIX}digest:chamber`;
 const UNSUB_KEY = `${KEY_PREFIX}digest:unsub`;
@@ -122,13 +136,45 @@ export type DigestPayload = {
     status: "active" | "closed";
   } | null;
   pool: { waiting: number; potCents: number };
+  /** Every Arena case sealed inside this digest's window, in full —
+      the email carries the whole filed case, not a teaser. The rule is
+      dumb on purpose: sealed one, they get one; sealed none, the
+      section vanishes. Oldest first so the numbers read forward. */
+  cases: {
+    id: string;
+    title: string;
+    /** Bout or post-mortem. The email needs it for the same two reasons
+        the page does: the counter tile's label, and whether that tile
+        carries Clay's "posted live" byline. */
+    kind: ArenaCaseKind;
+    caseNo: number | null;
+    archetype: string | null;
+    rulesApplied: string | null;
+    /** Clay's one-line letter-voice opener from the seal form. */
+    dispatch: string | null;
+    sealedAt: number;
+    url: string;
+    tiles: {
+      type: string;
+      label: string;
+      body: string;
+      handle: string | null;
+      transcript: string | null;
+      imageUrl: string | null;
+      /** Canonical tags resolved to display names; unnamed as typed. */
+      moves: string[];
+    }[];
+  }[];
   /** Evergreen rotation so the email always has a floor, even on a
       week where every live slot came up empty. Carries the archetype
-      so the email can present it as a real entry, not a bare link. */
+      so the email can present it as a real entry, not a bare link.
+      Suppressed when fresh cases shipped — the floor isn't needed. */
   archive: {
     number: number;
     title: string;
-    archetype: string;
+    // Null when the filed case never got an archetype: the room does
+    // not require one, so the email has to render without it.
+    archetype: string | null;
     url: string;
   } | null;
 };
@@ -317,14 +363,66 @@ export async function assembleDigest(
       ? lastRun.sentAt
       : now - SHIPPED_WINDOW_MS;
 
-  const [state, work, chamber, poolSignal, loungePostsThisWeek] =
+  const [state, work, chamber, poolSignal, loungePostsThisWeek, boutsOnFile] =
     await Promise.all([
       getWritersDeskState(),
       getRecentWorkEvents({ limit: 12 }),
       getChamberedNote(),
       getDeskPoolSignal().catch(() => ({ waiting: 0, note: null, potCents: 0 })),
       countPostsSince(since).catch(() => 0),
+      // Deep read on purpose: the index ranks by lastTileAt and sealing
+      // never bumps that score, so a dormant bout sealed this week (or
+      // an old filed case the rotation should still reach) would fall
+      // out of a shallow window as the room grows.
+      listBouts(200).catch(() => []),
     ]);
+
+  // The email is a PRODUCTION artifact even when a dev server builds it.
+  // The admin chamber and the test send both run from localhost, where
+  // arena.ts is still pointed at its dev: keyspace — full of invented
+  // seed cases (scripts/arena-seed-dev.mjs). The chamber reads prod for
+  // everything else, so without this the preview offers a real audience
+  // a fight that never happened. Only the live register rides the email:
+  // off the prod keyspace, the room contributes nothing.
+  const allBouts = ARENA_IS_LIVE ? boutsOnFile : [];
+
+  // Every case sealed inside the window rides the email in full,
+  // oldest first so the case numbers read forward. Specimen tiles show
+  // the screenshot OR the transcript, never both (the email renderer
+  // decides); moves resolve to their Arsenal display names.
+  const sealedThisWeek = allBouts
+    .filter(
+      (b) =>
+        b.status === "sealed" &&
+        b.sealedAt !== null &&
+        b.sealedAt >= since &&
+        b.sealedAt <= now
+    )
+    .sort((a, b) => (a.sealedAt ?? 0) - (b.sealedAt ?? 0));
+  const cases: DigestPayload["cases"] = [];
+  for (const bout of sealedThisWeek) {
+    const tiles = await listTiles(bout.id);
+    cases.push({
+      id: bout.id,
+      title: bout.title,
+      kind: bout.kind,
+      caseNo: bout.caseNo,
+      archetype: bout.archetype,
+      rulesApplied: bout.rulesApplied,
+      dispatch: bout.dispatch,
+      sealedAt: bout.sealedAt ?? now,
+      url: boutHref(bout),
+      tiles: tiles.map((t) => ({
+        type: t.type,
+        label: tileTypeLabel(t.type, bout.kind),
+        body: t.body,
+        handle: t.handle,
+        transcript: t.transcript,
+        imageUrl: t.imageUrl,
+        moves: t.moves.map((m) => findMove(m)?.name ?? m),
+      })),
+    });
+  }
 
   // Shipped this week: site content only (essays, issues, field notes,
   // case files), inside the window. Social-echo sources stay out — the
@@ -334,20 +432,23 @@ export async function assembleDigest(
     .filter((e) => siteSources.has(e.source) && e.at >= since && e.at <= now)
     .map((e) => ({ label: e.label, title: e.body, url: e.link ?? null, at: e.at }));
 
-  // Archive rotation: deterministic by week so every member sees the
-  // same pick and a retry can't shuffle it. Case files ordered by
-  // number; the rotation walks them oldest-first, forever.
-  const caseFiles = getAllCaseFiles()
-    .slice()
-    .sort((a, b) => a.number - b.number);
+  // Archive rotation: on a week with no fresh case, the email reaches
+  // back for one already on file. Deterministic by week so every member
+  // sees the same pick and a retry can't shuffle it. It rotates the
+  // ROOM's filed cases: the old markdown archive keeps its own
+  // numbering and is no longer part of the site, so pulling from it
+  // would put two different "Case 003"s in front of the same reader.
+  const filed = allBouts
+    .filter((b) => b.status === "sealed" && b.caseNo !== null)
+    .sort((a, b) => (a.caseNo ?? 0) - (b.caseNo ?? 0));
   let archive: DigestPayload["archive"] = null;
-  if (caseFiles.length > 0) {
-    const pick = caseFiles[Math.floor(now / WEEK_MS) % caseFiles.length];
+  if (filed.length > 0 && cases.length === 0) {
+    const pick = filed[Math.floor(now / WEEK_MS) % filed.length];
     archive = {
-      number: pick.number,
+      number: pick.caseNo ?? 0,
       title: pick.title,
       archetype: pick.archetype,
-      url: `/case-files/${pick.slug}`,
+      url: boutHref(pick),
     };
   }
 
@@ -387,6 +488,7 @@ export async function assembleDigest(
         }
       : null,
     pool: { waiting: poolSignal.waiting, potCents: poolSignal.potCents },
+    cases,
     archive,
   };
 }

@@ -1,0 +1,1043 @@
+/* The Arena — a deliberately dark room inside a paper site. The rest of
+   the members' area is warm paper; the Arena announces itself as a
+   different kind of place. Tokens are scoped to .arena-room so nothing
+   leaks into the site's palette. From the approved bout mockup. */
+
+.arena-room {
+  /* Dark, not black. The room used to sit at #141009 against #f5efe1
+     paper — a near-total jump at the cut, which reads as a hole punched
+     in the page rather than a room you walk into. The ground came up a
+     step, the vignette that blackened the edges came down, and the ink
+     came off white; the room is still unmistakably the dark place, it
+     just stops slamming the door. */
+  --a-ground: #1b150d;
+  --a-tile: #241d15;
+  --a-raised: #2b2219;
+  --a-rule: #3a2f20;
+  --a-rule-soft: #30271b;
+  --a-ink: #e4dac6;
+  --a-ink-muted: #a8956f;
+  --a-ink-faint: #77674a;
+  --a-gold: #c9a84c;
+  --a-gold-deep: #8a7d20;
+  --a-rust: #a85438;
+
+  background: var(--a-ground);
+  /* A lamp over the slab. The warm cast at the top and the dark that
+     gathers in the corners keep the ground off flat black, and the grain
+     is the paper's own grain inverted, so the two surfaces read as one
+     building. */
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.85  0 0 0 0 0.78  0 0 0 0 0.62  0 0 0 0.03 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+    radial-gradient(150% 90% at 50% -12%, rgba(201, 168, 76, 0.08), transparent 64%),
+    radial-gradient(120% 100% at 50% 44%, transparent 48%, rgba(0, 0, 0, 0.24));
+  background-size: 240px 240px, auto, auto;
+  color: var(--a-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1.7;
+  padding: 8px 20px 90px;
+
+  /* The shared Guild body renderer paints text with the site's --ink-soft,
+     which is dark ink for the paper theme. Remap it inside the room so
+     shared renderers stay readable on the dark ground. */
+  --ink-soft: var(--a-ink);
+}
+
+/* The room is set INTO the page, not laid on top of it. Paper keeps a lip
+   above and beside the opening, the cut edge takes a hairline, and the
+   light dies against the walls. Without this the dark is just a div with
+   a background colour butt-jointed to the header. */
+@media (min-width: 768px) {
+  .arena-room {
+    margin: 22px 0 44px;
+    border-radius: 6px;
+    /* The step down happens on BOTH sides of the cut. The paper picks
+       up the shadow the opening throws (so the light falls off before
+       the edge instead of at it), the cut edge itself catches a warm
+       rim, and the insets that used to blacken the room's border are
+       eased — the darkest part of the room belongs in its middle, not
+       pressed against the cream. */
+    box-shadow:
+      0 0 0 1px rgba(88, 71, 45, 0.5),
+      0 2px 4px rgba(58, 45, 26, 0.14),
+      0 14px 34px -10px rgba(58, 45, 26, 0.2),
+      inset 0 18px 26px -22px rgba(0, 0, 0, 0.7),
+      inset 18px 0 30px -26px rgba(0, 0, 0, 0.55),
+      inset -18px 0 30px -26px rgba(0, 0, 0, 0.55),
+      inset 0 -18px 30px -26px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* On a phone the room owns the whole screen, so it stays full bleed; the
+   threshold is carried by the cut edge and the shadow falling in from
+   above it. */
+@media (max-width: 767px) {
+  .arena-room {
+    border-top: 1px solid rgba(88, 71, 45, 0.7);
+    border-bottom: 1px solid rgba(88, 71, 45, 0.7);
+    box-shadow:
+      inset 0 16px 22px -18px rgba(0, 0, 0, 0.7),
+      inset 0 -16px 22px -18px rgba(0, 0, 0, 0.65);
+  }
+}
+.arena-wrap { max-width: 680px; margin: 0 auto; }
+.arena-room a { color: var(--a-gold); }
+
+.arena-eyebrow {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--a-gold);
+}
+
+/* ── The room bar ────────────────────────────── */
+/* The member sidebar lights one item for the whole Arena, so once you
+   are inside, nothing tells you the room has two halves — or how to get
+   from a move back to the fights. This bar does, on every page: the
+   room's name, then its two destinations, the one you're standing in
+   lit. It is the answer to landing on a move page from a tile chip and
+   finding no way out. */
+.arena-roombar-slot { max-width: 680px; margin: 0 auto; }
+.arena-roombar {
+  display: flex; align-items: baseline; gap: 22px; flex-wrap: wrap;
+  padding: 20px 0 0; border-bottom: 1px solid var(--a-rule);
+}
+.arena-roombar .room {
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.28em;
+  text-transform: uppercase; color: var(--a-ink-faint);
+  margin-right: auto; padding-bottom: 11px;
+}
+.arena-room a.arena-roombar-tab {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; text-decoration: none;
+  color: var(--a-ink-muted); padding-bottom: 11px; margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.arena-room a.arena-roombar-tab:hover,
+.arena-room a.arena-roombar-tab:focus-visible { color: var(--a-ink); outline: none; }
+.arena-room a.arena-roombar-tab.on {
+  color: var(--a-gold); border-bottom-color: var(--a-gold-deep);
+}
+@media (max-width: 480px) {
+  .arena-roombar { gap: 18px; }
+  .arena-roombar .room { flex-basis: 100%; margin-right: 0; padding-bottom: 4px; }
+}
+
+/* A step back up one level, dressed as navigation instead of as a
+   label — the mistake the old gold eyebrow made. */
+.arena-room a.arena-backlink {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
+  text-decoration: none; color: var(--a-ink-muted);
+  margin: 26px 0 0; transition: color 0.15s;
+}
+.arena-room a.arena-backlink:hover,
+.arena-room a.arena-backlink:focus-visible { color: var(--a-gold); outline: none; }
+
+/* The case-type tag. Deliberately monochrome — the brief was that a
+   post-mortem is distinguished by saying what it is, not by wearing a
+   different colour, so it borrows the room's muted ink and rule rather
+   than introducing a second accent that would compete with the gold. */
+.arena-kind-tag {
+  display: inline-block; vertical-align: middle;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--a-ink-muted);
+  border: 1px solid var(--a-rule); border-radius: 2px;
+  padding: 3px 7px; margin-right: 9px;
+  white-space: nowrap;
+}
+
+/* ── Bout header ─────────────────────────────── */
+.arena-bout-header { padding: 30px 0 28px; border-bottom: 1px solid var(--a-rule); }
+.arena-bout-line { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.arena-title {
+  font-size: clamp(1.6rem, 5vw, 2.3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 10px 0 6px;
+  text-wrap: balance;
+  color: var(--a-ink);
+}
+.arena-meta { font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem; color: var(--a-ink-muted); }
+
+.arena-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 3px;
+}
+.arena-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+.arena-chip.open { color: var(--a-gold); border: 1px solid var(--a-gold-deep); background: rgba(201, 168, 76, 0.07); }
+.arena-chip.open .dot { background: var(--a-gold); box-shadow: 0 0 8px rgba(201, 168, 76, 0.7); }
+.arena-chip.sealed { color: var(--a-ink-muted); border: 1px solid var(--a-rule); background: var(--a-tile); }
+.arena-chip.sealed .dot { background: var(--a-ink-faint); }
+/* Three states, three costumes. An open bout that has gone quiet used to
+   borrow the sealed chip, so a fight still on the slab looked exactly
+   like a filed case. It is a banked ember instead: gold, because the
+   fight is not over, but low and unhaloed, because nothing has landed
+   in it lately. Lit for live, banked for open, cold for sealed. */
+.arena-chip.banked {
+  color: #a89152; border: 1px solid rgba(138, 125, 32, 0.55);
+  background: rgba(201, 168, 76, 0.035);
+}
+.arena-chip.banked .dot { background: var(--a-gold-deep); }
+
+/* ── Spine + tiles ───────────────────────────── */
+.arena-tiles { position: relative; padding: 34px 0 0 46px; }
+.arena-tiles::before {
+  content: ""; position: absolute; left: 13px; top: 40px; bottom: 14px;
+  width: 1px; background: linear-gradient(var(--a-gold-deep), var(--a-rule) 80%);
+}
+.arena-tile { position: relative; margin-bottom: 30px; }
+.arena-tile-no {
+  position: absolute; left: -46px; top: 0;
+  width: 27px; height: 27px; border-radius: 50%;
+  background: var(--a-ground); border: 1px solid var(--a-gold-deep);
+  color: var(--a-gold); font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.7rem; font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; justify-content: center;
+}
+.arena-tile-card {
+  background: var(--a-tile); border: 1px solid var(--a-rule);
+  border-radius: 4px; padding: 18px 20px 12px;
+}
+.arena-tile-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px;
+}
+.arena-stamp { font-family: ui-monospace, Consolas, monospace; font-size: 0.66rem; color: var(--a-ink-faint); white-space: nowrap; }
+.arena-tile-card p { margin: 0 0 0.9em; }
+
+/* Specimen — the only place the rust marker appears */
+.arena-tile.specimen .arena-tile-card { border-left: 2px solid var(--a-rust); }
+.arena-tile.specimen .arena-eyebrow { color: var(--a-rust); }
+.arena-shot {
+  background: #13100a; border: 1px solid var(--a-rule-soft); border-radius: 6px;
+  padding: 14px 16px; margin: 4px 0 10px;
+}
+.arena-shot-handle { font-family: ui-monospace, Consolas, monospace; font-size: 0.78rem; color: var(--a-ink-muted); margin-bottom: 6px; }
+.arena-shot-body { font-size: 0.98rem; color: #d8cdb8; line-height: 1.6; }
+details.arena-transcript { margin: 10px 0 6px; }
+details.arena-transcript summary {
+  cursor: pointer; list-style: none;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--a-ink-faint);
+}
+details.arena-transcript summary:hover,
+details.arena-transcript summary:focus-visible { color: var(--a-gold); outline: none; }
+details.arena-transcript[open] summary { color: var(--a-gold); }
+.arena-transcript-body {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.78rem; line-height: 1.8;
+  color: var(--a-ink-muted); background: #13100a; border: 1px solid var(--a-rule-soft);
+  border-radius: 4px; padding: 12px 14px; margin-top: 8px;
+  white-space: pre-wrap; overflow-x: auto;
+}
+
+/* Counter styling — Clay's line */
+.arena-counter-line {
+  border-left: 2px solid var(--a-gold-deep);
+  padding: 4px 0 4px 16px; margin: 6px 0 12px;
+  font-style: italic; font-size: 1.05rem;
+  /* The body renders through the Guild formatter (bold/italic), which
+     relies on preserved line breaks rather than block wrappers. */
+  white-space: pre-wrap;
+}
+.arena-byline { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--a-gold); }
+
+/* Move tags */
+.arena-move-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--a-gold-deep); border-radius: 3px;
+  background: rgba(201, 168, 76, 0.06);
+  padding: 5px 12px; margin: 2px 8px 8px 0;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--a-gold);
+}
+
+/* Engagement row — Facebook grammar: the row shows only what the tile
+   has earned (the cluster + count); the tray appears on demand. */
+.arena-engage {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  border-top: 1px solid var(--a-rule-soft);
+  margin-top: 12px; padding-top: 10px;
+  /* The tray's containing block. It used to be the React button itself
+     (an inline-flex ~90px wide), which gave a nine-face tray nothing to
+     measure against: the pill sized to the button while the faces ran
+     out past it. Anchoring to the row means the tray can be told to
+     span the tile, and on narrow screens that makes overflow
+     structurally impossible rather than a number we got lucky on. */
+  position: relative;
+}
+.arena-sum {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--a-ink-muted); font-size: 0.9rem;
+  animation: arena-bump 0.35s ease-out;
+}
+.arena-sum-emoji { display: inline-flex; }
+.arena-sum-emoji span { margin-right: -4px; text-shadow: 0 0 4px var(--a-ground); }
+.arena-sum-emoji span:last-child { margin-right: 0; }
+.arena-sum .n { font-family: ui-monospace, Consolas, monospace; font-size: 0.74rem; font-variant-numeric: tabular-nums; margin-left: 6px; }
+@keyframes arena-bump { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+
+/* Groups the tray trigger with the button; deliberately NOT positioned,
+   so the tray measures against .arena-engage above. */
+.arena-react-anchor { display: inline-flex; }
+.arena-react-main {
+  font-family: inherit; cursor: pointer; border-radius: 3px;
+  background: transparent; border: 1px solid var(--a-rule);
+  color: var(--a-ink-muted); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; padding: 6px 14px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.arena-react-main:hover, .arena-react-main:focus-visible { border-color: var(--a-gold-deep); color: var(--a-gold); outline: none; }
+.arena-react-main.hit { border-color: var(--a-gold-deep); color: var(--a-gold); }
+.arena-react-main .chosen { display: inline-block; animation: arena-pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes arena-pop {
+  0% { transform: scale(0.4) rotate(-12deg); }
+  55% { transform: scale(1.35) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* The tray: pops up over the React button, each face staggering in. */
+.arena-tray {
+  position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 20;
+  display: flex; gap: 2px; padding: 6px 8px;
+  background: var(--a-raised); border: 1px solid var(--a-gold-deep);
+  border-radius: 22px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
+  /* Hug the faces so the pill and its contents can never disagree.
+     Left-aligned to the tile edge, which is where the row starts and
+     where there is the most room to grow. */
+  width: max-content;
+}
+.arena-tray-btn {
+  cursor: pointer; background: transparent; border: 0;
+  font-size: 1.35rem; line-height: 1; padding: 4px 5px; border-radius: 50%;
+  transform-origin: bottom center;
+  animation: arena-tray-in 0.28s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  transition: transform 0.12s ease-out;
+}
+.arena-tray-btn:hover, .arena-tray-btn:focus-visible { transform: scale(1.45) translateY(-4px); outline: none; }
+.arena-tray-btn.mine { background: rgba(201, 168, 76, 0.18); }
+@keyframes arena-tray-in {
+  0% { opacity: 0; transform: translateY(10px) scale(0.3); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Narrow phones. Measured, not guessed: at a 375px viewport the engage
+   row is only 249px wide, because .arena-tiles spends 46px on the
+   timeline rail and .arena-tile-card another 40px on its gutters. Nine
+   faces at the desktop size need 389px, so the tray has to do two
+   things here.
+
+   One: stop hugging and pin both edges, which makes the tray exactly as
+   wide as its span and therefore unable to overflow whatever the face
+   count grows to. The negative insets reclaim the card's 20px gutters,
+   the cheapest 40px available — a popover breaking its parent's padding
+   is normal, and it buys back a sixth of the width at 375px.
+
+   Two: scale the faces with the viewport. An emoji's advance is about
+   1.37x its font-size (measured), so nine of them plus padding come to
+   roughly 12.4x the font-size plus 68px of chrome. At 4vw that lands
+   inside the span at 320px with room to spare, and space-between opens
+   the leftovers into even, thumb-sized zones. The rem floor keeps them
+   legible if anything narrower ever shows up. */
+@media (max-width: 480px) {
+  .arena-tray {
+    left: -20px; right: -20px; width: auto;
+    box-sizing: border-box;
+    justify-content: space-between;
+    gap: 0; padding: 5px 6px;
+  }
+  .arena-tray-btn {
+    font-size: clamp(0.75rem, 4vw, 1.35rem);
+    padding: 6px 3px;
+  }
+  .arena-tray-btn:hover, .arena-tray-btn:focus-visible { transform: scale(1.25) translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-sum, .arena-react-main .chosen { animation: none; }
+  .arena-tray-btn { animation: none; transition: none; }
+  .arena-tray-btn:hover, .arena-tray-btn:focus-visible { transform: scale(1.15); }
+}
+.arena-whisper-btn {
+  margin-left: auto; cursor: pointer; border-radius: 3px;
+  background: transparent; border: 1px solid var(--a-rule);
+  color: var(--a-ink-muted); font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase; padding: 6px 12px;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s;
+}
+.arena-whisper-btn:hover, .arena-whisper-btn:focus-visible { border-color: var(--a-gold-deep); color: var(--a-gold); outline: none; }
+.arena-whisper-box { margin-top: 10px; }
+.arena-whisper-box textarea {
+  width: 100%; box-sizing: border-box; min-height: 68px; resize: vertical;
+  background: #13100a; border: 1px solid var(--a-rule); border-radius: 4px;
+  color: var(--a-ink); font-family: inherit; font-size: 0.92rem;
+  padding: 10px 12px;
+}
+.arena-whisper-box textarea:focus-visible { outline: none; border-color: var(--a-gold-deep); }
+.arena-whisper-note { font-size: 0.72rem; color: var(--a-ink-faint); font-style: italic; margin-top: 5px; }
+.arena-whisper-send {
+  margin-top: 8px; cursor: pointer; border-radius: 3px;
+  background: transparent; border: 1px solid var(--a-gold-deep);
+  color: var(--a-gold); font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase; padding: 7px 14px;
+  font-family: inherit;
+}
+.arena-whisper-send:hover, .arena-whisper-send:focus-visible { background: rgba(201, 168, 76, 0.12); outline: none; }
+.arena-whisper-sent { font-size: 0.8rem; color: var(--a-gold); font-style: italic; margin-top: 8px; }
+
+/* Whispers (admin view under a tile) */
+.arena-whisper-quote {
+  background: var(--a-raised); border: 1px solid var(--a-rule);
+  border-radius: 4px; padding: 10px 14px; margin: 8px 0;
+  font-size: 0.92rem;
+}
+.arena-whisper-quote .who { font-family: ui-monospace, Consolas, monospace; font-size: 0.66rem; color: var(--a-ink-faint); margin-top: 4px; }
+
+/* Open-bout ember */
+.arena-developing { position: relative; display: flex; align-items: center; gap: 12px; padding: 4px 0 0 46px; color: var(--a-ink-faint); }
+.arena-developing .pulse {
+  position: absolute; left: 7px; width: 13px; height: 13px; border-radius: 50%;
+  border: 1px solid var(--a-gold-deep); background: var(--a-ground);
+}
+.arena-developing .pulse::after {
+  content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--a-gold);
+  animation: arena-breathe 2.2s ease-in-out infinite;
+}
+@keyframes arena-breathe { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .arena-developing .pulse::after { animation: none; opacity: 0.7; } }
+.arena-developing em { font-size: 0.88rem; }
+
+/* Seal block */
+.arena-seal {
+  border: 1px solid var(--a-gold-deep); border-radius: 4px;
+  background: rgba(201, 168, 76, 0.05);
+  padding: 20px 24px; margin: 6px 0 0 46px; text-align: center;
+}
+.arena-seal .mark { font-size: 1.4rem; letter-spacing: 0.3em; color: var(--a-gold); margin-bottom: 6px; }
+.arena-seal .when { font-family: ui-monospace, Consolas, monospace; font-size: 0.68rem; color: var(--a-ink-faint); margin-top: 6px; }
+
+/* ── Index ───────────────────────────────────── */
+.arena-index-header { padding: 30px 0 12px; }
+.arena-index-sub { color: var(--a-ink-muted); font-style: italic; margin: 4px 0 24px; }
+.arena-bout-row {
+  display: block; text-decoration: none;
+  background: var(--a-tile); border: 1px solid var(--a-rule); border-radius: 4px;
+  padding: 16px 20px; margin-bottom: 12px;
+  transition: border-color 0.15s;
+}
+.arena-bout-row:hover { border-color: var(--a-gold-deep); }
+.arena-bout-row .row-title { color: var(--a-ink); font-size: 1.1rem; font-weight: 700; margin: 6px 0 4px; }
+.arena-empty { color: var(--a-ink-faint); font-style: italic; padding: 30px 0; }
+
+/* Tile screenshots */
+.arena-tile-img {
+  display: block; max-width: 100%; height: auto;
+  border: 1px solid var(--a-rule-soft); border-radius: 6px;
+  margin: 4px 0 10px;
+}
+.arena-shot .arena-tile-img { border: 0; border-radius: 4px; margin: 0 0 10px; }
+
+/* Bench image affordances */
+.arena-bench-note { font-size: 0.78rem; color: var(--a-ink-faint); font-style: italic; }
+.arena-bench-err { font-size: 0.78rem; color: var(--a-rust); }
+.arena-bench-pick {
+  cursor: pointer; background: none; border: 0; padding: 0;
+  color: var(--a-gold); font: inherit; font-style: italic; text-decoration: underline;
+}
+.arena-bench-pick:focus-visible { outline: 1px solid var(--a-gold-deep); }
+.arena-bench-preview { display: flex; align-items: flex-start; gap: 12px; }
+.arena-bench-preview img {
+  max-width: 220px; max-height: 160px; height: auto;
+  border: 1px solid var(--a-rule); border-radius: 4px;
+}
+.arena-bench-remove {
+  cursor: pointer; background: transparent; border: 1px solid var(--a-rule);
+  color: var(--a-ink-muted); border-radius: 3px; padding: 5px 10px;
+  font-family: inherit; font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+.arena-bench-remove:hover { border-color: var(--a-rust); color: var(--a-rust); }
+
+/* ── Clay's tools (composer, seal) ───────────── */
+.arena-tools {
+  margin-top: 44px; border: 1px dashed var(--a-rule); border-radius: 4px;
+  padding: 18px 20px;
+}
+.arena-tools h2 { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--a-gold); margin: 0 0 14px; }
+.arena-tools form { display: flex; flex-direction: column; gap: 10px; }
+.arena-tools .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.arena-tools input, .arena-tools select, .arena-tools textarea {
+  background: #13100a; border: 1px solid var(--a-rule); border-radius: 4px;
+  color: var(--a-ink); font-family: inherit; font-size: 0.92rem;
+  padding: 9px 12px; box-sizing: border-box;
+}
+.arena-tools textarea { width: 100%; min-height: 90px; resize: vertical; }
+.arena-tools input { flex: 1; min-width: 140px; }
+.arena-tools input:focus-visible, .arena-tools select:focus-visible, .arena-tools textarea:focus-visible { outline: none; border-color: var(--a-gold-deep); }
+.arena-tools label { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--a-ink-faint); }
+.arena-tools .submit, .arena-seal-btn {
+  align-self: flex-start; cursor: pointer; border-radius: 3px;
+  background: transparent; border: 1px solid var(--a-gold-deep);
+  color: var(--a-gold); font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase; padding: 9px 18px;
+  font-family: inherit;
+}
+.arena-tools .submit:hover, .arena-seal-btn:hover,
+.arena-tools .submit:focus-visible, .arena-seal-btn:focus-visible { background: rgba(201, 168, 76, 0.12); outline: none; }
+
+/* ── Case-file dress (sealed bouts) ──────────── */
+.arena-case-meta {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem;
+  letter-spacing: 0.08em; color: var(--a-gold);
+  border: 1px solid var(--a-gold-deep); border-radius: 3px;
+  background: rgba(201, 168, 76, 0.06);
+  display: inline-block; padding: 7px 12px; margin-top: 10px;
+}
+.arena-shelf-head {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--a-ink-muted);
+  border-top: 1px solid var(--a-rule); padding-top: 26px; margin: 34px 0 4px;
+}
+.arena-shelf-head .n {
+  font-family: ui-monospace, Consolas, monospace; font-weight: 400;
+  letter-spacing: 0.12em; color: var(--a-ink-faint); margin-left: 12px;
+}
+.arena-caseno-input { width: 110px; min-width: 0; flex: none; }
+
+/* ── The archetype filter ────────────────────── */
+/* Sits on the list it filters, in the room's own chip grammar: outlined
+   and quiet at rest, gold when it's the one doing the work. Deliberately
+   NOT the rust/gold move-chip marks — those mean a move, and a filter
+   that borrowed them would read as one. */
+.arena-filter {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 12px 0 16px;
+}
+.arena-room a.arena-filter-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  padding: 6px 11px; border-radius: 3px;
+  border: 1px solid var(--a-rule); color: var(--a-ink-muted);
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+.arena-room a.arena-filter-chip:hover { border-color: var(--a-gold-deep); color: var(--a-ink); }
+.arena-room a.arena-filter-chip.on {
+  border-color: var(--a-gold-deep); color: var(--a-gold);
+  background: rgba(201, 168, 76, 0.07);
+}
+.arena-filter-chip .n {
+  font-size: 0.58rem; color: var(--a-ink-faint);
+  font-variant-numeric: tabular-nums; letter-spacing: 0.06em;
+}
+.arena-filter-chip.on .n { color: var(--a-gold-deep); }
+@media (max-width: 480px) {
+  .arena-filter { gap: 6px; }
+  .arena-room a.arena-filter-chip { letter-spacing: 0.1em; padding: 6px 9px; }
+}
+
+/* ── Move chips: the tag grammar ─────────────── */
+/* rust ◆ = their move, gold ✦ = Clay's technique, faint = unnamed. */
+.arena-chip-move {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.68rem;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  border-radius: 2px; padding: 4px 9px; margin: 0 8px 8px 0;
+  text-decoration: none; border: 1px solid var(--a-rule);
+}
+.arena-chip-move .mark { font-size: 0.6rem; }
+.arena-chip-move.opponent {
+  color: #d98a6b; border-color: #6b3a26; background: rgba(168, 84, 56, 0.1);
+}
+.arena-chip-move.clay {
+  color: var(--a-gold); border-color: var(--a-gold-deep);
+  background: rgba(201, 168, 76, 0.08);
+}
+.arena-chip-move.unnamed {
+  color: var(--a-ink-muted); border-style: dashed; font-style: italic;
+  text-transform: none;
+}
+a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
+  border-color: currentColor; outline: none;
+}
+.arena-tile-moves { padding-top: 4px; }
+
+/* ── The bench's move picker ─────────────────── */
+.arena-movepicker { position: relative; }
+.arena-movepicker-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0;
+  background: #13100a; border: 1px solid var(--a-rule); border-radius: 4px;
+  padding: 6px 8px 0 8px;
+}
+.arena-movepicker-row input {
+  flex: 1; min-width: 180px; border: 0 !important; background: transparent !important;
+  padding: 4px 4px 10px !important;
+}
+.arena-movepicker-row .arena-chip-move.picked {
+  cursor: pointer; font-family: ui-monospace, Consolas, monospace;
+  margin-bottom: 6px;
+}
+.arena-chip-move.picked .x { color: var(--a-ink-faint); margin-left: 2px; }
+.arena-chip-move.picked:hover .x { color: var(--a-ink); }
+.arena-movepicker-menu {
+  position: absolute; z-index: 5; left: 0; right: 0; margin-top: 4px;
+  background: var(--a-raised); border: 1px solid var(--a-rule);
+  border-radius: 4px; overflow: hidden;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+.arena-movepicker-opt {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  text-align: left; cursor: pointer; background: transparent; border: 0;
+  font-family: Georgia, serif; font-size: 0.92rem; color: var(--a-ink);
+  padding: 9px 14px;
+}
+.arena-movepicker-opt:hover, .arena-movepicker-opt:focus-visible {
+  background: rgba(201, 168, 76, 0.08); outline: none;
+}
+.arena-movepicker-opt .mark { font-size: 0.6rem; }
+.arena-movepicker-opt.opponent .mark { color: #d98a6b; }
+.arena-movepicker-opt.clay .mark { color: var(--a-gold); }
+.arena-movepicker-hint {
+  font-size: 0.75rem; font-style: italic; color: var(--a-ink-faint);
+  padding-top: 5px;
+}
+
+/* ── The Arsenal ─────────────────────────────── */
+.arena-shelf-head.arsenal-opponent { color: #d98a6b; }
+.arena-shelf-head.arsenal-clay { color: var(--a-gold); }
+.arsenal-row.opponent { border-left: 2px solid #6b3a26; }
+.arsenal-row.clay { border-left: 2px solid var(--a-gold-deep); }
+.arsenal-def {
+  font-size: 0.88rem; color: var(--a-ink-muted); line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* ── A move, up close ────────────────────────── */
+/* The wall mounts every move on the same plate. This is that plate taken
+   down and read: same screws, same stamp block, enlarged. Before it, the
+   move page was three paragraphs each hung under its own full-width rule
+   — the header rule and the first section rule stacked with a dead band
+   between them, and nothing on the page belonged to anything else. The
+   card gives the entry one edge, and the rules become what they should
+   always have been: the lines between rows of a spec sheet. */
+.arsenal-card {
+  position: relative; overflow: hidden;
+  margin: 22px 0 8px;
+  border: 1px solid var(--a-rule); border-radius: 3px;
+  background:
+    linear-gradient(170deg, rgba(255, 245, 220, 0.03), rgba(0, 0, 0, 0.14)),
+    var(--a-tile);
+}
+.arsenal-card.opponent { border-left: 2px solid #6b3a26; }
+.arsenal-card.clay { border-left: 2px solid var(--a-gold-deep); }
+/* The same two screws the wall plates mount on. */
+.arsenal-card::before, .arsenal-card::after {
+  content: ""; position: absolute; top: 12px; width: 5px; height: 5px;
+  border-radius: 50%; background: #0f0b07;
+  box-shadow: inset 0 1px 1px rgba(255, 240, 200, 0.22);
+}
+.arsenal-card::before { left: 10px; }
+.arsenal-card::after { right: 10px; }
+
+.arsenal-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  padding: 12px 26px; border-bottom: 1px solid var(--a-rule);
+  background: rgba(0, 0, 0, 0.16);
+}
+.arsenal-card-stamp {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.68rem;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--a-ink-muted);
+}
+.arsenal-card-stamp .mk { font-size: 0.82rem; }
+.arsenal-card.opponent .mk { color: #d98a6b; }
+.arsenal-card.clay .mk { color: var(--a-gold); }
+.arsenal-card-role {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.62rem;
+  letter-spacing: 0.18em; text-transform: uppercase;
+}
+.arsenal-card.opponent .arsenal-card-role { color: #b06d52; }
+.arsenal-card.clay .arsenal-card-role { color: var(--a-gold-deep); }
+
+.arsenal-card-title { padding: 22px 26px 20px; border-bottom: 1px solid var(--a-rule); }
+.arsenal-card-title .arena-title { margin: 0; font-size: clamp(1.5rem, 4.4vw, 2.05rem); }
+.arsenal-card-status {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.7rem;
+  letter-spacing: 0.04em; color: var(--a-ink-faint); margin: 8px 0 0;
+}
+
+/* The entry as a spec sheet: label column, text column, a hairline
+   between rows. The counter is the payoff, so it is the one row the
+   room lights. */
+.arsenal-card-rows { margin: 0; }
+.arsenal-def-row {
+  display: grid; grid-template-columns: 128px 1fr; gap: 0 22px;
+  padding: 18px 26px; border-bottom: 1px solid var(--a-rule-soft);
+}
+.arsenal-def-row:last-child { border-bottom: 0; }
+.arsenal-def-row .label {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.62rem;
+  font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+  /* Sits on the first body line's baseline, not near it. */
+  color: var(--a-ink-faint); padding-top: 9px;
+}
+.arsenal-def-row .body { margin: 0; }
+.arsenal-def-row .body p {
+  font-size: 1rem; line-height: 1.7; color: var(--a-ink); margin: 0 0 0.7em;
+}
+.arsenal-def-row .body p:last-child { margin-bottom: 0; }
+.arsenal-def-row.counter { background: rgba(201, 168, 76, 0.045); }
+.arsenal-def-row.counter .label { color: var(--a-gold); }
+
+.arsenal-card-foot {
+  padding: 12px 26px; border-top: 1px solid var(--a-rule);
+  background: rgba(0, 0, 0, 0.13);
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.66rem;
+  letter-spacing: 0.05em; color: var(--a-ink-faint);
+}
+
+@media (max-width: 560px) {
+  .arsenal-card-head, .arsenal-card-title,
+  .arsenal-def-row, .arsenal-card-foot { padding-left: 20px; padding-right: 20px; }
+  .arsenal-def-row { grid-template-columns: 1fr; }
+  .arsenal-def-row .label { padding-top: 0; margin-bottom: 7px; }
+}
+
+/* ── The backroom (Clay's undebuted moves) ───── */
+.arsenal-backroom { margin-top: 44px; }
+.arsenal-backroom .arena-shelf-head { color: var(--a-ink-faint); border-top-style: dashed; }
+.arsenal-backroom-note {
+  font-size: 0.85rem; font-style: italic; color: var(--a-ink-faint);
+  margin: 0 0 14px; max-width: 52ch;
+}
+.arsenal-row.backroom {
+  border-style: dashed; opacity: 0.75;
+}
+.arsenal-row.backroom .row-title { color: var(--a-ink-muted); font-weight: 400; font-size: 0.98rem; margin: 0; }
+
+/* ── The armory wall: rack plates ────────────── */
+/* Every move mounts the same way: screws, a stamp block (mark +
+   debut-order numeral), notches for bouts on record. The arsenal feel
+   comes from uniform mounting and earned wear, never per-move art. */
+.arsenal-plate {
+  display: grid; grid-template-columns: 74px 1fr;
+  border: 1px solid var(--a-rule); border-radius: 3px;
+  background:
+    linear-gradient(170deg, rgba(255, 245, 220, 0.028), rgba(0, 0, 0, 0.16)),
+    var(--a-tile);
+  margin-bottom: 14px; text-decoration: none; color: inherit;
+  position: relative; overflow: hidden;
+}
+.arena-room a.arsenal-plate { color: inherit; }
+.arsenal-plate::before, .arsenal-plate::after {
+  content: ""; position: absolute; width: 5px; height: 5px;
+  border-radius: 50%; background: #0c0906;
+  box-shadow: inset 0 1px 1px rgba(255, 240, 200, 0.22); top: 8px;
+}
+.arsenal-plate::before { left: 8px; }
+.arsenal-plate::after { right: 8px; }
+.arsenal-plate.opponent { border-left: 2px solid #6b3a26; }
+.arsenal-plate.clay { border-left: 2px solid var(--a-gold-deep); }
+.arsenal-plate:hover, .arsenal-plate:focus-visible {
+  border-color: var(--a-gold-deep); outline: none;
+}
+.arsenal-stampblock {
+  border-right: 1px solid var(--a-rule);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 5px; padding: 16px 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.arsenal-stampblock .mk { font-size: 0.85rem; }
+.arsenal-plate.opponent .mk { color: #d98a6b; }
+.arsenal-plate.clay .mk { color: var(--a-gold); }
+.arsenal-stampblock .num {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.62rem;
+  letter-spacing: 0.14em; color: var(--a-ink-faint); text-align: center;
+}
+.arsenal-stampblock .num b {
+  display: block; font-size: 0.95rem; color: var(--a-ink-muted);
+  font-weight: 400; letter-spacing: 0.08em;
+}
+.arsenal-platebody { display: block; padding: 14px 18px 12px; }
+.arsenal-plate .row-title {
+  display: block; font-size: 1.08rem; font-weight: 700;
+  color: var(--a-ink); letter-spacing: 0.01em; margin: 0;
+}
+.arsenal-plate .arsenal-def { margin-top: 3px; }
+
+.arsenal-notchrow {
+  display: flex; align-items: center; gap: 10px; margin-top: 10px;
+}
+.arsenal-notchgrp {
+  display: inline-flex; align-items: center; position: relative; height: 14px;
+}
+.arsenal-notch {
+  width: 2px; height: 13px; margin-right: 4px; border-radius: 1px;
+  background: linear-gradient(180deg, var(--a-ink-faint), #4a3d2a);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.55);
+}
+.arsenal-plate.opponent .arsenal-notch { background: linear-gradient(180deg, #8a4a30, #5c3220); }
+.arsenal-plate.clay .arsenal-notch { background: linear-gradient(180deg, var(--a-gold-deep), #5c521c); }
+.arsenal-notchcross {
+  position: absolute; left: -2px; right: 2px; top: 5px; height: 2px;
+  border-radius: 1px; transform: rotate(-24deg); background: var(--a-ink-faint);
+}
+.arsenal-plate.opponent .arsenal-notchcross { background: #8a4a30; }
+.arsenal-plate.clay .arsenal-notchcross { background: var(--a-gold-deep); }
+.arsenal-notchlabel {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.62rem;
+  letter-spacing: 0.12em; color: var(--a-ink-faint); text-transform: uppercase;
+}
+
+
+@media (max-width: 480px) {
+  .arsenal-plate { grid-template-columns: 60px 1fr; }
+  .arsenal-stampblock { padding: 12px 4px; }
+}
+
+/* ── The commons: comments on a sealed bout ──── */
+/* A sheet of the site's paper pinned up in the dark room. The comment
+   machinery keeps its own styles; the sheet restores the light-theme
+   tokens the room remapped, so shared components render as they do on
+   the rest of the site. */
+.arena-commons { margin-top: 44px; }
+.arena-commons-note {
+  font-size: 0.85rem; font-style: italic; color: var(--a-ink-muted);
+  margin: 0 0 12px;
+}
+.arena-commons-paper {
+  /* Toned a notch below the site's full cream and seated with a
+     shadow, so it reads as a lit document on the dark desk rather
+     than a glowing white hole in the page. */
+  background: linear-gradient(180deg, #f0e8d5, #e9dfc9);
+  border: 1px solid #4a3d28;
+  border-radius: 4px; padding: 10px 26px 26px;
+  color: #1a1714;
+  --ink-soft: #3d3530;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.arena-commons-paper a { color: #8a7d20; }
+@media (max-width: 480px) {
+  .arena-commons-paper { padding: 8px 16px 20px; }
+}
+
+/* ── Public promotional bout ─────────────────── */
+.arena-join {
+  margin-top: 44px; text-align: center;
+  border: 1px solid var(--a-gold-deep); border-radius: 4px;
+  background: rgba(201, 168, 76, 0.05);
+  padding: 30px 24px;
+}
+.arena-join p {
+  max-width: 46ch; margin: 10px auto 18px; font-size: 1.02rem;
+  line-height: 1.7; color: var(--a-ink);
+}
+.arena-join-cta {
+  display: inline-block; background: var(--a-gold); color: #141009;
+  text-decoration: none; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  padding: 13px 26px; border-radius: 3px;
+}
+.arena-room a.arena-join-cta { color: #141009; }
+.arena-join-cta:hover, .arena-join-cta:focus-visible {
+  background: #e0c268; outline: none;
+}
+.arena-public-note {
+  font-size: 0.78rem; font-style: italic; color: var(--a-ink-faint);
+  margin: 10px 0 0; max-width: 52ch;
+}
+
+.arena-lock-note {
+  font-size: 0.78rem; font-style: italic; color: var(--a-ink-muted);
+  margin-top: 8px;
+}
+.arena-lock-note a { color: var(--a-gold); }
+
+/* ── Index dressing ──────────────────────────── */
+/* The slab only ever holds open bouts, so its edge carries the banked
+   gold at rest and burns up to full when a tile lands. */
+.arena-bout-row.slab { border-left: 2px solid rgba(138, 125, 32, 0.55); }
+.arena-bout-row.slab.live {
+  border-left: 2px solid var(--a-gold-deep);
+  background:
+    linear-gradient(90deg, rgba(201, 168, 76, 0.06), transparent 40%),
+    var(--a-tile);
+}
+.arsenal-plate.case { border-left: 2px solid var(--a-gold-deep); }
+.arsenal-plate.case.live {
+  background:
+    linear-gradient(90deg, rgba(201, 168, 76, 0.07), transparent 42%),
+    linear-gradient(170deg, rgba(255, 245, 220, 0.028), rgba(0, 0, 0, 0.16)),
+    var(--a-tile);
+}
+.arsenal-plate.case .mk { color: var(--a-gold); font-size: 0.75rem; }
+.arena-public-tag {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.58rem;
+  letter-spacing: 0.14em; color: var(--a-gold);
+  border: 1px solid var(--a-gold-deep); border-radius: 2px;
+  padding: 1px 6px; margin-left: 10px;
+}
+
+.arena-archive-link {
+  font-size: 0.82rem; font-style: italic; color: var(--a-ink-faint);
+  margin: 4px 0 0;
+}
+
+/* ── Tile tools (Clay, open bouts) ───────────── */
+/* Sits under the reaction row, quiet as the whisper controls: a fix is
+   maintenance, never a feature of the page members are reading. */
+.arena-tile-admin {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin-top: 10px; padding-top: 9px;
+  border-top: 1px dashed var(--a-rule-soft);
+}
+.arena-tile-admin button {
+  cursor: pointer; background: transparent; border: 1px solid var(--a-rule);
+  color: var(--a-ink-faint); font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase;
+  border-radius: 2px; padding: 4px 10px; margin-right: 8px;
+}
+.arena-tile-admin button:hover, .arena-tile-admin button:focus-visible {
+  border-color: var(--a-gold-deep); color: var(--a-gold); outline: none;
+}
+.arena-tile-admin button.danger { color: #d98a6b; border-color: #6b3a26; }
+.arena-tile-admin button.danger:hover,
+.arena-tile-admin button.danger:focus-visible {
+  background: rgba(168, 84, 56, 0.12); border-color: #a85438; color: #e8a086;
+}
+
+/* The editor is the bench, opened inside the tile it is fixing. */
+.arena-tile-editor {
+  margin-top: 12px; border-style: solid; border-color: var(--a-rule-soft);
+  background: rgba(0, 0, 0, 0.18); padding: 14px 15px;
+}
+
+/* ── Seal aftermath ──────────────────────────── */
+.arena-renumbered {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem;
+  letter-spacing: 0.04em; color: var(--a-gold);
+  border: 1px solid var(--a-gold-deep); border-radius: 3px;
+  background: rgba(201, 168, 76, 0.06);
+  padding: 9px 12px; margin: 14px 0 0;
+}
+.arena-public-link {
+  display: inline-block; margin-top: 6px;
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem;
+  font-style: normal; letter-spacing: 0.02em; color: var(--a-gold);
+  word-break: break-all;
+}
+
+/* ── Provenance (Clay only) ──────────────────── */
+/* Bookkeeping, not authoring: set apart from the seal above it and
+   dressed quieter, so the bench never reads as if this were part of
+   what the room gets to see. */
+.arena-source {
+  margin-top: 20px; padding-top: 16px;
+  border-top: 1px dashed var(--a-rule-soft);
+}
+.arena-source h3 {
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--a-ink-muted); margin: 0 0 10px;
+}
+.arena-source form { display: flex; flex-direction: column; gap: 10px; }
+.arena-source-note {
+  font-size: 0.76rem; font-style: italic; color: var(--a-ink-faint);
+  margin: 10px 0 0; max-width: 52ch; line-height: 1.6;
+}
+.arena-source-link {
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem;
+  font-style: normal; letter-spacing: 0.02em; color: var(--a-gold);
+  word-break: break-all;
+}
+
+/* ── Binning a case ──────────────────────────── */
+/* Rust, set apart, and never beside the everyday controls. */
+.arena-danger {
+  margin-top: 20px; padding-top: 14px;
+  border-top: 1px dashed var(--a-rule-soft);
+}
+.arena-seal-btn.danger { border-color: #6b3a26; color: #d98a6b; }
+.arena-seal-btn.danger:hover, .arena-seal-btn.danger:focus-visible {
+  background: rgba(168, 84, 56, 0.14); border-color: #a85438; color: #e8a086;
+}
+.arena-delete-confirm p {
+  font-size: 0.82rem; color: var(--a-ink-muted); max-width: 54ch;
+  margin: 0 0 12px;
+}
+.arena-delete-confirm .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.arena-delete-confirm form { display: inline; }
+
+/* ── The whisper tally (Clay only) ───────────── */
+/* What's waiting and where, at the head of the bout. Gold on the room's
+   own ground: it is a note to himself, not part of what members read. */
+.arena-whisper-tally {
+  font-size: 0.8rem; color: var(--a-ink-muted);
+  border: 1px dashed var(--a-rule); border-radius: 3px;
+  padding: 9px 13px; margin: 14px 0 0;
+}
+.arena-whisper-tally b { color: var(--a-gold); font-weight: 700; }
+.arena-whisper-tally a {
+  color: var(--a-gold); text-decoration: underline;
+  text-underline-offset: 3px; text-decoration-thickness: 1px;
+}
+.arena-whisper-quote .who b { color: var(--a-ink-muted); font-weight: 700; }
+
+/* The count links jump to a tile; keep the landing clear of the top. */
+.arena-tile { scroll-margin-top: 24px; }
+
+/* ── Chips on the case plates ────────────────── */
+/* The filed shelf wears its loadout: each plate carries the moves on
+   record in the case, same grammar as the tiles (rust ◆ theirs, gold
+   ✦ Clay's, faint = spotted, not yet coined). Spans, not links — the
+   whole plate is already one. */
+.arena-caserow-moves {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+}
+.arena-chip-move.more {
+  color: var(--a-ink-faint); border-style: dashed;
+}
+
+/* ── The room breathes (live bouts only) ─────── */
+/* BoutLiveRefresh settles every tile already on the page and arms the
+   container; only a node inserted afterwards — a fresh tile pulled in
+   by the pulse — runs the ember. Once, on arrival, then it is simply
+   part of the record. */
+@media (prefers-reduced-motion: no-preference) {
+  .arena-tiles.live-armed .arena-tile:not([data-settled]) .arena-tile-card {
+    animation: arena-tile-arrive 1.8s ease-out;
+  }
+  @keyframes arena-tile-arrive {
+    0% {
+      opacity: 0; transform: translateY(6px);
+      box-shadow: 0 0 0 1px var(--a-gold-deep), 0 0 22px rgba(201, 168, 76, 0.28);
+    }
+    35% {
+      opacity: 1; transform: translateY(0);
+      box-shadow: 0 0 0 1px var(--a-gold-deep), 0 0 22px rgba(201, 168, 76, 0.28);
+    }
+    100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+  }
+
+  /* The seal's one ceremony: the stamp comes down when a case is
+     first filed (?filed=1 rides the seal redirect, so only that
+     landing sees it). A later visit gets a still, dry stamp. */
+  .arena-seal .mark.just-filed {
+    animation: arena-stamp-down 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  }
+  @keyframes arena-stamp-down {
+    0% { opacity: 0; transform: scale(2.1) rotate(-6deg); }
+    55% { opacity: 1; transform: scale(0.94) rotate(1.5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+}

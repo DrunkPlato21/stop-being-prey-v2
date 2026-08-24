@@ -52,6 +52,16 @@ function digestPreviewLines(p: DigestPayload): string[] {
   if (p.rooms.loungePostsThisWeek > 0) {
     lines.push(`Lounge: ${p.rooms.loungePostsThisWeek} posts this week`);
   }
+  if (p.cases.length > 0) {
+    lines.push(
+      `Case files, in full: ${p.cases
+        .map(
+          (c) =>
+            `${c.caseNo != null ? `№ ${String(c.caseNo).padStart(3, "0")} ` : ""}${clip(c.title, 36)}`
+        )
+        .join(" · ")}`
+    );
+  }
   if (p.wall) {
     lines.push(`Wall: “${clip(p.wall.title, 44)}”, ${p.wall.contributorCount} names`);
   }

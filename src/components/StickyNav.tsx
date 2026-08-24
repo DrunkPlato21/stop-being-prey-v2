@@ -24,6 +24,7 @@ const MEMBER_ROUTE_PREFIXES = [
   "/lounge",
   "/book",
   "/case-files",
+  "/arena",
   "/notifications",
   "/notes",
   "/admin",

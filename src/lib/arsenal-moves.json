@@ -1,0 +1,212 @@
+[
+  {
+    "slug": "concede-the-defensible-isolate-the-indefensible",
+    "name": "Concede the defensible, isolate the indefensible",
+    "role": "clay",
+    "definition": "Hand the opponent, unprompted and for free, every part of his position he could successfully defend. He is then left holding only the part he cannot, and it is the part he has already stopped mentioning.",
+    "mechanism": "Removes every exit before a question is asked, and does it without a single accusation. Because the concession is genuine and volunteered, the opponent cannot claim bad faith, and the audience sees generosity rather than attack. The isolated item is usually the thing the opponent abandoned on his own, which is how you identify it.",
+    "counterMove": "N/A (Clay technique).",
+    "status": "Clay-original technique",
+    "source": "Named August 1 2026, Case File 007."
+  },
+  {
+    "slug": "he-s-not-my-audience-he-s-my-prey",
+    "name": "He's not my audience. He's my prey.",
+    "role": "clay",
+    "definition": "Compressing the predator/prey doctrine into a single declarative line that reframes the relationship between the operator, the hostile commenter, and the actual audience. The commenter is not the person being persuaded. The actual audience is everyone else watching.",
+    "mechanism": "The line rejects the assumption that hostile commenters are the audience the operator is trying to convince. Once stated, the entire engagement structure flips: the commenter becomes a demonstration target, not a debate partner. The audience watching becomes the actual recipient of the work.",
+    "counterMove": "N/A (this is a Clay framing, not an opposing move).",
+    "status": "Clay-original framing",
+    "source": "Named during Lydia Lohrer exchange, May 10, 2026."
+  },
+  {
+    "slug": "make-them-the-teacher",
+    "name": "Make Them The Teacher",
+    "role": "clay",
+    "definition": "When a commenter walks in claiming superiority via snark, treat them as the teacher and ask them to demonstrate. Hospitable framing, Socratic questions, force them to either perform expertise they don't have or concede the snark was hollow.",
+    "mechanism": "Both exits lose for the opponent. Trying to teach exposes ignorance. Refusing to teach concedes the original move was hollow. The opponent doesn't have a winning move.",
+    "counterMove": "N/A (this is a Clay technique, not an opposing move).",
+    "status": "Clay-original technique (already documented in `Strategy/Comment-Warfare.md`)",
+    "source": "Documented in `Strategy/Comment-Warfare.md`, April 30, 2026."
+  },
+  {
+    "slug": "the-10-paywall",
+    "name": "The $10 paywall",
+    "role": "clay",
+    "definition": "When a hostile commenter demands serious engagement, offer it for a price. Charge them ($10 minimum) to receive a substantive response. Include both Stripe and Bitcoin/Lightning options to close anonymity escape routes.",
+    "mechanism": "Inverts the predator-prey dynamic. The commenter wanted the operator's time. The operator's time is now a paid asset. Three outcomes for the commenter, all losses for them: (1) pay and Clay writes a real response (Clay wins money + content moment), (2) refuse to pay (admits the engagement claim was performance), (3) try to argue without paying (Clay points at the offer and ignores them).",
+    "counterMove": "N/A (this is a Clay technique, not an opposing move).",
+    "status": "Clay-original technique",
+    "source": "Named during Jamie Lex Unwin one-shot, May 10, 2026."
+  },
+  {
+    "slug": "the-reversal-receipt",
+    "name": "The Reversal Receipt",
+    "role": "clay",
+    "definition": "Produce the single verifiable fact where the opponent's *own side* behaves in a way that refutes his position, then ask him about it as though you genuinely want help understanding it.",
+    "mechanism": "The opponent cannot attack the fact without attacking his allies, and cannot attack the question without looking evasive. It is not a counter-argument, it is an invitation to explain an inconsistency he did not know he owned. Hostile framing ruins it. The question must be sincere in tone.",
+    "counterMove": "N/A (Clay technique).",
+    "status": "Clay-original technique",
+    "source": "Named during the one-shot-db audit, August 1 2026. Deployed in Case Files 004 and 007."
+  },
+  {
+    "slug": "the-ball-is-in-your-court-make-your-move-or-don-t",
+    "name": "The ball is in your court. Make your move, or don't.",
+    "role": "clay",
+    "definition": "A closing line that hands an opponent a clear choice while signaling that the operator doesn't need them to act. The \"or don't\" is the kill: it removes the implication that the operator is waiting on or invested in the opponent's response.",
+    "mechanism": "High-status framing (Adams). Tells the audience the operator is calm, certain, and not chasing. The opponent now has the option but loses leverage if they refuse to engage.",
+    "counterMove": "N/A (this is a closing technique).",
+    "status": "Clay-original framing",
+    "source": "Named during Jamie Lex Unwin one-shot, May 10, 2026."
+  },
+  {
+    "slug": "walk-to-the-concrete-third-party",
+    "name": "Walk to the concrete third party",
+    "role": "clay",
+    "definition": "Replace the abstraction the opponent is defending with one specific human being who pays for it, and put that person in the room.",
+    "mechanism": "Abstractions are safe to defend; a named person is not. It also reassigns the moral high ground the opponent believes he occupies, because the victim of his position is the very person he claims to be helping. The audience follows the person, not the principle.",
+    "counterMove": "N/A (Clay technique).",
+    "status": "Clay-original technique",
+    "source": "Named during the one-shot-db audit, August 1 2026. Deployed in Case File 004. --- ## Future Entries This file gets appended to whenever a new move is named in a takedown. The file is the canonical record. Lost doctrine is lost money."
+  },
+  {
+    "slug": "you-re-making-my-case-for-me",
+    "name": "You're making my case for me.",
+    "role": "clay",
+    "definition": "When a hostile commenter doubles down after being diagnosed structurally, name that each new comment strengthens the diagnosis publicly. The comment becomes evidence for the operator's argument, not against it.",
+    "mechanism": "Reverses the energy of hostile escalation. The opponent thinks they're scoring points. The operator names that they're providing material that proves the original diagnosis. The audience watches the trap close in real time.",
+    "counterMove": "N/A (this is an operator response to repeated hostile escalation).",
+    "status": "Clay-original framing",
+    "source": "Named during Jamie Lex Unwin engagement, May 10, 2026. --- ## ⚠️ PROTOCOL DEBT PAID 2026-08-01 The three entries below are Clay's OWN core techniques. They are the spine of Case Files 004 and 006/007 and they were never logged, in violation of the Standing Protocol at the top of this file. Surfaced by the one-shot-db audit, August 1 2026."
+  },
+  {
+    "slug": "aggressive-ignorance",
+    "name": "Aggressive ignorance",
+    "role": "opponent",
+    "definition": "Knowing that you do not know, and actively defending the gap. Not the person who lacks the information, the person who is aware he lacks it and pushes back anyway, treating the deficit as a position to be held.",
+    "mechanism": "It converts a knowledge deficit into defended territory. Once the gap is part of the identity, new information arrives as an attack rather than as information, so every correction strengthens the refusal. Kent framed it as a sixth stage bolted onto the Four Stages of Competence, sitting outside the ladder rather than on it, because the person is not moving toward competence at all. Trish named the reason it cannot be argued with: you cannot be talked out of a position you were never talked into.",
+    "counterMove": "Do not try to close the gap. It is not open. Name the refusal once for the audience, then leave. Kent: \"a man convinced against his will, is of the same opinion still.\" Any further attempt to expose it only feeds the rage, which is the point of the posture.",
+    "status": "Member-contributed. Coined by Kent W. in the Guild.",
+    "source": "Coined by Kent W. in the Guild thread \"Cynefin and Predicting\" (Trish, 2026-07-25), expanded on request. Logged 2026-08-06."
+  },
+  {
+    "slug": "argument-from-ignorance",
+    "name": "Argument from ignorance",
+    "role": "opponent",
+    "definition": "Treating absence of evidence as evidence of absence. In comment context, claiming a fact \"hasn't been shown\" and using that as a substitute for \"isn't true.\"",
+    "mechanism": "Lets the speaker default to their preferred narrative whenever an investigation is incomplete or a fact hasn't been confirmed by an authoritative-sounding source. Effectively converts \"we don't yet have an official press release\" into \"the opposite is true.\"",
+    "counterMove": "Force a question about the evidentiary standard. What evidence WOULD count? Then point out the public reporting that has already met that standard.",
+    "status": "Established rhetorical concept (formal logical fallacy)",
+    "source": "Named during Marek Wiechula one-shot, May 9, 2026."
+  },
+  {
+    "slug": "asymmetric-demand",
+    "name": "Asymmetric demand",
+    "role": "opponent",
+    "definition": "Apply pressure to one side of an exchange while leaving the other side untouched. Demand that the operator soften their response while not asking the original attacker to retract or modify the attack.",
+    "mechanism": "Disguised as concern for fairness or values, but functionally serves to disarm the operator while protecting the attacker. The asymmetry exposes the move's actual purpose: shutting down the response, not addressing the underlying offense.",
+    "counterMove": "Name the asymmetry explicitly. \"You're not asking him to change his post. You're asking me to soften my response to him.\" Once the asymmetric demand is named, its purpose becomes visible to the audience.",
+    "status": "Clay-original framing of an observed pattern (related to concern trolling generally)",
+    "source": "Named during Karen Monasky one-shot, May 10, 2026."
+  },
+  {
+    "slug": "category-collapse",
+    "name": "Category collapse",
+    "role": "opponent",
+    "definition": "Pretending two phenomena belong in the same statistical or moral bucket when they categorically don't.",
+    "mechanism": "Allows comparison and aggregation of incomparable things to produce a numerically advantageous narrative.",
+    "counterMove": "Name the categories explicitly. Force the speaker to defend the equivalence rather than smuggle it.",
+    "status": "Established rhetorical concept (category error)",
+    "source": "Named during Marek Wiechula one-shot, May 9, 2026."
+  },
+  {
+    "slug": "decency-disclaimer",
+    "name": "Decency disclaimer",
+    "role": "opponent",
+    "definition": "Opening a hostile comment with a single sentence acknowledging the moral wrongness of an act being discussed, in order to license the contempt and rationalization that follows in the rest of the comment.",
+    "mechanism": "The disclaimer functions as cover charge. Once paid, the speaker has rhetorical license to spend the rest of the comment doing what the disclaimer was supposed to forbid. The audience reads the disclaimer first, registers \"this person is reasonable,\" and then under-weights the contempt that follows.",
+    "counterMove": "Name the disclaimer-as-license operation directly. Revoke the license explicitly. Tell the speaker and the audience that a single moral concession at the top of a comment doesn't immunize what follows.",
+    "status": "Clay-original framing of an observed pattern",
+    "source": "Named during Dave Silva one-shot, May 9, 2026."
+  },
+  {
+    "slug": "endorsement-with-deniability",
+    "name": "Endorsement-with-deniability",
+    "role": "opponent",
+    "definition": "Saying the quiet part of a position out loud while wrapping it in a joke, a \"list\" observation, a hypothetical, or some other softening container, so the speaker can deny endorsement if challenged.",
+    "mechanism": "Lets the speaker advocate for a position to sympathetic audiences who read past the wrapper, while preserving deniability with hostile audiences who'd flag the unwrapped version. The wrapper is the alibi. The position is the message.",
+    "counterMove": "Strip the wrapper. Read the sentence aloud with the alibi removed. Make the speaker defend the unwrapped version or admit the wrapper was the point.",
+    "status": "Clay-original framing (related to plausible deniability in political communication)",
+    "source": "Named during Dave Silva one-shot, May 9, 2026."
+  },
+  {
+    "slug": "four-step-retreat",
+    "name": "Four-step retreat",
+    "role": "opponent",
+    "definition": "A four-step rhetorical pattern observed in credentialed figures like Steven Pinker when challenged on an unpopular position. Step 1: concede the steel-man. Step 2: shift to style critique. Step 3: pivot to political context. Step 4: redirect to a softer target.",
+    "mechanism": "Allows the figure to appear thoughtful and reasonable while never actually defending or revising their original position. Each step retreats further from the original challenge while preserving the illusion of engagement. Particularly common in academic and prestige-class discourse.",
+    "counterMove": "Map the four steps explicitly when you see them. Force engagement on the original challenge. Don't let the retreat sequence run.",
+    "status": "Clay-original framing",
+    "source": "Banked from earlier session work on Pinker. Referenced in Current State.md. --- ## Cross-references - [[Comment-Warfare]] — commenter archetypes and overall rhetorical doctrine, plus the \"Make Them The Teacher\" technique - [[Custom Walls Concept]] — monetization layer for one-shot takedowns - [[Predators vs Enemies Framework]] - [[Theory of Mind]] - [[Four-Dodge Framework]] - [[Stop Being Prey]] book project — these moves form Part III material ---"
+  },
+  {
+    "slug": "grave-spit",
+    "name": "Grave-spit",
+    "role": "opponent",
+    "definition": "Insulting a recently murdered or deceased public figure under cover of a prior decency disclaimer.",
+    "mechanism": "Pairs with and depends on the decency disclaimer. The disclaimer provides the moral cover. The grave-spit delivers the contempt the speaker actually came to deliver. Without the disclaimer, the contempt would read as crude. With it, the contempt reads as honest assessment.",
+    "counterMove": "Hold the speaker's two sentences side by side. Force them to defend why a man whose murder shouldn't be justified deserves to be called a dip-shit one breath later.",
+    "status": "Clay-original framing",
+    "source": "Named during Dave Silva one-shot, May 9, 2026."
+  },
+  {
+    "slug": "narrative-laundering",
+    "name": "Narrative laundering",
+    "role": "opponent",
+    "definition": "Running a multi-claim script designed to launder a smear into common sense. Each individual claim may be cherry-picked or partially true, but the aggregation creates a tidy conclusion the speaker brought into the room before the conversation started.",
+    "mechanism": "The aggregation does the work the individual claims couldn't do alone. The speaker is performing a script handed to them by upstream sources (legacy media framings, partisan talking points), not constructing an argument from independent reasoning.",
+    "counterMove": "Name the script and the upstream source. Treat the speaker as a downstream agent performing the laundering, not as an independent thinker. Walk through each sub-claim, expose the move underneath, then loop back to name the laundering operation as a whole.",
+    "status": "Clay-original framing (related to motivated reasoning literature)",
+    "source": "Named during Marek Wiechula one-shot, May 9, 2026."
+  },
+  {
+    "slug": "quote-weaponization",
+    "name": "Quote weaponization",
+    "role": "opponent",
+    "definition": "Taking a quote out of context, paraphrasing it inaccurately, or attributing a position to a person that they didn't actually hold, then using the misframed version as retroactive justification for the speaker's argument.",
+    "mechanism": "Turns the misquoted figure into a participant in the speaker's argument by force, regardless of what they actually said. Especially powerful when the misquoted figure is dead and can't correct the record.",
+    "counterMove": "Source the actual verbatim quote with date and event. Show the speaker either knew and misrepresented or didn't bother to verify. Either reading damages them.",
+    "status": "Common rhetorical practice, no specific academic term",
+    "source": "Named during Joseph Jimmy Hardcastle and Dave Silva one-shots, May 9, 2026."
+  },
+  {
+    "slug": "rationalization-pivot",
+    "name": "Rationalization pivot",
+    "role": "opponent",
+    "definition": "Using a small connector phrase (\"on the other hand,\" \"but consider,\" \"meanwhile\") to smuggle a moral-equivalence move that converts one death or wrong from \"tragedy nobody can justify\" into \"deserving consequence.\"",
+    "mechanism": "The connector phrase does load-bearing work the speaker would have to defend if stated outright. The pivot lets them assert the equivalence without arguing for it. Listeners often process the connector as innocuous transitional language and don't notice the moral re-categorization happening underneath.",
+    "counterMove": "Name the pivot phrase and the work it's doing. Force the speaker to defend the equivalence explicitly rather than smuggle it via transition.",
+    "status": "Clay-original framing (related to whataboutism and false equivalence)",
+    "source": "Named during Dave Silva one-shot, May 9, 2026."
+  },
+  {
+    "slug": "reframing-101",
+    "name": "Reframing 101",
+    "role": "opponent",
+    "definition": "Take an opponent's strategic choice and reframe it as evidence of weakness or failure. Convert their refusal-to-engage into \"admission of failure,\" their measured response into \"weakness,\" their high-ground move into \"avoidance.\"",
+    "mechanism": "Lets the speaker reverse the moral weight of the opponent's behavior. The opponent's strength becomes their weakness in the new frame. Especially effective when the audience hasn't seen the opponent's choice as strategic.",
+    "counterMove": "Name the move directly (\"Reframing 101\"). Refuse the inversion explicitly. Re-anchor the original frame. Walk away. Don't relitigate.",
+    "status": "Established rhetorical concept (frame inversion / strategic redefinition)",
+    "source": "Named during Jamie Lex Unwin one-shot, May 10, 2026."
+  },
+  {
+    "slug": "selective-characterization",
+    "name": "Selective characterization",
+    "role": "opponent",
+    "definition": "Picking the one trait of a complicated person that fits your narrative and amputating the rest.",
+    "mechanism": "Reduces a multi-dimensional figure to a single label that supports the speaker's argument while eliminating contradicting evidence.",
+    "counterMove": "Drop the rest of the picture into the comment. Force the speaker to either acknowledge they edited it or look like they didn't know.",
+    "status": "Established rhetorical concept (cherry-picking, framing fallacy)",
+    "source": "Named during Marek Wiechula one-shot, May 9, 2026."
+  }
+]

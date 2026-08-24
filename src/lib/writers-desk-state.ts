@@ -20,6 +20,7 @@ import {
 import { getLastVisited } from "./desk-visits";
 import { getDeskPoolSignal, POOL_SEAT_FILL_PRICE_CENTS } from "./pool";
 import { getLatestReply, getPinnedThread, listActiveThreads } from "./guild";
+import { listBouts } from "./arena";
 import {
   countRoomPresence,
   getLatestReply as getLatestLoungeReply,
@@ -30,6 +31,20 @@ import {
 // window, the whole "Voice from the desk" section drops off the widget.
 // Keeps stale memos from dominating the layout weeks after the fact.
 const VOICE_MEMO_FRESH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+// The DESK's "live fight" cutoff. Deliberately not the same constant as
+// arena-constants' ARENA_LIVE_WINDOW_MS (12h), which decides whether the
+// room itself prints LIVE on a bout. This one is longer and answers a
+// different question: how long a fight keeps the loud dark card at the
+// top of the Desk's rooms section. Same idea as the voice memo's. A bout is
+// open until it's sealed, which is right for the room but wrong for the
+// Desk: an open bout nobody has added to in days is not a fight anyone
+// would call live, and it would otherwise pin the loud dark card to the
+// top of the rooms section forever with a byline counting up. Past this
+// window the bout stays open — only the Desk's loud treatment expires.
+// Reopening a sealed case to fix something doesn't reset lastTileAt, so
+// a repair goes quiet on its own; adding a real tile makes it live again.
+const ARENA_DESK_LIVE_WINDOW_MS = 72 * 60 * 60 * 1000;
 
 // One-shot snapshot used by both the server component (initial paint)
 // and the polling endpoint (live updates). Member-specific fields
@@ -83,6 +98,30 @@ export type DeskRoomsSignal = {
       body: string;
       createdAt: number;
       lastActivityAt: number;
+    } | null;
+  };
+  /** The Arena's pulse: the live fight if one is open, else the latest
+      filed case. When both are null the desk shows no Arena door at
+      all — the room doesn't exist until there's been a fight. */
+  arena: {
+    open: {
+      id: string;
+      slug: string | null;
+      title: string;
+      tileCount: number;
+      lastTileAt: number;
+    } | null;
+    /** Whether `open` is fresh enough to earn the Desk's live-fight
+        treatment (see ARENA_DESK_LIVE_WINDOW_MS). False for a stalled bout,
+        which stays open in the room but goes quiet on the Desk. Always
+        false when `open` is null. */
+    openIsLive: boolean;
+    latestCase: {
+      id: string;
+      slug: string | null;
+      title: string;
+      caseNo: number | null;
+      sealedAt: number | null;
     } | null;
   };
 };
@@ -157,6 +196,7 @@ export async function getWritersDeskState(
     pinnedThread,
     loungeActiveNow,
     loungeLatest,
+    arenaBouts,
   ] = await Promise.all([
     listRecentUpdates(1),
     getPresence(),
@@ -180,6 +220,9 @@ export async function getWritersDeskState(
     // reply can bump), then pick the genuinely newest post by when it
     // was written so the desk peek's name + timestamp always agree.
     listVisiblePosts({ limit: 10 }),
+    // Newest-active first; enough to find the top open bout and the
+    // newest filed case without walking the whole index.
+    listBouts(12),
   ]);
   const now = Date.now();
   const state = derivePresenceState(presence, now);
@@ -377,6 +420,35 @@ export async function getWritersDeskState(
             }
           : null,
     },
+    arena: (() => {
+      const openBout = arenaBouts.find((b) => b.status === "open") ?? null;
+      const sealed = arenaBouts
+        .filter((b) => b.status === "sealed")
+        .sort((a, b) => (b.sealedAt ?? 0) - (a.sealedAt ?? 0))[0];
+      return {
+        open: openBout
+          ? {
+              id: openBout.id,
+              slug: openBout.slug,
+              title: openBout.title,
+              tileCount: openBout.tileCount,
+              lastTileAt: openBout.lastTileAt,
+            }
+          : null,
+        openIsLive:
+          !!openBout &&
+          Date.now() - openBout.lastTileAt <= ARENA_DESK_LIVE_WINDOW_MS,
+        latestCase: sealed
+          ? {
+              id: sealed.id,
+              slug: sealed.slug,
+              title: sealed.title,
+              caseNo: sealed.caseNo,
+              sealedAt: sealed.sealedAt,
+            }
+          : null,
+      };
+    })(),
   };
 
   return {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   REACTION_EMOJI,
-  REACTION_KEYS,
+  SOCIAL_REACTION_KEYS,
   REACTION_LABEL,
   type ReactionKey,
 } from "@/lib/lounge";
@@ -223,7 +223,7 @@ export function GuildReactions({
             gap: "0.2rem",
           }}
         >
-          {REACTION_KEYS.map((key) => {
+          {SOCIAL_REACTION_KEYS.map((key) => {
             const isMine = mine === key;
             return (
               <button

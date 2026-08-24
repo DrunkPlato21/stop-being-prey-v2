@@ -41,6 +41,10 @@ export type Note = {
   createdAt: number;
   clayReply: string | null;
   clayRepliedAt: number | null;
+  /** When the reply email actually reached Resend. Null until a send
+      succeeds, so a failed send stays retryable: resubmitting the same
+      text sends again instead of being skipped as "unchanged". */
+  replyEmailedAt: number | null;
   clayReaction: ClayReaction | null;
   clayReactedAt: number | null;
   status: NoteStatus;
@@ -121,6 +125,7 @@ function parseNote(raw: unknown): Note | null {
       ...(parsed as Note),
       clayReaction,
       clayReactedAt: clayReaction ? (parsed.clayReactedAt ?? null) : null,
+      replyEmailedAt: parsed.replyEmailedAt ?? null,
     };
   } catch {
     return null;
@@ -173,6 +178,7 @@ export async function createNote(
     visibility: "private",
     createdAt: now,
     clayReply: null,
+    replyEmailedAt: null,
     clayRepliedAt: null,
     clayReaction: null,
     clayReactedAt: null,
@@ -343,10 +349,26 @@ export async function setReply(
     ...note,
     clayReply: cleaned,
     clayRepliedAt: Date.now(),
+    // New text means the member hasn't been emailed THIS reply yet.
+    replyEmailedAt:
+      cleaned === note.clayReply ? note.replyEmailedAt : null,
     status: "replied",
   };
   await client.set(`${NOTE_PREFIX}${id}`, JSON.stringify(next));
   return { ok: true, note: next };
+}
+
+/** Stamp a successful reply-email send, so an unchanged re-save skips
+    the send but a failed one stays retryable. */
+export async function markReplyEmailed(id: string): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  const note = await getNote(id);
+  if (!note) return;
+  await client.set(
+    `${NOTE_PREFIX}${id}`,
+    JSON.stringify({ ...note, replyEmailedAt: Date.now() })
+  );
 }
 
 /**

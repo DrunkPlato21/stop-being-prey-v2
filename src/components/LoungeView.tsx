@@ -18,7 +18,7 @@ import type {
 } from "@/lib/lounge";
 import {
   REACTION_EMOJI,
-  REACTION_KEYS,
+  SOCIAL_REACTION_KEYS,
   REACTION_LABEL,
   emptyReactionCounts,
 } from "@/lib/lounge";
@@ -2100,7 +2100,7 @@ function ReactionControl({
             gap: "0.2rem",
           }}
         >
-          {REACTION_KEYS.map((key) => {
+          {SOCIAL_REACTION_KEYS.map((key) => {
             const isMine = mine === key;
             return (
               <button
