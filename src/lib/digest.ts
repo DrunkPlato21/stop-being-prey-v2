@@ -414,7 +414,10 @@ export async function assembleDigest(
       url: boutHref(bout),
       tiles: tiles.map((t) => ({
         type: t.type,
-        label: tileTypeLabel(t.type, bout.kind),
+        // A tile Clay named wears that name everywhere, the digest
+        // included: the label is the one thing that tells a reader
+        // which round of a long fight they are looking at.
+        label: t.title ?? tileTypeLabel(t.type, bout.kind),
         body: t.body,
         handle: t.handle,
         transcript: t.transcript,

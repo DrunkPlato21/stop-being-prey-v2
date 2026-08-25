@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { resizeImageToWebp } from "@/lib/image-resize";
 import { addTileAction } from "@/app/arena/actions";
 import {
+  ARENA_MAX_TILE_TITLE,
   TILE_TYPES,
   tileTypeLabel,
   type ArenaCaseKind,
@@ -60,6 +61,9 @@ export function ArenaBench({
   // Controlled for the same reason, minus the buttons: a box can only
   // grow to fit what it holds if something knows what it holds.
   const [transcript, setTranscript] = useState("");
+  // Optional override for the words above the tile. Blank means the
+  // tile wears its formal name, which is the common case.
+  const [tileTitle, setTileTitle] = useState("");
   const [uploading, setUploading] = useState(false);
   const [reading, setReading] = useState(false);
   const [readNote, setReadNote] = useState<string | null>(null);
@@ -173,6 +177,7 @@ export function ArenaBench({
           setImageUrl(null);
           setBody("");
           setTranscript("");
+          setTileTitle("");
           setType(TILE_TYPES[0]);
           setPickerKey((k) => k + 1);
           formRef.current?.reset();
@@ -205,6 +210,16 @@ export function ArenaBench({
             />
           )}
         </div>
+        <input
+          name="tileTitle"
+          maxLength={ARENA_MAX_TILE_TITLE}
+          value={tileTitle}
+          onChange={(e) => setTileTitle(e.target.value)}
+          placeholder={`Name this tile (optional). Blank = ${tileTypeLabel(
+            type,
+            kind
+          )}.`}
+        />
         {/* A specimen is their words, verbatim, and renders raw - no
             formatting pass runs on it, so offering the buttons there
             would only bake asterisks into the evidence. */}

@@ -2,7 +2,7 @@ import { Redis } from "@upstash/redis";
 import { randomUUID } from "crypto";
 import { unstable_cache } from "next/cache";
 import { isReactionKey, type ReactionKey } from "./lounge";
-import { findMove } from "./arsenal";
+import { findMove, moveSlug } from "./arsenal";
 
 // The Arena — Clay's combat surface. A bout is a fight being broken down
 // in public: a chronological sequence of typed tiles (specimen, read,
@@ -81,6 +81,7 @@ export {
   ARENA_MAX_BODY,
   ARENA_MAX_DISPATCH,
   ARENA_MAX_HANDLE,
+  ARENA_MAX_TILE_TITLE,
   ARENA_MAX_MOVE_LEN,
   ARENA_MAX_MOVES,
   ARENA_MAX_RULES,
@@ -105,6 +106,7 @@ import {
   ARENA_MAX_BODY,
   ARENA_MAX_DISPATCH,
   ARENA_MAX_HANDLE,
+  ARENA_MAX_TILE_TITLE,
   ARENA_MAX_MOVE_LEN,
   ARENA_MAX_MOVES,
   ARENA_MAX_RULES,
@@ -180,6 +182,18 @@ export type ArenaTile = {
   id: string;
   boutId: string;
   type: ArenaTileType;
+  // The tile's own name, when the formal one will not do. The type is
+  // still the type - it decides how the tile renders, what colour it
+  // wears in the digest, whether it carries the posted-live byline -
+  // and this only changes the words above it. Its use is the long
+  // fight: "The Specimen" three times in a row tells a reader nothing
+  // about which round they are in, where "She replied again" does.
+  // Null on every tile written before the field existed, and on every
+  // tile that is happy with its formal name, which should be most of
+  // them: those five labels are the grammar the format is recognised
+  // by, and a case where every tile is named freshly is a case with no
+  // shape to learn.
+  title: string | null;
   body: string;
   // Specimen extras: the opponent's handle (as Clay chooses to render
   // it — often withheld) and the durable transcript. Tweets get deleted;
@@ -624,8 +638,13 @@ export async function deleteBout(
   // Off every move's wall. The bout is gone, so this is unconditional.
   const tagged = new Set(tiles.flatMap((t) => t.moves));
   for (const tag of tagged) {
-    const move = findMove(tag);
-    if (move) await client.zrem(moveBoutsKey(move.slug), id);
+    // Same key rule the index is written under, un-coined moves
+    // included. Skipping those here would strand a deleted bout on an
+    // unnamed move's list, where it would sit invisible until the day
+    // that move joined the Library - and then show up in its count
+    // while its page could not load it.
+    const slug = findMove(tag)?.slug ?? moveSlug(tag);
+    if (slug) await client.zrem(moveBoutsKey(slug), id);
   }
 
   const slugs = await client.smembers(boutSlugsKey(id)).catch(() => []);
@@ -731,13 +750,22 @@ async function indexMoves(
   if (!client) return;
   for (const m of moves) {
     const move = findMove(m);
-    if (!move) continue;
-    await client.zadd(moveBoutsKey(move.slug), { score: now, member: boutId });
-    await client.zadd(
-      ARSENAL_DEBUTS_KEY,
-      { nx: true },
-      { score: now, member: move.slug }
-    );
+    const slug = move?.slug ?? moveSlug(m);
+    if (!slug) continue;
+    await client.zadd(moveBoutsKey(slug), { score: now, member: boutId });
+    // The debut register stays canonical-only. Its order is what sets
+    // the numerals on the Arsenal wall, so an un-coined move sitting
+    // in it would push the numbers of the moves actually on display.
+    // Nothing is lost by waiting: getArsenalDebutOrder backfills a new
+    // slug's debut from the first bout in the index above, which is
+    // the true first-use date rather than the day the entry was typed.
+    if (move) {
+      await client.zadd(
+        ARSENAL_DEBUTS_KEY,
+        { nx: true },
+        { score: now, member: move.slug }
+      );
+    }
   }
 }
 
@@ -756,14 +784,20 @@ async function unindexMoves(
 ): Promise<void> {
   const client = getClient();
   if (!client || removed.length === 0) return;
-  const canonical = removed
-    .map((m) => findMove(m)?.slug)
-    .filter((m): m is string => Boolean(m));
-  if (canonical.length === 0) return;
+  const gone = removed
+    .map((m) => findMove(m)?.slug ?? moveSlug(m))
+    .filter(Boolean);
+  if (gone.length === 0) return;
+  // Compare like with like. The tiles still hold their tags as typed,
+  // so both sides go through the same key rule before the check below:
+  // a raw name tested against a slug never matched, which could pull a
+  // bout off a move's page while another tile still carried the move.
   const remaining = new Set(
-    (await listTiles(boutId)).flatMap((t) => t.moves)
+    (await listTiles(boutId))
+      .flatMap((t) => t.moves)
+      .map((m) => findMove(m)?.slug ?? moveSlug(m))
   );
-  for (const slug of canonical) {
+  for (const slug of gone) {
     if (remaining.has(slug)) continue;
     await client.zrem(moveBoutsKey(slug), boutId);
   }
@@ -773,6 +807,7 @@ export async function addTile(
   boutId: string,
   input: {
     type: ArenaTileType;
+    title?: string | null;
     body: string;
     handle?: string | null;
     transcript?: string | null;
@@ -791,6 +826,7 @@ export async function addTile(
     id: randomUUID(),
     boutId,
     type: input.type,
+    title: input.title?.trim().slice(0, ARENA_MAX_TILE_TITLE) || null,
     body,
     handle: input.handle?.trim().slice(0, ARENA_MAX_HANDLE) || null,
     transcript: input.transcript?.trim().slice(0, ARENA_MAX_TRANSCRIPT) || null,
@@ -814,7 +850,13 @@ export async function addTile(
 export async function getTile(id: string): Promise<ArenaTile | null> {
   const client = getClient();
   if (!client) return null;
-  return parse<ArenaTile>(await client.get(`${TILE_PREFIX}${id}`));
+  const tile = parse<ArenaTile>(await client.get(`${TILE_PREFIX}${id}`));
+  if (!tile) return null;
+  // Tiles written before a tile could carry its own name have no field
+  // at all, so every read settles it rather than leaving undefined to
+  // wander into a render.
+  tile.title = tile.title ?? null;
+  return tile;
 }
 
 /**
@@ -831,6 +873,7 @@ export async function updateTile(
   tileId: string,
   input: {
     type: ArenaTileType;
+    title?: string | null;
     body: string;
     handle?: string | null;
     transcript?: string | null;
@@ -851,6 +894,7 @@ export async function updateTile(
   const updated: ArenaTile = {
     ...tile,
     type: input.type,
+    title: input.title?.trim().slice(0, ARENA_MAX_TILE_TITLE) || null,
     body,
     handle: input.handle?.trim().slice(0, ARENA_MAX_HANDLE) || null,
     transcript: input.transcript?.trim().slice(0, ARENA_MAX_TRANSCRIPT) || null,

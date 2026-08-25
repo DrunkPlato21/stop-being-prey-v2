@@ -511,7 +511,7 @@ export default async function BoutPage({
             <div className="arena-tile-card">
               <div className="arena-tile-head">
                 <span className="arena-eyebrow">
-                  {tileTypeLabel(tile.type, bout.kind)}
+                  {tile.title ?? tileTypeLabel(tile.type, bout.kind)}
                 </span>
                 <span className="arena-stamp">{stamp(tile.createdAt)}</span>
               </div>

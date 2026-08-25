@@ -101,6 +101,7 @@ export async function addTileAction(formData: FormData): Promise<void> {
   if (!boutId || !isTileType(type)) return;
   const tile = await addTile(boutId, {
     type,
+    title: String(formData.get("tileTitle") ?? "") || null,
     body: String(formData.get("body") ?? ""),
     handle: String(formData.get("handle") ?? "") || null,
     transcript: String(formData.get("transcript") ?? "") || null,
@@ -134,6 +135,7 @@ export async function updateTileAction(formData: FormData): Promise<void> {
   if (!tileId || !isTileType(type)) return;
   const tile = await updateTile(tileId, {
     type,
+    title: String(formData.get("tileTitle") ?? "") || null,
     body: String(formData.get("body") ?? ""),
     handle: String(formData.get("handle") ?? "") || null,
     transcript: String(formData.get("transcript") ?? "") || null,

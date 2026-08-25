@@ -10,6 +10,10 @@ export const ARENA_MAX_DISPATCH = 280;
 export const ARENA_MAX_BODY = 8000;
 export const ARENA_MAX_TRANSCRIPT = 8000;
 export const ARENA_MAX_HANDLE = 60;
+// A tile's own name, when the formal one will not do. Short on purpose:
+// it sits where "The Specimen" sits, in the same small caps, and a
+// label that wraps stops being a label.
+export const ARENA_MAX_TILE_TITLE = 48;
 export const ARENA_MAX_WHISPER = 1200;
 export const ARENA_MAX_MOVES = 4;
 export const ARENA_MAX_MOVE_LEN = 60;

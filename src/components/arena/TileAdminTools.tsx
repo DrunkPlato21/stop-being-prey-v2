@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { resizeImageToWebp } from "@/lib/image-resize";
 import { deleteTileAction, updateTileAction } from "@/app/arena/actions";
 import {
+  ARENA_MAX_TILE_TITLE,
   TILE_TYPES,
   tileTypeLabel,
   type ArenaCaseKind,
@@ -44,6 +45,7 @@ export function TileAdminTools({
   // buttons rewrite the body around the cursor.
   const [body, setBody] = useState(tile.body);
   const [transcript, setTranscript] = useState(tile.transcript ?? "");
+  const [tileTitle, setTileTitle] = useState(tile.title ?? "");
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const transcriptRef = useRef<HTMLTextAreaElement>(null);
   const preview = useComposerPreview(bodyRef);
@@ -157,6 +159,16 @@ export function TileAdminTools({
             />
           )}
         </div>
+        <input
+          name="tileTitle"
+          maxLength={ARENA_MAX_TILE_TITLE}
+          value={tileTitle}
+          onChange={(e) => setTileTitle(e.target.value)}
+          placeholder={`Name this tile (optional). Blank = ${tileTypeLabel(
+            type,
+            kind
+          )}.`}
+        />
         {type !== "specimen" && (
           <FormatToolbar
             textareaRef={bodyRef}
