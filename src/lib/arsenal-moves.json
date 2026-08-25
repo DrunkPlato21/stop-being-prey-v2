@@ -110,6 +110,16 @@
     "source": "Named during Karen Monasky one-shot, May 10, 2026."
   },
   {
+    "slug": "burden-inflation",
+    "name": "Burden inflation",
+    "role": "opponent",
+    "definition": "Restating an opponent's narrow, evidenced point as a sweeping claim about an entire group, then demanding proof of the version he never made. You said her list omitted victims. She asks you to prove Democrats don't care about victims. Whatever you produce will look thin, because it was never asked to carry that much.",
+    "mechanism": "It moves the goalposts outward while appearing to ask a fair question. A narrow observation is easy to defend and hard to attack, so the move swaps it for a claim about an entire group's motives, which no amount of evidence can fully settle. Every example produced is then met with \"that's one person\" or \"that's not all of them.\" The demand looks like a request for rigour and functions as an escape from the point that was actually made.",
+    "counterMove": "If you can carry the inflated burden, carry it. One specific case with a name, a date and a quote in it ends the move on the spot. If you can't, say which claim you actually made and put that one back in front of them.",
+    "status": "Clay-original framing of an observed pattern",
+    "source": "Named during Jaime Jameson one-shot, August 2026."
+  },
+  {
     "slug": "category-collapse",
     "name": "Category collapse",
     "role": "opponent",
