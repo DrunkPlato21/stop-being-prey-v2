@@ -16,6 +16,10 @@ type Props = {
   // both and the toolbar is exactly the three buttons it always was.
   previewing?: boolean;
   onTogglePreview?: () => void;
+  // Drops the quote button. The Arena's counter tile is already
+  // rendered inside quotation marks, so a quote block nested in one is
+  // a button that can only make the tile look broken.
+  hideQuote?: boolean;
 };
 
 const TOOLS = [
@@ -39,6 +43,7 @@ export function FormatToolbar({
   onChange,
   previewing = false,
   onTogglePreview,
+  hideQuote = false,
 }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [toggleHover, setToggleHover] = useState(false);
@@ -129,7 +134,7 @@ export function FormatToolbar({
       }}
       aria-label="Formatting"
     >
-      {TOOLS.map((t) => {
+      {TOOLS.filter((t) => !(hideQuote && t.key === "quote")).map((t) => {
         const isHover = hovered === t.key && !previewing;
         return (
           <button

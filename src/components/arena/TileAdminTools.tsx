@@ -7,9 +7,11 @@ import {
   TILE_TYPES,
   tileTypeLabel,
   type ArenaCaseKind,
+  type ArenaTileType,
 } from "@/lib/arena-constants";
 import type { ArenaTile } from "@/lib/arena";
 import { MovePicker } from "./MovePicker";
+import { FormatToolbar } from "@/components/guild/FormatToolbar";
 
 // Clay's per-tile tools, open bouts only. A fight is written at speed
 // from a phone, so a tile has to be fixable in place: the editor is the
@@ -28,6 +30,15 @@ export function TileAdminTools({
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(tile.imageUrl);
+  // Same rule as the bench: the specimen's own fields are on screen
+  // only while the tile is a specimen. Retyping a specimen into
+  // something else therefore drops its handle and transcript, which is
+  // the point - a read has no transcript to keep.
+  const [type, setType] = useState<ArenaTileType>(tile.type);
+  // Controlled for the same reason as the bench: the formatting
+  // buttons rewrite the body around the cursor.
+  const [body, setBody] = useState(tile.body);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -105,7 +116,11 @@ export function TileAdminTools({
           <label>
             Tile
             <br />
-            <select name="type" defaultValue={tile.type}>
+            <select
+              name="type"
+              value={type}
+              onChange={(e) => setType(e.target.value as ArenaTileType)}
+            >
               {TILE_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {tileTypeLabel(t, kind)}
@@ -113,19 +128,37 @@ export function TileAdminTools({
               ))}
             </select>
           </label>
-          <input
-            name="handle"
-            maxLength={60}
-            defaultValue={tile.handle ?? ""}
-            placeholder="Handle (specimen only, optional)"
-          />
+          {type === "specimen" && (
+            <input
+              name="handle"
+              maxLength={60}
+              defaultValue={tile.handle ?? ""}
+              placeholder="Handle (optional)"
+            />
+          )}
         </div>
-        <textarea name="body" required defaultValue={tile.body} />
+        {type !== "specimen" && (
+          <FormatToolbar
+            textareaRef={bodyRef}
+            value={body}
+            onChange={setBody}
+            hideQuote={type === "counter"}
+          />
+        )}
         <textarea
-          name="transcript"
-          defaultValue={tile.transcript ?? ""}
-          placeholder="Full transcript (specimen only, optional)."
+          ref={bodyRef}
+          name="body"
+          required
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
         />
+        {type === "specimen" && (
+          <textarea
+            name="transcript"
+            defaultValue={tile.transcript ?? ""}
+            placeholder="Full transcript (optional)."
+          />
+        )}
         <MovePicker initial={tile.moves} />
 
         {busy && <div className="arena-bench-note">Attaching&hellip;</div>}

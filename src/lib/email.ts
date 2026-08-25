@@ -166,6 +166,68 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// The Guild's tiny markdown subset, rendered for email. The web page
+// runs bodies through formatGuildBody, which returns React nodes an
+// email can't use, so the same three rules are re-stated here as HTML:
+// **bold**, *italic*, and "> " lines as a quote block. Kept in step
+// with src/components/guild/format-body.tsx by hand - two renderers,
+// one grammar. Escaping happens per text run, never on the finished
+// string, so a body can't smuggle markup into the digest.
+const EMAIL_INLINE_RE = /(\*\*[^*]+?\*\*|\*[^*\n]+?\*)/g;
+const EMAIL_QUOTE_RE = /^>\s?/;
+
+function inlineBodyHtml(text: string): string {
+  let out = "";
+  let last = 0;
+  let m: RegExpExecArray | null;
+  EMAIL_INLINE_RE.lastIndex = 0;
+  while ((m = EMAIL_INLINE_RE.exec(text)) !== null) {
+    out += escapeHtml(text.slice(last, m.index));
+    const tok = m[0];
+    out += tok.startsWith("**")
+      ? `<strong>${escapeHtml(tok.slice(2, -2))}</strong>`
+      : `<em>${escapeHtml(tok.slice(1, -1))}</em>`;
+    last = m.index + tok.length;
+  }
+  return out + escapeHtml(text.slice(last));
+}
+
+function bodyHtml(text: string): string {
+  const lines = text.split("\n");
+  const blocks: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (EMAIL_QUOTE_RE.test(lines[i])) {
+      const quoted: string[] = [];
+      while (i < lines.length && EMAIL_QUOTE_RE.test(lines[i])) {
+        quoted.push(lines[i].replace(EMAIL_QUOTE_RE, ""));
+        i++;
+      }
+      blocks.push(
+        `<blockquote style="margin:10px 0;padding:2px 0 2px 14px;border-left:2px solid #cdbd8a;color:#5a5148;font-style:italic;">${inlineBodyHtml(quoted.join("\n"))}</blockquote>`
+      );
+    } else {
+      const normal: string[] = [];
+      while (i < lines.length && !EMAIL_QUOTE_RE.test(lines[i])) {
+        normal.push(lines[i]);
+        i++;
+      }
+      blocks.push(inlineBodyHtml(normal.join("\n")));
+    }
+  }
+  return blocks.join("");
+}
+
+/** The same body with its markers taken off, for the plain-text part.
+    A text email can't show weight, and "**this**" reads worse than the
+    word alone. */
+function bodyText(text: string): string {
+  return text
+    .replace(/\*\*([^*]+?)\*\*/g, "$1")
+    .replace(/\*([^*\n]+?)\*/g, "$1")
+    .replace(/^>\s?/gm, "");
+}
+
 /* === No-membership note ====================================
    Sent when someone asks for a sign-in link and the address resolves
    to no membership. Before this, that request produced total silence:
@@ -2548,7 +2610,7 @@ export function renderWeeklyDigestEmail(args: {
           rows.push(`<tr>
               <td style="padding-bottom:4px;">
                 <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;width:100%;">
-                  <tr><td style="font-family:Georgia,serif;font-size:17px;font-style:italic;line-height:1.6;color:#1a1714;padding:2px 0 2px 16px;">&ldquo;${escapeHtml(tile.body)}&rdquo;</td></tr>
+                  <tr><td style="font-family:Georgia,serif;font-size:17px;font-style:italic;line-height:1.6;color:#1a1714;padding:2px 0 2px 16px;">&ldquo;${inlineBodyHtml(tile.body)}&rdquo;</td></tr>
                   ${
                     showsPostedLive(cf.kind)
                       ? `<tr><td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding:7px 0 0 16px;">Clay &middot; posted live</td></tr>`
@@ -2561,14 +2623,14 @@ export function renderWeeklyDigestEmail(args: {
           // carries no byline. Same rule the case page follows.
           textLines.push(
             showsPostedLive(cf.kind)
-              ? `"${tile.body}" — Clay, posted live`
-              : `"${tile.body}"`
+              ? `"${bodyText(tile.body)}" — Clay, posted live`
+              : `"${bodyText(tile.body)}"`
           );
         } else {
           rows.push(`<tr>
-              <td style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#3d3530;padding-bottom:4px;white-space:pre-wrap;">${escapeHtml(tile.body)}</td>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#3d3530;padding-bottom:4px;white-space:pre-wrap;">${bodyHtml(tile.body)}</td>
             </tr>`);
-          textLines.push(tile.body);
+          textLines.push(bodyText(tile.body));
         }
         if (tile.moves.length > 0) {
           rows.push(`<tr>

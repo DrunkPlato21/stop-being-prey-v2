@@ -7,8 +7,10 @@ import {
   TILE_TYPES,
   tileTypeLabel,
   type ArenaCaseKind,
+  type ArenaTileType,
 } from "@/lib/arena-constants";
 import { MovePicker } from "./MovePicker";
+import { FormatToolbar } from "@/components/guild/FormatToolbar";
 
 // Clay's bench: the tile composer. The one ergonomic requirement that
 // decides whether the Arena gets used at all: Ctrl+V a screenshot
@@ -36,6 +38,20 @@ export function ArenaBench({
   kind?: ArenaCaseKind;
 }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  // The type drives the form, not just the label the tile lands with:
+  // handle and transcript are the specimen's own fields, so they are
+  // not on screen when the tile being written cannot use them.
+  const [type, setType] = useState<ArenaTileType>(TILE_TYPES[0]);
+  // Bumped after a post to remount the move picker. A native
+  // form.reset() clears the DOM inputs but cannot touch React state,
+  // so without this the chips from the last tile sit in the bench and
+  // ride along onto the next one.
+  const [pickerKey, setPickerKey] = useState(0);
+  // The tile body is controlled so the formatting buttons can rewrite
+  // it around the cursor. That means form.reset() no longer clears it
+  // and the transcriber can no longer poke the DOM node directly, so
+  // both go through setBody instead.
+  const [body, setBody] = useState("");
   const [uploading, setUploading] = useState(false);
   const [reading, setReading] = useState(false);
   const [readNote, setReadNote] = useState<string | null>(null);
@@ -79,9 +95,7 @@ export function ArenaBench({
       // empty, so every screenshot-built specimen hit "please fill out
       // this field" pointing at a box that looked already done. Same
       // rule as the others: only ever fills what is still blank.
-      if (bodyRef.current && !bodyRef.current.value.trim()) {
-        bodyRef.current.value = data.transcript;
-      }
+      setBody((prev) => (prev.trim() ? prev : data.transcript));
       if (handleRef.current && !handleRef.current.value.trim() && data.handle) {
         handleRef.current.value = data.handle;
       }
@@ -138,6 +152,9 @@ export function ArenaBench({
         action={async (formData: FormData) => {
           await addTileAction(formData);
           setImageUrl(null);
+          setBody("");
+          setType(TILE_TYPES[0]);
+          setPickerKey((k) => k + 1);
           formRef.current?.reset();
         }}
       >
@@ -147,7 +164,11 @@ export function ArenaBench({
           <label>
             Tile
             <br />
-            <select name="type">
+            <select
+              name="type"
+              value={type}
+              onChange={(e) => setType(e.target.value as ArenaTileType)}
+            >
               {TILE_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {tileTypeLabel(t, kind)}
@@ -155,25 +176,42 @@ export function ArenaBench({
               ))}
             </select>
           </label>
-          <input
-            ref={handleRef}
-            name="handle"
-            maxLength={60}
-            placeholder="Handle (specimen only, optional)"
-          />
+          {type === "specimen" && (
+            <input
+              ref={handleRef}
+              name="handle"
+              maxLength={60}
+              placeholder="Handle (optional)"
+            />
+          )}
         </div>
+        {/* A specimen is their words, verbatim, and renders raw - no
+            formatting pass runs on it, so offering the buttons there
+            would only bake asterisks into the evidence. */}
+        {type !== "specimen" && (
+          <FormatToolbar
+            textareaRef={bodyRef}
+            value={body}
+            onChange={setBody}
+            hideQuote={type === "counter"}
+          />
+        )}
         <textarea
           ref={bodyRef}
           name="body"
           required
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
           placeholder="The tile. Their words for a specimen, your line for a counter, your read for the rest. Ctrl+V a screenshot anywhere in here."
         />
-        <textarea
-          ref={transcriptRef}
-          name="transcript"
-          placeholder="Full transcript (specimen only, optional). The durable record. Pasting a screenshot fills this in for you."
-        />
-        <MovePicker />
+        {type === "specimen" && (
+          <textarea
+            ref={transcriptRef}
+            name="transcript"
+            placeholder="Full transcript (optional). The durable record. Pasting a screenshot fills this in for you."
+          />
+        )}
+        <MovePicker key={pickerKey} />
 
         {uploading && <div className="arena-bench-note">Attaching&hellip;</div>}
         {reading && (
