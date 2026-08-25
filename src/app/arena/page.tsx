@@ -236,8 +236,15 @@ export default async function ArenaIndexPage({
         </p>
       )}
 
+      {/* A bout with no tiles is a title Clay is still thinking about, not
+          a fight. He sees it so he can get back to it; members do not,
+          because there is nothing there to watch and he may yet bin it.
+          It appears to the room the moment it has its first tile — which
+          is also when the bell rings. One moment, one announcement. */}
       <OpenRows
-        bouts={bouts.filter((b) => b.status === "open")}
+        bouts={bouts.filter(
+          (b) => b.status === "open" && (admin || b.tileCount > 0)
+        )}
         now={Date.now()}
       />
 

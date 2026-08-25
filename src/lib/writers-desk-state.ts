@@ -421,7 +421,14 @@ export async function getWritersDeskState(
           : null,
     },
     arena: (() => {
-      const openBout = arenaBouts.find((b) => b.status === "open") ?? null;
+      // An empty bout is not a fight yet. A bout counts as open from the
+      // moment it is named, so without this the Desk announces ON THE
+      // SLAB NOW / 0 tiles to every member the instant Clay types a
+      // title — before there is anything to watch, and while he is still
+      // deciding whether to keep it. The room's own index still lists it
+      // for him; the Desk waits for the first tile.
+      const openBout =
+        arenaBouts.find((b) => b.status === "open" && b.tileCount > 0) ?? null;
       const sealed = arenaBouts
         .filter((b) => b.status === "sealed")
         .sort((a, b) => (b.sealedAt ?? 0) - (a.sealedAt ?? 0))[0];

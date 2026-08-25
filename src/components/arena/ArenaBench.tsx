@@ -44,6 +44,7 @@ export function ArenaBench({
   const fileRef = useRef<HTMLInputElement>(null);
   const handleRef = useRef<HTMLInputElement>(null);
   const transcriptRef = useRef<HTMLTextAreaElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   // The screenshot gets read as well as stored: the vision model
   // returns handle + verbatim transcript + timestamp, and the bench
@@ -69,9 +70,17 @@ export function ArenaBench({
         );
         return;
       }
+      const stamp = data.timestamp ? `[${data.timestamp}] ` : "";
       if (transcriptRef.current && !transcriptRef.current.value.trim()) {
-        const stamp = data.timestamp ? `[${data.timestamp}] ` : "";
         transcriptRef.current.value = `${stamp}${data.transcript}`;
+      }
+      // The tile's own words too, not just the archive copy. The reader
+      // used to fill only the optional field and leave the required one
+      // empty, so every screenshot-built specimen hit "please fill out
+      // this field" pointing at a box that looked already done. Same
+      // rule as the others: only ever fills what is still blank.
+      if (bodyRef.current && !bodyRef.current.value.trim()) {
+        bodyRef.current.value = data.transcript;
       }
       if (handleRef.current && !handleRef.current.value.trim() && data.handle) {
         handleRef.current.value = data.handle;
@@ -154,6 +163,7 @@ export function ArenaBench({
           />
         </div>
         <textarea
+          ref={bodyRef}
           name="body"
           required
           placeholder="The tile. Their words for a specimen, your line for a counter, your read for the rest. Ctrl+V a screenshot anywhere in here."

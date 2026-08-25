@@ -134,17 +134,32 @@ function TileBody({
   kind: ArenaCaseKind;
 }) {
   if (tile.type === "specimen") {
+    // Say it once. A specimen can carry three copies of the same
+    // sentence — the screenshot, the body, and the transcript — which is
+    // right for a forty-reply thread (proof, the line being dissected,
+    // the full record) and pure stutter for a single post, which is most
+    // of them. So: with a screenshot, the picture is the proof and the
+    // words move into the fold beneath it. Without one, the words are
+    // all there is, so they lead. The text is never dropped either way —
+    // it is what stays searchable, readable to a screen reader, and
+    // legible after the image URL rots.
+    const hasShot = !!tile.imageUrl;
+    const folded = hasShot ? tile.transcript || tile.body : tile.transcript;
+    const showFold =
+      !!folded &&
+      folded.trim().length > 0 &&
+      (hasShot || folded.trim() !== tile.body.trim());
     return (
       <>
         <div className="arena-shot">
           {tile.imageUrl && <TileShot url={tile.imageUrl} />}
           {tile.handle && <div className="arena-shot-handle">{tile.handle}</div>}
-          <div className="arena-shot-body">{tile.body}</div>
+          {!hasShot && <div className="arena-shot-body">{tile.body}</div>}
         </div>
-        {tile.transcript && (
+        {showFold && (
           <details className="arena-transcript">
             <summary>Full transcript</summary>
-            <div className="arena-transcript-body">{tile.transcript}</div>
+            <div className="arena-transcript-body">{folded}</div>
           </details>
         )}
       </>
