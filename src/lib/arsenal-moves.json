@@ -160,6 +160,16 @@
     "source": "Named during Dave Silva one-shot, May 9, 2026."
   },
   {
+    "slug": "intentions-as-evidence",
+    "name": "Intentions as evidence",
+    "role": "opponent",
+    "definition": "Answering a question about outcomes by listing the goals your side holds. The list is offered as though wanting a thing were proof of having produced it.",
+    "mechanism": "It substitutes motive for result, and the audience rarely notices because the motives named are genuinely sympathetic. Healthcare, food for children, education. Disputing the list sounds like disputing the goods, so the opponent either concedes the frame or attacks the intentions and looks monstrous. The question about what actually happened never comes back.",
+    "counterMove": "Don't argue with the list. Accept every item on it, then point at what it leaves out, or walk the question to one named person who paid the price.",
+    "status": "Clay-original framing of an observed pattern",
+    "source": "Named during Jaime Jameson one-shot, August 2026."
+  },
+  {
     "slug": "narrative-laundering",
     "name": "Narrative laundering",
     "role": "opponent",
@@ -208,5 +218,15 @@
     "counterMove": "Drop the rest of the picture into the comment. Force the speaker to either acknowledge they edited it or look like they didn't know.",
     "status": "Established rhetorical concept (cherry-picking, framing fallacy)",
     "source": "Named during Marek Wiechula one-shot, May 9, 2026."
+  },
+  {
+    "slug": "volunteered-victimhood",
+    "name": "Volunteered victimhood",
+    "role": "opponent",
+    "definition": "Supplying the accusation yourself, unprompted, and then answering as its victim. Nobody said you were evil. You said it, wore it, and replied to it, which means the question that was actually asked never gets touched.",
+    "mechanism": "The move converts a question into an attack and the speaker into the party under attack. Once the frame is victim and aggressor, the burden flips. The operator is expected to justify a charge he never made, while the original question sits unanswered behind the new argument. It works because the audience arrives after the accusation is already in the thread and can't tell who put it there.",
+    "counterMove": "Say plainly that nobody made the accusation, and name who introduced it. Then restore the original question in the same breath so the audience can see it is still standing.",
+    "status": "Clay-original framing of an observed pattern",
+    "source": "Named during Jaime Jameson one-shot, August 2026."
   }
 ]
