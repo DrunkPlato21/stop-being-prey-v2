@@ -33,6 +33,7 @@ import {
   type ArenaCaseKind,
   ARENA_MAX_SOURCE_URL,
   caseNoStr,
+  ARENA_TZ,
 } from "@/lib/arena-constants";
 import { formatGuildBody, GUILD_BODY_STYLE } from "@/components/guild/format-body";
 import { TileEngage } from "@/components/arena/TileEngage";
@@ -87,6 +88,7 @@ function stamp(ms: number): string {
       weekday: "short",
       hour: "numeric",
       minute: "2-digit",
+      timeZone: ARENA_TZ,
     })
     .toUpperCase();
 }
@@ -114,6 +116,7 @@ function fileDate(ms: number): string {
       month: "short",
       day: "numeric",
       year: "numeric",
+      timeZone: ARENA_TZ,
     })
     .toUpperCase();
 }

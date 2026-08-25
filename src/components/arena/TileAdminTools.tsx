@@ -12,6 +12,11 @@ import {
 import type { ArenaTile } from "@/lib/arena";
 import { MovePicker } from "./MovePicker";
 import { FormatToolbar } from "@/components/guild/FormatToolbar";
+import {
+  ComposerPreview,
+  useComposerPreview,
+} from "@/components/guild/ComposerPreview";
+import { useAutoGrow } from "@/components/guild/useAutoGrow";
 
 // Clay's per-tile tools, open bouts only. A fight is written at speed
 // from a phone, so a tile has to be fixable in place: the editor is the
@@ -38,7 +43,22 @@ export function TileAdminTools({
   // Controlled for the same reason as the bench: the formatting
   // buttons rewrite the body around the cursor.
   const [body, setBody] = useState(tile.body);
+  const [transcript, setTranscript] = useState(tile.transcript ?? "");
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const transcriptRef = useRef<HTMLTextAreaElement>(null);
+  const preview = useComposerPreview(bodyRef);
+  // Both boxes open at the size of what they already hold, which is the
+  // whole point here: a fix should never start by dragging a corner to
+  // find the sentence being fixed. See the bench for why the value
+  // passed goes empty while the box is hidden.
+  // `editing` is part of the value on purpose: the boxes only exist
+  // once the editor is open, and the hook re-measures when the value it
+  // is given changes, not when the element happens to remount.
+  useAutoGrow(bodyRef, editing && !preview.previewing ? body : "");
+  useAutoGrow(
+    transcriptRef,
+    editing && type === "specimen" ? transcript : ""
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -143,19 +163,29 @@ export function TileAdminTools({
             value={body}
             onChange={setBody}
             hideQuote={type === "counter"}
+            previewing={preview.previewing}
+            onTogglePreview={preview.toggle}
           />
         )}
+        {preview.previewing && (
+          <ComposerPreview text={body} minHeight={preview.minHeight} />
+        )}
+        {/* Hidden, never unmounted: the form still has to submit a body
+            while the preview is the thing on screen. */}
         <textarea
           ref={bodyRef}
           name="body"
-          required
+          required={!preview.previewing}
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          style={preview.previewing ? { display: "none" } : undefined}
         />
         {type === "specimen" && (
           <textarea
+            ref={transcriptRef}
             name="transcript"
-            defaultValue={tile.transcript ?? ""}
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
             placeholder="Full transcript (optional)."
           />
         )}
@@ -200,7 +230,11 @@ export function TileAdminTools({
         )}
 
         <div className="row">
-          <button type="submit" className="submit" disabled={busy}>
+          <button
+            type="submit"
+            className="submit"
+            disabled={busy || !body.trim()}
+          >
             Save the fix
           </button>
           <button

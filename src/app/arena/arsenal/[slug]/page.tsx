@@ -10,6 +10,7 @@ import {
   ARENA_LIVE_WINDOW_MS,
   caseNoStr,
   romanNumeral,
+  ARENA_TZ,
 } from "@/lib/arena-constants";
 import {
   formatGuildBody,
@@ -36,6 +37,7 @@ function dateStr(ms: number): string {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: ARENA_TZ,
   });
 }
 

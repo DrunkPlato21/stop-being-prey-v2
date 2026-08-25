@@ -145,3 +145,12 @@ export function tileTypeLabel(
 export function showsPostedLive(kind: ArenaCaseKind = "bout"): boolean {
   return kind === "bout";
 }
+
+/** The clock every Arena page is stamped by. These pages render on the
+    server, where an unpinned toLocaleString means the host's timezone,
+    which on Vercel is UTC - so a tile posted at 2:23pm in Clay's room
+    went up wearing 6:23 PM, and a case sealed after 8pm was filed under
+    tomorrow's date. A case file is a record, and a record needs one
+    clock rather than the reader's, so the room keeps the desk's:
+    the fight happened when Clay says it happened. */
+export const ARENA_TZ = "America/New_York";

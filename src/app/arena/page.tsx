@@ -10,6 +10,7 @@ import {
   CASE_KIND_LABEL,
   ARENA_MAX_SOURCE_URL,
   caseNoStr,
+  ARENA_TZ,
 } from "@/lib/arena-constants";
 import { markNavViewed } from "@/lib/nav-dots";
 import { createBoutAction } from "./actions";
@@ -29,6 +30,7 @@ function dateStr(ms: number): string {
   return new Date(ms).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
+    timeZone: ARENA_TZ,
   });
 }
 
