@@ -172,15 +172,30 @@ function TileBody({
     // The counter is Clay's own line, and he writes with emphasis:
     // same tiny markdown subset as the Guild (**bold**, *italic*),
     // so a posted reply keeps its weight instead of showing asterisks.
+    // Say it once, the same rule the specimen follows: with a
+    // screenshot, the picture is the proof and the words move into the
+    // fold beneath it, because a counter shot is a picture of the very
+    // sentence Clay typed and printing both reads it to you twice.
+    // Without one, the line is all there is, so it leads. The text is
+    // never dropped either way - it is what stays searchable, readable
+    // to a screen reader, and legible after the image URL rots.
+    const line = (
+      <div className="arena-counter-line">
+        &ldquo;{formatGuildBody(tile.body)}&rdquo;
+      </div>
+    );
     return (
       <>
-        <div className="arena-counter-line">
-          &ldquo;{formatGuildBody(tile.body)}&rdquo;
-        </div>
+        {tile.imageUrl ? <TileShot url={tile.imageUrl} /> : line}
         {showsPostedLive(kind) && (
           <div className="arena-byline">Clay &middot; posted live</div>
         )}
-        {tile.imageUrl && <TileShot url={tile.imageUrl} />}
+        {tile.imageUrl && (
+          <details className="arena-transcript">
+            <summary>Full text</summary>
+            {line}
+          </details>
+        )}
       </>
     );
   }
