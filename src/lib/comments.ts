@@ -171,6 +171,52 @@ const PENDING_INDEX_KEY = "comments:pending";
 // /admin/comments chrono feed. Newer than PENDING_INDEX_KEY; existing
 // pre-launch comments are walked in via backfill-comments-index.
 const ALL_INDEX_KEY = "comments:all";
+
+// Every comment-or-reply EVENT, scored by when it happened. Members are
+// event ids: "<commentId>" for a top-level comment, "<commentId>:<replyId>"
+// for a thread reply.
+//
+// Deliberately NOT a re-score of comments:all. That index scores by the
+// comment's own createdAt, and member-stats.ts counts it by score to
+// answer "how many comments in the last N days" — bumping a parent on
+// every reply would make a year-old comment re-count as new. This index
+// answers a different question: what has happened since Clay last looked.
+// Replies were invisible to the admin surfaces entirely before it, since
+// a reply only rewrites its parent's record and touches no index at all.
+const ACTIVITY_INDEX_KEY = "comments:activity";
+
+/** Event id for a top-level comment, or for one reply beneath it. */
+export function activityEventId(
+  commentId: string,
+  replyId?: string | null
+): string {
+  return replyId ? `${commentId}:${replyId}` : commentId;
+}
+
+export type CommentActivityEvent = {
+  /** The ZSET member: commentId, or commentId:replyId. */
+  eventId: string;
+  commentId: string;
+  /** Null when the event is the top-level comment itself. */
+  replyId: string | null;
+  at: number;
+};
+
+function parseActivityEventId(
+  eventId: string,
+  at: number
+): CommentActivityEvent {
+  const sep = eventId.indexOf(":");
+  if (sep === -1) {
+    return { eventId, commentId: eventId, replyId: null, at };
+  }
+  return {
+    eventId,
+    commentId: eventId.slice(0, sep),
+    replyId: eventId.slice(sep + 1),
+    at,
+  };
+}
 // Uniqueness index for display names. Key holds the email that owns
 // the (normalized) name. SETNX claim + DEL release. Backfilled via
 // /api/admin/backfill-displayname-index for existing profiles.
@@ -963,6 +1009,10 @@ export async function createComment(
     member: id,
   });
   await client.zadd(ALL_INDEX_KEY, { score: now, member: id });
+  await client.zadd(ACTIVITY_INDEX_KEY, {
+    score: now,
+    member: activityEventId(id),
+  });
   await client.set(lockKey(input.email, input.kind, input.slug), [
     ...existingIds,
     id,
@@ -1001,6 +1051,14 @@ export async function deleteComment(
   await client.del(`${COMMENT_PREFIX}${id}`);
   await client.zrem(indexKey(comment.kind, comment.slug), id);
   await client.zrem(ALL_INDEX_KEY, id);
+  // The comment's own event plus one per reply beneath it — the whole
+  // thread dies with the parent, so the activity feed must not keep
+  // pointing at replies whose parent record is gone.
+  await client.zrem(
+    ACTIVITY_INDEX_KEY,
+    activityEventId(id),
+    ...(comment.threadReplies ?? []).map((r) => activityEventId(id, r.id))
+  );
   // Free just this comment's slot in the member lock; only clear the
   // lock entirely when it was their last one (supports per-piece limits
   // above 1, and stays correct for the default limit of 1).
@@ -1119,6 +1177,100 @@ export async function listRecentComments(
     } catch {
       // skip malformed
     }
+  }
+  return out;
+}
+
+/** One activity event with its comment (and reply) hydrated. */
+export type HydratedActivity = {
+  event: CommentActivityEvent;
+  comment: CommentRecord;
+  /** The reply this event refers to; null for a top-level comment event. */
+  reply: ThreadReply | null;
+};
+
+/**
+ * The newest comment-or-reply event time across the whole site, or 0
+ * when nothing has happened. One ZRANGE. Drives the admin nav dot,
+ * which used to read comments:all and therefore stayed dark for every
+ * reply ever posted.
+ */
+export async function latestCommentActivityAt(): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const result = (await client
+    .zrange(ACTIVITY_INDEX_KEY, 0, 0, { rev: true, withScores: true })
+    .catch(() => [] as unknown[])) as Array<string | number>;
+  if (!Array.isArray(result) || result.length < 2) return 0;
+  const score = Number(result[1]);
+  return Number.isFinite(score) ? score : 0;
+}
+
+/**
+ * Recent comment-or-reply events, newest first, each hydrated with the
+ * comment record it belongs to. Events whose comment (or reply) no
+ * longer exists are dropped rather than surfaced as holes: deletes do
+ * clean up after themselves, but a record written before this index
+ * shipped can still leave a dangling id behind.
+ *
+ * One ZRANGE plus one MGET over the distinct comment ids, so a feed of
+ * N events costs 2 round-trips no matter how the events cluster.
+ */
+export async function listRecentActivity(
+  limit = 200
+): Promise<HydratedActivity[]> {
+  const client = getClient();
+  if (!client) return [];
+  const raw = (await client
+    .zrange(ACTIVITY_INDEX_KEY, 0, limit - 1, {
+      rev: true,
+      withScores: true,
+    })
+    .catch(() => [] as unknown[])) as Array<string | number>;
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+
+  const events: CommentActivityEvent[] = [];
+  for (let i = 0; i + 1 < raw.length; i += 2) {
+    const score = Number(raw[i + 1]);
+    events.push(
+      parseActivityEventId(String(raw[i]), Number.isFinite(score) ? score : 0)
+    );
+  }
+
+  const distinctIds = Array.from(new Set(events.map((e) => e.commentId)));
+  if (distinctIds.length === 0) return [];
+  const records = await client.mget<(string | null)[]>(
+    ...distinctIds.map((id) => `${COMMENT_PREFIX}${id}`)
+  );
+
+  const byId = new Map<string, CommentRecord>();
+  distinctIds.forEach((id, i) => {
+    const value = records?.[i];
+    if (!value) return;
+    try {
+      const parsed =
+        typeof value === "string"
+          ? (JSON.parse(value) as CommentRecord)
+          : (value as CommentRecord);
+      byId.set(id, parsed);
+    } catch {
+      // skip malformed
+    }
+  });
+
+  const out: HydratedActivity[] = [];
+  for (const event of events) {
+    const comment = byId.get(event.commentId);
+    if (!comment) continue;
+    if (!event.replyId) {
+      out.push({ event, comment, reply: null });
+      continue;
+    }
+    const reply = (comment.threadReplies ?? []).find(
+      (r) => r.id === event.replyId
+    );
+    if (!reply) continue;
+    out.push({ event, comment, reply });
   }
   return out;
 }
@@ -1284,6 +1436,13 @@ export async function createThreadReply(input: {
     `${COMMENT_PREFIX}${parent.id}`,
     JSON.stringify(next)
   );
+  // The reply's only index entry. Without this a reply is reachable
+  // solely by reading its parent record, which is why the admin feed
+  // and the nav dot both used to go blind on it.
+  await client.zadd(ACTIVITY_INDEX_KEY, {
+    score: reply.createdAt,
+    member: activityEventId(parent.id, reply.id),
+  });
   return { ok: true, comment: next, reply };
 }
 
@@ -1322,6 +1481,7 @@ export async function deleteThreadReply(
     `${COMMENT_PREFIX}${parent.id}`,
     JSON.stringify(next)
   );
+  await client.zrem(ACTIVITY_INDEX_KEY, activityEventId(parent.id, replyId));
   return { ok: true, comment: next };
 }
 

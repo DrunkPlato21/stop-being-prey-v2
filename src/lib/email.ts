@@ -801,6 +801,145 @@ export async function sendGuildReplyNotification(args: {
   }
 }
 
+/* === Thread-reply notification (to admin) =================
+   Sent to ADMIN_EMAIL when a member replies beneath a comment. A reply
+   writes no index entry of its own and only rewrites its parent's
+   record, so before this existed a reply reached Clay through exactly
+   no channel: not the queue, not the nav dot, not the mailbox. Same
+   quiet transactional shape as the new-comment notice. */
+
+export async function sendThreadReplyAdminNotification(args: {
+  to: string;
+  replyAuthorDisplayName: string;
+  replyAuthorEmail: string;
+  /** Who wrote the comment being replied to. "you" when it is Clay. */
+  parentAuthorDisplayName: string;
+  pieceTitle: string;
+  pieceUrl: string;
+  queueUrl: string;
+  parentExcerpt: string;
+  replyBody: string;
+}): Promise<SendResult> {
+  const resend = client();
+  if (!resend) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[email] RESEND_API_KEY not set, thread-reply admin notification skipped. From: ${args.replyAuthorEmail}, piece: ${args.pieceTitle}`
+      );
+    }
+    return { ok: false, error: "email_not_configured" };
+  }
+
+  const subject = `${args.replyAuthorDisplayName} replied on "${args.pieceTitle}"`;
+  const replyEscaped = escapeHtml(args.replyBody.trim()).replace(
+    /\n/g,
+    "<br/>"
+  );
+  const parentEscaped = escapeHtml(args.parentExcerpt.trim()).replace(
+    /\n/g,
+    "<br/>"
+  );
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>New reply</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5efe1;font-family:Georgia,'Times New Roman',serif;color:#1a1714;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5efe1;padding:48px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#fbf6e9;border:1px solid #c9bfa3;padding:36px 32px;">
+            <tr>
+              <td style="text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.7rem;letter-spacing:0.32em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding-bottom:20px;">
+                Stop Being Prey &middot; Reply
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 14px 0;"><strong style="color:#1a1714;">${escapeHtml(args.replyAuthorDisplayName)}</strong> <span style="color:#8a8077;font-style:italic;">(${escapeHtml(args.replyAuthorEmail)})</span></p>
+                <p style="margin:0 0 18px 0;color:#5c544c;">replied to ${escapeHtml(args.parentAuthorDisplayName)} on <em>${escapeHtml(args.pieceTitle)}</em></p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 0 14px 0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-left:2px solid #c9bfa3;background:#f5efe1;">
+                  <tr>
+                    <td style="padding:12px 18px;font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.5;color:#8a8077;font-style:italic;">
+                      ${parentEscaped}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 0 24px 0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;background:#f5efe1;">
+                  <tr>
+                    <td style="padding:14px 18px;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.55;color:#1a1714;">
+                      ${replyEscaped}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:0 0 20px 0;">
+                <a href="${escapeHtml(args.pieceUrl)}" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;font-weight:500;color:#5c544c;text-decoration:none;">
+                  Open in context
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  const text = [
+    `${args.replyAuthorDisplayName} (${args.replyAuthorEmail}) replied to ${args.parentAuthorDisplayName}`,
+    `On: ${args.pieceTitle}`,
+    "",
+    `In reply to: ${args.parentExcerpt.trim()}`,
+    "",
+    args.replyBody.trim(),
+    "",
+    `All comments: ${args.queueUrl}`,
+    `Open in context: ${args.pieceUrl}`,
+  ].join("\n");
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: args.to,
+      subject,
+      html,
+      text,
+      replyTo: REPLY_TO,
+    });
+    if (result.error) {
+      console.error("[email] Resend rejected thread-reply admin notification:", {
+        to: args.to,
+        error: result.error,
+      });
+      return { ok: false, error: result.error.message };
+    }
+    return { ok: true, id: result.data?.id ?? "" };
+  } catch (err) {
+    console.error("[email] Resend threw on thread-reply admin notification:", {
+      to: args.to,
+      error: err,
+    });
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "send_failed",
+    };
+  }
+}
+
 /* === Pending-comment notification (to admin) ==============
    Sent to ADMIN_EMAIL when a member posts a new comment, so Clay
    doesn't need to poll /admin/comments. Quiet, plain, transactional. */

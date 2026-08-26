@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { latestCommentActivityAt } from "./comments";
 
 // Per-admin "is there something new since you last looked?" flags
 // driving the small olive dots next to nav items in AdminPersistentNav.
@@ -11,8 +12,14 @@ import { Redis } from "@upstash/redis";
 // "There's something new" is true when the most recent item in that
 // section's existing index has a higher timestamp than the seen mark.
 // Latest-item lookup reuses the indexes the section already maintains
-// (comments:all, lounge:posts, case-submissions, pool:requests:all), so
-// this layer adds 1 MGET + 4 ZRANGE calls per admin page render — cheap.
+// (comments:activity, lounge:posts, case-submissions, pool:requests:all),
+// so this layer adds 1 MGET + 4 ZRANGE calls per admin page render — cheap.
+//
+// Comments read comments:activity, not comments:all. comments:all is
+// scored by the comment's own createdAt and holds no entry at all for a
+// thread reply, so the dot stayed dark for every reply ever posted: a
+// dark dot did not mean "nothing new". comments:activity carries one
+// entry per comment AND per reply, scored by when it happened.
 
 const SEEN_PREFIX = "admin:nav-seen:";
 
@@ -47,8 +54,7 @@ function seenKey(section: NavBadgeSection): string {
   return `${SEEN_PREFIX}${section}`;
 }
 
-function indexKeyFor(section: NavBadgeSection): string {
-  if (section === "comments") return "comments:all";
+function indexKeyFor(section: Exclude<NavBadgeSection, "comments">): string {
   if (section === "lounge") return "lounge:posts";
   if (section === "pool") return "pool:requests:all";
   return "case-submissions";
@@ -58,6 +64,11 @@ async function latestScore(
   client: Redis,
   section: NavBadgeSection
 ): Promise<number> {
+  // Comments are the one section whose "newest thing" is not the top of
+  // a ZSET this module owns — see the note above.
+  if (section === "comments") {
+    return latestCommentActivityAt().catch(() => 0);
+  }
   const result = (await client
     .zrange(indexKeyFor(section), 0, 0, { rev: true, withScores: true })
     .catch(() => [] as unknown[])) as Array<string | number>;
@@ -102,6 +113,24 @@ export async function getAdminNavBadges(): Promise<AdminNavBadges> {
     out[section] = latests[i] > seenAt;
   });
   return out;
+}
+
+/**
+ * The section's last-seen stamp (epoch ms, 0 if never). Read BEFORE
+ * markSectionSeen on the section's page so per-item NEW markers compare
+ * against the previous visit rather than against this one.
+ */
+export async function getSectionSeen(
+  section: NavBadgeSection
+): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const raw = await client
+    .get<string | number>(seenKey(section))
+    .catch(() => null);
+  const n =
+    typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw) : 0;
+  return Number.isFinite(n) ? n : 0;
 }
 
 /**

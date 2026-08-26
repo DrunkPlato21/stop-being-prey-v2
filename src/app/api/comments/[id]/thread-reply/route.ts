@@ -8,10 +8,11 @@ import {
 } from "@/lib/comments";
 import { createNotification } from "@/lib/notifications";
 import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
-import { sendCommentThreadReplyNotification } from "@/lib/email";
-import { getAllArticles } from "@/lib/articles";
-import { getAllFieldNotes } from "@/lib/field-notes";
-import { getAllCaseFiles } from "@/lib/case-files";
+import {
+  sendCommentThreadReplyNotification,
+  sendThreadReplyAdminNotification,
+} from "@/lib/email";
+import { resolveCommentPiece } from "@/lib/comment-piece";
 import { baseUrl } from "@/lib/membership";
 
 // POST /api/comments/:id/thread-reply  body: { body }
@@ -26,28 +27,6 @@ import { baseUrl } from "@/lib/membership";
 // the toggle that mutes Clay's replies also mutes member replies.
 
 export const runtime = "nodejs";
-
-type PieceMeta = { title: string; path: string; absoluteUrl: string };
-
-function pieceMeta(
-  kind: "article" | "note" | "case-file",
-  slug: string,
-  commentId: string
-): PieceMeta {
-  let path: string;
-  let title = slug;
-  if (kind === "article") {
-    path = `/${slug}#c-${commentId}`;
-    title = getAllArticles().find((x) => x.slug === slug)?.title ?? slug;
-  } else if (kind === "case-file") {
-    path = `/case-files/${slug}#c-${commentId}`;
-    title = getAllCaseFiles().find((x) => x.slug === slug)?.title ?? slug;
-  } else {
-    path = `/notes/field-notes/${slug}#c-${commentId}`;
-    title = getAllFieldNotes().find((x) => x.slug === slug)?.title ?? slug;
-  }
-  return { title, path, absoluteUrl: `${baseUrl()}${path}` };
-}
 
 export async function POST(
   req: NextRequest,
@@ -109,14 +88,41 @@ export async function POST(
     return NextResponse.json({ error: result.error }, { status });
   }
 
-  // Notify the parent author. Skip when the replier IS the parent
-  // author (replying to your own comment shouldn't ping yourself) or
-  // when the parent author is admin (Clay's mailbox doesn't need this
-  // — admin moderation/queue already covers it).
   const parent = result.comment;
   const replierNormalized = session.email.toLowerCase().trim();
-  const piece = pieceMeta(parent.kind, parent.slug, parent.id);
+  // Anchored at the PARENT comment: that is where the thread renders.
+  const piece = await resolveCommentPiece(parent.kind, parent.slug, parent.id);
   const parentGetsReplyPing = !!parent.email && parent.email !== replierNormalized;
+
+  // Tell Clay. Every reply, not just replies to him: a reply is the one
+  // kind of member writing that reaches no other channel. It writes no
+  // index entry of its own, never appeared in /admin/comments, and the
+  // nav dot could not see it. The old code skipped this on the grounds
+  // that "admin moderation/queue already covers it" — the queue covered
+  // top-level comments only, so replies fell through every net.
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const replierIsAdmin = viewerIsAdmin;
+  if (adminEmail && !replierIsAdmin) {
+    const parentAuthorLabel =
+      parent.email === adminEmail.toLowerCase().trim()
+        ? "you"
+        : parent.displayName || parent.email;
+    await sendThreadReplyAdminNotification({
+      to: adminEmail,
+      replyAuthorDisplayName: displayName,
+      replyAuthorEmail: session.email,
+      parentAuthorDisplayName: parentAuthorLabel,
+      pieceTitle: piece.title,
+      pieceUrl: piece.absoluteUrl,
+      queueUrl: `${baseUrl()}/admin/comments`,
+      parentExcerpt: parent.body.slice(0, 240),
+      replyBody: result.reply.body,
+    }).catch((err) => {
+      console.error("[email] thread reply admin notice threw:", err);
+    });
+  }
+  // Notify the parent author. Skipped when the replier IS the parent
+  // author (replying to your own comment shouldn't ping yourself).
   if (parentGetsReplyPing) {
     const parentProfile = await getProfile(parent.email).catch(() => null);
 

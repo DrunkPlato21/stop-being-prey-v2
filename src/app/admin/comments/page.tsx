@@ -3,25 +3,41 @@ import type { Metadata } from "next";
 import {
   isApproved,
   isCommentsConfigured,
-  listRecentComments,
+  listRecentActivity,
   type CommentRecord,
 } from "@/lib/comments";
-import { getAllArticles } from "@/lib/articles";
-import { getAllFieldNotes } from "@/lib/field-notes";
-import { getAllCaseFiles } from "@/lib/case-files";
+import { commentPieceResolver } from "@/lib/comment-piece";
 import { ApproveCommentButton } from "@/components/ApproveCommentButton";
 import { DeleteCommentButton } from "@/components/DeleteCommentButton";
 import { AdminReplyControls } from "@/components/AdminReplyControls";
 import { BackfillCommentsIndexButton } from "@/components/BackfillCommentsIndexButton";
 import { FeatureCommentButton } from "@/components/FeatureCommentButton";
-import { markSectionSeen } from "@/lib/admin-nav-badges";
+import { getSectionSeen, markSectionSeen } from "@/lib/admin-nav-badges";
 
-// Chrono comment feed — every comment site-wide, newest first.
-// Pending ones surface inline with a "Pending" pill so Clay can triage
-// from the top and reply to approved comments without leaving the
-// page. Filters (status / piece / member) live in URL params and are
-// applied in-memory after the index read; at launch volume this is
-// fine. Gated by proxy.ts via HTTP Basic auth on /admin/*.
+// Comment feed — every comment site-wide, ordered by most recent
+// ACTIVITY rather than by when the comment was written, so a fresh
+// reply floats its thread back to the top instead of sinking with a
+// year-old parent.
+//
+// Two things this page used to get wrong, both of which made it
+// untrustworthy as the place you go to find out what happened:
+//
+//   Replies were absent entirely. A thread reply only rewrites its
+//   parent's record, so it never appeared here at all. Now every reply
+//   is an event in comments:activity and renders under its parent.
+//
+//   Arena bout comments were unreadable. A bout mounts the comments
+//   sheet as kind "case-file" with the bout's uuid for a slug, so the
+//   old lookup missed, printed the uuid as the title, and linked to
+//   /case-files/<uuid>, which 404s. commentPieceResolver knows about
+//   bouts.
+//
+// Anything newer than your last visit carries a NEW mark; the seen
+// stamp is read BEFORE it gets bumped so the marks describe the
+// previous visit, not this one. Filters (status / piece / member) live
+// in URL params and are applied in-memory after the index read; at
+// launch volume this is fine. Gated by proxy.ts via HTTP Basic auth on
+// /admin/*.
 
 export const metadata: Metadata = {
   title: "Comments, admin",
@@ -70,11 +86,23 @@ function parseFilters(
   };
 }
 
-function applyFilters(
-  comments: CommentRecord[],
-  filters: Filters
-): CommentRecord[] {
-  return comments.filter((c) => {
+/** One comment plus everything that has happened under it. */
+type Thread = {
+  comment: CommentRecord;
+  /** Newest event time anywhere in the thread. Drives the ordering. */
+  lastActivityAt: number;
+  /** True when the comment itself landed since the last visit. */
+  commentIsNew: boolean;
+  /** Ids of replies that landed since the last visit. */
+  newReplyIds: Set<string>;
+};
+
+function threadIsNew(t: Thread): boolean {
+  return t.commentIsNew || t.newReplyIds.size > 0;
+}
+
+function applyFilters(threads: Thread[], filters: Filters): Thread[] {
+  return threads.filter(({ comment: c }) => {
     if (filters.status === "pending" && isApproved(c)) return false;
     if (filters.status === "approved" && !isApproved(c)) return false;
     if (filters.status === "featured" && !c.featured) return false;
@@ -108,28 +136,6 @@ function formatTimestamp(ms: number): string {
   });
 }
 
-function pieceMeta(comment: CommentRecord): { title: string; url: string } {
-  if (comment.kind === "article") {
-    const a = getAllArticles().find((x) => x.slug === comment.slug);
-    return {
-      title: a?.title ?? comment.slug,
-      url: `/${comment.slug}#c-${comment.id}`,
-    };
-  }
-  if (comment.kind === "case-file") {
-    const c = getAllCaseFiles().find((x) => x.slug === comment.slug);
-    return {
-      title: c?.title ?? comment.slug,
-      url: `/case-files/${comment.slug}#c-${comment.id}`,
-    };
-  }
-  const n = getAllFieldNotes().find((x) => x.slug === comment.slug);
-  return {
-    title: n?.title ?? comment.slug,
-    url: `/notes/field-notes/${comment.slug}#c-${comment.id}`,
-  };
-}
-
 export default async function CommentsAdminPage({
   searchParams,
 }: {
@@ -155,6 +161,9 @@ export default async function CommentsAdminPage({
     );
   }
 
+  // Read the seen stamp BEFORE bumping it, so the NEW marks below
+  // describe the previous visit rather than this one.
+  const seenAt = await getSectionSeen("comments").catch(() => 0);
   // Clear the unread dot for this section. Awaited so the seen mark is
   // in Redis before the client-side router.refresh() in
   // AdminPersistentNav re-fetches the layout's badges.
@@ -163,22 +172,51 @@ export default async function CommentsAdminPage({
   const resolvedParams = await searchParams;
   const filters = parseFilters(resolvedParams);
 
-  const all = await listRecentComments(FEED_LIMIT);
+  // Events come back newest-first, so the first time a comment id
+  // appears is its most recent activity — which makes the insertion
+  // order the display order, no sort needed.
+  const activity = await listRecentActivity(FEED_LIMIT);
+  const threadsById = new Map<string, Thread>();
+  const all: Thread[] = [];
+  for (const { event, comment, reply } of activity) {
+    let thread = threadsById.get(comment.id);
+    if (!thread) {
+      thread = {
+        comment,
+        lastActivityAt: event.at,
+        commentIsNew: false,
+        newReplyIds: new Set<string>(),
+      };
+      threadsById.set(comment.id, thread);
+      all.push(thread);
+    }
+    if (event.at > seenAt) {
+      if (reply) thread.newReplyIds.add(reply.id);
+      else thread.commentIsNew = true;
+    }
+  }
+
   const filtered = applyFilters(all, filters);
+
+  // One Arena read for the whole feed rather than one per comment.
+  const resolvePiece = await commentPieceResolver(
+    all.map((t) => t.comment)
+  );
 
   // Piece dropdown: every slug that has at least one comment in the
   // current (unfiltered) feed, plus a friendlier title. Sorted by
   // title; "All pieces" stays at the top.
   const pieceTitleBySlug = new Map<string, string>();
-  for (const c of all) {
+  for (const { comment: c } of all) {
     if (pieceTitleBySlug.has(c.slug)) continue;
-    pieceTitleBySlug.set(c.slug, pieceMeta(c).title);
+    pieceTitleBySlug.set(c.slug, resolvePiece(c.kind, c.slug, c.id).title);
   }
   const pieceOptions = Array.from(pieceTitleBySlug.entries())
     .map(([slug, title]) => ({ slug, title }))
     .sort((a, b) => a.title.localeCompare(b.title));
 
-  const pendingCount = filtered.filter((c) => !isApproved(c)).length;
+  const pendingCount = filtered.filter((t) => !isApproved(t.comment)).length;
+  const newCount = filtered.filter(threadIsNew).length;
   const filtersActive =
     filters.status !== "all" || !!filters.piece || !!filters.member;
 
@@ -315,6 +353,17 @@ export default async function CommentsAdminPage({
           <>
             {filtered.length}
             {filtered.length === all.length ? <> total</> : <> of {all.length}</>}
+            {newCount > 0 && (
+              <>
+                {" · "}
+                <span
+                  className="not-italic text-eye-deep"
+                  style={{ fontWeight: 600 }}
+                >
+                  {newCount} new since your last visit
+                </span>
+              </>
+            )}
             {pendingCount > 0 && (
               <>
                 {" · "}
@@ -339,41 +388,47 @@ export default async function CommentsAdminPage({
 
       {filtered.length > 0 && (
         <ul className="flex flex-col">
-          {filtered.map((c, idx) => {
-            const piece = pieceMeta(c);
+          {filtered.map((thread, idx) => {
+            const c = thread.comment;
+            const piece = resolvePiece(c.kind, c.slug, c.id);
             const pending = !isApproved(c);
+            const replies = c.threadReplies ?? [];
+            const isNew = threadIsNew(thread);
+            // Pending keeps the olive rail it always had; an unread
+            // thread gets the same rail without the fill, so the two
+            // states stay distinguishable at a glance.
+            const rail = pending
+              ? {
+                  background: "var(--paper-deep)",
+                  borderLeft: "2px solid var(--eye-deep)",
+                  paddingLeft: "1rem",
+                }
+              : isNew
+                ? {
+                    borderLeft: "2px solid var(--eye-deep)",
+                    paddingLeft: "1rem",
+                  }
+                : undefined;
             return (
               <li
                 key={c.id}
                 className={idx === 0 ? "py-7" : "py-7 border-t border-rule"}
-                style={
-                  pending
-                    ? {
-                        background: "var(--paper-deep)",
-                        borderLeft: "2px solid var(--eye-deep)",
-                        paddingLeft: "1rem",
-                      }
-                    : undefined
-                }
+                style={rail}
               >
                 {/* Piece reference + open-in-context link */}
                 <div className="flex items-baseline justify-between gap-4 flex-wrap mb-3">
                   <p className="eyebrow">
-                    {c.kind === "article"
-                      ? "Essay"
-                      : c.kind === "case-file"
-                        ? "Case File"
-                        : "Field Note"}
+                    {piece.label}
                     {" · "}
                     <Link
-                      href={piece.url}
+                      href={piece.path}
                       className="text-ink-muted hover:text-eye-deep no-underline"
                     >
                       {piece.title}
                     </Link>
                   </p>
                   <Link
-                    href={piece.url}
+                    href={piece.path}
                     className="font-display uppercase tracking-[0.2em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
                     style={{ fontSize: "0.65rem", fontWeight: 500 }}
                   >
@@ -412,6 +467,21 @@ export default async function CommentsAdminPage({
                       }}
                     >
                       Pending
+                    </span>
+                  )}
+                  {thread.commentIsNew && (
+                    <span
+                      className="font-display uppercase"
+                      style={{
+                        fontSize: "0.62rem",
+                        fontWeight: 700,
+                        color: "var(--paper)",
+                        background: "var(--eye-deep)",
+                        padding: "0.1rem 0.5rem",
+                        letterSpacing: "0.18em",
+                      }}
+                    >
+                      New
                     </span>
                   )}
                   {c.featured && (
@@ -472,6 +542,65 @@ export default async function CommentsAdminPage({
                       {c.replyBody}
                     </div>
                   </div>
+                )}
+
+                {/* Thread replies. These have no index entry of their
+                    own and live inside the parent's record, which is
+                    why this page could not see them before. Newest
+                    last, the way they read on the page. */}
+                {replies.length > 0 && (
+                  <ul className="mt-5 flex flex-col gap-4">
+                    {replies.map((r) => {
+                      const replyIsNew = thread.newReplyIds.has(r.id);
+                      return (
+                        <li
+                          key={r.id}
+                          className="pl-4"
+                          style={{
+                            borderLeft: replyIsNew
+                              ? "2px solid var(--eye-deep)"
+                              : "1px solid var(--rule)",
+                          }}
+                        >
+                          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1">
+                            <span
+                              className="font-display text-ink"
+                              style={{ fontSize: "0.88rem", fontWeight: 600 }}
+                            >
+                              {r.displayName}
+                            </span>
+                            <span
+                              className="font-serif italic text-ink-faint"
+                              style={{ fontSize: "0.78rem" }}
+                            >
+                              {formatTimestamp(r.createdAt)} &middot; {r.email}
+                            </span>
+                            {replyIsNew && (
+                              <span
+                                className="font-display uppercase"
+                                style={{
+                                  fontSize: "0.58rem",
+                                  fontWeight: 700,
+                                  color: "var(--paper)",
+                                  background: "var(--eye-deep)",
+                                  padding: "0.05rem 0.4rem",
+                                  letterSpacing: "0.18em",
+                                }}
+                              >
+                                New
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            className="font-serif text-ink leading-relaxed whitespace-pre-line"
+                            style={{ fontSize: "0.97rem" }}
+                          >
+                            {r.body}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
 
                 {/* Actions: approve (if pending) + delete + feature

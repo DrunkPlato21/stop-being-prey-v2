@@ -10,9 +10,7 @@ import {
 import { createNotification } from "@/lib/notifications";
 import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
 import { sendPendingCommentNotification } from "@/lib/email";
-import { getAllArticles } from "@/lib/articles";
-import { getAllFieldNotes } from "@/lib/field-notes";
-import { getAllCaseFiles } from "@/lib/case-files";
+import { resolveCommentPiece } from "@/lib/comment-piece";
 import { baseUrl } from "@/lib/membership";
 
 // POST /api/comments
@@ -29,16 +27,6 @@ const MAX_BODY_LENGTH = 4000; // raw input cap before sanitize trim
 
 function isCommentKind(value: unknown): value is CommentKind {
   return value === "article" || value === "note" || value === "case-file";
-}
-
-function commentPath(
-  kind: CommentKind,
-  slug: string,
-  id: string
-): string {
-  if (kind === "article") return `/${slug}#c-${id}`;
-  if (kind === "case-file") return `/case-files/${slug}#c-${id}`;
-  return `/notes/field-notes/${slug}#c-${id}`;
 }
 
 function isSlug(value: unknown): value is string {
@@ -129,52 +117,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status });
   }
 
-  // Notify the admin (Clay) so they don't need to poll the queue.
-  // Only fires if ADMIN_EMAIL is configured — otherwise there's no
-  // admin to notify and no queue UX to point them at anyway. Skipped
-  // when the comment is already approved (Clay's own comments and
-  // member comments on member-only Field Notes), since the email's
-  // job is to flag a queue item and there's nothing to queue. Failure
-  // doesn't fail the request: the comment is already persisted and
-  // visible to the author via the pending-state badge.
+  // Resolve the piece once: the admin email, and the mention fan-out
+  // below, both need the title and the link. resolveCommentPiece is the
+  // only thing that gets an Arena bout right — a bout mounts the
+  // comments sheet as kind "case-file" with the bout's uuid for a slug,
+  // so the old inline lookups missed, titled the row with a uuid, and
+  // linked to /case-files/<uuid>, which 404s.
+  const piece = await resolveCommentPiece(
+    result.comment.kind,
+    result.comment.slug,
+    result.comment.id
+  );
+
+  // Notify the admin (Clay) so a comment doesn't sit unseen until he
+  // happens to open /admin/comments. This used to be gated on the
+  // comment being unapproved, back when member comments landed in a
+  // pre-publish hold. createComment now auto-approves every member
+  // comment, which made the condition permanently false and silently
+  // killed the only push signal Clay had. The email's job was never
+  // "flag a queue item" — it is "tell him someone spoke".
   const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail && !isApproved(result.comment)) {
-    const piece =
-      result.comment.kind === "article"
-        ? (() => {
-            const a = getAllArticles().find(
-              (x) => x.slug === result.comment.slug
-            );
-            return {
-              title: a?.title ?? result.comment.slug,
-              url: `${baseUrl()}/${result.comment.slug}#c-${result.comment.id}`,
-            };
-          })()
-        : result.comment.kind === "case-file"
-          ? (() => {
-              const c = getAllCaseFiles().find(
-                (x) => x.slug === result.comment.slug
-              );
-              return {
-                title: c?.title ?? result.comment.slug,
-                url: `${baseUrl()}/case-files/${result.comment.slug}#c-${result.comment.id}`,
-              };
-            })()
-          : (() => {
-              const n = getAllFieldNotes().find(
-                (x) => x.slug === result.comment.slug
-              );
-              return {
-                title: n?.title ?? result.comment.slug,
-                url: `${baseUrl()}/notes/field-notes/${result.comment.slug}#c-${result.comment.id}`,
-              };
-            })();
+  const authorIsAdmin =
+    !!adminEmail &&
+    result.comment.email === adminEmail.toLowerCase().trim();
+  if (adminEmail && !authorIsAdmin) {
     const sendResult = await sendPendingCommentNotification({
       to: adminEmail,
       authorDisplayName: result.comment.displayName,
       authorEmail: result.comment.email,
       pieceTitle: piece.title,
-      pieceUrl: piece.url,
+      pieceUrl: piece.absoluteUrl,
       queueUrl: `${baseUrl()}/admin/comments`,
       body: result.comment.body,
     });
@@ -200,7 +172,7 @@ export async function POST(req: NextRequest) {
       try {
         const tokens = parseMentions(comment.body);
         if (tokens.length === 0) return;
-        const path = commentPath(comment.kind, comment.slug, comment.id);
+        const path = piece.path;
         const excerpt = comment.body.slice(0, 120);
         const notified = new Set<string>();
         for (const token of tokens) {
