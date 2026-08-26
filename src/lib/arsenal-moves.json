@@ -40,6 +40,16 @@
     "source": "Named during Jamie Lex Unwin one-shot, May 10, 2026."
   },
   {
+    "slug": "the-mirror",
+    "name": "The Mirror",
+    "role": "clay",
+    "definition": "Accept the accusation as true, then let the audience decide who it describes. You never make the counter-charge yourself, so there is nothing for him to deny.",
+    "mechanism": "He has already established that the trait is bad and present in the room. Agreeing costs nothing and denies him the argument he came for. Once the category stands unchallenged, the only question left is who fits it, and the audience answers that from the thread in front of them. Because you never named him, there is no accusation to rebut, and objecting out loud would mean identifying himself.",
+    "counterMove": "N/A (Clay technique).",
+    "status": "Clay-original technique",
+    "source": "Named during Jerry Lee Howell one-shot, August 25 2026. In use since at least April 2026 under the older rhetorical_moves vocabulary."
+  },
+  {
     "slug": "the-reversal-receipt",
     "name": "The Reversal Receipt",
     "role": "clay",
@@ -138,6 +148,16 @@
     "counterMove": "Name the disclaimer-as-license operation directly. Revoke the license explicitly. Tell the speaker and the audience that a single moral concession at the top of a comment doesn't immunize what follows.",
     "status": "Clay-original framing of an observed pattern",
     "source": "Named during Dave Silva one-shot, May 9, 2026."
+  },
+  {
+    "slug": "disagreement-as-dishonesty",
+    "name": "Disagreement as dishonesty",
+    "role": "opponent",
+    "definition": "Declaring the evidence obvious, universal and already seen, so that disagreement can only be stupidity or bad faith. It's all on video. Nobody ever has to produce the video.",
+    "mechanism": "It converts a factual dispute into a test of the other person's character. Once the proof is established as common knowledge, producing it becomes unnecessary and asking for it becomes suspicious. The audience is handed a shortcut: they don't have to weigh anything, only decide who is honest. And because the evidence is never specified, there is nothing to check, nothing to contest, and no version of it that can be shown to be thin.",
+    "counterMove": "Ask for it. One clip, one timestamp, one quote. The move dies the moment someone has to produce the thing that was supposedly obvious, and the refusal to produce it does more damage than the clip ever would have.",
+    "status": "Clay-original framing of an observed pattern",
+    "source": "Named during Jerry Lee Howell one-shot, August 2026."
   },
   {
     "slug": "endorsement-with-deniability",
