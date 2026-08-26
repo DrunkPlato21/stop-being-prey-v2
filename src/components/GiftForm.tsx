@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // Pay-it-forward gift checkout form. Term toggle + recipient email +
 // optional from-name and note, posts to /api/gift/checkout and
@@ -134,16 +135,16 @@ export function GiftForm() {
       {/* Note */}
       <label className="block mb-6">
         <span className="eyebrow block mb-2">a short note (optional)</span>
-        <textarea
+        <AutoResizingTextarea
           value={message}
           onChange={(e) =>
             setMessage(e.target.value.slice(0, MAX_MESSAGE_LENGTH))
           }
           disabled={status === "loading"}
-          rows={3}
+          minRows={3}
           maxLength={MAX_MESSAGE_LENGTH}
           placeholder="why you're putting them in the room"
-          className="w-full border border-rule bg-paper px-4 py-3 text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink focus:bg-surface transition-colors font-serif text-base disabled:opacity-60 resize-y"
+          className="w-full border border-rule bg-paper px-4 py-3 text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink focus:bg-surface transition-colors font-serif text-base disabled:opacity-60"
         />
         <span
           className="block text-right font-serif italic text-ink-faint mt-1"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // Admin control for scheduled lounge prompts — the conversation
 // starter + drip. Self-contained: pulls the pending queue from
@@ -168,19 +169,19 @@ export function PromptScheduler() {
         you, and members reply right to them.
       </p>
 
-      <textarea
+      <AutoResizingTextarea
         value={draft}
         onChange={(e) => {
           setDraft(e.target.value);
           setError(null);
         }}
         disabled={pending}
-        rows={5}
+        minRows={5}
         placeholder={
           "What's a frame someone tried on you this week?\nWho's the best interviewer alive right now, and why?\nDrop a line you wish you'd said in the moment."
         }
         className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full mb-3"
-        style={{ fontSize: "1rem", lineHeight: 1.55, resize: "vertical" }}
+        style={{ fontSize: "1rem", lineHeight: 1.55 }}
       />
 
       <div className="flex items-center gap-4 flex-wrap mb-3">

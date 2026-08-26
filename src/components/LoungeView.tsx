@@ -38,6 +38,7 @@ import {
   type WatchPost,
   type WatchArrival,
 } from "@/components/WatchFeed";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 type MemberBadgeInfo = {
   founderSlot: number | null;
@@ -2176,10 +2177,10 @@ function EditBox({ edit, cap }: { edit: EditController; cap: number }) {
   const over = cap === MAX_BODY_ADMIN && edit.draft.length > MAX_BODY;
   return (
     <div className="mt-1">
-      <textarea
+      <AutoResizingTextarea
         value={edit.draft}
         onChange={(e) => edit.setDraft(e.target.value.slice(0, cap))}
-        rows={3}
+        minRows={3}
         maxLength={cap}
         disabled={edit.saving}
         className={`font-serif text-ink bg-paper border px-4 py-3 outline-none w-full ${

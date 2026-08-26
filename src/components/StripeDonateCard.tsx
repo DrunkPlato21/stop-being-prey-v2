@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 const PRESETS: ReadonlyArray<{ amount: number; caption: string }> = [
   { amount: 5, caption: "scout" },
@@ -215,11 +216,11 @@ export function StripeDonateCard() {
         {/* Optional message */}
         <label className="w-full max-w-sm mb-3 text-left">
           <span className="sr-only">Optional message to Clay</span>
-          <textarea
+          <AutoResizingTextarea
             value={message}
             onChange={(e) => setMessage(e.target.value.slice(0, MESSAGE_MAX))}
             placeholder="Leave a note (optional)"
-            rows={3}
+            minRows={3}
             maxLength={MESSAGE_MAX}
             className="w-full border border-border bg-paper px-3 py-2 outline-none focus:border-eye font-serif text-ink text-sm leading-relaxed resize-none transition-colors"
             aria-label="Optional message to Clay"

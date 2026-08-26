@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Note } from "@/lib/notes";
 import { MAX_BODY } from "@/lib/notes-constants";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // "Leave a note for Clay" composer. Notes go straight to Clay's
 // private inbox — they never appear publicly on the desk or anywhere
@@ -79,14 +80,14 @@ export function LeaveNoteForm({
       </p>
 
       <label className="block">
-        <textarea
+        <AutoResizingTextarea
           value={body}
           onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
-          rows={3}
+          minRows={3}
           maxLength={MAX_BODY}
           placeholder="Write something for Clay..."
           disabled={pending}
-          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
           style={{ fontSize: "1rem", lineHeight: 1.55 }}
         />
       </label>

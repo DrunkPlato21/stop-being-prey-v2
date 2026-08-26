@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // Paid Case File submission form. Two variants share this component:
 // Public Review ($25, with anonymization choice) and Private Review
@@ -111,17 +112,17 @@ export function CaseSubmissionForm({ tier }: { tier: Tier }) {
 
       <label className="block">
         <span className="eyebrow block mb-2">The situation</span>
-        <textarea
+        <AutoResizingTextarea
           value={situation}
           onChange={(e) =>
             setSituation(e.target.value.slice(0, MAX_SITUATION))
           }
-          rows={6}
+          minRows={6}
           maxLength={MAX_SITUATION}
           placeholder="Set the scene. Who, where, what was being argued."
           disabled={pending}
           required
-          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
           style={{ fontSize: "1rem", lineHeight: 1.55 }}
         />
         <p
@@ -134,15 +135,15 @@ export function CaseSubmissionForm({ tier }: { tier: Tier }) {
 
       <label className="block">
         <span className="eyebrow block mb-2">The move</span>
-        <textarea
+        <AutoResizingTextarea
           value={move}
           onChange={(e) => setMove(e.target.value.slice(0, MAX_MOVE))}
-          rows={4}
+          minRows={4}
           maxLength={MAX_MOVE}
           placeholder="What did the opponent do? Name the move as best you can."
           disabled={pending}
           required
-          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
           style={{ fontSize: "1rem", lineHeight: 1.55 }}
         />
         <p
@@ -157,16 +158,16 @@ export function CaseSubmissionForm({ tier }: { tier: Tier }) {
         <span className="eyebrow block mb-2">
           What you tried <span className="text-ink-faint">(optional)</span>
         </span>
-        <textarea
+        <AutoResizingTextarea
           value={attemptedResponse}
           onChange={(e) =>
             setAttemptedResponse(e.target.value.slice(0, MAX_OPTIONAL))
           }
-          rows={3}
+          minRows={3}
           maxLength={MAX_OPTIONAL}
           placeholder="Your response, even if you walked away."
           disabled={pending}
-          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
           style={{ fontSize: "1rem", lineHeight: 1.55 }}
         />
         <p
@@ -182,16 +183,16 @@ export function CaseSubmissionForm({ tier }: { tier: Tier }) {
           What you want help with{" "}
           <span className="text-ink-faint">(optional)</span>
         </span>
-        <textarea
+        <AutoResizingTextarea
           value={helpWanted}
           onChange={(e) =>
             setHelpWanted(e.target.value.slice(0, MAX_OPTIONAL))
           }
-          rows={3}
+          minRows={3}
           maxLength={MAX_OPTIONAL}
           placeholder="The specific question. The one-shot you want, the framework you can't see."
           disabled={pending}
-          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
           style={{ fontSize: "1rem", lineHeight: 1.55 }}
         />
         <p

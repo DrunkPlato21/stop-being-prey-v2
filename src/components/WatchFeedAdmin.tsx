@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type TextareaHTMLAttributes,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import { WatchWireControl } from "@/components/WatchWireControl";
 
 // Admin controls for The Watch Feed (live broadcast surface above the
@@ -48,35 +42,8 @@ type VoiceTake = {
   mime: string;
 };
 
-type AutoResizingTextareaProps =
-  Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "rows" | "ref"> & {
-    value: string;
-    minRows?: number;
-  };
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
-function AutoResizingTextarea({
-  value,
-  minRows = 2,
-  style,
-  ...rest
-}: AutoResizingTextareaProps) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value]);
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      rows={minRows}
-      style={{ resize: "none", overflow: "hidden", ...style }}
-      {...rest}
-    />
-  );
-}
 
 function formatTimestamp(ms: number): string {
   const d = new Date(ms);

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ClayReaction, Note, NoteStatus } from "@/lib/notes";
 import { MAX_REPLY } from "@/lib/notes-constants";
 import { REACTION_LABELS, ReactionIcon } from "@/components/ReactionIcon";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 const REACTIONS: ClayReaction[] = [
   "heart",
@@ -230,16 +231,16 @@ export function AdminNoteRow({ note: initialNote }: { note: Note }) {
             >
               {note.clayReply ? "Edit reply" : "Reply"}
             </span>
-            <textarea
+            <AutoResizingTextarea
               value={replyDraft}
               onChange={(e) =>
                 setReplyDraft(e.target.value.slice(0, MAX_REPLY))
               }
-              rows={3}
+              minRows={3}
               maxLength={MAX_REPLY}
               placeholder="Short answer. Sent to them by email."
               disabled={pending}
-              className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+              className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
               style={{ fontSize: "0.98rem", lineHeight: 1.55 }}
             />
           </label>

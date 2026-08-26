@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 const PRESET_AMOUNTS: ReadonlyArray<number> = [5, 10, 25, 50, 100];
 const DEFAULT_PRESET = 10;
@@ -208,11 +209,11 @@ export function WallDonateCard({
         )}
         <label>
           <span className="sr-only">Note for the wall (required)</span>
-          <textarea
+          <AutoResizingTextarea
             value={note}
             onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))}
             placeholder="What do you want Marek to read?"
-            rows={3}
+            minRows={3}
             maxLength={NOTE_MAX}
             required
             className="w-full border border-border bg-paper px-3 py-2 outline-none focus:border-eye font-serif text-ink text-sm leading-relaxed resize-none transition-colors"

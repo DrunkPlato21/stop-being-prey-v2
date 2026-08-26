@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // PROTOTYPE — the "sign the wall" card. Support-first: the act is backing
 // the work with a dollar, and your name goes on the wall. Leaving a line is
@@ -252,7 +253,7 @@ export function SignTheWall() {
             long paste BEFORE onChange fires, so we could never tell the writer
             it happened. Instead we slice in JS and compare against the raw
             length to detect (and announce) the trim. */}
-        <textarea
+        <AutoResizingTextarea
           value={message}
           onChange={(e) => {
             const raw = e.target.value;
@@ -265,7 +266,7 @@ export function SignTheWall() {
             }
           }}
           placeholder="What brought you here, if you feel like saying."
-          rows={2}
+          minRows={2}
           aria-describedby="wall-line-count wall-line-trim"
           className="w-full border border-border bg-paper px-3 py-2 outline-none focus:border-eye font-serif text-ink text-sm leading-relaxed resize-none transition-colors"
           aria-label="Leave a line (optional)"

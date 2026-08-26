@@ -10,6 +10,7 @@ import {
   type ChapterEntry,
 } from "@/lib/book";
 import { BookCover } from "@/components/BookCover";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // Single admin editor for the book record. All fields are optional
 // to save individually; the API merges patches, so leaving a field
@@ -246,16 +247,16 @@ export function BookAdminForm({ initial }: { initial: BookMeta }) {
 
         <label className="block">
           <span className="eyebrow block mb-2">Description</span>
-          <textarea
+          <AutoResizingTextarea
             value={description}
             onChange={(e) =>
               setDescription(e.target.value.slice(0, 12000))
             }
-            rows={10}
+            minRows={10}
             maxLength={12000}
             placeholder="3 to 5 paragraphs. Plain text with double newlines for paragraph breaks."
             disabled={savingMeta}
-            className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+            className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
             style={{ fontSize: "0.95rem", lineHeight: 1.55 }}
           />
           <p
@@ -270,14 +271,14 @@ export function BookAdminForm({ initial }: { initial: BookMeta }) {
           <span className="eyebrow block mb-2">
             Excerpt / sample chapter (optional)
           </span>
-          <textarea
+          <AutoResizingTextarea
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value.slice(0, 20000))}
-            rows={8}
+            minRows={8}
             maxLength={20000}
             placeholder="Leave blank to hide the excerpt section on the page."
             disabled={savingMeta}
-            className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+            className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
             style={{ fontSize: "0.95rem", lineHeight: 1.55 }}
           />
         </label>

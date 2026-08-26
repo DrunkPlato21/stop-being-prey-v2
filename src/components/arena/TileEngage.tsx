@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { REACTION_EMOJI, REACTION_LABEL, type ReactionKey } from "@/lib/lounge";
 import { setReactionAction, whisperAction } from "@/app/arena/actions";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // The full extent of a member's public voice in the Arena: one wordless
 // reaction per tile, Facebook semantics — press React, pick from the
@@ -255,7 +256,7 @@ export function TileEngage({
           }}
         >
           <input type="hidden" name="tileId" value={tileId} />
-          <textarea
+          <AutoResizingTextarea
             name="body"
             required
             maxLength={1200}

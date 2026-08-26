@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type TextareaHTMLAttributes,
-} from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PresenceState } from "@/lib/desk";
 
@@ -24,49 +18,8 @@ const KEEPALIVE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 //   - ActiveWallControl: feature/hide the Active Wall panel + paste a
 //     wall link to pin a specific wall
 
-// Textarea that grows with its content. Initial size = minRows; expands
-// as the user types so they're not stuck wrestling the resize handle on
-// long status notes. Mirrors the helper in LoungeView.tsx — duplicated
-// here rather than extracted so the Lounge composer's behavior stays
-// insulated from admin-side changes.
-type AutoResizingTextareaProps =
-  Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "rows" | "ref"> & {
-    value: string;
-    minRows?: number;
-  };
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
-function AutoResizingTextarea({
-  value,
-  minRows = 2,
-  style,
-  ...rest
-}: AutoResizingTextareaProps) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    // Reset to "auto" first so the box can shrink when content is
-    // deleted. Without this, scrollHeight stays at the previous taller
-    // value and the box never gets smaller.
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value]);
-
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      rows={minRows}
-      style={{
-        resize: "none",
-        overflow: "hidden",
-        ...style,
-      }}
-      {...rest}
-    />
-  );
-}
 
 export function DeskAdminForm() {
   const router = useRouter();

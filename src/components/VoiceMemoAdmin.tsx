@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { VoiceMemo, VoiceMemoStatus } from "@/lib/voice-memos";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // Admin island for voice memos: in-browser recorder + past-memo list.
 //
@@ -874,18 +875,19 @@ function ReviewPanel({
             (auto-generated — edit before publishing)
           </span>
         </span>
-        <textarea
+        <AutoResizingTextarea
           value={transcript}
           onChange={(e) =>
             onTranscriptChange(e.target.value.slice(0, MAX_TRANSCRIPT))
           }
-          rows={6}
+          minRows={6}
+          maxRows={24}
           maxLength={MAX_TRANSCRIPT}
           placeholder={
             transcriptNotice ? "Type a transcript here." : "Transcribing…"
           }
           disabled={pending}
-          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+          className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
           style={{ fontSize: "0.95rem", lineHeight: 1.55 }}
         />
         <p
@@ -1120,14 +1122,15 @@ function MemoRow({
       ) : (
         <label className="block">
           <span className="eyebrow block mb-2">Transcript</span>
-          <textarea
+          <AutoResizingTextarea
             value={transcript}
             onChange={(e) =>
               setTranscript(e.target.value.slice(0, MAX_TRANSCRIPT))
             }
-            rows={4}
+            minRows={4}
+            maxRows={24}
             disabled={pending}
-            className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink resize-y w-full"
+            className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
             style={{ fontSize: "0.95rem", lineHeight: 1.55 }}
           />
         </label>

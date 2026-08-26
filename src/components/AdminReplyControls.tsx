@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // Admin-only controls that sit under each comment when the viewer is
 // Clay. Posts to /api/comments/:id/reply (POST or DELETE). Existing
@@ -97,14 +98,14 @@ export function AdminReplyControls({
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-      <textarea
+      <AutoResizingTextarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        rows={3}
+        minRows={3}
         maxLength={8000}
         placeholder="Reply as Clay…"
         disabled={pending}
-        className="font-serif text-ink bg-paper border border-border px-3 py-2 outline-none focus:border-ink resize-y"
+        className="font-serif text-ink bg-paper border border-border px-3 py-2 outline-none focus:border-ink"
         style={{ fontSize: "0.98rem", lineHeight: 1.55 }}
       />
       <span

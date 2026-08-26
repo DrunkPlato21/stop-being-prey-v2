@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // Receive-side form for the community pool. Email + one OPTIONAL line.
 // No income proof, no required justification — the trust is the point.
@@ -140,14 +141,14 @@ export function PoolClaimForm() {
           anything you write may be shared anonymously to move a member to
           sponsor a seat. never your name, never your email.
         </span>
-        <textarea
+        <AutoResizingTextarea
           value={note}
           onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
           disabled={state === "loading"}
-          rows={3}
+          minRows={3}
           maxLength={MAX_NOTE_LENGTH}
           placeholder="no need to justify anything. say what you want, or leave it blank."
-          className="w-full border border-rule bg-paper px-4 py-3 text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink focus:bg-surface transition-colors font-serif text-base disabled:opacity-60 resize-y"
+          className="w-full border border-rule bg-paper px-4 py-3 text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink focus:bg-surface transition-colors font-serif text-base disabled:opacity-60"
         />
         <span
           className="block text-right font-serif italic text-ink-faint mt-1"

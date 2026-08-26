@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ChamberedNote, DigestRun } from "@/lib/digest";
+import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 
 // The chamber for the weekly digest, on the /admin/desk control
 // surface. One optional "note to patrons": load it whenever the mood
@@ -224,14 +225,14 @@ export function DigestChamberPanel({
                 <span className="eyebrow block mb-2">
                   {chamber ? "Replace the note" : "Note to patrons"}
                 </span>
-                <textarea
+                <AutoResizingTextarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value.slice(0, 1200))}
-                  rows={5}
+                  minRows={5}
                   maxLength={1200}
                   placeholder="Whenever you feel like it. This is the addressed register, not the ambient one."
                   disabled={pending}
-                  className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full resize-y"
+                  className="font-serif text-ink bg-paper border border-border px-4 py-3 outline-none focus:border-ink w-full"
                   style={{ fontSize: "0.95rem", lineHeight: 1.6 }}
                 />
               </label>
