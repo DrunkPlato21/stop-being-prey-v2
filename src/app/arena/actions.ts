@@ -27,6 +27,7 @@ import {
   updateTile,
 } from "@/lib/arena";
 import { announceBoutOpened, announceCaseFiled } from "@/lib/arena-notify";
+import { setArenaSubscribed, setBoutFollow } from "@/lib/arena-watch";
 
 // Server Actions for the Arena. Same discipline as the Guild's: every
 // action re-verifies the session in the body, because actions are
@@ -291,4 +292,46 @@ export async function whisperAction(formData: FormData): Promise<boolean> {
   const bout = await getBout(tile.boutId);
   if (!bout || bout.status !== "open") return false;
   return addWhisper(tileId, session.email, body);
+}
+
+// ---- Arena email, member-controlled --------------------------------
+
+// Both of these turn EMAIL on and off, nothing else. The in-app bell
+// still announces every fight to every member: that is the app, and the
+// rule that governs here is the one about the inbox. Nothing subscribes
+// anyone as a side effect of anything — a subscription only ever starts
+// from one of these two deliberate clicks.
+
+/**
+ * Subscribe (or unsubscribe) from the alert when a fight starts.
+ * Room-level and standing. Returns the state it settled on so the
+ * button can show the truth rather than an optimistic guess.
+ */
+export async function setArenaSubscribedAction(
+  formData: FormData
+): Promise<boolean> {
+  const session = await requireSession();
+  if (!session) return false;
+  const on = String(formData.get("on") ?? "") === "1";
+  return setArenaSubscribed(session.email, on);
+}
+
+/**
+ * Follow (or unfollow) one open bout to its verdict.
+ *
+ * Open bouts only. Following a case that has already sealed would be a
+ * button that promises an email which can never arrive, since the seal
+ * is the only thing that mails followers.
+ */
+export async function setBoutFollowAction(
+  formData: FormData
+): Promise<boolean> {
+  const session = await requireSession();
+  if (!session) return false;
+  const boutId = String(formData.get("boutId") ?? "");
+  if (!boutId) return false;
+  const on = String(formData.get("on") ?? "") === "1";
+  const bout = await getBout(boutId);
+  if (!bout || bout.status !== "open") return false;
+  return setBoutFollow(boutId, session.email, on);
 }

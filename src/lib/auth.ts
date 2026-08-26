@@ -235,6 +235,43 @@ export async function verifyDigestToken(
   }
 }
 
+/**
+ * Mint an Arena-unsubscribe token. Same shape and TTL as the digest
+ * one, separate `purpose` so a leaked digest link cannot silently turn
+ * off Arena mail (or the reverse). No login required by design: half
+ * the membership never signs in, and an unsubscribe that demands a
+ * session is not an unsubscribe.
+ */
+export async function signArenaToken(email: string): Promise<string> {
+  return new SignJWT({ purpose: "arena-unsub", email })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${DIGEST_TOKEN_TTL_DAYS}d`)
+    .sign(authSecret());
+}
+
+/**
+ * Verify an Arena-unsubscribe token. Returns the email on success,
+ * null on failure (bad signature, expired, or wrong purpose).
+ */
+export async function verifyArenaToken(
+  token: string | undefined | null
+): Promise<string | null> {
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, authSecret());
+    if (
+      payload.purpose === "arena-unsub" &&
+      typeof payload.email === "string"
+    ) {
+      return payload.email;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export type MagicLinkRecord = {
   email: string;
   customerId: string;

@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { isAdmin } from "@/lib/comments";
 import { boutHref, listBouts, type ArenaBout } from "@/lib/arena";
+import { isArenaSubscribed } from "@/lib/arena-watch";
+import { ArenaMailToggle } from "@/components/arena/ArenaMailToggle";
 import {
   ARENA_LIVE_WINDOW_MS,
   CASE_KIND_LABEL,
@@ -194,8 +196,9 @@ export default async function ArenaIndexPage({
     redirect("/notes/sign-in?next=/arena");
   }
 
-  const [bouts] = await Promise.all([
+  const [bouts, mailOn] = await Promise.all([
     listBouts(),
+    isArenaSubscribed(session.email).catch(() => false),
     // Clears the nav's new-in-the-Arena dot, same as the Guild index.
     markNavViewed("arena", session.email),
   ]);
@@ -247,6 +250,11 @@ export default async function ArenaIndexPage({
         <p className="arena-index-sub">
           Real fights. Dissected right in front of you.
         </p>
+        {/* A fight has a 12-hour live window and starts whenever an
+            opponent turns up. The bell announces it, but a bell only
+            reaches someone already standing in the room. This is how
+            you hear about it from outside. */}
+        <ArenaMailToggle initialOn={mailOn} />
       </header>
 
       {bouts.length === 0 && (

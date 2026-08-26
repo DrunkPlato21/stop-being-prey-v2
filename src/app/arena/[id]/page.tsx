@@ -41,6 +41,8 @@ import { REACTION_EMOJI, type ReactionKey } from "@/lib/lounge";
 import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
 import { formatGuildBody, GUILD_BODY_STYLE } from "@/components/guild/format-body";
 import { TileEngage } from "@/components/arena/TileEngage";
+import { BoutFollowToggle } from "@/components/arena/ArenaMailToggle";
+import { isFollowingBout } from "@/lib/arena-watch";
 import { MoveChip } from "@/components/arena/MoveChip";
 import { Comments } from "@/components/Comments";
 import { ArenaBench } from "@/components/arena/ArenaBench";
@@ -344,6 +346,14 @@ export default async function BoutPage({
   const anon = !session;
   const admin = session ? isAdmin(session.email) : false;
   const sealed = bout.status === "sealed";
+  // Offered on an open bout only: the seal is the one thing that mails
+  // followers, so a button on a filed case would promise an email that
+  // can never arrive. Anonymous preview readers have no inbox we know
+  // of and no session to hang a follow on.
+  const following =
+    !sealed && session
+      ? await isFollowingBout(bout.id, session.email).catch(() => false)
+      : false;
   // Set when the case-number register had to move the stamp Clay typed.
   const stampNote = admin ? await searchParams : {};
   const renumberedFrom = stampNote.renumbered;
@@ -583,6 +593,14 @@ export default async function BoutPage({
 
       {!sealed && !anon && (
         <BoutLiveRefresh boutId={bout.id} version={bout.updatedAt} />
+      )}
+
+      {/* "Tell me how this ends." The reader is here while it is open,
+          which is the only moment this offer makes sense and the only
+          audience the sealed email goes to. Everyone else meets the
+          filed case in the Sunday digest. */}
+      {!sealed && !anon && (
+        <BoutFollowToggle initialOn={following} boutId={bout.id} />
       )}
 
       <div className="arena-tiles">

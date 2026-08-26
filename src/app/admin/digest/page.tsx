@@ -54,7 +54,7 @@ function digestPreviewLines(p: DigestPayload): string[] {
   }
   if (p.cases.length > 0) {
     lines.push(
-      `Case files, in full: ${p.cases
+      `Case files, teased: ${p.cases
         .map(
           (c) =>
             `${c.caseNo != null ? `№ ${String(c.caseNo).padStart(3, "0")} ` : ""}${clip(c.title, 36)}`

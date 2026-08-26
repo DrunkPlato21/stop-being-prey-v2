@@ -7,11 +7,11 @@ import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
 // stopbeingprey.com (DKIM + SPF green). Email content is plain HTML
 // with a matching plain-text fallback.
 
-const FROM_ADDRESS = "Stop Being Prey <noreply@stopbeingprey.com>";
-const REPLY_TO = "clay@stopbeingprey.com";
+export const FROM_ADDRESS = "Stop Being Prey <noreply@stopbeingprey.com>";
+export const REPLY_TO = "clay@stopbeingprey.com";
 
 let cached: Resend | null = null;
-function client(): Resend | null {
+export function resendClient(): Resend | null {
   if (cached) return cached;
   const key = process.env.RESEND_API_KEY;
   if (!key) return null;
@@ -27,7 +27,7 @@ export async function sendMagicLink(args: {
   to: string;
   url: string;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     // Soft-fail in dev when keys aren't set so the page flow can still
     // be exercised. Log the link to the server console so a developer
@@ -158,7 +158,7 @@ export function renderMagicLinkText(url: string): string {
   ].join("\n");
 }
 
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -267,7 +267,7 @@ function rulesFrom(raw: string | null): number[] {
 export async function sendNoMembershipNote(args: {
   to: string;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
@@ -402,7 +402,7 @@ export async function sendReplyNotification(args: {
   pieceUrl: string;
   replyBody: string;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
@@ -544,7 +544,7 @@ export async function sendCommentThreadReplyNotification(args: {
   pieceUrl: string;
   replyBody: string;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
@@ -682,7 +682,7 @@ export async function sendGuildReplyNotification(args: {
     return { ok: false, error: "skipped_in_dev" };
   }
 
-  const resend = client();
+  const resend = resendClient();
   if (!resend) return { ok: false, error: "email_not_configured" };
 
   const threadUrl = `${getBaseUrl()}${args.threadPath}`;
@@ -820,7 +820,7 @@ export async function sendThreadReplyAdminNotification(args: {
   parentExcerpt: string;
   replyBody: string;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
@@ -953,7 +953,7 @@ export async function sendPendingCommentNotification(args: {
   queueUrl: string;
   body: string;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
@@ -1082,7 +1082,7 @@ export async function notifyNewWallDonation(
   donation: WallDonation,
   wallTitle: string
 ): Promise<void> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping notification");
     return;
@@ -1141,7 +1141,7 @@ export async function sendNoteReply(args: {
   visibility: "private" | "public";
   notesUrl: string;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
@@ -1298,7 +1298,7 @@ export async function sendCaseReviewAdminNotification(args: {
   helpWanted: string;
   anonymization: string | null;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
@@ -1389,7 +1389,7 @@ export async function sendCaseReviewMemberConfirmation(args: {
   title: string;
   caseFilesUrl: string;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
@@ -1582,7 +1582,7 @@ async function sendGiftLifecycleEmail(args: {
   text: string;
   logTag: string;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
@@ -2255,7 +2255,7 @@ export async function sendPaymentFailedEmail(args: {
   stage: "first" | "nudge" | "final";
   nextAttemptLabel?: string | null;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
@@ -2762,75 +2762,20 @@ export function renderWeeklyDigestEmail(args: {
       );
       if (rulesText) textLines.push(`Rules applied: ${rulesText}`);
       textLines.push("");
-      for (const tile of cf.tiles) {
-        rows.push(`<tr>
-              <td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:${tile.type === "specimen" ? "#9c4a2f" : tile.type === "bystander" ? "#3f7a4c" : "#8a8077"};font-weight:700;padding:14px 0 6px;">
-                ${escapeHtml(tile.label)}
-              </td>
-            </tr>`);
-        textLines.push(`-- ${tile.label} --`);
-        if (tile.type === "specimen" || tile.type === "bystander") {
-          if (tile.imageUrl) {
-            rows.push(`<tr>
-              <td style="padding-bottom:4px;">
-                <img src="${escapeHtml(abs(tile.imageUrl) ?? tile.imageUrl)}" alt="Screenshot of the exchange" width="456" style="width:100%;max-width:456px;height:auto;border:1px solid #d8cfb8;border-radius:6px;" />
-                <div style="font-family:Georgia,serif;font-size:11.5px;font-style:italic;color:#a89e90;padding-top:5px;">Full transcript on file in the record.</div>
-              </td>
-            </tr>`);
-            textLines.push(tile.transcript || tile.body);
-          } else {
-            const record = tile.transcript || tile.body;
-            rows.push(`<tr>
-              <td style="padding-bottom:4px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid ${tile.type === "bystander" ? "#3f7a4c" : "#9c4a2f"};background:#f5efe1;width:100%;">
-                  <tr><td style="font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.7;color:#4a4238;padding:10px 14px;white-space:pre-wrap;">${escapeHtml(record)}</td></tr>
-                </table>
-              </td>
-            </tr>`);
-            textLines.push(record);
-          }
-        } else if (tile.type === "counter") {
-          rows.push(`<tr>
-              <td style="padding-bottom:4px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;width:100%;">
-                  <tr><td style="font-family:Georgia,serif;font-size:17px;font-style:italic;line-height:1.6;color:#1a1714;padding:2px 0 2px 16px;">&ldquo;${inlineBodyHtml(tile.body)}&rdquo;</td></tr>
-                  ${
-                    showsPostedLive(cf.kind)
-                      ? `<tr><td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding:7px 0 0 16px;">Clay &middot; posted live</td></tr>`
-                      : ""
-                  }
-                </table>
-              </td>
-            </tr>`);
-          // In a post-mortem the counter is the line nobody threw, so it
-          // carries no byline. Same rule the case page follows.
-          textLines.push(
-            showsPostedLive(cf.kind)
-              ? `"${bodyText(tile.body)}" — Clay, posted live`
-              : `"${bodyText(tile.body)}"`
-          );
-        } else {
-          rows.push(`<tr>
-              <td style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#3d3530;padding-bottom:4px;white-space:pre-wrap;">${bodyHtml(tile.body)}</td>
-            </tr>`);
-          textLines.push(bodyText(tile.body));
-        }
-        if (tile.moves.length > 0) {
-          rows.push(`<tr>
-              <td style="padding:6px 0 2px;">
-                ${tile.moves.map((m) => `<span style="display:inline-block;font-family:ui-monospace,Consolas,monospace;font-size:10.5px;letter-spacing:0.08em;color:#8a7d20;border:1px solid #cdbd8a;border-radius:2px;padding:3px 8px;margin:0 6px 4px 0;">${escapeHtml(m.toUpperCase())}</span>`).join("")}
-              </td>
-            </tr>`);
-          textLines.push(`Moves: ${tile.moves.join(", ")}`);
-        }
-        textLines.push("");
-      }
+      // The teaser, in place of the tiles. A filed case reads as a
+      // document with its rounds in order, and an email client is the
+      // worst frame available for it. Reprinting three of them ran the
+      // digest to 45KB and a dozen remote images, which buried every
+      // section below the Arena. So: say how far it went, stamp it,
+      // and send them to the record.
+      const rounds = `${cf.tileCount} ${cf.tileCount === 1 ? "round" : "rounds"}`;
       rows.push(`<tr>
-              <td style="text-align:center;padding:16px 0 20px;">
-                <div style="color:#8a7d20;font-size:0.95rem;letter-spacing:0.3em;">&#10022; SEALED &#10022;</div>
+              <td style="padding:10px 0 2px;">
+                <a href="${escapeHtml(href)}" style="display:inline-block;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.68rem;letter-spacing:0.2em;text-transform:uppercase;font-weight:700;color:#8a7d20;text-decoration:none;border:1px solid #cdbd8a;padding:9px 16px;">Read the case &rarr;</a>
+                <span style="font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#a89e90;padding-left:12px;">${rounds}, sealed</span>
               </td>
             </tr>`);
-      textLines.push("SEALED", "");
+      textLines.push(`${rounds}, sealed. Read the case: ${href}`, "");
     });
     rows.push(`<tr>
               <td style="font-family:Georgia,serif;font-size:14px;padding:0 0 8px 0;">
@@ -2946,7 +2891,7 @@ export async function sendWeeklyDigestEmail(args: {
   /** The RFC 8058 one-click POST endpoint (mail-client header). */
   unsubPostUrl: string;
 }): Promise<SendResult> {
-  const resend = client();
+  const resend = resendClient();
   if (!resend) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(

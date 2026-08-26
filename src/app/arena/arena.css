@@ -1174,3 +1174,31 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
     100% { transform: scale(1) rotate(0deg); }
   }
 }
+
+/* Email switches: the room subscription on the index, the per-bout
+   follow on an open fight. Quieter than a CTA on purpose — this is a
+   preference, not an ask. Reads as "on" by filling the plate, the same
+   grammar the reaction row uses for a reaction you have given. */
+.arena-mail-toggle {
+  display: flex; flex-direction: column; gap: 5px;
+  margin: 0 0 22px;
+}
+.arena-mail-btn {
+  align-self: flex-start; cursor: pointer; border-radius: 3px;
+  background: transparent; border: 1px solid var(--a-rule);
+  color: var(--a-ink-muted); font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase; padding: 8px 15px;
+  font-family: inherit; transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.arena-mail-btn:hover:not(:disabled),
+.arena-mail-btn:focus-visible {
+  border-color: var(--a-gold-deep); color: var(--a-gold); outline: none;
+}
+.arena-mail-btn[data-on="1"] {
+  border-color: var(--a-gold-deep); color: var(--a-gold);
+  background: rgba(201, 168, 76, 0.12);
+}
+.arena-mail-btn:disabled { opacity: 0.55; cursor: default; }
+.arena-mail-note {
+  font-size: 0.72rem; color: var(--a-ink-faint); font-style: italic;
+}

@@ -7,10 +7,8 @@ import {
   boutHref,
   listBouts,
   listTiles,
-  tileTypeLabel,
   type ArenaCaseKind,
 } from "./arena";
-import { findMove } from "./arsenal";
 
 // The weekly digest — the patron report. One email a week to every
 // member, designed supporter-first: roughly half the membership never
@@ -136,10 +134,25 @@ export type DigestPayload = {
     status: "active" | "closed";
   } | null;
   pool: { waiting: number; potCents: number };
-  /** Every Arena case sealed inside this digest's window, in full —
-      the email carries the whole filed case, not a teaser. The rule is
-      dumb on purpose: sealed one, they get one; sealed none, the
-      section vanishes. Oldest first so the numbers read forward. */
+  /** Every Arena case sealed inside this digest's window, as a teaser.
+      The email used to carry each filed case in full, tiles and all.
+      Measured against the three real cases (7, 12 and 7 tiles), that
+      put the digest at 17KB for one seal, 34KB for two and 45KB for
+      three, against 5KB for a week with none. Teasing instead holds it
+      to 8/11/14KB. Not a clipping problem — Gmail's limit is 102KB and
+      even three cases stayed under it — but a reader one, and an image
+      one: three seals meant a dozen remote images and a scroll long
+      enough that the sections after the Arena were unreachable in
+      practice.
+
+      The full case already lives on the site, which is the only frame
+      it reads properly in. What rides the email is what earns the
+      click: the stamp, the title, Clay's dispatch line, and how many
+      rounds it went.
+
+      The rule is dumb on purpose: sealed one, they get one; sealed
+      none, the section vanishes. Oldest first so the numbers read
+      forward. */
   cases: {
     id: string;
     title: string;
@@ -154,16 +167,9 @@ export type DigestPayload = {
     dispatch: string | null;
     sealedAt: number;
     url: string;
-    tiles: {
-      type: string;
-      label: string;
-      body: string;
-      handle: string | null;
-      transcript: string | null;
-      imageUrl: string | null;
-      /** Canonical tags resolved to display names; unnamed as typed. */
-      moves: string[];
-    }[];
+    /** How many rounds the fight went. The one number that sells the
+        click without reprinting the fight. */
+    tileCount: number;
   }[];
   /** Evergreen rotation so the email always has a floor, even on a
       week where every live slot came up empty. Carries the archetype
@@ -386,10 +392,9 @@ export async function assembleDigest(
   // off the prod keyspace, the room contributes nothing.
   const allBouts = ARENA_IS_LIVE ? boutsOnFile : [];
 
-  // Every case sealed inside the window rides the email in full,
-  // oldest first so the case numbers read forward. Specimen tiles show
-  // the screenshot OR the transcript, never both (the email renderer
-  // decides); moves resolve to their Arsenal display names.
+  // Every case sealed inside the window rides the email as a teaser,
+  // oldest first so the case numbers read forward. Tiles are counted,
+  // not carried: see the note on DigestPayload["cases"].
   const sealedThisWeek = allBouts
     .filter(
       (b) =>
@@ -412,18 +417,7 @@ export async function assembleDigest(
       dispatch: bout.dispatch,
       sealedAt: bout.sealedAt ?? now,
       url: boutHref(bout),
-      tiles: tiles.map((t) => ({
-        type: t.type,
-        // A tile Clay named wears that name everywhere, the digest
-        // included: the label is the one thing that tells a reader
-        // which round of a long fight they are looking at.
-        label: t.title ?? tileTypeLabel(t.type, bout.kind),
-        body: t.body,
-        handle: t.handle,
-        transcript: t.transcript,
-        imageUrl: t.imageUrl,
-        moves: t.moves.map((m) => findMove(m)?.name ?? m),
-      })),
+      tileCount: tiles.length,
     });
   }
 
