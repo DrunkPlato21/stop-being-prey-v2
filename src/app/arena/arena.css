@@ -23,9 +23,11 @@
   --a-rust: #a85438;
   /* The third voice. Rust is the opponent and gold is Clay, so someone
      who was in the thread without being in the fight cannot honestly
-     wear either. Sage is the one hue that reads as outside it without
-     turning cold against a warm ground. */
-  --a-sage: #7f9464;
+     wear either. Green because the room is otherwise entirely rust and
+     amber: it is the one direction that reads as another voice rather
+     than a variation on one of the two already speaking. Kept warm
+     enough not to turn clinical against the ground. */
+  --a-sage: #7ab87f;
 
   background: var(--a-ground);
   /* A lamp over the slab. The warm cast at the top and the dark that
@@ -231,18 +233,21 @@
   border: 1px solid var(--a-gold);
   border-radius: 5px;
   padding: 8px 24px 18px;
-  text-align: center;
 }
+/* The crest is centred; the ruling underneath it is not. Centring the
+   body was wrong - a one-line verdict can carry it, and four
+   paragraphs of ragged-both-edges prose cannot be read. */
 .arena-tile.verdict .arena-tile-card::before {
-  content: "º6";
+  content: "✦";
   display: block;
+  text-align: center;
   color: var(--a-gold);
   font-size: 0.85rem;
   line-height: 1;
   margin-bottom: 12px;
 }
 /* The head stacks instead of spanning: a centred label with the stamp
-   under it, so the ornament, the name and the ruling share one axis. */
+   under it, so the ornament and the name share one axis. */
 .arena-tile.verdict .arena-tile-head {
   flex-direction: column;
   align-items: center;
@@ -255,24 +260,38 @@
   font-size: 1.18rem;
   line-height: 1.6;
 }
-/* The room's own controls stay quiet and left-aligned. Centring the
-   reaction row and the bench tools under a verdict would make the
-   furniture look like part of the ruling. */
-.arena-tile.verdict .arena-tile-moves,
-.arena-tile.verdict .arena-engage,
-.arena-tile.verdict .arena-tile-admin,
-.arena-tile.verdict .arena-whisper-quote,
-.arena-tile.verdict .arena-reactedby { text-align: left; }
 
-/* Specimen — the only place the rust marker appears */
-.arena-tile.specimen .arena-tile-card { border-left: 2px solid var(--a-rust); }
+/* Whose words these are, said by the tile and not only by its label.
+   A coloured word and a hairline was the whole signal before, which is
+   nothing at a glance - two tiles a screen apart read as the same tile
+   with a different heading. So the colour now runs the full height of
+   the card and washes its ground. Both types get it, at the same
+   weight: the specimen is still the subject of the case, and a
+   bystander that shouted louder than the person Clay is fighting would
+   have the hierarchy backwards. */
+.arena-tile.specimen .arena-tile-card {
+  border-left: 3px solid var(--a-rust);
+  background:
+    linear-gradient(90deg, rgba(168, 84, 56, 0.09), rgba(168, 84, 56, 0) 220px),
+    var(--a-tile);
+}
 .arena-tile.specimen .arena-eyebrow { color: var(--a-rust); }
-/* Bystander — the same shape as a specimen, because it is built the
-   same way (screenshot, handle, transcript). Only the colour differs,
-   and that is the whole point: the reader can tell at a glance whether
-   the words on screen belong to the person Clay is fighting. */
-.arena-tile.bystander .arena-tile-card { border-left: 2px solid var(--a-sage); }
+/* Bystander - built exactly like a specimen (screenshot, handle,
+   transcript), so the colour is the only thing telling the reader
+   whether the words on screen belong to the person Clay is fighting.
+   It has to carry that on its own. */
+.arena-tile.bystander .arena-tile-card {
+  border-left: 3px solid var(--a-sage);
+  background:
+    linear-gradient(90deg, rgba(122, 184, 127, 0.085), rgba(122, 184, 127, 0) 220px),
+    var(--a-tile);
+}
 .arena-tile.bystander .arena-eyebrow { color: var(--a-sage); }
+/* The tile's number in the gutter picks up the same colour, so the
+   thread of who-is-speaking is readable straight down the left margin
+   without reading a single heading. */
+.arena-tile.specimen .arena-tile-no { color: var(--a-rust); border-color: var(--a-rust); }
+.arena-tile.bystander .arena-tile-no { color: var(--a-sage); border-color: var(--a-sage); }
 .arena-shot {
   background: #13100a; border: 1px solid var(--a-rule-soft); border-radius: 6px;
   padding: 14px 16px; margin: 4px 0 10px;

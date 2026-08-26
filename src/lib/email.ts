@@ -2625,7 +2625,7 @@ export function renderWeeklyDigestEmail(args: {
       textLines.push("");
       for (const tile of cf.tiles) {
         rows.push(`<tr>
-              <td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:${tile.type === "specimen" ? "#9c4a2f" : tile.type === "bystander" ? "#5f7348" : "#8a8077"};font-weight:700;padding:14px 0 6px;">
+              <td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:${tile.type === "specimen" ? "#9c4a2f" : tile.type === "bystander" ? "#3f7a4c" : "#8a8077"};font-weight:700;padding:14px 0 6px;">
                 ${escapeHtml(tile.label)}
               </td>
             </tr>`);
@@ -2643,7 +2643,7 @@ export function renderWeeklyDigestEmail(args: {
             const record = tile.transcript || tile.body;
             rows.push(`<tr>
               <td style="padding-bottom:4px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid ${tile.type === "bystander" ? "#5f7348" : "#9c4a2f"};background:#f5efe1;width:100%;">
+                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid ${tile.type === "bystander" ? "#3f7a4c" : "#9c4a2f"};background:#f5efe1;width:100%;">
                   <tr><td style="font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.7;color:#4a4238;padding:10px 14px;white-space:pre-wrap;">${escapeHtml(record)}</td></tr>
                 </table>
               </td>
