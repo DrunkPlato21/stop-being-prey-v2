@@ -30,6 +30,16 @@
     "source": "Documented in `Strategy/Comment-Warfare.md`, April 30, 2026."
   },
   {
+    "slug": "refuse-the-temperature",
+    "name": "Refuse the temperature",
+    "role": "clay",
+    "definition": "Answer escalating hostility with warmth. The heart emoji, the welcome, the joke, the blessing. Not composure held with effort, an actually friendly register, delivered while he is screaming.",
+    "mechanism": "Rage needs resistance to work. Give it none and there is nothing to push against, so he escalates alone while the audience watches one man being pleasant and another one shouting. Every further comment costs him and costs you nothing, which is why the move pairs with inviting more of them. It also closes his last exit: he cannot claim he was provoked, because the record shows he wasn't.",
+    "counterMove": "N/A (Clay technique).",
+    "status": "Clay-original technique",
+    "source": "Named during Jerry Lee Howell one-shot, August 25 2026."
+  },
+  {
     "slug": "the-10-paywall",
     "name": "The $10 paywall",
     "role": "clay",
@@ -208,6 +218,16 @@
     "counterMove": "Name the script and the upstream source. Treat the speaker as a downstream agent performing the laundering, not as an independent thinker. Walk through each sub-claim, expose the move underneath, then loop back to name the laundering operation as a whole.",
     "status": "Clay-original framing (related to motivated reasoning literature)",
     "source": "Named during Marek Wiechula one-shot, May 9, 2026."
+  },
+  {
+    "slug": "performed-indifference",
+    "name": "Performed indifference",
+    "role": "opponent",
+    "definition": "Declaring something beneath your notice while demonstrating at length that it isn't. \"Charlie Kirk didn't matter,\" from a man ten hours into an argument about Charlie Kirk. The dismissal is offered as a verdict and refuted by the act of delivering it.",
+    "mechanism": "It lets him attack without conceding the target is worth attacking. If the thing were admitted to matter, his contempt would need reasons. Declared trivial, contempt is all that's required. It also protects him from losing, since by his own account nothing was at stake. The move fails the moment somebody counts the hours, because the effort is public, permanent, and he spent it himself.",
+    "counterMove": "Don't argue that it mattered. Count what he built. The hours, the comment count, the time on the clock. His own participation is the refutation and he cannot withdraw it.",
+    "status": "Clay-original framing of an observed pattern",
+    "source": "Named during Jerry Lee Howell one-shot, August 25 2026."
   },
   {
     "slug": "quote-weaponization",
