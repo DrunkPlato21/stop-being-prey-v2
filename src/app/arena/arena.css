@@ -1185,10 +1185,18 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
 }
 .arena-mail-btn {
   align-self: flex-start; cursor: pointer; border-radius: 3px;
+  display: inline-flex; align-items: center; gap: 0;
   background: transparent; border: 1px solid var(--a-rule);
-  color: var(--a-ink-muted); font-size: 0.62rem; font-weight: 700;
-  letter-spacing: 0.18em; text-transform: uppercase; padding: 8px 15px;
+  color: var(--a-ink-muted); font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; padding: 10px 17px;
   font-family: inherit; transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+/* Fixed-width gutter so the label sits in exactly the same place on and
+   off. Without it the tick shunts the words sideways on every press,
+   which reads as the button changing rather than the state changing. */
+.arena-mail-tick {
+  display: inline-block; width: 1.15em; flex: 0 0 1.15em;
+  text-align: left; letter-spacing: 0;
 }
 .arena-mail-btn:hover:not(:disabled),
 .arena-mail-btn:focus-visible {
@@ -1199,6 +1207,10 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   background: rgba(201, 168, 76, 0.12);
 }
 .arena-mail-btn:disabled { opacity: 0.55; cursor: default; }
+/* Bigger than the room's other captions on purpose. This line is the
+   only thing that says whether you are on a mailing list and how to get
+   off it, so it is not the place to be decoratively small. */
 .arena-mail-note {
-  font-size: 0.72rem; color: var(--a-ink-faint); font-style: italic;
+  font-size: 0.82rem; line-height: 1.5; color: var(--a-ink-muted);
+  font-style: italic; max-width: 46ch;
 }

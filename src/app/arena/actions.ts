@@ -303,17 +303,29 @@ export async function whisperAction(formData: FormData): Promise<boolean> {
 // from one of these two deliberate clicks.
 
 /**
+ * The answer these two actions give the button.
+ *
+ * Not a bare boolean. A bare boolean cannot tell "you are now
+ * unsubscribed" apart from "your session expired, so I did nothing and
+ * am returning false" — and those must not look the same, because the
+ * second one leaves someone believing they got off a list they are
+ * still on. A tab left open for a week is exactly how that happens.
+ */
+export type MailToggleResult = { ok: boolean; on: boolean };
+
+/**
  * Subscribe (or unsubscribe) from the alert when a fight starts.
  * Room-level and standing. Returns the state it settled on so the
  * button can show the truth rather than an optimistic guess.
  */
 export async function setArenaSubscribedAction(
   formData: FormData
-): Promise<boolean> {
+): Promise<MailToggleResult> {
   const session = await requireSession();
-  if (!session) return false;
   const on = String(formData.get("on") ?? "") === "1";
-  return setArenaSubscribed(session.email, on);
+  if (!session) return { ok: false, on: !on };
+  const settled = await setArenaSubscribed(session.email, on);
+  return { ok: true, on: settled };
 }
 
 /**
@@ -325,13 +337,15 @@ export async function setArenaSubscribedAction(
  */
 export async function setBoutFollowAction(
   formData: FormData
-): Promise<boolean> {
-  const session = await requireSession();
-  if (!session) return false;
-  const boutId = String(formData.get("boutId") ?? "");
-  if (!boutId) return false;
+): Promise<MailToggleResult> {
   const on = String(formData.get("on") ?? "") === "1";
+  const failed: MailToggleResult = { ok: false, on: !on };
+  const session = await requireSession();
+  if (!session) return failed;
+  const boutId = String(formData.get("boutId") ?? "");
+  if (!boutId) return failed;
   const bout = await getBout(boutId);
-  if (!bout || bout.status !== "open") return false;
-  return setBoutFollow(boutId, session.email, on);
+  if (!bout || bout.status !== "open") return failed;
+  const settled = await setBoutFollow(boutId, session.email, on);
+  return { ok: true, on: settled };
 }
