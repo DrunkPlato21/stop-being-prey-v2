@@ -8,6 +8,7 @@ import {
 import { getWallOverride } from "@/lib/active-wall";
 import { getAllWalls } from "@/lib/walls";
 import { listPresenceSnapshot } from "@/lib/presence";
+import { describePresence } from "@/lib/presence-labels";
 import { listAll } from "@/lib/notes";
 import {
   ActiveWallControl,
@@ -83,7 +84,7 @@ export default async function DeskAdminPage() {
     getPresence(),
     listAll({ status: "active", limit: 50 }),
     getWallOverride(),
-    listPresenceSnapshot(presenceSinceMs, now),
+    listPresenceSnapshot(presenceSinceMs, now).then(describePresence),
     listWatchPosts(20),
   ]);
   const current = updates[0];

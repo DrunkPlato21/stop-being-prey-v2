@@ -13,6 +13,9 @@ type Entry = {
   email: string;
   displayName: string | null;
   path: string;
+  /** Human name for an id-shaped path (a bout or thread title), when
+      the server could resolve one. Absent means show the path. */
+  label?: string | null;
   section: { id: string; label: string };
   lastSeenAt: number;
 };
@@ -55,7 +58,10 @@ function displayFor(e: Entry): string {
   return local || e.email;
 }
 
-function truncatePath(p: string, max = 40): string {
+// Now clips a resolved name as well as a path, so it lost the "Path"
+// in its name. Same ellipsis either way; the full value stays on the
+// row's title attribute.
+function truncate(p: string, max = 40): string {
   if (p.length <= max) return p;
   return p.slice(0, max - 1) + "…";
 }
@@ -321,7 +327,11 @@ export function PresencePanel({
                     <span className="mx-2 text-ink-faint" aria-hidden="true">
                       ·
                     </span>
-                    <span className="font-mono">{truncatePath(e.path)}</span>
+                    {e.label ? (
+                      <span>{truncate(e.label, 44)}</span>
+                    ) : (
+                      <span className="font-mono">{truncate(e.path, 44)}</span>
+                    )}
                   </p>
                 </div>
                 <span

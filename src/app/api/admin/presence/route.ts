@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { listPresenceSnapshot, summarizeBySection } from "@/lib/presence";
+import { describePresence } from "@/lib/presence-labels";
 
 // GET /api/admin/presence?window=5
 //
@@ -27,7 +28,9 @@ export async function GET(req: NextRequest) {
   const windowMinutes = parseWindow(req.nextUrl.searchParams.get("window"));
   const now = Date.now();
   const sinceMs = now - windowMinutes * 60 * 1000;
-  const entries = await listPresenceSnapshot(sinceMs, now);
+  const entries = await describePresence(
+    await listPresenceSnapshot(sinceMs, now)
+  );
   const sections = summarizeBySection(entries);
   return Response.json({
     ok: true,

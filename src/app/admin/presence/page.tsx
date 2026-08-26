@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { listPresenceSnapshot, summarizeBySection } from "@/lib/presence";
+import { describePresence } from "@/lib/presence-labels";
 import { PresencePanel } from "@/components/PresencePanel";
 
 // /admin/presence — site-wide "who's on the site right now" panel.
@@ -27,7 +28,9 @@ const WINDOW_MINUTES = 30;
 export default async function PresenceAdminPage() {
   const now = Date.now();
   const sinceMs = now - WINDOW_MINUTES * 60 * 1000;
-  const entries = await listPresenceSnapshot(sinceMs, now);
+  const entries = await describePresence(
+    await listPresenceSnapshot(sinceMs, now)
+  );
   const sections = summarizeBySection(entries);
 
   return (

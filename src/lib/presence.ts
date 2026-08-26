@@ -63,6 +63,8 @@ export async function recordPresence(
 export type SectionId =
   | "desk"
   | "lounge"
+  | "arena"
+  | "guild"
   | "case-files"
   | "member-area"
   | "notifications"
@@ -79,6 +81,8 @@ export type Section = {
 export const SECTIONS: Section[] = [
   { id: "desk", label: "Writer's Desk" },
   { id: "lounge", label: "The Lounge" },
+  { id: "arena", label: "The Arena" },
+  { id: "guild", label: "The Guild" },
   { id: "case-files", label: "Case Files" },
   { id: "member-area", label: "Member area" },
   { id: "notifications", label: "Notifications" },
@@ -103,6 +107,15 @@ export function sectionForPath(path: string): Section {
   }
   if (path === "/lounge" || path.startsWith("/lounge/")) {
     return SECTION_BY_ID.lounge;
+  }
+  // Both rooms postdate this taxonomy and had been falling through to
+  // "Elsewhere", which made the two busiest member surfaces on the site
+  // invisible in the one panel that answers "where is everyone".
+  if (path === "/arena" || path.startsWith("/arena/")) {
+    return SECTION_BY_ID.arena;
+  }
+  if (path === "/guild" || path.startsWith("/guild/")) {
+    return SECTION_BY_ID.guild;
   }
   if (path === "/case-files" || path.startsWith("/case-files/")) {
     return SECTION_BY_ID["case-files"];
@@ -149,6 +162,14 @@ export type PresenceEntry = {
   displayName: string | null;
   /** Last path the member was on. */
   path: string;
+  /**
+   * Human name for that path, when one can be resolved — the bout or
+   * thread title behind an id-shaped URL. Null when the path speaks for
+   * itself (/lounge) or the thing behind it is gone. Filled in by
+   * describePresence(); the raw path is always kept, because it is what
+   * you paste to go and look.
+   */
+  label?: string | null;
   section: Section;
   lastSeenAt: number;
 };
