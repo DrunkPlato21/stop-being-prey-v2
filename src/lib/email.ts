@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import type { WallDonation } from "@/lib/wallDonations";
 import { displayName as wallDonationDisplayName } from "@/lib/wallDonations";
+import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
 
 // Resend wrapper. Single transactional sender. Verified domain is
 // stopbeingprey.com (DKIM + SPF green). Email content is plain HTML
@@ -226,6 +227,23 @@ function bodyText(text: string): string {
     .replace(/\*\*([^*]+?)\*\*/g, "$1")
     .replace(/\*([^*\n]+?)\*/g, "$1")
     .replace(/^>\s?/gm, "");
+}
+
+// The rules a case turned on, as links. The field is free text so the
+// bench stays one box to type "1, 5" into; the numbers come back out
+// here the same way the case page pulls them, and for the same reason
+// - a member who does not know Rule V by heart should be one tap from
+// reading it. Kept in step with the RulesApplied component on the bout
+// page by hand. A field with no rule number in it at all is printed
+// as typed; a number outside 1-7 mixed in with good ones is dropped.
+function rulesFrom(raw: string | null): number[] {
+  if (!raw) return [];
+  const seen = new Set<number>();
+  for (const m of raw.matchAll(/\d+/g)) {
+    const n = Number(m[0]);
+    if (n >= 1 && n <= RULE_ROMAN.length) seen.add(n);
+  }
+  return [...seen].sort((a, b) => a - b);
 }
 
 /* === No-membership note ====================================
@@ -2546,12 +2564,30 @@ export function renderWeeklyDigestEmail(args: {
           ? `CASE &#8470; ${String(cf.caseNo).padStart(3, "0")}`
           : null,
         cf.archetype ? escapeHtml(cf.archetype.toUpperCase()) : null,
-        cf.rulesApplied
-          ? `RULES ${escapeHtml(cf.rulesApplied.toUpperCase())}`
-          : null,
       ]
         .filter(Boolean)
         .join(" &middot; ");
+      // Rules ride under the stamp rather than inside it, so each one
+      // can be its own link without turning the plate into a row of
+      // anchors. Same anchors the case page uses.
+      const ruleNos = rulesFrom(cf.rulesApplied);
+      const rulesHtml =
+        ruleNos.length > 0
+          ? ruleNos
+              .map(
+                (n) =>
+                  `<a href="${escapeHtml(`${args.siteUrl}/rules#rule-${n}`)}" style="color:#8a7d20;text-decoration:none;">Rule ${RULE_ROMAN[n - 1]} &middot; ${escapeHtml(RULE_SHORT_LABEL[n])}</a>`
+              )
+              .join(`<span style="color:#cdbd8a;"> &nbsp;&middot;&nbsp; </span>`)
+          : cf.rulesApplied
+            ? escapeHtml(cf.rulesApplied)
+            : "";
+      const rulesText =
+        ruleNos.length > 0
+          ? ruleNos
+              .map((n) => `Rule ${RULE_ROMAN[n - 1]} - ${RULE_SHORT_LABEL[n]}`)
+              .join(", ")
+          : cf.rulesApplied ?? "";
       if (ci > 0) {
         rows.push(`<tr><td style="border-top:1px solid #e2d9c1;padding-top:22px;"></td></tr>`);
       }
@@ -2570,23 +2606,31 @@ export function renderWeeklyDigestEmail(args: {
                 <span style="display:inline-block;font-family:ui-monospace,Consolas,monospace;font-size:11px;letter-spacing:0.06em;color:#8a7d20;border:1px solid #cdbd8a;background:#f3ecd8;padding:5px 9px;">${stamp || "FILED"}</span>
               </td>
             </tr>
+            ${
+              rulesHtml
+                ? `<tr>
+              <td style="font-family:ui-monospace,Consolas,monospace;font-size:11px;letter-spacing:0.05em;color:#8a8077;padding:7px 0 0;">Rules applied &nbsp; ${rulesHtml}</td>
+            </tr>`
+                : ""
+            }
             <tr>
               <td style="font-family:Georgia,'Times New Roman',serif;font-size:1.3rem;font-weight:700;color:#1a1714;letter-spacing:-0.01em;line-height:1.2;padding:6px 0 2px;">
                 <a href="${escapeHtml(href)}" style="color:#1a1714;text-decoration:none;">${escapeHtml(cf.title)}</a>
               </td>
             </tr>`);
       textLines.push(
-        `${cf.caseNo != null ? `CASE ${String(cf.caseNo).padStart(3, "0")}: ` : ""}${cf.title}${cf.archetype ? ` (${cf.archetype})` : ""}`,
-        ""
+        `${cf.caseNo != null ? `CASE ${String(cf.caseNo).padStart(3, "0")}: ` : ""}${cf.title}${cf.archetype ? ` (${cf.archetype})` : ""}`
       );
+      if (rulesText) textLines.push(`Rules applied: ${rulesText}`);
+      textLines.push("");
       for (const tile of cf.tiles) {
         rows.push(`<tr>
-              <td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:${tile.type === "specimen" ? "#9c4a2f" : "#8a8077"};font-weight:700;padding:14px 0 6px;">
+              <td style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:${tile.type === "specimen" ? "#9c4a2f" : tile.type === "bystander" ? "#5f7348" : "#8a8077"};font-weight:700;padding:14px 0 6px;">
                 ${escapeHtml(tile.label)}
               </td>
             </tr>`);
         textLines.push(`-- ${tile.label} --`);
-        if (tile.type === "specimen") {
+        if (tile.type === "specimen" || tile.type === "bystander") {
           if (tile.imageUrl) {
             rows.push(`<tr>
               <td style="padding-bottom:4px;">
@@ -2599,7 +2643,7 @@ export function renderWeeklyDigestEmail(args: {
             const record = tile.transcript || tile.body;
             rows.push(`<tr>
               <td style="padding-bottom:4px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid #9c4a2f;background:#f5efe1;width:100%;">
+                <table role="presentation" cellspacing="0" cellpadding="0" style="border-left:2px solid ${tile.type === "bystander" ? "#5f7348" : "#9c4a2f"};background:#f5efe1;width:100%;">
                   <tr><td style="font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.7;color:#4a4238;padding:10px 14px;white-space:pre-wrap;">${escapeHtml(record)}</td></tr>
                 </table>
               </td>

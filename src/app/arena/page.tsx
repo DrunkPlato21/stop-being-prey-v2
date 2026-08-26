@@ -111,11 +111,12 @@ function CaseRows({ bouts, admin }: { bouts: ArenaBout[]; admin: boolean }) {
   return (
     <>
       {bouts.map((bout) => (
-        <Link
-          key={bout.id}
-          href={boutHref(bout)}
-          className="arsenal-plate case"
-        >
+        // The plate is a div, not one big anchor, so the things inside
+        // it can be clicked. The title's link is stretched over the
+        // whole plate (see .plate-link::after), which keeps the fat
+        // tap target the anchor used to give, and the chips sit above
+        // that overlay so they can be their own links.
+        <div key={bout.id} className="arsenal-plate case">
           <span className="arsenal-stampblock">
             <span aria-hidden="true" className="mk">
               &#10022;
@@ -126,14 +127,16 @@ function CaseRows({ bouts, admin }: { bouts: ArenaBout[]; admin: boolean }) {
             </span>
           </span>
           <span className="arsenal-platebody">
-            <span className="row-title">
-              {bout.kind !== "bout" && (
-                <span className="arena-kind-tag">
-                  {CASE_KIND_LABEL[bout.kind]}
-                </span>
-              )}
-              {bout.title}
-            </span>
+            <Link href={boutHref(bout)} className="plate-link">
+              <span className="row-title">
+                {bout.kind !== "bout" && (
+                  <span className="arena-kind-tag">
+                    {CASE_KIND_LABEL[bout.kind]}
+                  </span>
+                )}
+                {bout.title}
+              </span>
+            </Link>
             <span className="arena-meta" style={{ display: "block", marginTop: 4 }}>
               {[
                 bout.archetype,
@@ -149,17 +152,31 @@ function CaseRows({ bouts, admin }: { bouts: ArenaBout[]; admin: boolean }) {
             {bout.moves.length > 0 && (
               <span className="arena-caserow-moves">
                 {bout.moves.slice(0, 4).map((m) => (
-                  <MoveChip key={m} tag={m} linked={false} />
+                  <MoveChip key={m} tag={m} />
                 ))}
                 {bout.moves.length > 4 && (
-                  <span className="arena-chip-move more">
-                    +{bout.moves.length - 4}
-                  </span>
+                  // The rest, one tap away. A plate stays one line of
+                  // chips at rest, which is what the truncation was
+                  // for, and the count opens into the full set instead
+                  // of being a number nobody can act on.
+                  <details className="arena-more-moves">
+                    <summary
+                      className="arena-chip-move more"
+                      aria-label={`Show ${bout.moves.length - 4} more moves`}
+                    >
+                      +{bout.moves.length - 4}
+                    </summary>
+                    <span className="extra">
+                      {bout.moves.slice(4).map((m) => (
+                        <MoveChip key={m} tag={m} />
+                      ))}
+                    </span>
+                  </details>
                 )}
               </span>
             )}
           </span>
-        </Link>
+        </div>
       ))}
     </>
   );

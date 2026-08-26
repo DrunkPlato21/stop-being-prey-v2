@@ -5,6 +5,7 @@ import { resizeImageToWebp } from "@/lib/image-resize";
 import { addTileAction } from "@/app/arena/actions";
 import {
   ARENA_MAX_TILE_TITLE,
+  carriesTheirWords,
   TILE_TYPES,
   tileTypeLabel,
   type ArenaCaseKind,
@@ -83,7 +84,7 @@ export function ArenaBench({
   // for the same reason - the box is gone from the DOM, and the height
   // has to be taken again when it returns.
   useAutoGrow(bodyRef, preview.previewing ? "" : body);
-  useAutoGrow(transcriptRef, type === "specimen" ? transcript : "");
+  useAutoGrow(transcriptRef, carriesTheirWords(type) ? transcript : "");
 
   // The screenshot gets read as well as stored: the vision model
   // returns handle + verbatim transcript + timestamp, and the bench
@@ -201,7 +202,7 @@ export function ArenaBench({
               ))}
             </select>
           </label>
-          {type === "specimen" && (
+          {carriesTheirWords(type) && (
             <input
               ref={handleRef}
               name="handle"
@@ -223,7 +224,7 @@ export function ArenaBench({
         {/* A specimen is their words, verbatim, and renders raw - no
             formatting pass runs on it, so offering the buttons there
             would only bake asterisks into the evidence. */}
-        {type !== "specimen" && (
+        {!carriesTheirWords(type) && (
           <FormatToolbar
             textareaRef={bodyRef}
             value={body}
@@ -251,7 +252,7 @@ export function ArenaBench({
           style={preview.previewing ? { display: "none" } : undefined}
           placeholder="The tile. Their words for a specimen, your line for a counter, your read for the rest. Ctrl+V a screenshot anywhere in here."
         />
-        {type === "specimen" && (
+        {carriesTheirWords(type) && (
           <textarea
             ref={transcriptRef}
             name="transcript"

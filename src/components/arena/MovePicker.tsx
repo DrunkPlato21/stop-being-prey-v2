@@ -39,11 +39,31 @@ export function MovePicker({ initial }: { initial?: string[] } = {}) {
     setTags((prev) => prev.filter((t) => t !== tag));
   }
 
+  // What Enter would have done, for the paths that are not Enter. A
+  // half-typed query resolves to the match the menu is offering, the
+  // same as pressing Enter on it, rather than becoming an unnamed move
+  // named after an abbreviation.
+  function commitPending() {
+    if (matches.length > 0) add(matches[0].slug);
+    else if (query.trim()) add(query);
+  }
+
+  // Anything still sitting in the input is part of the tile. Only
+  // committed chips used to be submitted, so a move typed and not
+  // entered - the natural thing to do, type it and reach for Post
+  // Tile - was dropped without a word. Blur commits it so it is
+  // visible before posting; this keeps it even when the submit beats
+  // the blur.
+  const pending = query.trim();
+  const submitted =
+    pending && tags.length < ARENA_MAX_MOVES && !tags.includes(pending)
+      ? [...tags, findMove(pending)?.slug ?? pending]
+      : tags;
+
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (matches.length > 0) add(matches[0].slug);
-      else if (query.trim()) add(query);
+      commitPending();
     } else if (e.key === "Backspace" && !query && tags.length > 0) {
       remove(tags[tags.length - 1]);
     }
@@ -51,7 +71,7 @@ export function MovePicker({ initial }: { initial?: string[] } = {}) {
 
   return (
     <div className="arena-movepicker">
-      <input type="hidden" name="moves" value={tags.join(",")} />
+      <input type="hidden" name="moves" value={submitted.join(",")} />
       <div className="arena-movepicker-row">
         {tags.map((t) => {
           const move = findMove(t);
@@ -82,7 +102,13 @@ export function MovePicker({ initial }: { initial?: string[] } = {}) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             onFocus={() => setFocused(true)}
-            onBlur={() => setTimeout(() => setFocused(false), 150)}
+            onBlur={() => {
+              // A suggestion click cancels its own blur (mousedown is
+              // preventDefault-ed), so this only ever fires on a real
+              // move away from the box.
+              commitPending();
+              setTimeout(() => setFocused(false), 150);
+            }}
             placeholder={
               tags.length === 0
                 ? "Tag the moves. Type to search the Arsenal."

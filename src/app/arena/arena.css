@@ -21,6 +21,11 @@
   --a-gold: #c9a84c;
   --a-gold-deep: #8a7d20;
   --a-rust: #a85438;
+  /* The third voice. Rust is the opponent and gold is Clay, so someone
+     who was in the thread without being in the fight cannot honestly
+     wear either. Sage is the one hue that reads as outside it without
+     turning cold against a warm ground. */
+  --a-sage: #7f9464;
 
   background: var(--a-ground);
   /* A lamp over the slab. The warm cast at the top and the dark that
@@ -213,9 +218,61 @@
 .arena-stamp { font-family: ui-monospace, Consolas, monospace; font-size: 0.66rem; color: var(--a-ink-faint); white-space: nowrap; }
 .arena-tile-card p { margin: 0 0 0.9em; }
 
+/* Verdict - the ruling, and the one tile that is not another beat in
+   the stream. Framed on all four sides rather than rule-and-left-edge,
+   lifted onto the raised ground, and set in the brightest ink the room
+   has. No new colour: rust is them and gold is Clay everywhere else,
+   and a third hue here would only ask the reader who is speaking. The
+   difference is weight - full-strength gold instead of the deep, bone
+   instead of muted ink, and the mark above the label the way the seal
+   below carries it. */
+.arena-tile.verdict .arena-tile-card {
+  background: var(--a-raised);
+  border: 1px solid var(--a-gold);
+  border-radius: 5px;
+  padding: 8px 24px 18px;
+  text-align: center;
+}
+.arena-tile.verdict .arena-tile-card::before {
+  content: "º6";
+  display: block;
+  color: var(--a-gold);
+  font-size: 0.85rem;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+/* The head stacks instead of spanning: a centred label with the stamp
+   under it, so the ornament, the name and the ruling share one axis. */
+.arena-tile.verdict .arena-tile-head {
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.arena-tile.verdict .arena-eyebrow { color: var(--a-gold); font-size: 0.72rem; }
+.arena-tile.verdict .arena-tile-card > div[style] {
+  color: var(--a-ink);
+  font-size: 1.18rem;
+  line-height: 1.6;
+}
+/* The room's own controls stay quiet and left-aligned. Centring the
+   reaction row and the bench tools under a verdict would make the
+   furniture look like part of the ruling. */
+.arena-tile.verdict .arena-tile-moves,
+.arena-tile.verdict .arena-engage,
+.arena-tile.verdict .arena-tile-admin,
+.arena-tile.verdict .arena-whisper-quote,
+.arena-tile.verdict .arena-reactedby { text-align: left; }
+
 /* Specimen — the only place the rust marker appears */
 .arena-tile.specimen .arena-tile-card { border-left: 2px solid var(--a-rust); }
 .arena-tile.specimen .arena-eyebrow { color: var(--a-rust); }
+/* Bystander — the same shape as a specimen, because it is built the
+   same way (screenshot, handle, transcript). Only the colour differs,
+   and that is the whole point: the reader can tell at a glance whether
+   the words on screen belong to the person Clay is fighting. */
+.arena-tile.bystander .arena-tile-card { border-left: 2px solid var(--a-sage); }
+.arena-tile.bystander .arena-eyebrow { color: var(--a-sage); }
 .arena-shot {
   background: #13100a; border: 1px solid var(--a-rule-soft); border-radius: 6px;
   padding: 14px 16px; margin: 4px 0 10px;
@@ -401,6 +458,20 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
 }
 .arena-whisper-quote .who { font-family: ui-monospace, Consolas, monospace; font-size: 0.66rem; color: var(--a-ink-faint); margin-top: 4px; }
 
+/* Who reacted - admin only, and deliberately quieter than a whisper.
+   A whisper is someone talking to Clay and gets a raised card; a
+   reaction is a gesture, so it gets a line. One row per emoji, names
+   run together after it, so the answer to "who laughed at this" is
+   read rather than scanned. */
+.arena-reactedby { margin: 8px 0 2px; }
+.arena-reactedby .row {
+  display: flex; align-items: baseline; gap: 8px; padding: 2px 0;
+}
+.arena-reactedby .emoji { font-size: 0.9rem; line-height: 1.4; flex: none; }
+.arena-reactedby .who {
+  font-size: 0.74rem; line-height: 1.5; color: var(--a-ink-faint);
+}
+
 /* Open-bout ember */
 .arena-developing { position: relative; display: flex; align-items: center; gap: 12px; padding: 4px 0 0 46px; color: var(--a-ink-faint); }
 .arena-developing .pulse {
@@ -494,6 +565,27 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
 .arena-tools .submit:focus-visible, .arena-seal-btn:focus-visible { background: rgba(201, 168, 76, 0.12); outline: none; }
 
 /* ── Case-file dress (sealed bouts) ──────────── */
+/* Rules applied - a second line inside the case plate, and the only
+   place doctrine and record touch. Links, not decoration: the point is
+   that a reader who does not know Rule V yet can go and read it. Kept
+   to the plate's own monospace so it reads as part of the stamp rather
+   than as a row of buttons competing with the move chips. */
+.arena-rules-line {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px;
+  margin-top: 7px; padding-top: 7px;
+  border-top: 1px solid var(--a-gold-deep);
+  text-transform: none; letter-spacing: 0.05em;
+}
+.arena-rules-line .lead { color: var(--a-ink-faint); }
+.arena-room .arena-rules-line a {
+  color: var(--a-gold); text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.arena-room .arena-rules-line a:hover,
+.arena-room .arena-rules-line a:focus-visible {
+  border-bottom-color: var(--a-gold); outline: none;
+}
+
 .arena-case-meta {
   font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem;
   letter-spacing: 0.08em; color: var(--a-gold);
@@ -1006,6 +1098,28 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
 }
 .arena-chip-move.more {
   color: var(--a-ink-faint); border-style: dashed;
+}
+/* The plate used to be one big anchor, which made every chip inside it
+   dead - a move you could read and not follow, on the one surface where
+   following it is the point. Now the title carries a link stretched over
+   the whole plate, so the tap target is unchanged, and anything that
+   wants to be clickable lifts itself above the overlay. */
+.arsenal-plate .plate-link { text-decoration: none; color: inherit; }
+.arsenal-plate .plate-link::after {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+}
+.arena-room .arsenal-plate .plate-link { color: inherit; }
+.arena-caserow-moves { position: relative; z-index: 1; }
+/* Closed, the count is just another chip on the row. Open, it takes a
+   line of its own so the moves it was hiding have somewhere to go, and
+   it stays on screen as the way back. */
+.arena-more-moves > summary {
+  cursor: pointer; list-style: none; display: inline-flex;
+}
+.arena-more-moves > summary::-webkit-details-marker { display: none; }
+.arena-more-moves[open] { flex: 1 0 100%; }
+.arena-more-moves .extra {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
 }
 
 /* ── The room breathes (live bouts only) ─────── */

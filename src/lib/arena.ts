@@ -91,6 +91,7 @@ export {
   ARENA_MAX_WHISPER,
   isTileType,
   isCaseKind,
+  carriesTheirWords,
   showsPostedLive,
   tileTypeLabel,
   CASE_KIND_LABEL,
@@ -1064,6 +1065,25 @@ export async function setMyReaction(
   if (!tile) return;
   const bout = await getBout(tile.boutId);
   if (bout && bout.status === "open") await saveBout(bout);
+}
+
+/** Who reacted, and with what. Clay's read on his own room: the
+    counts are what the room sees, and this is the register behind
+    them. Admin surfaces only - the member view never calls it, the
+    same rule the whispers follow. Sorted so the list reads the same
+    on every refresh rather than in whatever order the hash returns. */
+export async function listTileReactors(
+  tileId: string
+): Promise<{ email: string; key: ReactionKey }[]> {
+  const client = getClient();
+  if (!client) return [];
+  const raw =
+    (await client.hgetall<Record<string, string>>(tileReactedByKey(tileId))) ??
+    {};
+  return Object.entries(raw)
+    .filter((e): e is [string, ReactionKey] => isReactionKey(e[1]))
+    .map(([email, key]) => ({ email, key }))
+    .sort((a, b) => a.email.localeCompare(b.email));
 }
 
 export async function getTileReactions(

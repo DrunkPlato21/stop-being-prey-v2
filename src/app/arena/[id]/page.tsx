@@ -19,6 +19,7 @@ import {
   getTileReactions,
   isBoutPublic,
   listTiles,
+  listTileReactors,
   listWhispers,
   nextCaseNo,
   TILE_TYPE_LABEL,
@@ -28,6 +29,7 @@ import {
 import {
   ARENA_LIVE_WINDOW_MS,
   showsPostedLive,
+  carriesTheirWords,
   tileTypeLabel,
   CASE_KIND_LABEL,
   type ArenaCaseKind,
@@ -35,6 +37,8 @@ import {
   caseNoStr,
   ARENA_TZ,
 } from "@/lib/arena-constants";
+import { REACTION_EMOJI, type ReactionKey } from "@/lib/lounge";
+import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
 import { formatGuildBody, GUILD_BODY_STYLE } from "@/components/guild/format-body";
 import { TileEngage } from "@/components/arena/TileEngage";
 import { MoveChip } from "@/components/arena/MoveChip";
@@ -121,6 +125,45 @@ function fileDate(ms: number): string {
     .toUpperCase();
 }
 
+// The rules a case turned on, as links rather than as a number. The
+// field is free text so the bench stays one box to type "1, 5" into,
+// and the numbers are pulled back out here: a reader who does not yet
+// know Rule V by heart gets its name and a way to go read it, which is
+// the whole reason the doctrine and the record live on one site. The
+// old markdown case files did exactly this and the Arena had lost it.
+// A field with no rule number in it at all is printed as typed, so a
+// note in the box is never swallowed. A number outside 1-7 mixed in
+// with good ones is dropped, which is the right call for a typo when
+// there are only seven rules to pick from.
+function rulesFrom(raw: string | null): number[] {
+  if (!raw) return [];
+  const seen = new Set<number>();
+  for (const m of raw.matchAll(/\d+/g)) {
+    const n = Number(m[0]);
+    if (n >= 1 && n <= RULE_ROMAN.length) seen.add(n);
+  }
+  return [...seen].sort((a, b) => a - b);
+}
+
+function RulesApplied({ raw }: { raw: string | null }) {
+  const rules = rulesFrom(raw);
+  if (rules.length === 0) {
+    return raw ? (
+      <div className="arena-rules-line">Rules applied: {raw}</div>
+    ) : null;
+  }
+  return (
+    <div className="arena-rules-line">
+      <span className="lead">Rules applied</span>
+      {rules.map((n) => (
+        <Link key={n} href={`/rules#rule-${n}`}>
+          Rule {RULE_ROMAN[n - 1]} &middot; {RULE_SHORT_LABEL[n]}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 // Plain <img> for tile shots on purpose: Blob URLs on a member-only
 // page; next/image transforms would bill per unique screenshot for an
 // audience of members.
@@ -136,7 +179,7 @@ function TileBody({
   tile: ArenaTile;
   kind: ArenaCaseKind;
 }) {
-  if (tile.type === "specimen") {
+  if (carriesTheirWords(tile.type)) {
     // Say it once. A specimen can carry three copies of the same
     // sentence — the screenshot, the body, and the transcript — which is
     // right for a forty-reply thread (proof, the line being dissected,
@@ -212,6 +255,39 @@ function TileBody({
 // answers neither, so the name he'd recognize from the Lounge and the
 // Guild leads, with the email under it for the members who never set
 // one (and for when he needs to reply outside the room).
+// Who reacted, for Clay alone. The room sees a count; this is the
+// register behind it. Grouped by reaction rather than listed per
+// person, because the question he actually has is "who laughed at
+// this one" - one line per emoji answers it at a glance, where a
+// name-then-emoji list makes him scan. Falls back to the email only
+// when a member has never set a display name.
+function AdminReactors({
+  reactors,
+  names,
+}: {
+  reactors: { email: string; key: ReactionKey }[];
+  names: Map<string, string | null>;
+}) {
+  if (reactors.length === 0) return null;
+  const byKey = new Map<ReactionKey, string[]>();
+  for (const r of reactors) {
+    const who = names.get(r.email.toLowerCase()) ?? r.email;
+    byKey.set(r.key, [...(byKey.get(r.key) ?? []), who]);
+  }
+  return (
+    <div className="arena-reactedby">
+      {Array.from(byKey.entries()).map(([key, who]) => (
+        <div key={key} className="row">
+          <span className="emoji" aria-hidden="true">
+            {REACTION_EMOJI[key]}
+          </span>
+          <span className="who">{who.join(", ")}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AdminWhispers({
   whispers,
   names,
@@ -289,7 +365,7 @@ export default async function BoutPage({
         .length > 0);
   const tiles = publicView?.tiles ?? (await listTiles(bout.id));
 
-  const [reactions, whispers, defaultCaseNo, source] = await Promise.all([
+  const [reactions, whispers, reactors, defaultCaseNo, source] = await Promise.all([
     publicView
       ? Promise.resolve(publicView.reactions)
       : Promise.all(
@@ -298,6 +374,13 @@ export default async function BoutPage({
     admin
       ? Promise.all(tiles.map((t) => listWhispers(t.id)))
       : Promise.resolve(tiles.map(() => [] as ArenaWhisper[])),
+    // The register behind the counts, his eyes only. A member's render
+    // never asks for it, the same rule the whispers follow.
+    admin
+      ? Promise.all(tiles.map((t) => listTileReactors(t.id)))
+      : Promise.resolve(
+          tiles.map(() => [] as { email: string; key: ReactionKey }[])
+        ),
     admin && !sealed
       ? bout.caseNo ?? nextCaseNo()
       : Promise.resolve(null),
@@ -306,15 +389,17 @@ export default async function BoutPage({
     admin ? getBoutSource(bout.id) : Promise.resolve(null),
   ]);
 
-  // One batched read for every whisperer on the bout, so a tile with
-  // five whispers doesn't cost five profile lookups.
+  // One batched read for everyone who whispered or reacted anywhere on
+  // the bout, so a tile with five of each doesn't cost ten profile
+  // lookups. Both lists read from the same map.
   const whisperNames = admin
     ? new Map(
         Array.from(
           (
-            await getProfilesByEmails(
-              whispers.flat().map((w) => w.email)
-            ).catch(() => new Map())
+            await getProfilesByEmails([
+              ...whispers.flat().map((w) => w.email),
+              ...reactors.flat().map((r) => r.email),
+            ]).catch(() => new Map())
           ).entries()
         ).map(([email, profile]) => [
           email,
@@ -447,11 +532,11 @@ export default async function BoutPage({
                 ? CASE_KIND_LABEL[bout.kind].toUpperCase()
                 : null,
               bout.archetype ? `ARCHETYPE: ${bout.archetype}` : null,
-              bout.rulesApplied ? `RULES APPLIED: ${bout.rulesApplied}` : null,
               bout.sealedAt ? `FILED ${fileDate(bout.sealedAt)}` : null,
             ]
               .filter(Boolean)
               .join(" · ")}
+            <RulesApplied raw={bout.rulesApplied} />
           </div>
         ) : (
           <div className="arena-meta">
@@ -531,6 +616,9 @@ export default async function BoutPage({
                 canEngage={!anon}
               />
               {admin && <TileAdminTools tile={tile} kind={bout.kind} />}
+              {admin && (
+                <AdminReactors reactors={reactors[i]} names={whisperNames} />
+              )}
               {admin && (
                 <AdminWhispers whispers={whispers[i]} names={whisperNames} />
               )}

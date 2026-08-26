@@ -5,6 +5,7 @@ import { resizeImageToWebp } from "@/lib/image-resize";
 import { deleteTileAction, updateTileAction } from "@/app/arena/actions";
 import {
   ARENA_MAX_TILE_TITLE,
+  carriesTheirWords,
   TILE_TYPES,
   tileTypeLabel,
   type ArenaCaseKind,
@@ -59,7 +60,7 @@ export function TileAdminTools({
   useAutoGrow(bodyRef, editing && !preview.previewing ? body : "");
   useAutoGrow(
     transcriptRef,
-    editing && type === "specimen" ? transcript : ""
+    editing && carriesTheirWords(type) ? transcript : ""
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +151,7 @@ export function TileAdminTools({
               ))}
             </select>
           </label>
-          {type === "specimen" && (
+          {carriesTheirWords(type) && (
             <input
               name="handle"
               maxLength={60}
@@ -169,7 +170,7 @@ export function TileAdminTools({
             kind
           )}.`}
         />
-        {type !== "specimen" && (
+        {!carriesTheirWords(type) && (
           <FormatToolbar
             textareaRef={bodyRef}
             value={body}
@@ -192,7 +193,7 @@ export function TileAdminTools({
           onChange={(e) => setBody(e.target.value)}
           style={preview.previewing ? { display: "none" } : undefined}
         />
-        {type === "specimen" && (
+        {carriesTheirWords(type) && (
           <textarea
             ref={transcriptRef}
             name="transcript"

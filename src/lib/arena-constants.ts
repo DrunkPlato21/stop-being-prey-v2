@@ -69,8 +69,20 @@ export function romanNumeral(n: number): string {
 // script — but the types are fixed because they are the case-file
 // anatomy: what happened, what it was, what Clay did, what came of it,
 // what it teaches.
+/** Tiles that carry someone else's words rather than Clay's: a
+    screenshot, a handle, a transcript kept as the durable record. The
+    specimen is the opponent; the bystander is anyone who was in the
+    thread without being in the fight, or a source quoted into it. They
+    are written the same way and read the same way, so every surface
+    that asks "does this tile have a handle and a transcript" asks
+    here instead of naming the types twice. */
+export function carriesTheirWords(type: ArenaTileType): boolean {
+  return type === "specimen" || type === "bystander";
+}
+
 export const TILE_TYPES = [
   "specimen",
+  "bystander",
   "read",
   "counter",
   "result",
@@ -87,6 +99,7 @@ export function isTileType(value: unknown): value is ArenaTileType {
 
 export const TILE_TYPE_LABEL: Record<ArenaTileType, string> = {
   specimen: "The Specimen",
+  bystander: "The Bystander",
   read: "The Read",
   counter: "The Counter",
   result: "The Result",
