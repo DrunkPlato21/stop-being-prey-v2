@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import {
@@ -15,6 +15,8 @@ import { EyeDivider } from "@/components/Eyes";
 import { Comments } from "@/components/Comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { markNavViewed } from "@/lib/nav-dots";
+import { getBoutByParam } from "@/lib/arena";
+import { boutHref } from "@/lib/arena-constants";
 import {
   CHARTER_CAP,
   FOUNDER_CAP,
@@ -227,7 +229,20 @@ export default async function CaseFileDetailPage({
 }) {
   const { slug } = await params;
   const cf = getCaseFileBySlug(slug);
-  if (!cf) notFound();
+  if (!cf) {
+    // An Arena bout mounts the comments sheet as kind "case-file" with
+    // the bout's id for a slug, so everything that built a link from a
+    // comment record — Clay's reply email, the coin receipt, a member
+    // copying a comment's permalink — produced /case-files/<bout-uuid>.
+    // That 404s, and those links are already sitting in people's
+    // inboxes where no amount of fixing the generators can reach them.
+    // So the URL shape is honoured rather than merely retired: if the
+    // slug names a bout, send them to the fight, comment anchor and all
+    // (the fragment never leaves the browser, so it survives the hop).
+    const bout = await getBoutByParam(slug).catch(() => null);
+    if (bout) redirect(boutHref(bout));
+    notFound();
+  }
 
   // Auth-aware rendering. Members see the standard page; cold-traffic
   // visitors landing on a public-preview slug get the sign-off swapped

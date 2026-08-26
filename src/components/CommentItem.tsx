@@ -64,27 +64,29 @@ function renderBody(body: string): React.ReactNode {
   ));
 }
 
-function permalinkPath(comment: CommentRecord): string {
-  if (comment.kind === "article") {
-    return `/${comment.slug}#c-${comment.id}`;
-  }
-  if (comment.kind === "case-file") {
-    return `/case-files/${comment.slug}#c-${comment.id}`;
-  }
-  return `/notes/field-notes/${comment.slug}#c-${comment.id}`;
+// Base path of the page these comments live on, WITHOUT any anchor.
+// Comments.tsx resolves it once and passes it down, because only the
+// server can tell an Arena bout from a case file: a bout mounts the
+// sheet as kind "case-file" with the bout's uuid for a slug, and
+// guessing /case-files/<uuid> here produced a permalink that 404s.
+// Falls back to the old derivation when absent, which the redirect on
+// /case-files/[slug] then rescues.
+function fallbackBasePath(comment: CommentRecord): string {
+  if (comment.kind === "article") return `/${comment.slug}`;
+  if (comment.kind === "case-file") return `/case-files/${comment.slug}`;
+  return `/notes/field-notes/${comment.slug}`;
+}
+
+function permalinkPath(comment: CommentRecord, basePath?: string): string {
+  return `${basePath ?? fallbackBasePath(comment)}#c-${comment.id}`;
 }
 
 function threadReplyPermalinkPath(
   parent: CommentRecord,
-  replyId: string
+  replyId: string,
+  basePath?: string
 ): string {
-  if (parent.kind === "article") {
-    return `/${parent.slug}#r-${replyId}`;
-  }
-  if (parent.kind === "case-file") {
-    return `/case-files/${parent.slug}#r-${replyId}`;
-  }
-  return `/notes/field-notes/${parent.slug}#r-${replyId}`;
+  return `${basePath ?? fallbackBasePath(parent)}#r-${replyId}`;
 }
 
 type Props = {
@@ -105,6 +107,8 @@ type Props = {
   coinGivers?: string[];
   /** True when the viewer authored this comment (can't self-coin). */
   coinIsOwn?: boolean;
+  /** Page path these comments live on, no anchor. See fallbackBasePath. */
+  basePath?: string;
 };
 
 export function CommentItem({
@@ -117,6 +121,7 @@ export function CommentItem({
   coinCount = 0,
   coinGivers = [],
   coinIsOwn = false,
+  basePath,
 }: Props) {
   const viewerWroteThis =
     !!viewerEmail && viewerEmail.toLowerCase().trim() === comment.email;
@@ -238,7 +243,9 @@ export function CommentItem({
             >
               <CommentTime ms={comment.createdAt} />
             </span>
-            <CommentPermalinkButton pathWithHash={permalinkPath(comment)} />
+            <CommentPermalinkButton
+              pathWithHash={permalinkPath(comment, basePath)}
+            />
             {comment.editedAt && (
               <span
                 className="font-serif italic text-ink-faint"
@@ -379,6 +386,7 @@ export function CommentItem({
                   viewerIsAdmin={viewerIsAdmin}
                   viewerCanReply={viewerCanReply}
                   memberBadgeByEmail={memberBadgeByEmail}
+                  basePath={basePath}
                 />
               ))}
             </ul>
@@ -406,6 +414,7 @@ function ThreadReplyView({
   viewerIsAdmin,
   viewerCanReply,
   memberBadgeByEmail,
+  basePath,
 }: {
   parent: CommentRecord;
   reply: ThreadReply;
@@ -413,6 +422,7 @@ function ThreadReplyView({
   viewerIsAdmin: boolean;
   viewerCanReply?: boolean;
   memberBadgeByEmail?: Map<string, MemberBadgeInfo>;
+  basePath?: string;
 }) {
   const viewerWroteThis =
     !!viewerEmail && viewerEmail.toLowerCase().trim() === reply.email;
@@ -480,7 +490,7 @@ function ThreadReplyView({
               <CommentTime ms={reply.createdAt} />
             </span>
             <CommentPermalinkButton
-              pathWithHash={threadReplyPermalinkPath(parent, reply.id)}
+              pathWithHash={threadReplyPermalinkPath(parent, reply.id, basePath)}
             />
             {reply.editedAt && (
               <span

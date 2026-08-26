@@ -22,6 +22,7 @@ import { CommentItem } from "@/components/CommentItem";
 import { CommentsLiveRefresh } from "@/components/CommentsLiveRefresh";
 import { CommentSpotlight } from "@/components/CommentSpotlight";
 import { JumpToMyComment } from "@/components/JumpToMyComment";
+import { resolveCommentPiece } from "@/lib/comment-piece";
 import {
   getCoinDataForComments,
   getSpentCommentId,
@@ -58,6 +59,15 @@ export async function Comments({ kind, slug, patron = false }: Props) {
   const session = await verifySession(token);
   const profile = session ? await getProfile(session.email) : null;
   const allComments = await listCommentsForSlug(kind, slug);
+  // Where these comments actually live. Only the server can tell an
+  // Arena bout from a case file — a bout mounts this sheet as kind
+  // "case-file" with the bout's uuid for a slug — so the permalink a
+  // member copies is resolved here once and handed down, rather than
+  // guessed per comment. Resolved off any comment id; the anchor is
+  // re-attached per row, so strip it back to the bare page path.
+  const basePath = (
+    await resolveCommentPiece(kind, slug, "x").catch(() => null)
+  )?.path.replace(/#.*$/, "");
 
   const viewerEmail = session ? session.email.toLowerCase().trim() : null;
   const viewerIsAdmin = session ? isAdmin(session.email) : false;
@@ -239,6 +249,7 @@ export async function Comments({ kind, slug, patron = false }: Props) {
                     coinCount={coinCountFor(c.id)}
                     coinGivers={coinGiversFor(c.id)}
                     coinIsOwn={isOwnFor(c)}
+                    basePath={basePath}
                   />
                 </li>
               ))}
@@ -263,6 +274,7 @@ export async function Comments({ kind, slug, patron = false }: Props) {
                     coinCount={coinCountFor(c.id)}
                     coinGivers={coinGiversFor(c.id)}
                     coinIsOwn={isOwnFor(c)}
+                    basePath={basePath}
                   />
                 </li>
               ))}

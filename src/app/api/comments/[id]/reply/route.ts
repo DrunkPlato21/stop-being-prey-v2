@@ -8,10 +8,7 @@ import {
   notifyOnReply,
 } from "@/lib/comments";
 import { sendReplyNotification } from "@/lib/email";
-import { getAllArticles } from "@/lib/articles";
-import { getAllFieldNotes } from "@/lib/field-notes";
-import { getAllCaseFiles } from "@/lib/case-files";
-import { baseUrl } from "@/lib/membership";
+import { resolveCommentPiece } from "@/lib/comment-piece";
 
 // POST /api/comments/:id/reply  — set or replace Clay's reply
 // DELETE /api/comments/:id/reply — clear Clay's reply
@@ -20,31 +17,6 @@ import { baseUrl } from "@/lib/membership";
 // On a successful POST we also email the comment author. Failure of
 // the email send doesn't fail the request — the reply is already
 // persisted; a missing notification is just a degraded outcome.
-
-function lookupPiece(
-  kind: "article" | "note" | "case-file",
-  slug: string
-): { title: string; url: string } {
-  if (kind === "article") {
-    const meta = getAllArticles().find((a) => a.slug === slug);
-    return {
-      title: meta?.title ?? slug,
-      url: `${baseUrl()}/${slug}`,
-    };
-  }
-  if (kind === "case-file") {
-    const meta = getAllCaseFiles().find((c) => c.slug === slug);
-    return {
-      title: meta?.title ?? slug,
-      url: `${baseUrl()}/case-files/${slug}`,
-    };
-  }
-  const meta = getAllFieldNotes().find((n) => n.slug === slug);
-  return {
-    title: meta?.title ?? slug,
-    url: `${baseUrl()}/notes/field-notes/${slug}`,
-  };
-}
 
 const MAX_BODY_LENGTH = 8000;
 
@@ -97,12 +69,21 @@ export async function POST(
   // already persisted; a missing notification is a degraded outcome.
   const recipientProfile = await getProfile(result.comment.email);
   if (notifyOnReply(recipientProfile)) {
-    const piece = lookupPiece(result.comment.kind, result.comment.slug);
+    // This is the email that broke. It built /case-files/<slug> from a
+    // static case-file lookup, but an Arena bout's comments carry the
+    // bout's uuid for a slug, so a member Clay replied to on a bout got
+    // a mail whose only link 404s. resolveCommentPiece is the one place
+    // that knows about bouts, and it anchors the comment itself.
+    const piece = await resolveCommentPiece(
+      result.comment.kind,
+      result.comment.slug,
+      result.comment.id
+    );
     const sendResult = await sendReplyNotification({
       to: result.comment.email,
       recipientDisplayName: result.comment.displayName,
       pieceTitle: piece.title,
-      pieceUrl: `${piece.url}#c-${result.comment.id}`,
+      pieceUrl: piece.absoluteUrl,
       replyBody: result.comment.replyBody ?? body,
     });
     if (!sendResult.ok) {
