@@ -460,7 +460,8 @@ export async function sealBout(
   const bout = await getBout(id);
   if (!bout) return null;
   bout.status = "sealed";
-  bout.sealedAt = Date.now();
+  const sealedAt = Date.now();
+  bout.sealedAt = sealedAt;
 
   // The number is the spine of the archive, so it is claimed, not
   // typed. Asked-for number first (or the one this bout already
@@ -504,6 +505,19 @@ export async function sealBout(
     null;
   bout.slug = await mintSlug(bout);
   await saveBout(bout);
+  // The seal is the payoff, and until now it was the one moment the nav
+  // could not see. The index is scored by activity, and only createBout
+  // and addTile ever moved it — so a member who loaded /arena between
+  // the last tile and the seal got no dot for the case landing, ever.
+  // Filing is activity. Score it.
+  //
+  // Safe against the room's own ordering: the sealed shelf sorts by
+  // caseNo (see /arena/page.tsx), and the LIVE chip reads bout.lastTileAt
+  // rather than this score, so nothing here can age a fight into looking
+  // live. All it moves is the index window and the nav's signal.
+  if (client) {
+    await client.zadd(BOUTS_INDEX, { score: sealedAt, member: bout.id });
+  }
   return { bout, renumberedFrom: assigned === wanted ? null : wanted };
 }
 
