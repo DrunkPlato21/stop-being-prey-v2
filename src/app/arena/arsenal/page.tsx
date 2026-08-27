@@ -52,8 +52,15 @@ function Notches({ count }: { count: number }) {
 export default async function ArsenalPage() {
   const cookieStore = await cookies();
   const session = await verifySession(cookieStore.get(SESSION_COOKIE)?.value);
+  // A public case links every move it names into the Arsenal, so for an
+  // anonymous reader these chips are the busiest exit on the page: a
+  // case carries a chip on most tiles, and each one is a stranger
+  // reaching for the doctrine behind the fight they just read. That is
+  // the most interested they will ever be. Sending them to the sign-in
+  // page spends the moment on a form built for people who have already
+  // paid. Same rule the room's other anonymous exits follow.
   if (!session) {
-    redirect("/notes/sign-in?next=/arena/arsenal");
+    redirect("/membership?src=arena");
   }
   const admin = isAdmin(session.email);
 
