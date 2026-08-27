@@ -1,8 +1,11 @@
 import type { NextRequest } from "next/server";
 import { getMember } from "@/lib/members";
 import {
+  cameInOnAGrantedSeat,
+  createMembershipCheckoutSession,
   createReactivationCheckoutSession,
   emailHasActiveMembership,
+  GRANTED_SEAT_MONTHLY_FLOOR_CENTS,
   hasRecoverableSubscription,
 } from "@/lib/membership";
 import { isAdmin } from "@/lib/comments";
@@ -63,6 +66,46 @@ export async function POST(req: NextRequest) {
     return Response.json({ state: "not_found" });
   }
 
+  // Gift and pool seats carry a synthetic customer id, so there is no
+  // Stripe subscription to revive. That used to end here, telling the
+  // reader to email Clay: a manual step at the exact moment a donated
+  // seat is meant to turn into a paying one, and the only lane whose
+  // members were handed no way to continue by themselves.
+  //
+  // Answered ahead of the active check on purpose. The "keep your seat"
+  // reminder is sent DAYS BEFORE a term ends, and emailHasActiveMembership
+  // counts an unexpired prepaid seat as active, so a recipient acting on
+  // that email at the moment it is designed to be acted on would be told
+  // they were already a member and turned away. Converting early is the
+  // whole point; there is no subscription here to double-bill.
+  //
+  // They get a fresh subscription instead, at the held granted-seat
+  // floor rather than the public one, so a later rise in REGULAR_*
+  // cannot aim an increase at the people the seat pool exists for.
+  // Eligibility is read from their own record here and passed down;
+  // nothing about the price comes from the request.
+  if (!member.stripeCustomerId.startsWith("cus_")) {
+    if (!cameInOnAGrantedSeat(member)) {
+      return Response.json({ state: "no_subscription" });
+    }
+    const granted = await createMembershipCheckoutSession({
+      email,
+      plan: "monthly",
+      amountCents: GRANTED_SEAT_MONTHLY_FLOOR_CENTS,
+      grantedSeat: true,
+      source: member.viaPoolFundId ? "pool" : "gift",
+    });
+    if ("error" in granted) {
+      const status =
+        granted.error === "stripe_not_configured" ||
+        granted.error === "no_url_returned"
+          ? 500
+          : 400;
+      return Response.json({ error: granted.error }, { status });
+    }
+    return Response.json({ url: granted.url });
+  }
+
   // Already has a live way in: don't start a second subscription.
   const active = await emailHasActiveMembership(email).catch(() => ({
     active: false,
@@ -70,12 +113,6 @@ export async function POST(req: NextRequest) {
   }));
   if (active.active) {
     return Response.json({ state: "already_active" });
-  }
-
-  // Only real Stripe-subscription members can reactivate. Gift/pool seats
-  // (synthetic customer ids) have no subscription to revive.
-  if (!member.stripeCustomerId.startsWith("cus_")) {
-    return Response.json({ state: "no_subscription" });
   }
 
   // Not fully canceled yet (past_due / unpaid / incomplete): a new card on

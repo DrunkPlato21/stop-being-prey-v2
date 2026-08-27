@@ -60,22 +60,57 @@ export const FOUNDER_YEARLY_FLOOR_CENTS = 8000;
 export const REGULAR_MONTHLY_FLOOR_CENTS = 1300;
 export const REGULAR_YEARLY_FLOOR_CENTS = 13000;
 
+// The rate a donor-funded seat converts at, held apart from the public
+// regular floor so the two can move independently.
+//
+// A pool seat is given to somebody who said they could not afford the
+// membership. When their prepaid term ends, the public floor is what
+// decides whether they can stay, and raising that floor would aim the
+// increase squarely at the people the programme exists for: a reader
+// who could not manage $13 is not going to manage $18, and the seat a
+// stranger paid for turns into a lapse. So the conversion price is the
+// floor that was live when the seat was granted, and it stays here
+// when REGULAR_* rises.
+//
+// Keep these two in step with whatever REGULAR_* was at the moment of
+// a raise, not with whatever REGULAR_* becomes.
+export const GRANTED_SEAT_MONTHLY_FLOOR_CENTS = 1300;
+export const GRANTED_SEAT_YEARLY_FLOOR_CENTS = 13000;
+
 // Hard upper cap on PWYW amount. Defends against test-mode finger-slips
 // and bot abuse; well above any plausible real contribution.
 const MAX_AMOUNT_CENTS = 100_000;
 
 export function floorCentsFor(
   plan: MembershipPlan,
-  founderEligible: boolean
+  founderEligible: boolean,
+  /** True only for a member converting off a donor-funded seat. Checked
+      server-side against their own record; never taken from a request. */
+  grantedSeat = false
 ): number {
   if (founderEligible) {
     return plan === "monthly"
       ? FOUNDER_MONTHLY_FLOOR_CENTS
       : FOUNDER_YEARLY_FLOOR_CENTS;
   }
+  if (grantedSeat) {
+    return plan === "monthly"
+      ? GRANTED_SEAT_MONTHLY_FLOOR_CENTS
+      : GRANTED_SEAT_YEARLY_FLOOR_CENTS;
+  }
   return plan === "monthly"
     ? REGULAR_MONTHLY_FLOOR_CENTS
     : REGULAR_YEARLY_FLOOR_CENTS;
+}
+
+/** Did this member arrive on a seat somebody else paid for? Reads the
+    record's own provenance fields, which only the two grant lanes ever
+    write (lib/seat-grants.ts). Survives the term expiring: the point is
+    how they got in, not whether the seat is still live. */
+export function cameInOnAGrantedSeat(
+  record: { viaGiftId?: string | null; viaPoolFundId?: string | null } | null
+): boolean {
+  return !!(record && (record.viaGiftId || record.viaPoolFundId));
 }
 
 /* === Stripe customer + subscription lookup ================= */
@@ -326,6 +361,10 @@ export async function createMembershipCheckoutSession(args: {
       access token. Forces the founder floor + a founder-tier checkout
       even though the public founder cap is filled. */
   founderOverride?: boolean;
+  /** Converting off a donor-funded seat: uses the held floor rather
+      than the public one. Callers MUST derive this from the member's
+      own record (cameInOnAGrantedSeat), never from client input. */
+  grantedSeat?: boolean;
   /** Explicit founder number to honor (e.g. 101), carried into Stripe
       metadata so the webhook assigns it directly without touching the
       founder counter. */
@@ -358,7 +397,11 @@ export async function createMembershipCheckoutSession(args: {
   // buyers fall back to the live founder/charter/regular decision.
   const founderOverride = args.founderOverride === true;
   const founderEligible = founderOverride || (await isFounderEligible());
-  const floor = floorCentsFor(args.plan, founderEligible);
+  const floor = floorCentsFor(
+    args.plan,
+    founderEligible,
+    args.grantedSeat === true
+  );
   let tierAtCheckout: Tier;
   if (founderOverride) {
     tierAtCheckout = "founder";
