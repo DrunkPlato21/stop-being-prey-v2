@@ -970,40 +970,64 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
    presenting itself, framed and stamped and filed; this is the one
    moment on the page where Clay steps out from behind the record and
    speaks to the reader. Unframed prose on a hairline is what that
-   sounds like, and after three framed blocks it is also the only
-   thing left that reads as a change of voice rather than one more
-   panel. The left rail is the tiles' own. */
+   sounds like, and after three framed blocks it is the only thing
+   left that reads as a change of voice rather than one more panel.
+
+   But dropping the frame first dropped the hierarchy with it, and
+   quiet is not the same as weightless. Everything in here was body
+   size or smaller: a small-caps label, two paragraphs and a mono link
+   all inside one narrow band of size and colour, so the eye had
+   nowhere to land and the block the page most needs a stranger to
+   read carried less weight than any tile above it. Three tiers fix
+   it without a border coming back.
+
+   One: the line is a headline, not a label. It is the best sentence
+   in the block and it was being spent as chrome. At title scale in
+   bone it is the brightest thing in the frame, which is correct,
+   and it stays bone rather than gold because the seal directly above
+   is already a gold heading and two stacked would fight.
+
+   Two: the prose drops to muted so it supports the headline instead
+   of competing with it. Same words, second tier.
+
+   Three: the ask is a destination with edges and real padding. Not
+   the filled gold slab this started as, which was the loudest object
+   on a page whose loudest object should be the fight, and not the
+   mono footnote that replaced it either, which was the smallest
+   thing on screen while being the only thing with a job. An outline
+   in the room's gold reads as somewhere to go and gives a thumb
+   something to hit. */
 .arena-join {
   margin-top: 40px; text-align: left;
   border-top: 1px solid var(--a-rule);
   padding: 26px 0 0;
 }
-.arena-join .arena-eyebrow { display: block; margin-bottom: 12px; }
+.arena-join p.arena-join-line {
+  font-size: clamp(1.35rem, 3.4vw, 1.75rem);
+  line-height: 1.25; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--a-ink);
+  margin: 0 0 14px; max-width: 22ch; text-wrap: balance;
+}
 /* Two paragraphs: what's inside, then the two things a member can
    actually do in there. They argue one point, so the gap between them
-   stays tighter than the gap that sets the link off from the copy.
+   stays tighter than the gap that sets the ask off from the copy.
    The measure stays capped: a left rail is only worth having if the
    line length stays readable against it. */
 .arena-join p {
-  max-width: 52ch; margin: 0 0 0.85em; font-size: 1.06rem;
-  line-height: 1.65; color: var(--a-ink);
+  max-width: 50ch; margin: 0 0 0.8em; font-size: 1.02rem;
+  line-height: 1.7; color: var(--a-ink-muted);
 }
-.arena-join p:last-of-type { margin-bottom: 16px; }
-/* The way out, in the room's own voice. A filled button was the loudest
-   object on a page whose loudest object should be the fight; this is
-   the mono-and-gold register the case stamp and the tile numbers
-   already speak, underlined so it still reads as somewhere to go. */
+.arena-join p:last-of-type { margin-bottom: 0; }
 .arena-join-cta {
-  display: inline-block; text-decoration: none;
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
-  border-bottom: 1px solid var(--a-gold-deep);
-  padding-bottom: 3px;
+  display: inline-block; margin-top: 18px; text-decoration: none;
+  border: 1px solid var(--a-gold); border-radius: 3px;
+  font-size: 0.76rem; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  padding: 14px 30px;
 }
 .arena-room a.arena-join-cta { color: var(--a-gold); }
-.arena-join-cta::after { content: " \2192"; }
 .arena-join-cta:hover, .arena-join-cta:focus-visible {
-  border-bottom-color: var(--a-gold); outline: none;
+  background: rgba(201, 168, 76, 0.12); outline: none;
 }
 .arena-public-note {
   font-size: 0.78rem; font-style: italic; color: var(--a-ink-faint);

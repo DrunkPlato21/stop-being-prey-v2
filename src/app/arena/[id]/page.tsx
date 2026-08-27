@@ -711,7 +711,7 @@ export default async function BoutPage({
           funnel with its own source tag. */}
       {anon && (
         <section className="arena-join">
-          <div className="arena-eyebrow">You just watched one fight</div>
+          <p className="arena-join-line">You just watched one fight.</p>
           <p>
             The rest of the record is inside. Fights run live, and members
             are in the room while they happen.
