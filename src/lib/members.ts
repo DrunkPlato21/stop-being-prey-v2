@@ -31,6 +31,11 @@ const KEY_PREFIX =
 const FOUNDER_KEY = `${KEY_PREFIX}founder:claimed`;
 export const FOUNDER_CAP = 100;
 const CHARTER_KEY = `${KEY_PREFIX}charter:claimed`;
+// Slot numbers handed back for reissue. charter:claimed is a high-water
+// mark and must stay one: decrementing it would reissue a number that
+// is already on somebody's record. So a released slot goes here instead
+// and the next claimer takes it before the counter moves at all.
+const CHARTER_FREED_KEY = `${KEY_PREFIX}charter:freed`;
 export const CHARTER_CAP = 100;
 
 export const MEMBER_PREFIX = `${KEY_PREFIX}member:`;
@@ -378,7 +383,47 @@ export async function getCharterClaimed(): Promise<number> {
   if (raw === null || raw === undefined) return 0;
   const n = typeof raw === "string" ? parseInt(raw, 10) : Number(raw);
   if (!Number.isFinite(n)) return 0;
-  return Math.min(Math.max(n, 0), CHARTER_CAP);
+  // Minus anything waiting to be reissued. The counter is a high-water
+  // mark, so on its own it would report a refunded seat as still sold:
+  // the public "N of 100" would creep past the number of people who
+  // actually hold one, and the room would close early having sold fewer
+  // than a hundred.
+  const freed = await client.llen(CHARTER_FREED_KEY).catch(() => 0);
+  return Math.min(Math.max(n - (freed || 0), 0), CHARTER_CAP);
+}
+
+/**
+ * Hand a Charter slot back for reissue. For a refund or a mistaken
+ * charge, NOT for an ordinary cancellation: a member who lapses and
+ * later comes back through /reactivate is promised the same number, and
+ * the reactivation path relies on the record still carrying it.
+ *
+ * The member drops to regular and loses the number; the number joins the
+ * free list, and the next purchase takes it ahead of a fresh one. The
+ * counter is deliberately left alone.
+ */
+export async function releaseCharterSlot(
+  email: string
+): Promise<{ released: number } | { error: string }> {
+  const client = getClient();
+  if (!client) return { error: "redis_not_configured" };
+  const record = await getMember(email);
+  if (!record) return { error: "no_member_record" };
+  if (record.tier !== "charter" || typeof record.charterSlot !== "number") {
+    return { error: "holds_no_charter_slot" };
+  }
+  const slot = record.charterSlot;
+  // The record is cleared FIRST. If this crashed the other way round the
+  // number would be live on the free list and still stamped on a member,
+  // and two people would end up wearing charter #N.
+  await saveMember({
+    ...record,
+    tier: "regular",
+    charterSlot: null,
+    updatedAt: Date.now(),
+  });
+  await client.rpush(CHARTER_FREED_KEY, String(slot));
+  return { released: slot };
 }
 
 /**
@@ -390,6 +435,18 @@ export async function getCharterClaimed(): Promise<number> {
 export async function claimCharterSlot(): Promise<number | null> {
   const client = getClient();
   if (!client) return null;
+  // A handed-back number goes out before a fresh one, so a refunded seat
+  // is genuinely resold rather than leaving a hole in the sequence. LPOP
+  // is atomic, so two purchases landing together cannot take the same
+  // one, which is the whole reason this is not a read-then-write.
+  const reissued = await client.lpop<string | number | null>(
+    CHARTER_FREED_KEY
+  ).catch(() => null);
+  if (reissued !== null && reissued !== undefined) {
+    const n =
+      typeof reissued === "string" ? parseInt(reissued, 10) : Number(reissued);
+    if (Number.isFinite(n) && n > 0 && n <= CHARTER_CAP) return n;
+  }
   const script = `
     local current = tonumber(redis.call('GET', KEYS[1]) or '0')
     local cap = tonumber(ARGV[1])
