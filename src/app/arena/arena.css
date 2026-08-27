@@ -951,25 +951,59 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
 }
 
 /* ── Public promotional bout ─────────────────── */
+/* The last page of the record, not an advertisement stapled under it.
+   This was a gold-outlined panel with centred copy and a filled gold
+   button: the shape of every signup box on the web, dropped into a room
+   that has its own grammar for everything else. Nothing else here is a
+   solid block of gold, and no other body copy in the room is centred,
+   so the one element asking a stranger to trust the place was the one
+   element that looked borrowed.
+
+   Dressing it as the room's terminal block was the wrong correction.
+   By the time a reader reaches it they have passed the verdict tile
+   and the seal, both framed in gold, and the seal wears the crest as
+   its signature. A third gold frame with a third crest under it does
+   not make the pitch belong, it spends the seal's mark on an
+   advertisement and leaves the page ending in triplicate.
+
+   So it is not a box at all. Everything above it is the archive
+   presenting itself, framed and stamped and filed; this is the one
+   moment on the page where Clay steps out from behind the record and
+   speaks to the reader. Unframed prose on a hairline is what that
+   sounds like, and after three framed blocks it is also the only
+   thing left that reads as a change of voice rather than one more
+   panel. The left rail is the tiles' own. */
 .arena-join {
-  margin-top: 44px; text-align: center;
-  border: 1px solid var(--a-gold-deep); border-radius: 4px;
-  background: rgba(201, 168, 76, 0.05);
-  padding: 30px 24px;
+  margin-top: 40px; text-align: left;
+  border-top: 1px solid var(--a-rule);
+  padding: 26px 0 0;
 }
+.arena-join .arena-eyebrow { display: block; margin-bottom: 12px; }
+/* Two paragraphs: what's inside, then the two things a member can
+   actually do in there. They argue one point, so the gap between them
+   stays tighter than the gap that sets the link off from the copy.
+   The measure stays capped: a left rail is only worth having if the
+   line length stays readable against it. */
 .arena-join p {
-  max-width: 46ch; margin: 10px auto 18px; font-size: 1.02rem;
-  line-height: 1.7; color: var(--a-ink);
+  max-width: 52ch; margin: 0 0 0.85em; font-size: 1.06rem;
+  line-height: 1.65; color: var(--a-ink);
 }
+.arena-join p:last-of-type { margin-bottom: 16px; }
+/* The way out, in the room's own voice. A filled button was the loudest
+   object on a page whose loudest object should be the fight; this is
+   the mono-and-gold register the case stamp and the tile numbers
+   already speak, underlined so it still reads as somewhere to go. */
 .arena-join-cta {
-  display: inline-block; background: var(--a-gold); color: #141009;
-  text-decoration: none; font-size: 0.72rem; font-weight: 700;
-  letter-spacing: 0.22em; text-transform: uppercase;
-  padding: 13px 26px; border-radius: 3px;
+  display: inline-block; text-decoration: none;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+  border-bottom: 1px solid var(--a-gold-deep);
+  padding-bottom: 3px;
 }
-.arena-room a.arena-join-cta { color: #141009; }
+.arena-room a.arena-join-cta { color: var(--a-gold); }
+.arena-join-cta::after { content: " \2192"; }
 .arena-join-cta:hover, .arena-join-cta:focus-visible {
-  background: #e0c268; outline: none;
+  border-bottom-color: var(--a-gold); outline: none;
 }
 .arena-public-note {
   font-size: 0.78rem; font-style: italic; color: var(--a-ink-faint);
@@ -981,6 +1015,35 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   margin-top: 8px;
 }
 .arena-lock-note a { color: var(--a-gold); }
+
+/* ── Pass it on ──────────────────────────────── */
+/* The site's own share row, borrowed into the dark room. ShareButtons
+   paints itself with the paper palette (--ink-muted links, --eye-deep
+   on hover, --ink-faint separators), which on this ground is ink on
+   ink. Remap the three tokens it reads rather than restyling the
+   component: the row keeps one definition for the whole site, and the
+   room stays the only thing that decides what its colours mean. Same
+   move .arena-room already makes for --ink-soft.
+
+   Sits above the seat pitch, so the last thing a public reader meets
+   is still the ask. Rule on top separates it from the commons. */
+.arena-share {
+  --ink-muted: var(--a-ink-muted);
+  --ink-faint: var(--a-ink-faint);
+  --eye-deep: var(--a-gold);
+  margin-top: 40px;
+  padding-top: 26px;
+  border-top: 1px solid var(--a-rule-soft);
+}
+.arena-share .share-kicker { color: var(--a-ink-faint); }
+/* The room paints every bare link gold (.arena-room a, specificity 0,1,1),
+   which outranks .share-link and would have left three gold anchors beside
+   one muted Copy-link button. Same shape as the roombar/backlink/join
+   overrides above: name the class under .arena-room and the row reads as
+   one control again, muted at rest, gold on approach. */
+.arena-room a.share-link { color: var(--a-ink-muted); }
+.arena-room a.share-link:hover,
+.arena-room a.share-link:focus-visible { color: var(--a-gold); outline: none; }
 
 /* ── Index dressing ──────────────────────────── */
 /* The slab only ever holds open bouts, so its edge carries the banked

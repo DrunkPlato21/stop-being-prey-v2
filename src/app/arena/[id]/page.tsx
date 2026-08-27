@@ -38,6 +38,7 @@ import {
   ARENA_TZ,
 } from "@/lib/arena-constants";
 import { REACTION_EMOJI, type ReactionKey } from "@/lib/lounge";
+import { markNavViewed } from "@/lib/nav-dots";
 import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
 import { formatGuildBody, GUILD_BODY_STYLE } from "@/components/guild/format-body";
 import { TileEngage } from "@/components/arena/TileEngage";
@@ -45,6 +46,7 @@ import { BoutFollowToggle } from "@/components/arena/ArenaMailToggle";
 import { isFollowingBout } from "@/lib/arena-watch";
 import { MoveChip } from "@/components/arena/MoveChip";
 import { Comments } from "@/components/Comments";
+import { ShareButtons } from "@/components/ShareButtons";
 import { ArenaBench } from "@/components/arena/ArenaBench";
 import { TileAdminTools } from "@/components/arena/TileAdminTools";
 import { DeleteBoutButton } from "@/components/arena/DeleteBoutButton";
@@ -345,6 +347,16 @@ export default async function BoutPage({
 
   const anon = !session;
   const admin = session ? isAdmin(session.email) : false;
+  // Reading a bout counts as reading the room. The index was the only
+  // surface that cleared the nav dot, so a member who arrived here from
+  // the bell or the Sunday digest could read the whole filed case and
+  // still carry the dot afterwards, with nothing left to go and see.
+  // The case files and field notes have always marked from their detail
+  // pages; this brings the Arena in line. Fire-and-forget: a failed
+  // write costs a stale dot, never the page.
+  if (session) {
+    void markNavViewed("arena", session.email).catch(() => null);
+  }
   const sealed = bout.status === "sealed";
   // Offered on an open bout only: the seal is the one thing that mails
   // followers, so a button on a filed case would promise an email that
@@ -701,15 +713,51 @@ export default async function BoutPage({
         <section className="arena-join">
           <div className="arena-eyebrow">You just watched one fight</div>
           <p>
-            This is how predators argue, and how you stop being prey.
-            Members are in the room for every bout: live, move by move,
-            verdict on file.
+            The rest of the record is inside. Fights run live, and members
+            are in the room while they happen.
+          </p>
+          <p>
+            Send me a note mid-fight that nobody else sees. Argue with the
+            verdict once it&apos;s sealed.
           </p>
           <Link href="/membership?src=arena" className="arena-join-cta">
             Take a seat
           </Link>
         </section>
       )}
+
+      {/* Pass it on, after the ask and not before it. A stranger who has
+          just finished the fight is being asked to come in; handing them
+          "forward this" first spends the moment on the smaller favour.
+          Members skip the pitch entirely, so for them this simply closes
+          the page.
+
+          Gated on the case being PUBLIC rather than on who
+          is reading: a member handed the share row for a members-only
+          bout would mint links that dead-end every recipient at the
+          sign-in page. Public is the one state where the link works for
+          whoever receives it, and in that state both audiences should
+          have it — the member forwarding a fight is the cheapest reach
+          the room has.
+
+          The row is the site's own, so it arrives painted in paper ink
+          (--ink-muted, --eye-deep) against the dark ground. The wrapper
+          remaps those three tokens to the room's palette, the same move
+          arena.css already makes for --ink-soft; nothing is restyled.
+
+          The email and copy-link buttons tag themselves ?ref=share, so
+          a forward lands in its own channel instead of the "direct"
+          bucket where every untagged paste has been going. */}
+      {isBoutPublic(bout) && (
+        <div className="arena-share">
+          <ShareButtons
+            url={boutHref(bout)}
+            title={bout.title}
+            slug={bout.slug ?? bout.id}
+          />
+        </div>
+      )}
+
 
       {admin && !sealed && (
         <>
