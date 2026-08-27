@@ -595,14 +595,6 @@ export default async function BoutPage({
         <BoutLiveRefresh boutId={bout.id} version={bout.updatedAt} />
       )}
 
-      {/* "Tell me how this ends." The reader is here while it is open,
-          which is the only moment this offer makes sense and the only
-          audience the sealed email goes to. Everyone else meets the
-          filed case in the Sunday digest. */}
-      {!sealed && !anon && (
-        <BoutFollowToggle initialOn={following} boutId={bout.id} />
-      )}
-
       <div className="arena-tiles">
         {tiles.map((tile, i) => (
           <div
@@ -651,6 +643,19 @@ export default async function BoutPage({
               Bout open. The verdict lands when the fight is over. You&rsquo;ll
               know.
             </em>
+          </div>
+        )}
+
+        {/* "Tell me how this ends", hung off the line above it. That
+            note already ends "the verdict lands when the fight is over,
+            you'll know" — this button is HOW they'll know, so it
+            answers that sentence rather than restating it. Kept INSIDE
+            .arena-tiles so it sits in the same 46px column the note's
+            text does; outside, it hung 46px further left, adrift in the
+            gutter the tile numbers use. */}
+        {!sealed && !anon && (
+          <div className="arena-followup">
+            <BoutFollowToggle initialOn={following} boutId={bout.id} />
           </div>
         )}
       </div>

@@ -571,6 +571,13 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
 }
 .arena-tools textarea { width: 100%; min-height: 90px; resize: vertical; }
 .arena-tools input { flex: 1; min-width: 140px; }
+/* A select sizes to its longest option, and "Bout (a fight I was in)"
+   is wider than a phone. Unrelated to anything member-facing (the bench
+   is admin-only) but it was pushing the whole Arena index sideways at
+   390px, scrollbar and all. Let the label own the row and the control
+   fill it. */
+.arena-tools label { min-width: 0; max-width: 100%; }
+.arena-tools select { max-width: 100%; }
 .arena-tools input:focus-visible, .arena-tools select:focus-visible, .arena-tools textarea:focus-visible { outline: none; border-color: var(--a-gold-deep); }
 .arena-tools label { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--a-ink-faint); }
 .arena-tools .submit, .arena-seal-btn {
@@ -1179,16 +1186,48 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
    follow on an open fight. Quieter than a CTA on purpose — this is a
    preference, not an ask. Reads as "on" by filling the plate, the same
    grammar the reaction row uses for a reaction you have given. */
+/* Spacing is owned by whatever the switch sits in, not by the switch.
+   It had a bottom margin and no top one, which welded it to the bout
+   header's bottom rule — the control looked like a piece of the header
+   that had come loose. */
 .arena-mail-toggle {
-  display: flex; flex-direction: column; gap: 5px;
-  margin: 0 0 22px;
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 0;
 }
+/* Under the room's title, above the shelf of fights. */
+.arena-index-header .arena-mail-toggle { margin: 2px 0 26px; }
+
+/* The open bout's closing beat. Lives inside .arena-tiles so it shares
+   the column the developing note's text sits in, and hangs off that
+   sentence rather than floating in the tile-number gutter. Close above,
+   so it reads as part of that line. */
+.arena-followup {
+  margin: 14px 0 4px;
+  /* Matches .arena-developing's own 46px indent (the gutter it holds
+     for the pulse dot), so the button starts exactly where that
+     sentence's text does rather than under its dot. Held at every
+     width: the button still fits on a 320px phone, and hanging it off
+     that sentence is the whole point of where it sits. */
+  padding-left: 46px;
+}
+@media (max-width: 360px) {
+  /* Below this the indent costs the label its single line, and an
+     uppercase letterspaced button broken across two rows looks worse
+     than one that misses an alignment by 46px. Space wins. */
+  .arena-followup { padding-left: 0; }
+}
+
 .arena-mail-btn {
   align-self: flex-start; cursor: pointer; border-radius: 3px;
   display: inline-flex; align-items: center; gap: 0;
   background: transparent; border: 1px solid var(--a-rule);
   color: var(--a-ink-muted); font-size: 0.66rem; font-weight: 700;
   letter-spacing: 0.14em; text-transform: uppercase; padding: 10px 17px;
+  /* The label is one line, always. As a flex item the text was breaking
+     across two rows on a 320px phone even though it fit the column,
+     and an uppercase letterspaced label broken mid-phrase reads as a
+     bug rather than as a button. */
+  white-space: nowrap;
   font-family: inherit; transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 /* Fixed-width gutter so the label sits in exactly the same place on and
