@@ -33,7 +33,7 @@ export default async function ArenaLayout({
 
   return (
     <div className="md:flex md:max-w-6xl md:mx-auto md:gap-10 md:px-6">
-      {previewMode ? <MemberNavPreview active="The Arena" /> : <MemberNavServer />}
+      {previewMode ? <MemberNavPreview active="The Arena" src="arena" /> : <MemberNavServer />}
       <div className="md:flex-1 md:min-w-0">
         <div className="arena-room">
           {!previewMode && <ArenaRoomBar />}

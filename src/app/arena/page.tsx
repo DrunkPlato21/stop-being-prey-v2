@@ -192,8 +192,16 @@ export default async function ArenaIndexPage({
   const sp = await searchParams;
   const cookieStore = await cookies();
   const session = await verifySession(cookieStore.get(SESSION_COOKIE)?.value);
+  // A stranger reading a public case has exactly one link out of it —
+  // the eyebrow back to the room — and it used to land them on the
+  // sign-in page, which is built for people who have already paid. The
+  // one exploratory click the shared link earns was being spent on a
+  // dead end. Send it to the sales page instead: /membership carries its
+  // own "already a member? sign in" link, so the lapsed session that
+  // used to be the reason for this redirect is still one click from
+  // home, and the far commoner visitor gets the pitch.
   if (!session) {
-    redirect("/notes/sign-in?next=/arena");
+    redirect("/membership?src=arena");
   }
 
   const [bouts, mailOn] = await Promise.all([

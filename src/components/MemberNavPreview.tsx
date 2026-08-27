@@ -40,17 +40,24 @@ const ITEMS: NavItem[] = [
   { label: "Book" },
 ];
 
-const HREF = "/membership";
-
 export function MemberNavPreview({
   active = "The Arena",
+  src = "case_file",
 }: {
   /** Label of the item to light as "you are here." Both current
       callers are Arena-world pages: the room itself, and the retired
       case files the room's index shelves. */
   active?: string;
+  /** Which page this preview is wrapped around, as a ?src= tag. Six
+      links to the sales page is the widest funnel on a public case, and
+      every one of them used to be an untagged /membership — so the whole
+      thing reported as "unknown" and the two rooms could not be told
+      apart. The page doing the rendering names itself, same as `active`;
+      both values must be real TrackSources (see lib/analytics.ts). */
+  src?: string;
 } = {}) {
   const isActive = (label: string) => label === active;
+  const href = `/membership?src=${src}`;
   return (
     <>
       {/* === Mobile: sticky horizontal strip === */}
@@ -62,7 +69,7 @@ export function MemberNavPreview({
           {ITEMS.map((item) => (
             <li key={item.label} className="flex">
               <Link
-                href={HREF}
+                href={href}
                 className={
                   "font-display uppercase tracking-[0.22em] no-underline px-4 py-3 transition-colors whitespace-nowrap " +
                   (isActive(item.label)
@@ -104,7 +111,7 @@ export function MemberNavPreview({
               }
             >
               <Link
-                href={HREF}
+                href={href}
                 className={
                   "block font-display uppercase tracking-[0.22em] no-underline py-2.5 pl-4 pr-3 transition-colors " +
                   (isActive(item.label)

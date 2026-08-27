@@ -127,6 +127,14 @@ export const TRACK_SOURCES = [
   "coin",
   "cover",
   "reactivate",
+  // The Arena's public case. A sealed bout Clay unlocks and mails out is
+  // the room's one cold-traffic surface, and it was shipped tagged
+  // ?src=arena against a list that had never heard of it — so every
+  // conversion off the strongest thing the site can show a stranger fell
+  // through asTrackSource into "unknown", the same way the eight above
+  // did. Covers both funnels on that page: the closing "Take a seat"
+  // block and the preview nav wrapped around it.
+  "arena",
   // The sign-in page. Its events carry no article slug, and recordEvent
   // writes nothing at all for a slugless event that isn't source-tracked,
   // so this source is what gives them somewhere to land.
