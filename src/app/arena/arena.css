@@ -969,36 +969,41 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
    So it is not a box at all. Everything above it is the archive
    presenting itself, framed and stamped and filed; this is the one
    moment on the page where Clay steps out from behind the record and
-   speaks to the reader. Unframed prose on a hairline is what that
-   sounds like, and after three framed blocks it is the only thing
-   left that reads as a change of voice rather than one more panel.
+   speaks to the reader, and after three framed blocks unframed prose on
+   a hairline is the only thing left that reads as a change of voice.
 
-   But dropping the frame first dropped the hierarchy with it, and
-   quiet is not the same as weightless. Everything in here was body
-   size or smaller: a small-caps label, two paragraphs and a mono link
-   all inside one narrow band of size and colour, so the eye had
-   nowhere to land and the block the page most needs a stranger to
-   read carried less weight than any tile above it. Three tiers fix
-   it without a border coming back.
+   It is CENTRED, though, and dropping the frame is not licence to leave
+   the axis. Body copy in this room is set left, which is true of the
+   tiles and stops being true below them: once the last tile is filed
+   the page turns into closing ceremony and every part of it sits on the
+   centre line. The seal is centred, its filed line is centred, the
+   share row and its kicker and its links are centred. Setting this
+   block left made it the one thing in the whole closing sequence
+   fighting the axis, and that is what it looked like.
 
-   One: the line is a headline, not a label. It is the best sentence
-   in the block and it was being spent as chrome. At title scale in
-   bone it is the brightest thing in the frame, which is correct,
-   and it stays bone rather than gold because the seal directly above
-   is already a gold heading and two stacked would fight.
+   Centring is only survivable because the tiers below exist. The
+   version that failed was centred AND flat: a small-caps label, two
+   paragraphs and a link all at one size, ragged both edges, both
+   paragraphs breaking into the same tapering wedge. Centred prose with
+   nothing leading it has no anchor. Centred prose under a headline has
+   one, which is exactly how the seal directly above works. text-wrap
+   balance keeps the wedges from coming back by evening the line
+   lengths rather than letting a long first line orphan a short second.
 
-   Two: the prose drops to muted so it supports the headline instead
-   of competing with it. Same words, second tier.
+   And it sits in the tile column. .arena-tiles spends 46px on the
+   timeline rail, so every card on the page starts 46px in while this
+   block and the share row, both outside that container, started at the
+   room's own edge. The share row hid it by being centred; this one
+   announced it, with its rule and its text overhanging every card above
+   by 46px. Both take the indent now so the closing rules line up with
+   the boxes they close.
 
-   Three: the ask is a destination with edges and real padding. Not
-   the filled gold slab this started as, which was the loudest object
-   on a page whose loudest object should be the fight, and not the
-   mono footnote that replaced it either, which was the smallest
-   thing on screen while being the only thing with a job. An outline
-   in the room's gold reads as somewhere to go and gives a thumb
-   something to hit. */
+   The indent is a MARGIN, not padding: a border draws across padding,
+   so padding-left moved the words into the column and left the hairline
+   still hanging 46px out to the left, which was the visible half of the
+   problem. */
 .arena-join {
-  margin-top: 40px; text-align: left;
+  margin: 40px 0 0 46px; text-align: center;
   border-top: 1px solid var(--a-rule);
   padding: 26px 0 0;
 }
@@ -1006,16 +1011,14 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   font-size: clamp(1.35rem, 3.4vw, 1.75rem);
   line-height: 1.25; font-weight: 700; letter-spacing: -0.01em;
   color: var(--a-ink);
-  margin: 0 0 14px; max-width: 22ch; text-wrap: balance;
+  margin: 0 auto 14px; max-width: 24ch; text-wrap: balance;
 }
 /* Two paragraphs: what's inside, then the two things a member can
    actually do in there. They argue one point, so the gap between them
-   stays tighter than the gap that sets the ask off from the copy.
-   The measure stays capped: a left rail is only worth having if the
-   line length stays readable against it. */
+   stays tighter than the gap that sets the ask off from the copy. */
 .arena-join p {
-  max-width: 50ch; margin: 0 0 0.8em; font-size: 1.02rem;
-  line-height: 1.7; color: var(--a-ink-muted);
+  max-width: 46ch; margin: 0 auto 0.8em; font-size: 1.02rem;
+  line-height: 1.7; color: var(--a-ink-muted); text-wrap: balance;
 }
 .arena-join p:last-of-type { margin-bottom: 0; }
 .arena-join-cta {
@@ -1055,8 +1058,8 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   --ink-muted: var(--a-ink-muted);
   --ink-faint: var(--a-ink-faint);
   --eye-deep: var(--a-gold);
-  margin-top: 40px;
-  padding-top: 26px;
+  margin: 40px 0 0 46px;
+  padding: 26px 0 0;
   border-top: 1px solid var(--a-rule-soft);
 }
 .arena-share .share-kicker { color: var(--a-ink-faint); }
