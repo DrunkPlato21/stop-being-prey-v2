@@ -3,7 +3,7 @@ import { getAllCaseFiles } from "@/lib/case-files";
 import { getAllFieldNotesWithActivity } from "@/lib/field-notes";
 import { getLastViewed as getLoungeLastViewed } from "@/lib/lounge";
 import { getGuildLatestActivityAt } from "@/lib/guild";
-import { getArenaLatestActivityAt } from "@/lib/arena";
+import { getArenaLatestActivityAt, isArenaLive } from "@/lib/arena";
 import { latestReceivedCoinAt } from "@/lib/coins";
 
 // Per-section "new content since you were last here" indicators for the
@@ -48,6 +48,13 @@ export type NavDotState = {
   // Fires when the newest tile anywhere in the Arena is newer than this
   // member's last visit to /arena. Same shared-content shape as guild.
   arena: boolean;
+  // Whether a fight is happening RIGHT NOW. Deliberately not a
+  // new-since-you-were-here signal: it is a state of the room, not of
+  // this member's reading, so it stays lit while the bout runs even for
+  // someone who just looked. The dot answers "is there something to
+  // read"; this answers "should I go now", which is the question the
+  // nav could not answer before.
+  arenaLive: boolean;
   // Per-member: fires when this member has received a coin newer than
   // their last visit to /notes/coins. Unlike the others, "newness" is
   // personal, not shared content.
@@ -60,6 +67,7 @@ const EMPTY: NavDotState = {
   lounge: false,
   guild: false,
   arena: false,
+  arenaLive: false,
   coins: false,
 };
 
@@ -156,6 +164,7 @@ export async function getNavDots(
     loungeAt,
     guildAt,
     arenaAt,
+    arenaLive,
     coinsAt,
     viewedCaseFiles,
     viewedFieldNotes,
@@ -169,6 +178,7 @@ export async function getNavDots(
     getLoungeLatestActivityAt(),
     getGuildLatestActivityAt().catch(() => 0),
     getArenaLatestActivityAt().catch(() => 0),
+    isArenaLive().catch(() => false),
     latestReceivedCoinAt(e).catch(() => 0),
     getNavViewed(e, "case-files"),
     getNavViewed(e, "field-notes"),
@@ -184,6 +194,7 @@ export async function getNavDots(
     lounge: loungeAt > (viewedLounge ?? 0),
     guild: guildAt > viewedGuild,
     arena: arenaAt > viewedArena,
+    arenaLive,
     coins: coinsAt > viewedCoins,
   };
 }

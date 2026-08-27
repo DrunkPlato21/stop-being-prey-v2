@@ -21,6 +21,23 @@ import { usePathname } from "next/navigation";
 // section's href; absent or false values render no dot. The dot reuses
 // var(--eye) so it sits in the same gold hue family as the rest of the
 // chrome without clashing with the eye-deep active state.
+//
+// A second, different signal rides the same mark: `live`. One room can
+// be happening RIGHT NOW, and a dot cannot say that — a fight burning
+// down live looked exactly like a bout that got one tile three weeks
+// ago. So the mark has two states. Breathing means go now; solid means
+// there is something to read when you have ten minutes.
+//
+// The two are independent, on purpose. `dots` is about this member's
+// reading and clears when they visit. `live` is a state of the room and
+// does not, because a fight is still on whether or not you just looked.
+// When both are true the live state wins the mark: it is the more
+// urgent of the two and it implies the other.
+//
+// Both marks render inside .nav-dot-slot, a fixed 14px box. See the
+// note in globals.css for why: right-flushed circles of different
+// diameters do not share a center, so the slot is what lines up and the
+// mark is centered inside it.
 
 type NavItem = {
   href: string;
@@ -87,9 +104,16 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
+export function MemberNav({
+  dots,
+  live,
+}: { dots?: MemberNavDots; live?: MemberNavDots } = {}) {
   const pathname = usePathname() ?? "";
-  const hasDot = (href: string): boolean => !!(dots && dots[href]);
+  const isLive = (href: string): boolean => !!(live && live[href]);
+  // A live room always wears the mark, whether or not this member has
+  // caught up on it.
+  const hasDot = (href: string): boolean =>
+    isLive(href) || !!(dots && dots[href]);
 
   return (
     <>
@@ -107,6 +131,7 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
           {ITEMS.map((item, idx) => {
             const active = isActive(pathname, item.href);
             const showDot = hasDot(item.href);
+            const lit = isLive(item.href);
             const loneLast =
               idx === ITEMS.length - 1 && ITEMS.length % 3 === 1;
             return (
@@ -136,7 +161,11 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
                 >
                   {item.label}
                   {showDot && (
-                    <span className="nav-new-dot" aria-hidden="true" />
+                    <span className="nav-dot-slot" aria-hidden="true">
+                      <span
+                        className={`nav-new-dot${lit ? " live" : ""}`}
+                      />
+                    </span>
                   )}
                 </Link>
               </li>
@@ -160,6 +189,7 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
           {ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
             const showDot = hasDot(item.href);
+            const lit = isLive(item.href);
             return (
               <li
                 key={item.href}
@@ -189,7 +219,11 @@ export function MemberNav({ dots }: { dots?: MemberNavDots } = {}) {
                 >
                   <span>{item.label}</span>
                   {showDot && (
-                    <span className="nav-new-dot" aria-hidden="true" />
+                    <span className="nav-dot-slot" aria-hidden="true">
+                      <span
+                        className={`nav-new-dot${lit ? " live" : ""}`}
+                      />
+                    </span>
                   )}
                 </Link>
               </li>

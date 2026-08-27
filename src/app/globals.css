@@ -1759,16 +1759,66 @@ a.no-underline {
    glance). A faint outer ring lifts it off the cream paper just enough
    to feel intentional rather than incidental. */
 
+/* Every nav signal sits inside this fixed slot, centered. The marks are
+   pushed to the row's right edge by justify-content, and two circles of
+   different diameters flushed to the same right edge do NOT share a
+   center — so the moment one section's mark differed in size from
+   another's, the column of dots went crooked. The slot is the fix: what
+   lines up is the slot, and whatever sits in it is centered, so a mark
+   can change size without moving the line. */
+.nav-dot-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
 .nav-new-dot {
-  display: inline-block;
+  display: block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--eye);
   flex-shrink: 0;
-  vertical-align: middle;
-  margin-left: 0.5rem;
   box-shadow: 0 0 0 2px rgba(184, 168, 44, 0.16);
+}
+
+/* The Arena is the only room that can be happening right now, so it is
+   the only mark that breathes. Same 6px body and same slot as the plain
+   dot — nothing changes size, so nothing can drift off the center line.
+   What changes is the warmth around it. An ember seen through paper,
+   not a ring drawn on it: the first attempt used a hairline circle with
+   an inset core and read as a cheap radio button at this size.
+
+   Two states, one shape: breathing means a fight is on now, solid means
+   something landed since you were last here. */
+.nav-new-dot.live {
+  background: var(--eye-bright);
+  animation: nav-bloom 2.6s ease-in-out infinite;
+}
+
+@keyframes nav-bloom {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(184, 168, 44, 0.13),
+      0 0 3px 0 rgba(184, 168, 44, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(184, 168, 44, 0.2),
+      0 0 10px 2px rgba(184, 168, 44, 0.62);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-new-dot.live {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(184, 168, 44, 0.2),
+      0 0 10px 2px rgba(184, 168, 44, 0.5);
+  }
 }
 
 /* === Writer's Desk status panel ===

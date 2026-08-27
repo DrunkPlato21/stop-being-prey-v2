@@ -31,5 +31,12 @@ export async function MemberNavServer() {
     "/notes/coins": state.coins,
   };
 
-  return <MemberNav dots={dots} />;
+  // Separate map, not a truthier dot: the Arena is the only room that
+  // can be happening right now, and "live" answers a different question
+  // than "new". See the note at the top of MemberNav.
+  const live: MemberNavDots = {
+    "/arena": state.arenaLive,
+  };
+
+  return <MemberNav dots={dots} live={live} />;
 }

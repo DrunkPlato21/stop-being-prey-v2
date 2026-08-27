@@ -103,6 +103,7 @@ export {
 } from "./arena-constants";
 import {
   boutHref,
+  ARENA_LIVE_WINDOW_MS,
   ARENA_MAX_ARCHETYPE,
   ARENA_MAX_BODY,
   ARENA_MAX_DISPATCH,
@@ -536,6 +537,42 @@ export async function getArenaLatestActivityAt(): Promise<number> {
   if (!Array.isArray(result) || result.length < 2) return 0;
   const score = Number(result[1]);
   return Number.isFinite(score) ? score : 0;
+}
+
+/**
+ * Is a fight actually happening right now?
+ *
+ * The nav asks this to choose between the live mark and the plain
+ * new-content dot, so the answer has to agree exactly with the LIVE
+ * chip on the index — otherwise the sidebar summons a member to a room
+ * that shows them OPEN. Same four conditions as the row: an open bout,
+ * of kind "bout" (a post-mortem dissects something already over, so it
+ * can never be live), with at least one tile, whose newest tile landed
+ * inside the window.
+ *
+ * Cheap because it asks by score: only bouts touched inside the window
+ * can qualify, and there are rarely more than one or two of those. The
+ * slice is a backstop against a burst, not an expected path.
+ */
+export async function isArenaLive(): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+  const now = Date.now();
+  const ids = await client
+    .zrange<string[]>(BOUTS_INDEX, now - ARENA_LIVE_WINDOW_MS, "+inf", {
+      byScore: true,
+    })
+    .catch(() => null);
+  if (!Array.isArray(ids) || ids.length === 0) return false;
+  const bouts = await Promise.all(ids.slice(0, 20).map((id) => getBout(id)));
+  return bouts.some(
+    (b) =>
+      b !== null &&
+      b.status === "open" &&
+      b.kind === "bout" &&
+      b.tileCount > 0 &&
+      now - b.lastTileAt < ARENA_LIVE_WINDOW_MS
+  );
 }
 
 /** Stamp announcement guards after a bell fan-out. */
