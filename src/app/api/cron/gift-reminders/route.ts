@@ -7,10 +7,12 @@ import {
   updateGift,
 } from "@/lib/gifts";
 import {
+  confirmExpiresAt,
   getPoolRequest,
   listAllPoolRequestIds,
   listUnconfirmedRequests,
   markRequestConfirmNudged,
+  markRequestExpired,
   markRequestReminded,
 } from "@/lib/pool";
 import { getMember, saveMember } from "@/lib/members";
@@ -132,7 +134,7 @@ export async function GET(req: NextRequest) {
       reminderWindowDays(gift.termMonths) * 24 * 60 * 60 * 1000;
     if (gift.expiresAt - now > windowMs) continue;
 
-    const membershipUrl = `${baseUrl()}/reactivate?src=gift`;
+    const membershipUrl = `${baseUrl()}/reactivate?src=gift&email=${encodeURIComponent(gift.recipientEmail)}`;
     const expiresAtLabel = new Date(gift.expiresAt).toLocaleDateString(
       "en-US",
       { month: "long", day: "numeric", year: "numeric" }
@@ -208,7 +210,7 @@ export async function GET(req: NextRequest) {
       reminderWindowDays(req.termMonths) * 24 * 60 * 60 * 1000;
     if (req.membershipExpiresAt - now > poolWindowMs) continue;
 
-    const membershipUrl = `${baseUrl()}/reactivate?src=pool`;
+    const membershipUrl = `${baseUrl()}/reactivate?src=pool&email=${encodeURIComponent(req.email)}`;
     const expiresAtLabel = new Date(req.membershipExpiresAt).toLocaleDateString(
       "en-US",
       { month: "long", day: "numeric", year: "numeric" }
@@ -255,8 +257,28 @@ export async function GET(req: NextRequest) {
   const NUDGE_UNTIL_MS = 14 * 24 * 60 * 60 * 1000;
   const unconfirmed = await listUnconfirmedRequests();
   let confirmNudgesSent = 0;
+  let confirmExpired = 0;
 
   for (const req of unconfirmed) {
+    // Close the ones whose window has run out. The rule already existed
+    // (confirmExpiresAt, and pool.ts says in as many words that a
+    // claimer who misses it "drops out silently, still reading
+    // pending_confirm forever"), but it was only ever applied lazily,
+    // on the click. Someone who never clicks never clicks, so the state
+    // was never made true: a request behind a dead address sat in
+    // pending_confirm indefinitely, counted in nothing, waiting on
+    // nobody, and invisible on the admin pool page. There is one live
+    // now, its confirm email bounced on the first send and the nudge
+    // suppressed on the second, so no click was ever possible.
+    //
+    // Applied before the nudge, and inside the same pass, so a request
+    // nudged on this run cannot be judged on the timestamps it held
+    // before the nudge reopened its window.
+    if (now > confirmExpiresAt(req)) {
+      await markRequestExpired(req.id).catch(() => null);
+      confirmExpired++;
+      continue;
+    }
     if (req.confirmNudgeSentAt) continue;
     const age = now - req.createdAt;
     if (age < NUDGE_AFTER_MS || age > NUDGE_UNTIL_MS) continue;
@@ -301,5 +323,6 @@ export async function GET(req: NextRequest) {
     poolLapsed,
     unconfirmedScanned: unconfirmed.length,
     confirmNudgesSent,
+    confirmExpired,
   });
 }
