@@ -55,6 +55,12 @@ export type GiftRecord = {
   expiresAt: number | null;
   /** "Keep your seat" reminder dispatched (cron sets this once). */
   reminderSentAt: number | null;
+  /** The invitation was re-sent because the seat was still unclaimed
+      (cron sets this once). Separate from reminderSentAt: that one
+      guards the END of a redeemed term, this one guards the front
+      door, and a gift that is nudged into being claimed will later
+      want the expiry reminder too. */
+  claimNudgedAt?: number | null;
   /** Recipient bought their own membership (webhook stamps this). */
   convertedAt: number | null;
   /** Buyer was told the recipient already had a seat (sent once). */
@@ -94,6 +100,13 @@ export function addMonths(fromMs: number, months: number): number {
 export function reminderWindowDays(termMonths: GiftTermMonths): number {
   return termMonths === 3 ? 7 : 14;
 }
+
+/** Days a paid gift may sit unclaimed before the invitation is sent a
+    second time. One week: long enough that the nudge is not nagging
+    someone who simply has not opened their mail yet, short enough that
+    a buyer's money is not idle for a month while the seat it bought
+    goes unused. */
+export const UNCLAIMED_NUDGE_DAYS = 7;
 
 /* === Redis client ========================================== */
 
