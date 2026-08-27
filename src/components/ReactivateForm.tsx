@@ -19,12 +19,17 @@ type State =
   | "error";
 
 export function ReactivateForm({
+  grantedSeat = false,
   initialEmail = "",
 }: {
   // The lapsed-membership email links here with ?email= already filled,
   // so coming back is one click at the moment they're least inclined to
   // type anything.
   initialEmail?: string;
+  /** Reader arriving off a donated seat rather than a lapsed card. They
+      have nothing to "reactivate" and no locked rate, so the verb and
+      the reassurance both have to change. Set by the page from ?src=. */
+  grantedSeat?: boolean;
 }) {
   const [email, setEmail] = useState(initialEmail);
   const [state, setState] = useState<State>("idle");
@@ -148,15 +153,20 @@ export function ReactivateForm({
         className="w-full bg-ink text-paper hover:bg-eye-deep px-6 py-4 font-display transition-colors text-sm uppercase tracking-widest disabled:opacity-60 disabled:cursor-not-allowed"
         style={{ fontWeight: 600 }}
       >
-        {state === "loading" ? "One moment..." : "Reactivate my seat"}
+        {state === "loading"
+          ? "One moment..."
+          : grantedSeat
+            ? "Keep my seat"
+            : "Reactivate my seat"}
       </button>
 
       <p
         className="font-serif italic text-ink-faint text-center mt-3"
         style={{ fontSize: "0.82rem" }}
       >
-        you&apos;ll add a card and come back at your locked rate. nothing
-        changes about your standing.
+        {grantedSeat
+          ? "you'll add a card and carry straight on at the rate your seat was given at."
+          : "you'll add a card and come back at your locked rate. nothing changes about your standing."}
       </p>
 
       {state === "error" && (
