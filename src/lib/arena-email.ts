@@ -164,11 +164,19 @@ export async function sendArenaSealedNotification(args: {
     return { ok: false, error: "email_not_configured" };
   }
 
-  const stamp =
-    args.caseNo != null
-      ? `Case No. ${String(args.caseNo).padStart(3, "0")}`
-      : "The case";
-  const subject = `${stamp} is on file: ${args.boutTitle}`;
+  // A follower gets this whether or not the fight earned a number, so both
+  // the chip and the subject have to be true in either state. "The case is
+  // on file" was a fair fallback when the only unnumbered seals were
+  // accidents; now that filing off the record is a deliberate outcome it
+  // would announce a case file Clay decided against.
+  const numbered = args.caseNo != null;
+  const stamp = numbered
+    ? `Case No. ${String(args.caseNo).padStart(3, "0")}`
+    : "Sealed";
+  const headline = numbered
+    ? `${stamp} is on file: ${args.boutTitle}`
+    : `The bout is sealed: ${args.boutTitle}`;
+  const subject = headline;
   const rounds = `${args.tileCount} ${args.tileCount === 1 ? "round" : "rounds"}`;
 
   const html = `<!doctype html>
@@ -231,7 +239,7 @@ export async function sendArenaSealedNotification(args: {
 </html>`;
 
   const text = [
-    `${stamp} is on file: ${args.boutTitle}`,
+    headline,
     args.dispatch ?? "",
     "",
     `${rounds}, sealed. Read the case:`,

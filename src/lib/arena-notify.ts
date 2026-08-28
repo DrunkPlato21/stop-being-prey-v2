@@ -136,26 +136,44 @@ async function emailLiveFight(
 
 export async function announceCaseFiled(
   bout: ArenaBout,
-  skipEmail: string
+  skipEmail: string,
+  opts: { ringTheRoom?: boolean } = {}
 ): Promise<void> {
+  // Two audiences, and only one of them is opted in.
+  //
+  // The room-wide row goes to every member whether they asked or not, so
+  // it is spent only on a case entering the record. An off-the-record
+  // seal passes ringTheRoom: false and the room hears nothing.
+  //
+  // The followers below are a different thing entirely and are NEVER
+  // gated on that. Each of them stood on this bout and pressed a button
+  // that promised them the ending. Whether Clay later decided the fight
+  // was worth a case number has no bearing on a promise made to someone
+  // who watched it happen, and a follow that can silently resolve to
+  // nothing is worse than no follow button at all.
+  const ringTheRoom = opts.ringTheRoom !== false;
   if (bout.sealAnnouncedAt) return;
+  // Stamped in both paths, so this stays the idempotency guard for the
+  // follower mail too: a re-seal cannot mail the same verdict twice.
   await setBoutFlags(bout.id, { sealAnnouncedAt: Date.now() });
-  try {
-    const emails = await listActiveMemberEmails();
-    await createForMembers(
-      emails,
-      {
-        type: "arena_case",
-        title: bout.caseNo
-          ? `Case № ${caseNoStr(bout.caseNo)} is on file`
-          : "A bout was sealed",
-        body: bout.title,
-        linkUrl: boutHref(bout),
-      },
-      { skipEmail }
-    );
-  } catch {
-    await setBoutFlags(bout.id, { sealAnnouncedAt: null }).catch(() => null);
+  if (ringTheRoom) {
+    try {
+      const emails = await listActiveMemberEmails();
+      await createForMembers(
+        emails,
+        {
+          type: "arena_case",
+          title: bout.caseNo
+            ? `Case № ${caseNoStr(bout.caseNo)} is on file`
+            : "A bout was sealed",
+          body: bout.title,
+          linkUrl: boutHref(bout),
+        },
+        { skipEmail }
+      );
+    } catch {
+      await setBoutFlags(bout.id, { sealAnnouncedAt: null }).catch(() => null);
+    }
   }
 
   await emailSealedToFollowers(bout, skipEmail);
