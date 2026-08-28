@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { resizeImageToWebp } from "@/lib/image-resize";
+import { RedactEditor } from "@/components/arena/RedactEditor";
 import { deleteTileAction, updateTileAction } from "@/app/arena/actions";
 import {
   ARENA_MAX_TILE_TITLE,
@@ -37,6 +37,11 @@ export function TileAdminTools({
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(tile.imageUrl);
+  // Swapping the screenshot on an existing tile is the same act as
+  // attaching one in the bench and has to pass the same gate. Without
+  // this, correcting a tile would be the one door that put an unredacted
+  // original in the Blob store.
+  const [pending, setPending] = useState<File | null>(null);
   // Same rule as the bench: the specimen's own fields are on screen
   // only while the tile is a specimen. Retyping a specimen into
   // something else therefore drops its handle and transcript, which is
@@ -69,11 +74,10 @@ export function TileAdminTools({
   // Upload only. Reading the screenshot is the bench's job: an edit is
   // a correction, and the last thing a correction should do is
   // overwrite the transcript Clay just fixed by hand.
-  async function attach(file: File) {
+  async function attach(blob: Blob) {
     setError(null);
     setBusy(true);
     try {
-      const { blob } = await resizeImageToWebp(file);
       const webp = new File([blob], "paste.webp", { type: "image/webp" });
       const fd = new FormData();
       fd.append("file", webp);
@@ -96,7 +100,7 @@ export function TileAdminTools({
     const file = item.getAsFile();
     if (!file) return;
     e.preventDefault();
-    void attach(file);
+    setPending(file);
   }
 
   if (!editing) {
@@ -206,6 +210,16 @@ export function TileAdminTools({
 
         {busy && <div className="arena-bench-note">Attaching&hellip;</div>}
         {error && <div className="arena-bench-err">{error}</div>}
+        {pending && (
+          <RedactEditor
+            file={pending}
+            onCancel={() => setPending(null)}
+            onDone={({ blob }) => {
+              setPending(null);
+              void attach(blob);
+            }}
+          />
+        )}
         {imageUrl ? (
           <div className="arena-bench-preview">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -235,7 +249,7 @@ export function TileAdminTools({
               hidden
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) void attach(f);
+                if (f) setPending(f);
                 e.target.value = "";
               }}
             />

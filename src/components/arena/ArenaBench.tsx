@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { resizeImageToWebp } from "@/lib/image-resize";
+import { RedactEditor } from "@/components/arena/RedactEditor";
 import { addTileAction } from "@/app/arena/actions";
 import {
   ARENA_MAX_TILE_TITLE,
@@ -19,21 +19,6 @@ import {
 } from "@/components/guild/ComposerPreview";
 import { useAutoGrow } from "@/components/guild/useAutoGrow";
 
-// Clay's bench: the tile composer. The one ergonomic requirement that
-// decides whether the Arena gets used at all: Ctrl+V a screenshot
-// anywhere in the bench and it's attached — resized to WebP in the
-// browser (same pipeline as the Lounge), uploaded to Blob, done. No
-// file dialogs mid-fight. A picker fallback exists for the days the
-// screenshot is a file.
-
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("read_failed"));
-    reader.readAsDataURL(blob);
-  });
-}
 
 // `kind` only reaches the type picker, so the button Clay presses says
 // the same words the tile will wear once it lands.
@@ -45,6 +30,11 @@ export function ArenaBench({
   kind?: ArenaCaseKind;
 }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  // The screenshot waiting to be looked at. Nothing is uploaded while
+  // this is set: a paste opens the redaction step and the file sits in
+  // memory until it is approved or dropped, so the original never
+  // reaches the Blob store even for the seconds before a box is drawn.
+  const [pending, setPending] = useState<File | null>(null);
   // The type drives the form, not just the label the tile lands with:
   // handle and transcript are the specimen's own fields, so they are
   // not on screen when the tile being written cannot use them.
@@ -130,22 +120,25 @@ export function ArenaBench({
     }
   }
 
-  async function attach(file: File) {
+  // Called by the redaction step with the APPROVED pixels: the blob to
+  // store and a data URL of the same painted canvas. Both come from one
+  // render, so the transcriber cannot read a name the reader just
+  // blacked out and type it back into the handle field — which would
+  // leak it in text having covered it in the picture.
+  async function attach(blob: Blob, dataUrl: string) {
     setError(null);
     setReadNote(null);
     setUploading(true);
     try {
-      const { blob } = await resizeImageToWebp(file);
       const webp = new File([blob], "paste.webp", { type: "image/webp" });
       const fd = new FormData();
       fd.append("file", webp);
       // Store and read in parallel — neither waits on the other.
-      const dataUrlPromise = blobToDataUrl(blob);
       const uploadPromise = fetch("/api/arena/upload", {
         method: "POST",
         body: fd,
       });
-      void dataUrlPromise.then((dataUrl) => void transcribe(dataUrl));
+      void transcribe(dataUrl);
       const res = await uploadPromise;
       const data = await res.json().catch(() => null);
       if (res.ok && data?.url) setImageUrl(data.url as string);
@@ -165,7 +158,7 @@ export function ArenaBench({
     const file = item.getAsFile();
     if (!file) return;
     e.preventDefault();
-    void attach(file);
+    setPending(file);
   }
 
   return (
@@ -286,7 +279,17 @@ export function ArenaBench({
             </button>
           </div>
         )}
-        {!imageUrl && !uploading && (
+        {pending && (
+          <RedactEditor
+            file={pending}
+            onCancel={() => setPending(null)}
+            onDone={({ blob, dataUrl }) => {
+              setPending(null);
+              void attach(blob, dataUrl);
+            }}
+          />
+        )}
+        {!imageUrl && !uploading && !pending && (
           <div className="arena-bench-note">
             Screenshot: paste it (Ctrl+V), or{" "}
             <button
@@ -303,7 +306,7 @@ export function ArenaBench({
               hidden
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) void attach(f);
+                if (f) setPending(f);
                 e.target.value = "";
               }}
             />
@@ -313,7 +316,7 @@ export function ArenaBench({
         <button
           type="submit"
           className="submit"
-          disabled={uploading || !body.trim()}
+          disabled={uploading || !!pending || !body.trim()}
         >
           Post tile
         </button>

@@ -1383,3 +1383,68 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
   font-size: 0.82rem; line-height: 1.5; color: var(--a-ink-muted);
   font-style: italic; max-width: 46ch;
 }
+
+/* ── Redaction, before the upload ────────────── */
+/* The step between pasting a screenshot and storing it. Deliberately
+   loud for a bench control: this is the one place in the room where
+   getting it wrong publishes a stranger's name, so it does not read as
+   another optional field in a form. */
+.arena-redact {
+  border: 1px solid var(--a-gold-deep); border-radius: 4px;
+  background: rgba(201, 168, 76, 0.04);
+  padding: 14px 14px 12px; margin: 6px 0 10px;
+}
+.arena-redact-head p {
+  margin: 6px 0 12px; font-size: 0.86rem; line-height: 1.55;
+  color: var(--a-ink-muted); max-width: 60ch;
+}
+.arena-redact-modes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+/* Each mode says what it is FOR, not just what it does. "Blur" and
+   "black out" are equally plausible to reach for until you know that
+   blurred text is often recoverable and blurred faces are not. */
+.arena-redact-mode {
+  flex: 1 1 190px; text-align: left; cursor: pointer;
+  background: transparent; border: 1px solid var(--a-rule);
+  border-radius: 3px; padding: 8px 11px; font-family: inherit;
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--a-ink-muted); line-height: 1.3;
+}
+.arena-redact-mode span {
+  display: block; margin-top: 3px; font-size: 0.72rem;
+  font-weight: 400; letter-spacing: 0; color: var(--a-ink-faint);
+}
+.arena-redact-mode.on {
+  border-color: var(--a-gold); color: var(--a-gold);
+  background: rgba(201, 168, 76, 0.07);
+}
+.arena-redact-mode.on span { color: var(--a-ink-muted); }
+/* The canvas holds the real output pixels and CSS scales it to fit, so
+   what is on screen IS the file, not a representation of it. crosshair
+   because the whole surface is a drawing target. */
+.arena-redact-canvas {
+  display: block; width: 100%; height: auto;
+  max-height: 62vh; object-fit: contain;
+  border: 1px solid var(--a-rule); border-radius: 3px;
+  background: #13100a; cursor: crosshair; touch-action: none;
+}
+.arena-redact-actions {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin-top: 11px;
+}
+.arena-redact-send {
+  cursor: pointer; border-radius: 3px; font-family: inherit;
+  background: transparent; border: 1px solid var(--a-gold);
+  color: var(--a-gold); font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase; padding: 10px 18px;
+}
+.arena-redact-send:hover:not(:disabled) { background: rgba(201, 168, 76, 0.12); }
+.arena-redact-minor {
+  cursor: pointer; background: none; border: none; font-family: inherit;
+  color: var(--a-ink-faint); font-size: 0.74rem; padding: 8px 4px;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.arena-redact-minor:hover:not(:disabled) { color: var(--a-ink); }
+.arena-redact-minor.drop { margin-left: auto; }
+.arena-redact-minor.drop:hover:not(:disabled) { color: var(--a-rust); }
+.arena-redact-send:disabled,
+.arena-redact-minor:disabled { opacity: 0.4; cursor: default; }
