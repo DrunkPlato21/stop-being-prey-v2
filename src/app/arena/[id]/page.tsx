@@ -174,13 +174,11 @@ function RulesApplied({ raw }: { raw: string | null }) {
 // audience of members.
 function TileShots({ urls }: { urls: string[] }) {
   if (urls.length === 0) return null;
-  // One shot fills the width as it always has. Several become a grid,
-  // because a bystander tile carrying four replies is showing a pattern
-  // and a stack of full-width screenshots buries the pattern under the
-  // scrolling. The class carries the count so the grid can be two-up
-  // rather than guessing from the container.
+  // Every shot gets the full column, however many there are. These are
+  // documents: a screenshot of a comment is there to be READ, so it is
+  // never cropped to fit a cell and never shrunk to share a row.
   return (
-    <div className={`arena-tile-shots n${Math.min(urls.length, 2)}`}>
+    <div className="arena-tile-shots">
       {urls.map((url, i) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img

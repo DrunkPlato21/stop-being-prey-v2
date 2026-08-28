@@ -1461,24 +1461,22 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
 .arena-redact-minor:disabled { opacity: 0.4; cursor: default; }
 
 /* ── Several screenshots on one tile ─────────── */
-/* One shot fills the width, exactly as it always did. Two or more go
-   into a grid: a bystander tile carrying four replies is showing a
-   PATTERN, and a stack of full-width screenshots buries the pattern
-   under the scrolling needed to reach the end of it. Two columns is the
-   most a phone can carry and still leave the text legible, so the grid
-   never goes past it and simply gets taller. */
-.arena-tile-shots.n1 .arena-tile-img { width: 100%; }
-.arena-tile-shots.n2 {
-  display: grid; gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* Stacked, full width, never cropped.
+   This was a two-column grid with object-fit: cover, which made a tidy
+   rectangle by CUTTING OFF whatever did not fit the cell. On a tile
+   built entirely out of other people's words that is the one thing the
+   layout must never do: the first screenshot lost its top and left edge
+   and the sentence being exhibited could not be read. A neat grid is
+   not worth an unreadable exhibit.
+   Half width was the wrong idea underneath it too. A 760px screenshot
+   of a comment shown in a 274px column is about a third scale, so even
+   uncropped it would have been squinting. These are documents, so they
+   get the whole column, exactly as a single screenshot always has, and
+   several of them simply make the tile taller. */
+.arena-tile-shots {
+  display: flex; flex-direction: column; gap: 10px;
 }
-.arena-tile-shots.n2 .arena-tile-img {
-  width: 100%; height: 100%; object-fit: cover;
-  max-height: 260px;
-}
-@media (max-width: 520px) {
-  /* Below this a half-width screenshot of a comment is unreadable, and
-     an unreadable exhibit is worse than a long page. */
-  .arena-tile-shots.n2 { grid-template-columns: minmax(0, 1fr); }
-  .arena-tile-shots.n2 .arena-tile-img { object-fit: contain; max-height: none; }
+.arena-tile-shots .arena-tile-img {
+  display: block; width: 100%; height: auto;
+  object-fit: contain;
 }
