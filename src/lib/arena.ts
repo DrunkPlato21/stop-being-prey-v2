@@ -100,6 +100,7 @@ export {
   TILE_TYPES,
   type ArenaCaseKind,
   type ArenaTileType,
+  tileImages,
 } from "./arena-constants";
 import {
   boutHref,
@@ -119,6 +120,8 @@ import {
   isCaseKind,
   type ArenaCaseKind,
   type ArenaTileType,
+  ARENA_MAX_TILE_IMAGES,
+  tileImages,
 } from "./arena-constants";
 
 export type ArenaBout = {
@@ -205,9 +208,17 @@ export type ArenaTile = {
   // Move names tagged on this tile. Free text in the prototype; becomes
   // taxonomy ids when the Arsenal is real.
   moves: string[];
-  // Pasted screenshot (Ctrl+V in the bench), resized client-side and
-  // stored in our Blob store. Any tile type may carry one; the specimen
-  // usually does.
+  // Pasted screenshots (Ctrl+V in the bench), redacted and resized
+  // client-side and stored in our Blob store. Any tile type may carry
+  // them; the specimen usually does, and a bystander often carries
+  // several — "here are four people in the replies doing the same
+  // thing" is a stronger exhibit than one screenshot.
+  //
+  // Two fields on purpose. `imageUrls` is the truth; `imageUrl` is the
+  // first of them, kept written so every already-sealed case and any
+  // reader still asking for the old field keeps working untouched. Read
+  // through tileImages(), never off either field directly.
+  imageUrls?: string[];
   imageUrl: string | null;
   createdAt: number;
 };
@@ -257,6 +268,24 @@ function sanitizeImageUrl(raw: string | null | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+/** Sanitise a list of screenshot URLs, drop what fails, and cap it at
+    ARENA_MAX_TILE_IMAGES (arena-constants, so the bench can see it
+    without pulling this module's Redis client into the browser). */
+function sanitizeImageUrls(
+  raw: readonly (string | null | undefined)[] | null | undefined
+): string[] {
+  if (!raw) return [];
+  const out: string[] = [];
+  for (const candidate of raw) {
+    const clean = sanitizeImageUrl(candidate);
+    // De-duped: a double paste of the same upload would otherwise show
+    // the same screenshot twice in the strip.
+    if (clean && !out.includes(clean)) out.push(clean);
+    if (out.length >= ARENA_MAX_TILE_IMAGES) break;
+  }
+  return out;
 }
 
 let cached: Redis | null = null;
@@ -729,7 +758,10 @@ export async function deleteBout(
   const tiles = await listTiles(id);
   const imageUrls: string[] = [];
   for (const tile of tiles) {
-    if (tile.imageUrl) imageUrls.push(tile.imageUrl);
+    // Every shot, not just the leading one: collecting tile.imageUrl
+    // alone would leave the rest of a gallery orphaned in Blob storage,
+    // still publicly fetchable long after the case was deleted.
+    imageUrls.push(...tileImages(tile));
     await client.del(`${TILE_PREFIX}${tile.id}`);
     await client.del(tileReactedByKey(tile.id));
     await client.del(tileWhispersKey(tile.id));
@@ -914,6 +946,7 @@ export async function addTile(
     transcript?: string | null;
     moves?: string[];
     imageUrl?: string | null;
+    imageUrls?: string[] | null;
   }
 ): Promise<ArenaTile | null> {
   const client = getClient();
@@ -934,7 +967,10 @@ export async function addTile(
     // Canonical tags normalize to their Arsenal slug (whether typed as
     // slug or full name); anything else stays as typed = unnamed move.
     moves: normalizeMoves(input.moves),
-    imageUrl: sanitizeImageUrl(input.imageUrl),
+    // The list is the truth and the single field trails it, so a reader
+    // that never learned about the list still shows the first shot.
+    imageUrls: sanitizeImageUrls(input.imageUrls ?? [input.imageUrl]),
+    imageUrl: sanitizeImageUrls(input.imageUrls ?? [input.imageUrl])[0] ?? null,
     createdAt: now,
   };
   await client.set(`${TILE_PREFIX}${tile.id}`, JSON.stringify(tile));
@@ -980,6 +1016,7 @@ export async function updateTile(
     transcript?: string | null;
     moves?: string[];
     imageUrl?: string | null;
+    imageUrls?: string[] | null;
   }
 ): Promise<ArenaTile | null> {
   const client = getClient();
@@ -1000,7 +1037,8 @@ export async function updateTile(
     handle: input.handle?.trim().slice(0, ARENA_MAX_HANDLE) || null,
     transcript: input.transcript?.trim().slice(0, ARENA_MAX_TRANSCRIPT) || null,
     moves,
-    imageUrl: sanitizeImageUrl(input.imageUrl),
+    imageUrls: sanitizeImageUrls(input.imageUrls ?? [input.imageUrl]),
+    imageUrl: sanitizeImageUrls(input.imageUrls ?? [input.imageUrl])[0] ?? null,
   };
   await client.set(`${TILE_PREFIX}${tile.id}`, JSON.stringify(updated));
   // A fix changes what the room is reading, so the version marker has

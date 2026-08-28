@@ -2,6 +2,10 @@
 
 import { useRef, useState } from "react";
 import { RedactEditor } from "@/components/arena/RedactEditor";
+import {
+  ARENA_MAX_TILE_IMAGES,
+  tileImages,
+} from "@/lib/arena-constants";
 import { deleteTileAction, updateTileAction } from "@/app/arena/actions";
 import {
   ARENA_MAX_TILE_TITLE,
@@ -36,7 +40,10 @@ export function TileAdminTools({
 }) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(tile.imageUrl);
+  // Same list the bench keeps. Seeded through tileImages so a tile
+  // written before the list existed opens with its one screenshot
+  // already in hand rather than looking empty.
+  const [imageUrls, setImageUrls] = useState<string[]>(tileImages(tile));
   // Swapping the screenshot on an existing tile is the same act as
   // attaching one in the bench and has to pass the same gate. Without
   // this, correcting a tile would be the one door that put an unredacted
@@ -83,8 +90,13 @@ export function TileAdminTools({
       fd.append("file", webp);
       const res = await fetch("/api/arena/upload", { method: "POST", body: fd });
       const data = await res.json().catch(() => null);
-      if (res.ok && data?.url) setImageUrl(data.url as string);
-      else setError("Upload failed. Try again.");
+      if (res.ok && data?.url) {
+        setImageUrls((prev) =>
+          prev.length >= ARENA_MAX_TILE_IMAGES
+            ? prev
+            : [...prev, data.url as string]
+        );
+      } else setError("Upload failed. Try again.");
     } catch {
       setError("Could not read that image.");
     } finally {
@@ -138,7 +150,9 @@ export function TileAdminTools({
         }}
       >
         <input type="hidden" name="tileId" value={tile.id} />
-        <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
+        {imageUrls.map((url) => (
+          <input key={url} type="hidden" name="imageUrls" value={url} />
+        ))}
         <div className="row">
           <label>
             Tile
@@ -220,21 +234,29 @@ export function TileAdminTools({
             }}
           />
         )}
-        {imageUrl ? (
-          <div className="arena-bench-preview">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl} alt="Attached screenshot" />
-            <button
-              type="button"
-              className="arena-bench-remove"
-              onClick={() => setImageUrl(null)}
-            >
-              Remove
-            </button>
+        {imageUrls.length > 0 && (
+          <div className="arena-bench-strip">
+            {imageUrls.map((url, i) => (
+              <div key={url} className="arena-bench-preview">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt={`Attached screenshot ${i + 1}`} />
+                <button
+                  type="button"
+                  className="arena-bench-remove"
+                  onClick={() =>
+                    setImageUrls((prev) => prev.filter((u) => u !== url))
+                  }
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
           </div>
-        ) : (
+        )}
+        {imageUrls.length < ARENA_MAX_TILE_IMAGES && !pending && (
           <div className="arena-bench-note">
-            Screenshot: paste it (Ctrl+V), or{" "}
+            {imageUrls.length === 0 ? "Screenshot" : "Another"}: paste it
+            (Ctrl+V), or{" "}
             <button
               type="button"
               className="arena-bench-pick"
@@ -268,7 +290,7 @@ export function TileAdminTools({
             type="button"
             className="submit"
             onClick={() => {
-              setImageUrl(tile.imageUrl);
+              setImageUrls(tileImages(tile));
               setEditing(false);
             }}
           >

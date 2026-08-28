@@ -80,6 +80,28 @@ export function carriesTheirWords(type: ArenaTileType): boolean {
   return type === "specimen" || type === "bystander";
 }
 
+/** How many screenshots one tile may carry. A guard on the page rather
+    than on taste: every image is a real network fetch for every reader
+    of a public case, and a bystander strip is the one tile likely to
+    reach for more than a couple. Lives here rather than in arena.ts so
+    the bench can read it without dragging the Redis client into the
+    browser bundle. */
+export const ARENA_MAX_TILE_IMAGES = 8;
+
+/** Every screenshot on a tile, old records included. `imageUrls` is the
+    truth and `imageUrl` is the first of them, kept written so tiles
+    sealed before the list existed still render; a record from back then
+    reads as a list of one and nothing had to be migrated. Pure, and
+    here rather than in arena.ts, so the bench and the tile editor can
+    call it without pulling a Redis client into the browser. */
+export function tileImages(tile: {
+  imageUrl?: string | null;
+  imageUrls?: string[];
+}): string[] {
+  if (tile.imageUrls && tile.imageUrls.length > 0) return tile.imageUrls;
+  return tile.imageUrl ? [tile.imageUrl] : [];
+}
+
 export const TILE_TYPES = [
   "specimen",
   "bystander",

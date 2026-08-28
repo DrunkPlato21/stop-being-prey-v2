@@ -25,6 +25,7 @@ import {
   TILE_TYPE_LABEL,
   type ArenaTile,
   type ArenaWhisper,
+  tileImages,
 } from "@/lib/arena";
 import {
   ARENA_LIVE_WINDOW_MS,
@@ -171,9 +172,26 @@ function RulesApplied({ raw }: { raw: string | null }) {
 // Plain <img> for tile shots on purpose: Blob URLs on a member-only
 // page; next/image transforms would bill per unique screenshot for an
 // audience of members.
-function TileShot({ url }: { url: string }) {
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img className="arena-tile-img" src={url} alt="Screenshot" />;
+function TileShots({ urls }: { urls: string[] }) {
+  if (urls.length === 0) return null;
+  // One shot fills the width as it always has. Several become a grid,
+  // because a bystander tile carrying four replies is showing a pattern
+  // and a stack of full-width screenshots buries the pattern under the
+  // scrolling. The class carries the count so the grid can be two-up
+  // rather than guessing from the container.
+  return (
+    <div className={`arena-tile-shots n${Math.min(urls.length, 2)}`}>
+      {urls.map((url, i) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={url}
+          className="arena-tile-img"
+          src={url}
+          alt={urls.length > 1 ? `Screenshot ${i + 1} of ${urls.length}` : "Screenshot"}
+        />
+      ))}
+    </div>
+  );
 }
 
 function TileBody({
@@ -193,7 +211,8 @@ function TileBody({
     // all there is, so they lead. The text is never dropped either way —
     // it is what stays searchable, readable to a screen reader, and
     // legible after the image URL rots.
-    const hasShot = !!tile.imageUrl;
+    const shots = tileImages(tile);
+    const hasShot = shots.length > 0;
     const folded = hasShot ? tile.transcript || tile.body : tile.transcript;
     const showFold =
       !!folded &&
@@ -202,7 +221,7 @@ function TileBody({
     return (
       <>
         <div className="arena-shot">
-          {tile.imageUrl && <TileShot url={tile.imageUrl} />}
+          <TileShots urls={shots} />
           {tile.handle && <div className="arena-shot-handle">{tile.handle}</div>}
           {!hasShot && <div className="arena-shot-body">{tile.body}</div>}
         </div>
@@ -231,13 +250,14 @@ function TileBody({
         &ldquo;{formatGuildBody(tile.body)}&rdquo;
       </div>
     );
+    const counterShots = tileImages(tile);
     return (
       <>
-        {tile.imageUrl ? <TileShot url={tile.imageUrl} /> : line}
+        {counterShots.length > 0 ? <TileShots urls={counterShots} /> : line}
         {showsPostedLive(kind) && (
           <div className="arena-byline">Clay &middot; posted live</div>
         )}
-        {tile.imageUrl && (
+        {counterShots.length > 0 && (
           <details className="arena-transcript">
             <summary>Full text</summary>
             {line}
@@ -249,7 +269,7 @@ function TileBody({
   return (
     <>
       <div style={GUILD_BODY_STYLE}>{formatGuildBody(tile.body)}</div>
-      {tile.imageUrl && <TileShot url={tile.imageUrl} />}
+      <TileShots urls={tileImages(tile)} />
     </>
   );
 }

@@ -25,6 +25,7 @@ import {
   setMyReaction,
   updateBoutStamp,
   updateTile,
+  tileImages,
 } from "@/lib/arena";
 import { announceBoutOpened, announceCaseFiled } from "@/lib/arena-notify";
 import { setArenaSubscribed, setBoutFollow } from "@/lib/arena-watch";
@@ -111,9 +112,11 @@ export async function addTileAction(formData: FormData): Promise<void> {
       .split(",")
       .map((m) => m.trim())
       .filter(Boolean),
-    // Set by the bench after a Ctrl+V paste uploads through
-    // /api/arena/upload. Validated against our Blob host in addTile.
-    imageUrl: String(formData.get("imageUrl") ?? "") || null,
+    // Set by the bench after each paste clears the redaction step and
+    // uploads through /api/arena/upload. Newline separated because a
+    // Blob URL can contain anything a comma would break on. Validated
+    // against our Blob host, de-duped and capped in addTile.
+    imageUrls: formImageUrls(formData),
   });
   // First tile = the fight is real: ring the bell once.
   if (tile) {
@@ -144,12 +147,28 @@ export async function updateTileAction(formData: FormData): Promise<void> {
       .split(",")
       .map((m) => m.trim())
       .filter(Boolean),
-    imageUrl: String(formData.get("imageUrl") ?? "") || null,
+    imageUrls: formImageUrls(formData),
   });
   if (tile) refreshBout(tile.boutId);
 }
 
-// Pull a tile out of the bout entirely. The screenshot goes with it:
+/** Every uploaded screenshot on the form. The bench renders one hidden
+    input per shot, all named `imageUrls`, and getAll collects them in
+    document order — no separator to pick, which matters because a Blob
+    URL is opaque and the obvious choices are all legal characters
+    inside one. Falls back to the old single field so a form rendered
+    before this still posts its screenshot. */
+function formImageUrls(formData: FormData): string[] {
+  const many = formData
+    .getAll("imageUrls")
+    .map((v) => String(v).trim())
+    .filter(Boolean);
+  if (many.length > 0) return many;
+  const one = String(formData.get("imageUrl") ?? "").trim();
+  return one ? [one] : [];
+}
+
+// Pull a tile out of the bout entirely. Its screenshots go with it:
 // nothing else can reference that blob (every paste uploads its own),
 // so leaving it would just be paying to store an orphan.
 export async function deleteTileAction(formData: FormData): Promise<void> {
@@ -159,9 +178,11 @@ export async function deleteTileAction(formData: FormData): Promise<void> {
   if (!tileId) return;
   const tile = await deleteTile(tileId);
   if (!tile) return;
-  if (tile.imageUrl) {
+  // Every shot the tile carried. Deleting only the first would leave the
+  // rest of a gallery paid for and still publicly fetchable.
+  for (const url of tileImages(tile)) {
     // Never let a storage hiccup fail the delete the tile already got.
-    await del(tile.imageUrl).catch(() => null);
+    await del(url).catch(() => null);
   }
   refreshBout(tile.boutId);
 }

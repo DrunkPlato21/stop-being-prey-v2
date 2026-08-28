@@ -10,6 +10,7 @@ import {
   tileTypeLabel,
   type ArenaCaseKind,
   type ArenaTileType,
+  ARENA_MAX_TILE_IMAGES,
 } from "@/lib/arena-constants";
 import { MovePicker } from "./MovePicker";
 import { FormatToolbar } from "@/components/guild/FormatToolbar";
@@ -29,7 +30,10 @@ export function ArenaBench({
   boutId: string;
   kind?: ArenaCaseKind;
 }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  // A list, because a bystander tile is often several screenshots: four
+  // people in the replies doing the same thing is a stronger exhibit
+  // than one of them. Each paste appends rather than replacing.
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   // The screenshot waiting to be looked at. Nothing is uploaded while
   // this is set: a paste opens the redaction step and the file sits in
   // memory until it is approved or dropped, so the original never
@@ -138,11 +142,20 @@ export function ArenaBench({
         method: "POST",
         body: fd,
       });
-      void transcribe(dataUrl);
+      // Only the first screenshot is read. The transcriber fills handle
+      // and transcript, both of which only ever fill what is still
+      // blank, so every shot after the first would spend a vision call
+      // to change nothing.
+      if (imageUrls.length === 0) void transcribe(dataUrl);
       const res = await uploadPromise;
       const data = await res.json().catch(() => null);
-      if (res.ok && data?.url) setImageUrl(data.url as string);
-      else setError("Upload failed. Try again.");
+      if (res.ok && data?.url) {
+        setImageUrls((prev) =>
+          prev.length >= ARENA_MAX_TILE_IMAGES
+            ? prev
+            : [...prev, data.url as string]
+        );
+      } else setError("Upload failed. Try again.");
     } catch {
       setError("Could not read that image.");
     } finally {
@@ -168,7 +181,7 @@ export function ArenaBench({
         ref={formRef}
         action={async (formData: FormData) => {
           await addTileAction(formData);
-          setImageUrl(null);
+          setImageUrls([]);
           setBody("");
           setTranscript("");
           setTileTitle("");
@@ -178,7 +191,12 @@ export function ArenaBench({
         }}
       >
         <input type="hidden" name="boutId" value={boutId} />
-        <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
+        {/* One field per shot, all the same name. getAll on the action
+            side collects them in order, so nothing has to be joined and
+            split back apart around a Blob URL. */}
+        {imageUrls.map((url) => (
+          <input key={url} type="hidden" name="imageUrls" value={url} />
+        ))}
         <div className="row">
           <label>
             Tile
@@ -264,19 +282,25 @@ export function ArenaBench({
           <div className="arena-bench-note">{readNote}</div>
         )}
         {error && <div className="arena-bench-err">{error}</div>}
-        {imageUrl && (
-          <div className="arena-bench-preview">
-            {/* Plain img on purpose: Blob URLs, member-only page, no
-                next/image transform costs for a preview thumbnail. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl} alt="Attached screenshot" />
-            <button
-              type="button"
-              className="arena-bench-remove"
-              onClick={() => setImageUrl(null)}
-            >
-              Remove
-            </button>
+        {imageUrls.length > 0 && (
+          <div className="arena-bench-strip">
+            {imageUrls.map((url, i) => (
+              <div key={url} className="arena-bench-preview">
+                {/* Plain img on purpose: Blob URLs, member-only page, no
+                    next/image transform costs for a preview thumbnail. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt={`Attached screenshot ${i + 1}`} />
+                <button
+                  type="button"
+                  className="arena-bench-remove"
+                  onClick={() =>
+                    setImageUrls((prev) => prev.filter((u) => u !== url))
+                  }
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
           </div>
         )}
         {pending && (
@@ -289,9 +313,10 @@ export function ArenaBench({
             }}
           />
         )}
-        {!imageUrl && !uploading && !pending && (
+        {imageUrls.length < ARENA_MAX_TILE_IMAGES && !uploading && !pending && (
           <div className="arena-bench-note">
-            Screenshot: paste it (Ctrl+V), or{" "}
+            {imageUrls.length === 0 ? "Screenshot" : "Another"}: paste it
+            (Ctrl+V), or{" "}
             <button
               type="button"
               className="arena-bench-pick"

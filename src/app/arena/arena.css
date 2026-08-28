@@ -543,6 +543,17 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
   color: var(--a-gold); font: inherit; font-style: italic; text-decoration: underline;
 }
 .arena-bench-pick:focus-visible { outline: 1px solid var(--a-gold-deep); }
+/* Several shots on one tile, so the previews wrap into a strip rather
+   than each claiming a row. Each keeps its own Remove: pulling the
+   wrong screenshot out of four is the whole reason they are labelled
+   individually. */
+.arena-bench-strip {
+  display: flex; flex-wrap: wrap; gap: 12px; margin: 4px 0 8px;
+}
+.arena-bench-strip .arena-bench-preview {
+  flex-direction: column; gap: 6px;
+}
+.arena-bench-strip .arena-bench-preview img { max-width: 150px; max-height: 120px; }
 .arena-bench-preview { display: flex; align-items: flex-start; gap: 12px; }
 .arena-bench-preview img {
   max-width: 220px; max-height: 160px; height: auto;
@@ -1448,3 +1459,26 @@ a.arena-chip-move:hover, a.arena-chip-move:focus-visible {
 .arena-redact-minor.drop:hover:not(:disabled) { color: var(--a-rust); }
 .arena-redact-send:disabled,
 .arena-redact-minor:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Several screenshots on one tile ─────────── */
+/* One shot fills the width, exactly as it always did. Two or more go
+   into a grid: a bystander tile carrying four replies is showing a
+   PATTERN, and a stack of full-width screenshots buries the pattern
+   under the scrolling needed to reach the end of it. Two columns is the
+   most a phone can carry and still leave the text legible, so the grid
+   never goes past it and simply gets taller. */
+.arena-tile-shots.n1 .arena-tile-img { width: 100%; }
+.arena-tile-shots.n2 {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.arena-tile-shots.n2 .arena-tile-img {
+  width: 100%; height: 100%; object-fit: cover;
+  max-height: 260px;
+}
+@media (max-width: 520px) {
+  /* Below this a half-width screenshot of a comment is unreadable, and
+     an unreadable exhibit is worse than a long page. */
+  .arena-tile-shots.n2 { grid-template-columns: minmax(0, 1fr); }
+  .arena-tile-shots.n2 .arena-tile-img { object-fit: contain; max-height: none; }
+}
