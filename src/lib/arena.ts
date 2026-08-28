@@ -453,6 +453,11 @@ export async function sealBout(
   id: string,
   stamp: {
     caseNo: number | null;
+    /** File it, but keep it out of the numbered record. A blank caseNo
+        cannot mean this on its own: blank has always meant "pick the
+        next one for me", and it still does. Staying out of the record
+        is a decision, so it is said out loud. */
+    offTheRecord?: boolean;
     archetype?: string | null;
     rulesApplied?: string | null;
     dispatch?: string | null;
@@ -463,6 +468,39 @@ export async function sealBout(
   bout.status = "sealed";
   const sealedAt = Date.now();
   bout.sealedAt = sealedAt;
+
+  // Off the record: sealed, readable, permanently linked, but carrying
+  // no case number. The number is what the archive is counted in, so
+  // handing one to every fight that ends after a single reply would
+  // spend the sequence on the cases that needed it least. A fight that
+  // ended because one reply was enough is not failed material, it just
+  // is not a document. Any number this bout already wore is released
+  // back to the register on the way out, so re-sealing off the record
+  // is a real undo rather than a hole in the sequence.
+  if (stamp.offTheRecord) {
+    const c = getClient();
+    if (c && bout.caseNo != null) {
+      const owner = await c.hget<string>(CASE_NOS_KEY, String(bout.caseNo));
+      if (owner === bout.id) await c.hdel(CASE_NOS_KEY, String(bout.caseNo));
+    }
+    bout.caseNo = null;
+    bout.archetype =
+      stamp.archetype?.trim().slice(0, ARENA_MAX_ARCHETYPE) ||
+      bout.archetype ||
+      null;
+    bout.rulesApplied =
+      stamp.rulesApplied?.trim().slice(0, ARENA_MAX_RULES) ||
+      bout.rulesApplied ||
+      null;
+    bout.dispatch =
+      stamp.dispatch?.trim().slice(0, ARENA_MAX_DISPATCH) ||
+      bout.dispatch ||
+      null;
+    bout.slug = await mintSlug(bout);
+    await saveBout(bout);
+    if (c) await c.zadd(BOUTS_INDEX, { score: sealedAt, member: bout.id });
+    return { bout, renumberedFrom: null };
+  }
 
   // The number is the spine of the archive, so it is claimed, not
   // typed. Asked-for number first (or the one this bout already
@@ -622,7 +660,18 @@ export async function updateBoutStamp(
 
   let renumberedFrom: number | null = null;
   const wanted = stamp.caseNo;
-  if (
+  // Explicit null takes the number off and hands it back. `undefined`
+  // still means "leave it alone", which is what every other field here
+  // does, so a caller editing only the dispatch cannot strip a stamp by
+  // omission. This is what makes the seal-time choice reversible in
+  // both directions rather than a one-way door.
+  if (stamp.caseNo === null && bout.caseNo != null) {
+    const owner = await client.hget<string>(CASE_NOS_KEY, String(bout.caseNo));
+    if (owner === bout.id) {
+      await client.hdel(CASE_NOS_KEY, String(bout.caseNo));
+    }
+    bout.caseNo = null;
+  } else if (
     wanted &&
     Number.isInteger(wanted) &&
     wanted > 0 &&

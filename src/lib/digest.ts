@@ -392,13 +392,22 @@ export async function assembleDigest(
   // off the prod keyspace, the room contributes nothing.
   const allBouts = ARENA_IS_LIVE ? boutsOnFile : [];
 
-  // Every case sealed inside the window rides the email as a teaser,
-  // oldest first so the case numbers read forward. Tiles are counted,
-  // not carried: see the note on DigestPayload["cases"].
+  // Every NUMBERED case sealed inside the window rides the email as a
+  // teaser, oldest first so the case numbers read forward. Tiles are
+  // counted, not carried: see the note on DigestPayload["cases"].
+  //
+  // Off-the-record seals are left out. They are the short ones, and they
+  // are the many: carrying them here would undo the thing this teaser
+  // was built to fix, since the flood would simply move off the index
+  // and into the Sunday email, which is the harder place to scroll past.
+  // The digest reports the record, and they are not in it. They are
+  // still readable, still linkable, and still shareable if Clay unlocks
+  // one — they just do not get mailed at anybody.
   const sealedThisWeek = allBouts
     .filter(
       (b) =>
         b.status === "sealed" &&
+        b.caseNo != null &&
         b.sealedAt !== null &&
         b.sealedAt >= since &&
         b.sealedAt <= now

@@ -174,16 +174,24 @@ export async function sealBoutAction(formData: FormData): Promise<void> {
   const boutId = String(formData.get("boutId") ?? "");
   if (!boutId) return;
   const rawNo = Number.parseInt(String(formData.get("caseNo") ?? ""), 10);
+  const offTheRecord = String(formData.get("offTheRecord") ?? "") === "1";
   const result = await sealBout(boutId, {
     caseNo: Number.isInteger(rawNo) && rawNo > 0 ? rawNo : null,
+    offTheRecord,
     archetype: String(formData.get("archetype") ?? "") || null,
     rulesApplied: String(formData.get("rulesApplied") ?? "") || null,
     dispatch: String(formData.get("dispatch") ?? "") || null,
   });
   if (!result) return;
   const { bout, renumberedFrom } = result;
-  // The filed case is the payoff the first bell row promised.
-  await announceCaseFiled(bout, session.email);
+  // The filed case is the payoff the first bell row promised — but only
+  // when it is a filed case. An off-the-record seal is not an event, so
+  // it does not ring: the bell is for the moments worth interrupting a
+  // member for, and spending it on every fight that ended after one
+  // reply is how a bell stops being read at all.
+  if (!offTheRecord) {
+    await announceCaseFiled(bout, session.email);
+  }
   refreshBout(boutId, bout.slug);
   // Sealing mints the readable link, so land on it. `filed` fires the
   // stamp's one-time settle; `renumbered` only rides along when the

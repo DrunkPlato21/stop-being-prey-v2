@@ -630,6 +630,46 @@ details.arena-transcript[open] summary { color: var(--a-gold); }
 }
 .arena-caseno-input { width: 110px; min-width: 0; flex: none; }
 
+/* ── Off the record ──────────────────────────── */
+/* The second shelf. Quieter than the record above it and never a
+   separate page: one address for the room, so a stranger who lands on
+   one of these still sees the record sitting over it. */
+.arena-shelf-head.off { color: var(--a-ink-faint); }
+.arena-shelf-note {
+  font-size: 0.82rem; font-style: italic; color: var(--a-ink-faint);
+  margin: 0 0 10px; max-width: 52ch;
+}
+/* The stamp block carries a number on a case file. With none to carry
+   it says FILED, and the crest comes down to the faint ink so the plate
+   reads as the lighter thing it is without being greyed out like
+   something broken. */
+.arsenal-plate.case.unnumbered { border-left-color: var(--a-rule); }
+.arsenal-plate.case.unnumbered .mk { color: var(--a-ink-faint); }
+.arsenal-plate.case.unnumbered .num { color: var(--a-ink-faint); }
+
+/* The choice, on the seal form. It sits under the stamp fields because
+   it overrides them: ticking it throws the case number away.
+
+   Both selectors have to name .arena-tools to win. The bench styles
+   every label as a small-caps field caption and every input as a text
+   box with `flex: 1; min-width: 140px`, so unqualified this arrived as
+   a shouted uppercase sentence next to a checkbox stretched to the
+   width of a name field. This is a sentence and a tickbox, so it opts
+   out of both. */
+.arena-tools label.arena-offrecord {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin: 2px 0 14px; cursor: pointer;
+  font-size: 0.86rem; font-weight: 400; letter-spacing: 0;
+  text-transform: none; line-height: 1.5; color: var(--a-ink-muted);
+}
+.arena-tools label.arena-offrecord input[type="checkbox"] {
+  flex: none; min-width: 0; width: 15px; height: 15px;
+  margin: 2px 0 0; padding: 0;
+  background: none; border: none; border-radius: 0;
+  accent-color: var(--a-gold);
+}
+.arena-tools label.arena-offrecord:hover { color: var(--a-ink); }
+
 /* ── The archetype filter ────────────────────── */
 /* Sits on the list it filters, in the room's own chip grammar: outlined
    and quiet at rest, gold when it's the one doing the work. Deliberately

@@ -797,6 +797,18 @@ export default async function BoutPage({
                 defaultValue={bout.dispatch ?? undefined}
                 placeholder="One line for the Sunday email, your voice: how this one found you (optional)"
               />
+              {/* The two doors out of a fight. Every bout opens looking
+                  like it might end after one reply, so this cannot be
+                  decided when the bout is created — only here, when he
+                  knows how it went. Off the record still seals: readable,
+                  linked, shareable, just not counted in the record. */}
+              <label className="arena-offrecord">
+                <input type="checkbox" name="offTheRecord" value="1" />
+                <span>
+                  Off the record. Seal it without a case number, and
+                  don&apos;t ring the bell.
+                </span>
+              </label>
               <button type="submit" className="arena-seal-btn">
                 Seal the bout. File it.
               </button>

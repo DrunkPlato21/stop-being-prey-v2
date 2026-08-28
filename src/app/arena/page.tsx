@@ -118,14 +118,26 @@ function CaseRows({ bouts, admin }: { bouts: ArenaBout[]; admin: boolean }) {
         // whole plate (see .plate-link::after), which keeps the fat
         // tap target the anchor used to give, and the chips sit above
         // that overlay so they can be their own links.
-        <div key={bout.id} className="arsenal-plate case">
+        <div
+          key={bout.id}
+          className={`arsenal-plate case${bout.caseNo ? "" : " unnumbered"}`}
+        >
           <span className="arsenal-stampblock">
             <span aria-hidden="true" className="mk">
               &#10022;
             </span>
+            {/* An off-the-record case has no number, and "CASE —" reads
+                as a number that failed to load rather than one that was
+                never given. It says what it is instead. */}
             <span className="num">
-              CASE
-              <b>{bout.caseNo ? caseNoStr(bout.caseNo) : "—"}</b>
+              {bout.caseNo ? (
+                <>
+                  CASE
+                  <b>{caseNoStr(bout.caseNo)}</b>
+                </>
+              ) : (
+                "FILED"
+              )}
             </span>
           </span>
           <span className="arsenal-platebody">
@@ -217,9 +229,16 @@ export default async function ArenaIndexPage({
   // a weekly cadence that binds in about half a year; whoever raises the
   // cap should raise it here rather than let the filter quietly report
   // on a slice.
+  // The record is the numbered shelf, newest case first. A sealed bout
+  // with no number was filed off the record: real, readable, permanently
+  // linked, just not counted. It sorts by when it was sealed instead,
+  // because it has no number to sort by.
   const sealed = bouts
-    .filter((b) => b.status === "sealed")
+    .filter((b) => b.status === "sealed" && b.caseNo != null)
     .sort((a, b) => (b.caseNo ?? 0) - (a.caseNo ?? 0));
+  const offRecord = bouts
+    .filter((b) => b.status === "sealed" && b.caseNo == null)
+    .sort((a, b) => (b.sealedAt ?? 0) - (a.sealedAt ?? 0));
 
   const counts = new Map<string, { label: string; count: number }>();
   for (const bout of sealed) {
@@ -315,6 +334,27 @@ export default async function ArenaIndexPage({
             </nav>
           )}
           <CaseRows bouts={shown} admin={admin} />
+        </>
+      )}
+
+      {/* Off the record. Beneath the record and quieter, never a separate
+          page: one address for the room, and a stranger who lands on one
+          of these still sees the record sitting above it.
+
+          Not hidden and not an apology. A fight that ended because one
+          reply was enough is the method working; it just is not a
+          document, and the case numbers stay worth something because
+          this shelf exists to catch everything that should not have
+          one. The filter above deliberately does not reach down here —
+          it counts and filters the record. */}
+      {offRecord.length > 0 && (
+        <>
+          <h2 className="arena-shelf-head off">Off the record</h2>
+          <p className="arena-shelf-note">
+            Fights that ended before they became case files. Still on
+            file, just not numbered.
+          </p>
+          <CaseRows bouts={offRecord} admin={admin} />
         </>
       )}
 
