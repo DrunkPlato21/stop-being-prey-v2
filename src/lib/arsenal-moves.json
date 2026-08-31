@@ -170,16 +170,6 @@
     "source": "Named during Dave Silva one-shot, May 9, 2026."
   },
   {
-    "slug": "disagreement-as-dishonesty",
-    "name": "Disagreement as dishonesty",
-    "role": "opponent",
-    "definition": "Declaring the evidence obvious, universal and already seen, so that disagreement can only be stupidity or bad faith. It's all on video. Nobody ever has to produce the video.",
-    "mechanism": "It converts a factual dispute into a test of the other person's character. Once the proof is established as common knowledge, producing it becomes unnecessary and asking for it becomes suspicious. The audience is handed a shortcut: they don't have to weigh anything, only decide who is honest. And because the evidence is never specified, there is nothing to check, nothing to contest, and no version of it that can be shown to be thin.",
-    "counterMove": "Ask for it. One clip, one timestamp, one quote. The move dies the moment someone has to produce the thing that was supposedly obvious, and the refusal to produce it does more damage than the clip ever would have.",
-    "status": "Clay-original framing of an observed pattern",
-    "source": "Named during Jerry Lee Howell one-shot, August 2026."
-  },
-  {
     "slug": "endorsement-with-deniability",
     "name": "Endorsement-with-deniability",
     "role": "opponent",
@@ -278,6 +268,16 @@
     "counterMove": "Drop the rest of the picture into the comment. Force the speaker to either acknowledge they edited it or look like they didn't know.",
     "status": "Established rhetorical concept (cherry-picking, framing fallacy)",
     "source": "Named during Marek Wiechula one-shot, May 9, 2026."
+  },
+  {
+    "slug": "disagreement-as-dishonesty",
+    "name": "The Unproduced Receipt",
+    "role": "opponent",
+    "definition": "Declaring the evidence obvious, universal and already seen, so that disagreement can only be stupidity or bad faith. It's all on video. Nobody ever has to produce the video.",
+    "mechanism": "It converts a factual dispute into a test of the other person's character. Once the proof is established as common knowledge, producing it becomes unnecessary and asking for it becomes suspicious. The audience is handed a shortcut: they don't have to weigh anything, only decide who is honest. And because the evidence is never specified, there is nothing to check, nothing to contest, and no version of it that can be shown to be thin.",
+    "counterMove": "Ask for it. One clip, one timestamp, one quote. The move dies the moment someone has to produce the thing that was supposedly obvious, and the refusal to produce it does more damage than the clip ever would have.",
+    "status": "Clay-original framing of an observed pattern",
+    "source": "Named during Jerry Lee Howell one-shot, August 2026."
   },
   {
     "slug": "volunteered-victimhood",
