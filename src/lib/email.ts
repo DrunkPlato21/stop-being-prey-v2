@@ -801,6 +801,146 @@ export async function sendGuildReplyNotification(args: {
   }
 }
 
+/* === Guild mention notification ===========================
+   Sent when a member is @-tagged in a Guild thread or reply. The bell
+   already carried this (guild_mention, live since the mention build);
+   the gap was that a tag reached nobody who wasn't signed in, which is
+   about half the membership.
+
+   Shares the per-thread email lock with sendGuildReplyNotification, so
+   nobody gets "Trish replied" AND "Trish tagged you" for the same
+   thread inside the window. Being named is the more specific signal, so
+   the mention sweep claims the lock first. Same account toggle governs
+   both: a member who turned reply email off is off for tags too. */
+
+export async function sendGuildMentionNotification(args: {
+  to: string;
+  recipientDisplayName: string;
+  mentionAuthorDisplayName: string;
+  threadTitle: string;
+  /** Path like /guild/<id>#reply-<id>; the absolute URL is built here. */
+  threadPath: string;
+  /** The body the tag appeared in. */
+  bodyText: string;
+}): Promise<SendResult> {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `[email] (dev) guild mention email SKIPPED -> ${args.to} re "${args.threadTitle}"`
+    );
+    return { ok: false, error: "skipped_in_dev" };
+  }
+
+  const resend = resendClient();
+  if (!resend) return { ok: false, error: "email_not_configured" };
+
+  const threadUrl = `${getBaseUrl()}${args.threadPath}`;
+  const greeting = args.recipientDisplayName
+    ? escapeHtml(args.recipientDisplayName)
+    : "Hey";
+  const subject = `${args.mentionAuthorDisplayName} tagged you in the Guild`;
+  const where = args.threadTitle
+    ? ` in <em>${escapeHtml(args.threadTitle)}</em>`
+    : "";
+  const lede = `<strong style="color:#1a1714;">${escapeHtml(args.mentionAuthorDisplayName)}</strong> tagged you${where}.`;
+  const bodyEscaped = escapeHtml(args.bodyText.trim()).replace(/\n/g, "<br/>");
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>You were tagged in the Guild</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5efe1;font-family:Georgia,'Times New Roman',serif;color:#1a1714;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5efe1;padding:48px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#fbf6e9;border:1px solid #c9bfa3;padding:40px 32px;">
+            <tr>
+              <td style="text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.7rem;letter-spacing:0.32em;text-transform:uppercase;color:#8a7d20;font-weight:700;padding-bottom:24px;">
+                Stop Being Prey &middot; The Guild
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;">${greeting},</p>
+                <p style="margin:0 0 18px 0;">${lede}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0 24px 0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-left:2px solid #8a7d20;background:#f5efe1;">
+                  <tr>
+                    <td style="padding:14px 18px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:#1a1714;">
+                      ${bodyEscaped}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:8px 0 24px 0;">
+                <a href="${escapeHtml(threadUrl)}" style="display:inline-block;background:#1a1714;color:#f5efe1;text-decoration:none;font-family:'Cormorant Garamond',Georgia,serif;font-size:0.78rem;letter-spacing:0.22em;text-transform:uppercase;font-weight:600;padding:14px 28px;border:1px solid #1a1714;">
+                  Answer it in the Guild
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:13px;font-style:italic;color:#8a8077;line-height:1.6;border-top:1px solid #d8cfb8;padding-top:20px;">
+                <p style="margin:0 0 6px 0;">to stop these emails, toggle off &ldquo;email me when someone replies&rdquo; in your account.</p>
+                <p style="margin:14px 0 0 0;">stay close,<br/>~ Clay</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  const text = [
+    `${args.recipientDisplayName || "Hey"},`,
+    "",
+    args.threadTitle
+      ? `${args.mentionAuthorDisplayName} tagged you in "${args.threadTitle}":`
+      : `${args.mentionAuthorDisplayName} tagged you in the Guild:`,
+    "",
+    args.bodyText.trim(),
+    "",
+    `Answer it in the Guild: ${threadUrl}`,
+    "",
+    'to stop these emails, toggle off "email me when someone replies" in your account.',
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: args.to,
+      subject,
+      html,
+      text,
+      replyTo: REPLY_TO,
+    });
+    if (result.error) {
+      console.error("[email] Resend rejected guild mention notification:", {
+        to: args.to,
+        error: result.error,
+      });
+      return { ok: false, error: result.error.message };
+    }
+    return { ok: true, id: result.data?.id ?? "" };
+  } catch (err) {
+    console.error("[email] Resend threw on guild mention notification:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "send_failed",
+    };
+  }
+}
+
 /* === Thread-reply notification (to admin) =================
    Sent to ADMIN_EMAIL when a member replies beneath a comment. A reply
    writes no index entry of its own and only rewrites its parent's

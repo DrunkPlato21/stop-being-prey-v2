@@ -34,7 +34,10 @@ import {
 } from "@/lib/guild";
 import { createNotification, upsertCollapsed } from "@/lib/notifications";
 import { parseMentions, resolveMentionToEmail } from "@/lib/mentions";
-import { sendGuildReplyNotification } from "@/lib/email";
+import {
+  sendGuildMentionNotification,
+  sendGuildReplyNotification,
+} from "@/lib/email";
 import { markOnboardingStep } from "@/lib/onboarding";
 
 // Server Actions for the Guild. Every action re-verifies the session
@@ -111,54 +114,77 @@ async function guildNameGate(
 }
 
 /**
- * Fan out `guild_mention` notifications for everyone @-tagged in a body.
+ * Fan out `guild_mention` notices for everyone @-tagged in a body: the
+ * bell for all of them, and an email for anyone who hasn't turned reply
+ * email off.
  *
  * Mirrors the Lounge's block (same parser, same resolution), with the
  * Guild's own dedupe: `skip` carries whoever already got a guild_reply
  * for this exact post, so being named in the reply you're already being
- * notified about doesn't ring the bell twice. Self-mentions are skipped —
+ * notified about doesn't ring the bell twice. Self-mentions are skipped:
  * writing your own name doesn't ping you.
  *
- * Fire-and-forget by design: a notification hiccup must never fail a post
- * that already landed.
+ * The email reuses the reply path's per-thread lock
+ * (claimReplyEmailCooldown), which is the whole double-email defence.
+ * One Guild email per member per thread per window, whichever sweep gets
+ * there first. Callers run this BEFORE the watcher sweep so a tagged
+ * watcher gets "tagged you" rather than the vaguer "replied".
+ *
+ * Awaited by its callers only from inside a fire-and-forget block: a
+ * notification hiccup must never fail a post that already landed.
  */
-function notifyGuildMentions(args: {
+async function notifyGuildMentions(args: {
   body: string;
   authorEmail: string;
   authorName: string;
+  threadId: string;
   threadTitle: string;
   linkUrl: string;
   skip?: string | null;
-}): void {
-  void (async () => {
-    try {
-      const tokens = parseMentions(args.body);
-      if (!tokens.length) return;
-      const excerpt =
-        args.body.length > 60
-          ? `${args.body.slice(0, 60).trim()}…`
-          : args.body;
-      const author = args.authorEmail.toLowerCase().trim();
-      const skip = args.skip?.toLowerCase().trim() ?? null;
-      const notified = new Set<string>();
-      for (const token of tokens) {
-        const target = await resolveMentionToEmail(token);
-        if (!target) continue;
-        if (target === author || target === skip) continue;
-        if (notified.has(target)) continue;
-        notified.add(target);
-        await createNotification({
-          memberEmail: target,
-          type: "guild_mention",
-          title: `${args.authorName} mentioned you in the Guild`,
-          body: args.threadTitle || excerpt,
-          linkUrl: args.linkUrl,
-        });
-      }
-    } catch (err) {
-      console.error("[notifications] guild_mention write failed:", err);
+}): Promise<void> {
+  try {
+    const tokens = parseMentions(args.body);
+    if (!tokens.length) return;
+    const excerpt =
+      args.body.length > 60
+        ? `${args.body.slice(0, 60).trim()}…`
+        : args.body;
+    const author = args.authorEmail.toLowerCase().trim();
+    const skip = args.skip?.toLowerCase().trim() ?? null;
+    const notified = new Set<string>();
+    for (const token of tokens) {
+      const targetRaw = await resolveMentionToEmail(token);
+      if (!targetRaw) continue;
+      const target = targetRaw.toLowerCase().trim();
+      if (target === author || target === skip) continue;
+      if (notified.has(target)) continue;
+      notified.add(target);
+      await createNotification({
+        memberEmail: target,
+        type: "guild_mention",
+        title: `${args.authorName} mentioned you in the Guild`,
+        body: args.threadTitle || excerpt,
+        linkUrl: args.linkUrl,
+      });
+
+      // Email is the deliberate half. Gated on the member's own account
+      // toggle (the same one that governs reply email, so nobody has two
+      // switches for one idea), then on the shared per-thread lock.
+      const profile = await getProfile(target).catch(() => null);
+      if (!notifyOnReply(profile)) continue;
+      if (!(await claimReplyEmailCooldown(target, args.threadId))) continue;
+      await sendGuildMentionNotification({
+        to: target,
+        recipientDisplayName: profile?.displayName ?? "",
+        mentionAuthorDisplayName: args.authorName,
+        threadTitle: args.threadTitle,
+        threadPath: args.linkUrl,
+        bodyText: args.body || "Shared a photo",
+      });
     }
-  })();
+  } catch (err) {
+    console.error("[notifications] guild_mention fan-out failed:", err);
+  }
 }
 
 /** The name to sign a notification with. Clay presides under his own. */
@@ -223,10 +249,11 @@ export async function postThreadAction(
   // Starting a thread means watching it. No opt-in step.
   await autoWatchThread(result.thread.id, session.email).catch(() => {});
 
-  notifyGuildMentions({
+  void notifyGuildMentions({
     body: result.thread.body,
     authorEmail: session.email,
     authorName: await notifierName(session.email),
+    threadId: result.thread.id,
     threadTitle: result.thread.title,
     linkUrl: `/guild/${result.thread.id}`,
   });
@@ -331,6 +358,22 @@ export async function postReplyAction(
   // touches prod here — the notifications keyspace is dev-namespaced,
   // same as the Guild.)
   void (async () => {
+    // Mentions go FIRST. Both sweeps claim the same per-thread email
+    // lock, so whichever runs first decides which email a tagged watcher
+    // receives. Being named by hand is the more specific signal, so it
+    // takes the lock and the generic "replied" mail stands down. The
+    // person actually being answered claimed the lock further up and is
+    // skipped by the mention sweep, so they still get exactly one.
+    await notifyGuildMentions({
+      body: result.reply.body,
+      authorEmail: session.email,
+      authorName: replierName,
+      threadId,
+      threadTitle,
+      linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
+      skip: directRecipient,
+    });
+
     try {
       const states = await listWatchStates(threadId);
       const author = session.email.toLowerCase().trim();
@@ -376,15 +419,6 @@ export async function postReplyAction(
       console.error("[notifications] guild reply fan-out failed:", err);
     }
   })();
-
-  notifyGuildMentions({
-    body: result.reply.body,
-    authorEmail: session.email,
-    authorName: replierName,
-    threadTitle,
-    linkUrl: `/guild/${threadId}#reply-${result.reply.id}`,
-    skip: directRecipient,
-  });
 
   revalidatePath(`/guild/${threadId}`);
   return { ok: true };
