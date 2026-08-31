@@ -300,6 +300,15 @@ export function DigestChamberPanel({
                   day: "numeric",
                 })}{" "}
                 &middot; {lastRun.sent} of {lastRun.attempted} delivered
+                {lastRun.failed > 0 && (
+                  /* A silent failure count is how two Sunday sends reached
+                     40 members of 160+ without anyone noticing. If the
+                     week didn't land, the panel has to say so. */
+                  <span style={{ color: "#7a3a2e" }}>
+                    {" "}
+                    &middot; {lastRun.failed} never landed
+                  </span>
+                )}
                 {lastRun.noteConsumed ? " · led with your note" : ""}
               </p>
             )}

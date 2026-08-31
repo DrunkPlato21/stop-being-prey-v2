@@ -34,9 +34,25 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-// Resend tolerates modest parallelism; five at a time keeps 159
-// members to a ~10s run without tripping rate limits.
+// Resend allows 10 requests per second on this account. The old loop
+// fired five at a time with NO pause between batches, which at roughly
+// 100ms a send is about fifty requests a second: four out of five came
+// back 429 and were counted as ordinary failures. Aug 16 and Aug 23
+// both reached exactly 40 members (of 162 and 171), because both runs
+// tore through the list in about four seconds and only ~10/second got
+// through. Pacing each batch into a one-second slot puts the run at
+// five a second, half the ceiling, and finishes 171 members in ~35s
+// against a 300s budget.
 const SEND_CONCURRENCY = 5;
+const BATCH_INTERVAL_MS = 1000;
+
+// A throttled or blipped send must not silently drop a member from the
+// week. Retry passes only ever re-send addresses whose send came back
+// FAILED, so a retry can't duplicate a digest that already landed.
+const MAX_ATTEMPTS = 3;
+const RETRY_BACKOFF_MS = [3000, 8000];
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -67,31 +83,61 @@ export async function GET(req: NextRequest) {
   const unsubSkipped = allEmails.length - recipients.length;
 
   let sent = 0;
-  let failed = 0;
+  const lastError = new Map<string, string>();
 
-  for (let i = 0; i < recipients.length; i += SEND_CONCURRENCY) {
-    const batch = recipients.slice(i, i + SEND_CONCURRENCY);
-    const results = await Promise.all(
-      batch.map(async (email) => {
-        const token = await signDigestToken(email);
-        return sendWeeklyDigestEmail({
-          to: email,
-          payload,
-          siteUrl: site,
-          unsubPageUrl: `${site}/digest/unsubscribe?token=${encodeURIComponent(token)}`,
-          unsubPostUrl: `${site}/api/digest/unsubscribe?token=${encodeURIComponent(token)}`,
-        });
-      })
-    );
-    for (const [j, r] of results.entries()) {
-      if (r.ok) sent++;
-      else {
-        failed++;
-        console.error(
-          `[digest] send failed for ${batch[j]}: ${r.error}`
-        );
+  // Each pass sweeps whoever is still unsent, paced to stay under the
+  // provider's per-second ceiling. Most weeks pass one clears the list.
+  let pending = recipients;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS && pending.length; attempt++) {
+    if (attempt > 1) {
+      console.warn(
+        `[digest] retry pass ${attempt} for ${pending.length} member(s)`
+      );
+      await sleep(RETRY_BACKOFF_MS[attempt - 2] ?? 8000);
+    }
+
+    const stillPending: string[] = [];
+    for (let i = 0; i < pending.length; i += SEND_CONCURRENCY) {
+      const batch = pending.slice(i, i + SEND_CONCURRENCY);
+      const startedAt = Date.now();
+      const results = await Promise.all(
+        batch.map(async (email) => {
+          const token = await signDigestToken(email);
+          return sendWeeklyDigestEmail({
+            to: email,
+            payload,
+            siteUrl: site,
+            unsubPageUrl: `${site}/digest/unsubscribe?token=${encodeURIComponent(token)}`,
+            unsubPostUrl: `${site}/api/digest/unsubscribe?token=${encodeURIComponent(token)}`,
+          });
+        })
+      );
+      for (const [j, r] of results.entries()) {
+        if (r.ok) {
+          sent++;
+        } else {
+          stillPending.push(batch[j]);
+          lastError.set(batch[j], r.error ?? "send_failed");
+        }
+      }
+      // Hold the batch to its one-second slot. Without this the loop
+      // outruns the provider and most of the membership gets 429'd.
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < BATCH_INTERVAL_MS) {
+        await sleep(BATCH_INTERVAL_MS - elapsed);
       }
     }
+    pending = stillPending;
+  }
+
+  const failed = pending.length;
+  for (const email of pending) {
+    console.error(`[digest] send failed for ${email}: ${lastError.get(email)}`);
+  }
+  if (failed) {
+    console.error(
+      `[digest] ${failed} of ${recipients.length} member(s) unreached after ${MAX_ATTEMPTS} passes`
+    );
   }
 
   // The round leaves the chamber only when it actually reached someone.
