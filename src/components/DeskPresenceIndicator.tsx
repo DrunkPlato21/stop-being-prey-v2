@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import type { PresenceState } from "@/lib/desk";
+import { usePoll } from "@/components/usePoll";
 
 // Persistent site-wide indicator showing whether Clay is at the
 // desk. Two states, two visual treatments:
@@ -10,10 +11,17 @@ import type { PresenceState } from "@/lib/desk";
 //   manually-away
 //   auto-expired     → empty olive circle + "Clay stepped away"
 //
-// Reads the existing /api/writers-desk/state polling endpoint so
-// the indicator stays in sync with the Writer's Desk widget without
-// adding a parallel data source. Polls every 30s while the tab is
-// visible; pauses when hidden via Page Visibility API.
+// Reads /api/presence: desk state only, no cookies, no identity, and
+// the same derivePresenceState() answer the Writer's Desk widget shows,
+// so the two stay in sync without a parallel data source. It used to
+// poll /api/writers-desk/state, which is session-aware and no-store, so
+// this header dot woke a function and read Redis every 30 seconds for
+// every visitor including signed-out ones. That walked straight past
+// the CDN-cached endpoint the chrome already uses for exactly this
+// reason (see components/chrome.ts). Same dot, mostly cache hits now.
+//
+// Polls every 30s while the tab is visible and in use; pauses when
+// hidden or idle (see usePoll).
 //
 // Initial state is server-rendered so the first paint is correct.
 
@@ -40,52 +48,33 @@ export function DeskPresenceIndicator({
   hideWhenAway?: boolean;
 }) {
   const [state, setState] = useState<PresenceState>(initialState);
+  const atDesk = isAtDesk(state);
 
-  useEffect(() => {
-    let cancelled = false;
-    let timer: number | null = null;
+  // Once a non-paid viewer's dot has gone away it is never drawn again,
+  // so polling on for the rest of the session is spend with nothing on
+  // the other end. The prop comment above claimed this already happened.
+  // The render did return null, but the effect kept running, which is
+  // the quietest kind of waste there is. Now the loop actually stops. A
+  // page load picks Clay back up when he returns.
+  const shouldPoll = !(hideWhenAway && !atDesk);
 
-    async function fetchState() {
+  usePoll(
+    async () => {
       try {
-        const res = await fetch("/api/writers-desk/state", {
-          credentials: "include",
-        });
+        const res = await fetch("/api/presence");
         if (!res.ok) return;
-        const data: { state?: PresenceState } = await res
+        const data: { presence?: PresenceState } = await res
           .json()
           .catch(() => ({}));
-        if (cancelled) return;
-        if (data.state) setState(data.state);
+        if (data.presence) setState(data.presence);
       } catch {
-        // Network blips are fine — next tick recovers.
+        // Network blips are fine. The next tick recovers.
       }
-    }
+    },
+    POLL_INTERVAL_MS,
+    shouldPoll
+  );
 
-    function start() {
-      if (document.visibilityState === "hidden") return;
-      void fetchState();
-      if (timer !== null) window.clearInterval(timer);
-      timer = window.setInterval(fetchState, POLL_INTERVAL_MS);
-    }
-    function stop() {
-      if (timer !== null) window.clearInterval(timer);
-      timer = null;
-    }
-    function onVis() {
-      if (document.visibilityState === "visible") start();
-      else stop();
-    }
-
-    start();
-    document.addEventListener("visibilitychange", onVis);
-    return () => {
-      cancelled = true;
-      stop();
-      document.removeEventListener("visibilitychange", onVis);
-    };
-  }, []);
-
-  const atDesk = isAtDesk(state);
   if (hideWhenAway && !atDesk) return null;
 
   return (

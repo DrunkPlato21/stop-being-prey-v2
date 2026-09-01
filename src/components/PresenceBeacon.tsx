@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { confirmedAnonymous } from "@/components/chrome";
 
 // Site-wide presence beacon. Mounted once in the root layout. Pings
 // /api/presence/ping with the current path:
@@ -17,11 +18,22 @@ import { usePathname } from "next/navigation";
 // MIN_REPEAT_MS throttles same-path re-pings so navigating within an
 // SPA section doesn't hammer the endpoint. Visibility returns bypass
 // the throttle because that's the exact signal we want to refresh on.
+//
+// The endpoint no-ops for anonymous visitors, but it is a Node function
+// and it verifies a session before deciding that, so every signed-out
+// page view and every client-side route change was paying for an answer
+// of "skipped: anon". Most traffic here is signed out, and this beacon
+// sits in the root layout, so that was the most-called dynamic route on
+// the site doing nothing. The sbp_who marker already tells us who is
+// definitely anonymous (see components/chrome.ts); when it does, don't
+// make the trip. A first visit has no marker yet and still pings once,
+// and a member is unaffected.
 
 const MIN_REPEAT_MS = 60_000;
 
 function shouldTrack(path: string | null): path is string {
   if (!path) return false;
+  if (confirmedAnonymous()) return false;
   if (path.startsWith("/admin")) return false;
   if (path.startsWith("/api/")) return false;
   return true;

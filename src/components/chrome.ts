@@ -37,7 +37,7 @@ const STORAGE_KEY = "sbp:chrome";
 // or first visit (absent) — asks /api/chrome, which answers with the
 // marker for next time. This is what lets a spike of signed-out readers
 // cost cache hits instead of per-view invocations.
-function confirmedAnonymous(): boolean {
+export function confirmedAnonymous(): boolean {
   try {
     return /(?:^|;\s*)sbp_who=a(?:;|$)/.test(document.cookie);
   } catch {
