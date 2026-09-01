@@ -73,6 +73,7 @@ export function Footer() {
                     href="/membership?src=footer"
                     className="text-eye-deep hover:text-ink no-underline font-serif text-sm transition-colors"
                     style={{ fontWeight: 600 }}
+                    prefetch={false}
                   >
                     Membership
                   </Link>

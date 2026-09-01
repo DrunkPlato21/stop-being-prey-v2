@@ -150,7 +150,11 @@ export function StickyNav({
               Desk &rarr;
             </Link>
           ) : signedIn ? (
-            <Link href="/membership?src=sticky" className="header-subscribe">
+            <Link
+              href="/membership?src=sticky"
+              className="header-subscribe"
+              prefetch={false}
+            >
               Join
             </Link>
           ) : (
@@ -158,10 +162,15 @@ export function StickyNav({
               <Link
                 href="/notes/sign-in"
                 className="header-signin hidden sm:inline"
+                prefetch={false}
               >
                 Sign in
               </Link>
-              <Link href="/membership?src=sticky" className="header-subscribe">
+              <Link
+                href="/membership?src=sticky"
+                className="header-subscribe"
+                prefetch={false}
+              >
                 Join
               </Link>
             </>

@@ -52,6 +52,14 @@ export function HeaderChrome() {
   // to people who can't reach him anyway.
   return (
     <div className="flex items-center gap-3 sm:gap-4">
+      {/* prefetch={false} on every site-wide chrome link below. These
+          sit in the viewport on page load, on every page, and each
+          target is a force-dynamic route with no loading boundary, so
+          the default prefetch was a full server render per page view
+          for a page the reader had not asked for. /membership took 2.6K
+          hits in 12 hours that way, more than the site's best essay.
+          The click now pays for its own navigation, which is the right
+          place for that cost to land. */}
       {chrome?.presence === "active" && (
         <DeskPresenceIndicator
           initialState={chrome.presence}
@@ -61,7 +69,7 @@ export function HeaderChrome() {
       )}
       {/* Quiet sign-in link for returning members on a new device or
           after session expiry. JOIN stays the loud primary CTA. */}
-      <Link href="/notes/sign-in" className="header-signin">
+      <Link href="/notes/sign-in" className="header-signin" prefetch={false}>
         Sign in
       </Link>
       {/* Hidden on the join-flow pages where it would just point at the

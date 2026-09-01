@@ -82,6 +82,7 @@ export function DeskPresenceIndicator({
       href={href}
       className="header-presence-link"
       aria-label={label(state)}
+      prefetch={false}
     >
       <span
         aria-hidden="true"

@@ -17,7 +17,10 @@ export function HeaderJoinLink() {
   const pathname = usePathname();
   if (SUPPRESS_ON.some((p) => pathname?.startsWith(p))) return null;
   return (
-    <Link href="/patronage?src=header" className="header-subscribe">
+    // prefetch={false}: this button is in the viewport on every page and
+    // /patronage is force-dynamic, so the default prefetched a full
+    // render of the patronage page for every reader who never clicked it.
+    <Link href="/patronage?src=header" className="header-subscribe" prefetch={false}>
       Join
     </Link>
   );
