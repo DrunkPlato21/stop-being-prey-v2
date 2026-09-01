@@ -57,12 +57,51 @@ export function FormatToolbar({
     });
   }
 
+  // One line of a multi-line italic selection. A "> " quote prefix and
+  // the surrounding whitespace stay outside the markers, so the quote
+  // block survives and the emphasis ends where the words do. A blank
+  // line is left alone: wrapping nothing would type "**", which the
+  // renderer reads as the start of a bold span.
+  function italicizeLine(line: string): string {
+    const quote = /^\s*>\s?/.exec(line)?.[0] ?? "";
+    const rest = line.slice(quote.length);
+    const core = rest.trim();
+    if (core === "") return line;
+    // Already emphasised: leave it be. A second pass over an italic line
+    // would type "**text**" and hand back bold, and the renderer has no
+    // bold-and-italic span, so a bold line gets "***text***" and shows
+    // its asterisks. Nothing is the honest answer to both.
+    if (core.startsWith("*") && core.endsWith("*")) return line;
+    const lead = rest.slice(0, rest.indexOf(core));
+    const tail = rest.slice(rest.indexOf(core) + core.length);
+    return `${quote}${lead}*${core}*${tail}`;
+  }
+
   function wrap(marker: string) {
     const ta = textareaRef.current;
     if (!ta) return;
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
-    const selected = value.slice(start, end) || "text";
+
+    // Italic is a single-line span in the renderer on purpose (a stray
+    // "*" must never swallow whole paragraphs), so wrapping a stanza in
+    // one pair of markers renders as literal asterisks and the member
+    // is left thinking the button is broken. Song lyrics and pasted
+    // quotes are exactly how a selection comes to cross lines, and the
+    // member who selected them meant "italicise this", not "italicise
+    // the first line". Wrap line by line instead. Bold needs none of
+    // this: its span may cross a line break, and does, for the two-line
+    // headings members write.
+    const raw = value.slice(start, end);
+    if (marker === "*" && raw.includes("\n")) {
+      const wrapped = raw.split("\n").map(italicizeLine).join("\n");
+      const next = value.slice(0, start) + wrapped + value.slice(end);
+      onChange(next);
+      restoreSelection(start, start + wrapped.length);
+      return;
+    }
+
+    const selected = raw || "text";
     const next =
       value.slice(0, start) + marker + selected + marker + value.slice(end);
     onChange(next);
