@@ -30,6 +30,16 @@
     "source": "Documented in `Strategy/Comment-Warfare.md`, April 30, 2026."
   },
   {
+    "slug": "own-the-edit",
+    "name": "Own the Edit",
+    "role": "clay",
+    "definition": "When someone posts a cropped quote, refuse to supply the missing context. Ask them why they removed it.",
+    "mechanism": "Supplying the context looks like the obvious counter and it is a trap. It makes the research your job and the cropping free, so he spends five seconds and you spend twenty minutes, and he can do it again all day. Asking why he cut it puts the burden back where it belongs, because he made the edit and he owns it. It also forks him: either he knew what he removed, which is deliberate, or he did not, which means he posted something he had not read. Both answers cost him and there is no third one. And it is self-documenting: the moment he engages the substance of the missing part anywhere else in the thread, he has proven he knew, and the timestamps do the rest without you arguing anything. Requires the sincere tone, same as the Reversal Receipt. Asked flat it is a question he must answer. Asked with a sneer it is an accusation he can deny.",
+    "counterMove": "N/A (Clay technique).",
+    "status": "Clay-original technique",
+    "source": "Named during the Micah Dilse bout, September 10 2026, the one-year anniversary of Kirk assassination. Counter to quote-weaponization; the older counter on that entry (source the verbatim quote yourself) still works but is the expensive version."
+  },
+  {
     "slug": "refuse-the-temperature",
     "name": "Refuse the temperature",
     "role": "clay",
