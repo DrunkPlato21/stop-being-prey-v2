@@ -15,7 +15,8 @@
     "test:guild-watch": "tsx scripts/guild-watch-test.mts",
     "test:seat-pool": "tsx scripts/seat-pool-test.mts",
     "test:dunning": "tsx scripts/dunning-test.mts",
-    "test:arena": "tsx scripts/arena-test.mts"
+    "test:arena": "tsx scripts/arena-test.mts",
+    "test:pricing": "tsx scripts/pricing-test.mts"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.4",

@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { floorCentsFor } from "./pricing";
 import {
   claimCharterSlot,
   claimFounderSlot,
@@ -17,11 +18,14 @@ import {
 // Pricing is dynamic + pay-what-you-want:
 //   - Founder tier ($8 floor monthly / $80 yearly) available until the
 //     first 100 founder slots are claimed (see members.ts).
-//   - Charter tier (same $13 floor as Regular) for the next 100 sign-
-//     ups after the Founder cap fills. Same floor as Regular — Charter
-//     is a permanent-earned badge, not a price tier; the difference is
-//     purely the badge claim.
-//   - Regular tier ($13 floor monthly / $130 yearly) thereafter.
+//   - Charter tier ($13 floor monthly / $130 yearly) for the next 100
+//     sign-ups after the Founder cap fills. Charter is a permanent-
+//     earned badge AND, since the raise, a real rate: it is the last
+//     window at $13.
+//   - Regular tier ($18 floor monthly / $180 yearly) thereafter. The
+//     step from $13 to $18 fires on its own the moment the charter cap
+//     fills — no deploy, no flag. Every surface derives its floor from
+//     live charter eligibility.
 //   - The slider lets a buyer pay anything ≥ the floor; the server
 //     enforces the floor at checkout-create time and the webhook
 //     atomically claims the founder/charter slot (or stamps Regular if
@@ -53,54 +57,64 @@ export function baseUrl(): string {
   );
 }
 
-/* === Pricing floors ======================================== */
+/* === Pricing floors ========================================
+   The numbers and the pure math live in lib/pricing.ts so the client
+   widget can share them without pulling the Stripe SDK into the
+   browser bundle. Re-exported here because this module has always been
+   where callers reach for them. */
 
-export const FOUNDER_MONTHLY_FLOOR_CENTS = 800;
-export const FOUNDER_YEARLY_FLOOR_CENTS = 8000;
-export const REGULAR_MONTHLY_FLOOR_CENTS = 1300;
-export const REGULAR_YEARLY_FLOOR_CENTS = 13000;
-
-// The rate a donor-funded seat converts at, held apart from the public
-// regular floor so the two can move independently.
-//
-// A pool seat is given to somebody who said they could not afford the
-// membership. When their prepaid term ends, the public floor is what
-// decides whether they can stay, and raising that floor would aim the
-// increase squarely at the people the programme exists for: a reader
-// who could not manage $13 is not going to manage $18, and the seat a
-// stranger paid for turns into a lapse. So the conversion price is the
-// floor that was live when the seat was granted, and it stays here
-// when REGULAR_* rises.
-//
-// Keep these two in step with whatever REGULAR_* was at the moment of
-// a raise, not with whatever REGULAR_* becomes.
-export const GRANTED_SEAT_MONTHLY_FLOOR_CENTS = 1300;
-export const GRANTED_SEAT_YEARLY_FLOOR_CENTS = 13000;
+export {
+  FOUNDER_MONTHLY_FLOOR_CENTS,
+  FOUNDER_YEARLY_FLOOR_CENTS,
+  CHARTER_MONTHLY_FLOOR_CENTS,
+  CHARTER_YEARLY_FLOOR_CENTS,
+  STANDARD_MONTHLY_FLOOR_CENTS,
+  STANDARD_YEARLY_FLOOR_CENTS,
+  GRANTED_SEAT_MONTHLY_FLOOR_CENTS,
+  GRANTED_SEAT_YEARLY_FLOOR_CENTS,
+  floorCentsFor,
+  floorLabel,
+  standardFloorCents,
+} from "./pricing";
 
 // Hard upper cap on PWYW amount. Defends against test-mode finger-slips
 // and bot abuse; well above any plausible real contribution.
 const MAX_AMOUNT_CENTS = 100_000;
 
-export function floorCentsFor(
-  plan: MembershipPlan,
-  founderEligible: boolean,
-  /** True only for a member converting off a donor-funded seat. Checked
-      server-side against their own record; never taken from a request. */
-  grantedSeat = false
-): number {
-  if (founderEligible) {
-    return plan === "monthly"
-      ? FOUNDER_MONTHLY_FLOOR_CENTS
-      : FOUNDER_YEARLY_FLOOR_CENTS;
-  }
-  if (grantedSeat) {
-    return plan === "monthly"
-      ? GRANTED_SEAT_MONTHLY_FLOOR_CENTS
-      : GRANTED_SEAT_YEARLY_FLOOR_CENTS;
-  }
-  return plan === "monthly"
-    ? REGULAR_MONTHLY_FLOOR_CENTS
-    : REGULAR_YEARLY_FLOOR_CENTS;
+/**
+ * The floor a public buyer faces right now, read live. The one call a
+ * server surface needs when it wants to name the price in copy: the
+ * founder floor while founder slots remain, the charter floor while
+ * charter slots remain, the standard floor after that.
+ *
+ * If a read THROWS, both checks resolve false and this quotes the
+ * standard floor — the same posture as floorCentsFor's default. A quote
+ * that is too high gets corrected at checkout; one that is too low
+ * sells a lifetime lock we did not mean to offer.
+ *
+ * Note the one case this cannot defend: with Redis UNCONFIGURED the
+ * counters read 0 rather than throwing, so every tier looks wide open
+ * and this answers with the founder floor. That is the whole site's
+ * existing assumption (the membership page reads the same way), not
+ * something introduced here — but it means the env vars have to be
+ * present wherever these pages render or prerender.
+ */
+export async function getPublicFloorCents(
+  plan: MembershipPlan = "monthly"
+): Promise<{
+  cents: number;
+  founderEligible: boolean;
+  charterEligible: boolean;
+}> {
+  const founderEligible = await isFounderEligible().catch(() => false);
+  const charterEligible = founderEligible
+    ? false
+    : await isCharterEligible().catch(() => false);
+  return {
+    cents: floorCentsFor(plan, founderEligible, false, charterEligible),
+    founderEligible,
+    charterEligible,
+  };
 }
 
 /** Did this member arrive on a seat somebody else paid for? Reads the
@@ -397,25 +411,26 @@ export async function createMembershipCheckoutSession(args: {
   // buyers fall back to the live founder/charter/regular decision.
   const founderOverride = args.founderOverride === true;
   const founderEligible = founderOverride || (await isFounderEligible());
+  // Charter only matters after Founder fills. The webhook re-checks
+  // atomically; this is the buyer-side read, and it decides two things:
+  // the tier hint carried into Stripe metadata, and — since the raise —
+  // the FLOOR itself. $13 while charter slots remain, $18 after. So it
+  // has to be resolved before the floor is computed, not after.
+  const charterEligible =
+    !founderOverride && !founderEligible && (await isCharterEligible());
   const floor = floorCentsFor(
     args.plan,
     founderEligible,
-    args.grantedSeat === true
+    args.grantedSeat === true,
+    charterEligible
   );
-  let tierAtCheckout: Tier;
-  if (founderOverride) {
-    tierAtCheckout = "founder";
-  } else {
-    // Charter only matters after Founder fills. The webhook re-checks
-    // atomically; this is just the buyer-side hint so the success page
-    // can show the right welcome.
-    const charterEligible = !founderEligible && (await isCharterEligible());
-    tierAtCheckout = founderEligible
+  const tierAtCheckout: Tier = founderOverride
+    ? "founder"
+    : founderEligible
       ? "founder"
       : charterEligible
         ? "charter"
         : "regular";
-  }
 
   if (args.amountCents < floor) {
     return { error: "below_floor", floor };

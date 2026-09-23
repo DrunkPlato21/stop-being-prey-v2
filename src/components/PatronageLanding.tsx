@@ -10,6 +10,7 @@ import {
   getCharterClaimed,
   getFounderClaimed,
 } from "@/lib/members";
+import { CHARTER_MONTHLY_FLOOR_CENTS, floorLabel } from "@/lib/pricing";
 import { derivePresenceState, getPresence } from "@/lib/desk";
 import { isFounderAccessValid } from "@/lib/founder-access";
 import { listVisible } from "@/lib/supporters";
@@ -229,7 +230,12 @@ export async function PatronageLanding({
   } else if (founderEligible) {
     rateScarcityLine = rateLockLine("$8", remaining);
   } else if (charterEligible) {
-    rateScarcityLine = rateLockLine("$13", charterRemaining);
+    // Named from the constant, not written in: the charter floor and
+    // the copy that quotes it can never drift apart.
+    rateScarcityLine = rateLockLine(
+      floorLabel(CHARTER_MONTHLY_FLOOR_CENTS),
+      charterRemaining
+    );
   }
 
   // Both widget instances share these. The count closes the widget: it

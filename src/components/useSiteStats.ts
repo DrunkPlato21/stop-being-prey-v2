@@ -18,7 +18,33 @@ export type SiteStats = {
   members: number;
   founderRemaining: number;
   charterRemaining: number;
+  /** The live public floor, monthly cents: $13 while charter slots
+      remain, $18 once they are gone. Every client surface that names
+      the price reads this rather than hardcoding a number, so the
+      raise lands everywhere at once with no deploy. Optional on the
+      type because a cached /api/stats response served from before this
+      shipped will not carry it. */
+  floorMonthlyCents?: number;
 };
+
+// What to show before /api/stats answers, and if it never does. Whole
+// dollars, because every floor we have ever charged has been one.
+const FALLBACK_FLOOR_MONTHLY_CENTS = 1300;
+
+/** Whole-dollar label ("$13") for the live floor, with a fallback for
+    the pre-load and failed-fetch cases. Mid-sentence copy can never
+    render a blank, so this always returns something sayable. */
+export function floorLabelFrom(
+  stats: SiteStats | null | undefined
+): string {
+  const cents =
+    stats && typeof stats.floorMonthlyCents === "number"
+      ? stats.floorMonthlyCents
+      : FALLBACK_FLOOR_MONTHLY_CENTS;
+  return cents % 100 === 0
+    ? `$${cents / 100}`
+    : `$${(cents / 100).toFixed(2)}`;
+}
 
 let statsPromise: Promise<SiteStats | null> | null = null;
 

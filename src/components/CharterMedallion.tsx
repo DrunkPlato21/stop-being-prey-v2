@@ -2,9 +2,13 @@
 // hold one of the next 100 charter slots (after the 100 founder cap
 // fills). Same chassis as the Founder medallion — cat-eye corners,
 // centered prestige register — with the Charter label and the bronze
-// accent rule under the slot number. The "locked for life" copy stays
-// honest: the BADGE is what's locked, not the rate (Charter pays the
-// same $13 floor as Regular; the privilege is the chip).
+// accent rule under the slot number.
+//
+// The "locked for life" copy used to mean only the badge, because
+// Charter and Regular paid the same $13. Since the raise it means both:
+// Charter is the last window at $13, and the standard floor is $18 the
+// moment the hundredth slot goes. A charter holder keeps a rate nobody
+// can buy afterwards, and a chip nobody can earn afterwards.
 
 type Props = {
   slot: number;

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { MemberBadge } from "@/components/MemberBadge";
 import type { TierBadge } from "@/lib/members";
+import { floorLabel, standardFloorCents } from "@/lib/pricing";
 
 // Pay-what-you-want subscription form.
 //
@@ -16,10 +17,15 @@ import type { TierBadge } from "@/lib/members";
 // label exists but the price would no longer be valid.
 //
 // After the founder cap fills, the next 100 sign-ups claim a Charter
-// slot at the same $13 floor. Charter is a permanent-earned badge
-// (mirrors Founder), not a separate price tier — the floor and slider
-// behaviour are identical to Regular; the difference is the badge and
-// the scarcity copy.
+// slot at $13 — the last window at that price. Charter is a permanent-
+// earned badge (mirrors Founder) AND the rate lock: once the charter
+// cap fills the floor steps to $18 and stays there.
+//
+// So the standard floor is not a constant in this file. It is derived
+// from `charterEligible`, which the server renders live, and the same
+// derivation runs server-side at checkout (lib/membership.ts). The two
+// cannot disagree about what today's price is, which matters because
+// whatever a buyer pays is the rate they keep for life.
 
 type Plan = "monthly" | "yearly";
 
@@ -56,7 +62,8 @@ type Props = {
       badge). /patronage turns it off: a badge is a feature, and features
       are fine print there. */
   showBadgePreview?: boolean;
-  /** Verb on the submit button, rendered as "<verb> at $13/mo". Defaults
+  /** Verb on the submit button, rendered as "<verb> at <amount>/mo".
+      Defaults
       to the subscription frame. /patronage passes a patronage verb. */
   ctaVerb?: string;
   /** The one-line clarity sentence above the presets. Defaults to the
@@ -80,13 +87,16 @@ type Props = {
 
 const FOUNDER_MONTHLY_CENTS = 800;
 const FOUNDER_YEARLY_CENTS = 8000;
-const REGULAR_MONTHLY_CENTS = 1300;
-const REGULAR_YEARLY_CENTS = 13000;
 
-// Preset tier amounts. The bottom two ($8, $13) are baselines — they
-// show only the dollar amount with no label. The top three are public
-// badge tiers: paying at that level earns a HUNTER / OPERATOR /
-// APEX badge visible across the site.
+// Preset tier amounts. The bottom two (the founder rate and the
+// standard floor) are baselines — they show only the dollar amount with
+// no label. The top three are public badge tiers: paying at that level
+// earns a HUNTER / OPERATOR / APEX badge visible across the site.
+//
+// The badge thresholds do NOT move with the floor. A raise changes what
+// the cheapest way in costs, not what a badge is worth: $25 has always
+// been HUNTER, and moving it would mean two members paying the same
+// amount wear different chips depending on when they joined.
 type Preset = {
   /** Stable identifier — used as a React key and for matching. The
       label that renders to users lives on `label`. */
@@ -97,13 +107,21 @@ type Preset = {
   founderOnly?: boolean;
 };
 
-const PRESETS: Preset[] = [
-  { key: "pup", label: "", monthlyCents: 800, founderOnly: true },
-  { key: "pack", label: "", monthlyCents: 1300 },
-  { key: "hunter", label: "Hunter", monthlyCents: 2500 },
-  { key: "operator", label: "Operator", monthlyCents: 5000 },
-  { key: "apex", label: "Apex", monthlyCents: 10000 },
-];
+// The "pack" preset IS the live standard floor, so it moves with the
+// raise instead of pinning a stale $13 button under a $18 minimum.
+function presetsFor(charterEligible: boolean): Preset[] {
+  return [
+    { key: "pup", label: "", monthlyCents: 800, founderOnly: true },
+    {
+      key: "pack",
+      label: "",
+      monthlyCents: standardFloorCents("monthly", charterEligible),
+    },
+    { key: "hunter", label: "Hunter", monthlyCents: 2500 },
+    { key: "operator", label: "Operator", monthlyCents: 5000 },
+    { key: "apex", label: "Apex", monthlyCents: 10000 },
+  ];
+}
 
 // Tier-badge thresholds, expressed in monthly-equivalent cents. Yearly
 // pricing is monthly × 10, so the yearly $ amount divided by 10 maps
@@ -112,7 +130,6 @@ const PRESETS: Preset[] = [
 const HUNTER_MONTHLY = 2500;
 const OPERATOR_MONTHLY = 5000;
 const APEX_MONTHLY = 10000;
-const STANDARD_MONTHLY = 1300;
 
 function monthlyEquivalentCents(cents: number, plan: Plan): number {
   return plan === "monthly" ? cents : Math.round(cents / 10);
@@ -148,12 +165,16 @@ function describeAmount(
   rateScarcityLine?: string
 ): string {
   const monthly = monthlyEquivalentCents(cents, plan);
+  // The floor this buyer is actually being offered. Not a constant: it
+  // is $13 while charter slots remain and $18 after, which is what the
+  // two scarcity branches below key off.
+  const standardMonthly = standardFloorCents("monthly", charterEligible);
   // Caller-supplied replacement for both scarcity branches below. Only
   // swaps the sentence — the branch conditions, and every tier-badge
   // line further down, are untouched.
   const scarcityBranch =
-    (founderEligible && monthly < STANDARD_MONTHLY) ||
-    (charterEligible && monthly === STANDARD_MONTHLY);
+    (founderEligible && monthly < standardMonthly) ||
+    (charterEligible && monthly === standardMonthly);
   if (rateScarcityLine && scarcityBranch) {
     return rateScarcityLine;
   }
@@ -162,7 +183,7 @@ function describeAmount(
   // tier description instead — they'll still receive the founder slot
   // (handled in the webhook) but the per-tier line is what's surfaced
   // here.
-  if (founderEligible && monthly < STANDARD_MONTHLY) {
+  if (founderEligible && monthly < standardMonthly) {
     // Private founder link: there's no public slot counter to quote —
     // it's an honored one-off, not the open cohort.
     if (privateFounderAccess) {
@@ -175,7 +196,7 @@ function describeAmount(
   // Charter window: founder is filled, charter is still open, user is
   // at the standard floor. Same shape as the founder line so the
   // scarcity register reads consistent.
-  if (charterEligible && monthly === STANDARD_MONTHLY) {
+  if (charterEligible && monthly === standardMonthly) {
     return `charter rate. badge locked for life. ${charterRemaining} of 100 ${
       charterRemaining === 1 ? "slot" : "slots"
     } left.`;
@@ -192,11 +213,15 @@ function describeAmount(
   return "standard membership. full access. cancel anytime.";
 }
 
-function floorFor(plan: Plan, founderEligible: boolean): number {
+function floorFor(
+  plan: Plan,
+  founderEligible: boolean,
+  charterEligible: boolean
+): number {
   if (founderEligible) {
     return plan === "monthly" ? FOUNDER_MONTHLY_CENTS : FOUNDER_YEARLY_CENTS;
   }
-  return plan === "monthly" ? REGULAR_MONTHLY_CENTS : REGULAR_YEARLY_CENTS;
+  return standardFloorCents(plan, charterEligible);
 }
 
 function presetCentsFor(preset: Preset, plan: Plan): number {
@@ -231,7 +256,7 @@ export function MembershipPlans({
 }: Props) {
   const [plan, setPlan] = useState<Plan>("monthly");
   const [cents, setCents] = useState<number>(() =>
-    floorFor("monthly", founderEligible)
+    floorFor("monthly", founderEligible, charterEligible)
   );
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>("");
@@ -239,13 +264,15 @@ export function MembershipPlans({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const floor = floorFor(plan, founderEligible);
+  const floor = floorFor(plan, founderEligible, charterEligible);
+  // The live standard floor, for the copy that names it.
+  const standardMonthly = standardFloorCents("monthly", charterEligible);
 
   function changePlan(next: Plan) {
     if (next === plan) return;
     const scaled =
       next === "yearly" ? cents * 10 : Math.round(cents / 10);
-    const newFloor = floorFor(next, founderEligible);
+    const newFloor = floorFor(next, founderEligible, charterEligible);
     setCents(Math.max(newFloor, scaled));
     setPlan(next);
   }
@@ -347,7 +374,7 @@ export function MembershipPlans({
     rateScarcityLine
   );
 
-  const eligiblePresets = PRESETS.filter(
+  const eligiblePresets = presetsFor(charterEligible).filter(
     (p) => founderEligible || !p.founderOnly
   );
   // Same set either way. Only the reading order flips, so the matching /
@@ -518,7 +545,7 @@ export function MembershipPlans({
           <>
             every tier gets the same membership.{" "}
             <span className="whitespace-nowrap">
-              tiers above $13 add a public badge.
+              tiers above {floorLabel(standardMonthly)} add a public badge.
             </span>
           </>
         )}
@@ -546,8 +573,9 @@ export function MembershipPlans({
                 {formatDollars(presetCents)}
               </span>
               {/* Always render the label slot so all five pills share
-                  the same height — the baseline tiers ($8 / $13) just
-                  use a non-breaking space placeholder. */}
+                  the same height — the baseline tiers (the founder
+                  rate and the floor) just use a non-breaking space
+                  placeholder. */}
               <span className="preset-pill-label">
                 {preset.label || " "}
               </span>
@@ -569,7 +597,7 @@ export function MembershipPlans({
           A miniature comment card showing how the member's name +
           badge will appear in the site's comment / lounge chrome.
           Updates as the selected tier changes. Shows even at the
-          $13 / no-badge case (a no-chip preview makes the contrast
+          floor / no-badge case (a no-chip preview makes the contrast
           obvious when the user toggles up to $25+). */}
       {showBadgePreview && (
       <div className="badge-preview mb-8" aria-live="polite">

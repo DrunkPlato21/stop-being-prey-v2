@@ -1,6 +1,6 @@
 import { addMonths, type GiftTermMonths } from "./gifts";
 import { saveMember, type MemberRecord } from "./members";
-import { REGULAR_MONTHLY_FLOOR_CENTS, baseUrl } from "./membership";
+import { GRANTED_SEAT_MONTHLY_FLOOR_CENTS, baseUrl } from "./membership";
 import { applyMembersTag } from "./kit";
 import { createNotification } from "./notifications";
 import {
@@ -19,10 +19,14 @@ import { recordEvent } from "./analytics";
 // subscription. Pulled out of the gift redeem route so the two lanes
 // can't drift apart.
 //
-// amountCents is pinned to the $13 regular monthly floor (NOT the
-// one-time donor charge) so the derived tier badges (hunter/operator/
-// apex, which read amount + interval) never light up off a gift. The
-// real money lives on the gift/fund record. A returning lapsed member
+// amountCents is pinned to the $13 HELD granted-seat floor (NOT the
+// one-time donor charge, and NOT the public floor) so the derived tier
+// badges (hunter/operator/apex, which read amount + interval) never
+// light up off a gift. Using the held rate also means the $13 -> $18
+// raise cannot silently restate every donated seat as an $18 seat in
+// the MRR estimate, and it matches what this member will actually be
+// asked to pay when the prepaid term ends. The real money lives on the
+// gift/fund record. A returning lapsed member
 // keeps their original createdAt and avatar.
 //
 // This does NOT send the sign-in / welcome email — each lane sends its
@@ -61,7 +65,12 @@ export async function grantPrepaidSeat(args: {
     charterSlot: null,
     status: "active",
     interval: "month",
-    amountCents: REGULAR_MONTHLY_FLOOR_CENTS,
+    // Notional value of a seat nobody paid for. The HELD granted-seat
+    // floor, not the public one: it is also what this member converts
+    // at when the prepaid term ends, and the two should not disagree.
+    // Keeps the standard floor rising to $18 from silently restating
+    // every donated seat as an $18 seat in the MRR estimate.
+    amountCents: GRANTED_SEAT_MONTHLY_FLOOR_CENTS,
     createdAt: args.existing?.createdAt ?? now,
     updatedAt: now,
     customAvatarUrl: args.existing?.customAvatarUrl ?? null,

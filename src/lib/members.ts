@@ -216,7 +216,10 @@ export function hasActiveGiftSeat(
 }
 
 /* === Tier badges ============================================
-   Three public badges earned by paying above the $13 standard rate.
+   Three public badges earned by paying well above the standard rate.
+   The thresholds are fixed and do NOT move when the floor rises: two
+   members paying the same amount wear the same chip, whenever they
+   joined.
    Derived from amount + interval at read time so a Stripe-side tier
    change shows up everywhere on the next page load — no badge field
    to keep in sync.

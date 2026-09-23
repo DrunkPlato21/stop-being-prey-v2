@@ -2,7 +2,7 @@ import Link from "next/link";
 import { EmailSignup } from "@/components/EmailSignup";
 import { SubscriberCount } from "@/components/SubscriberCount";
 import { MemberCount } from "@/components/MemberCount";
-import { CharterSeatsInline } from "@/components/CharterSeats";
+import { CharterSeatsInline, FloorPrice } from "@/components/CharterSeats";
 import type { TrackSource } from "@/lib/analytics";
 
 // Site-wide conversion surface. Replaces the older email-only
@@ -65,7 +65,14 @@ export function DualSubscribeBlock({
           separates the two columns; on mobile they stack with no
           rule (the gap-10 carries the separation). */}
       <div className="md:border-l md:border-rule md:pl-12 flex flex-col">
-        <p className="eyebrow mb-3">Members · from $13/mo</p>
+        {/* The floor is live (client-side, /api/stats) rather than a
+            literal, so this eyebrow follows the $13 -> $18 raise on its
+            own when the charter cap fills. This block renders on
+            prerendered pages; a hardcoded price here would be the last
+            place on the site still quoting the old rate. */}
+        <p className="eyebrow mb-3">
+          Members · from <FloorPrice />/mo
+        </p>
         <p
           className="font-serif text-ink-muted leading-relaxed mb-5 flex-1"
           style={{ fontSize: "1rem" }}

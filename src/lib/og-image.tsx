@@ -2,6 +2,9 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getArticleBySlug } from "@/lib/articles";
+import { unstable_cache } from "next/cache";
+import { getPublicFloorCents } from "@/lib/membership";
+import { floorLabel } from "@/lib/pricing";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
@@ -165,6 +168,14 @@ export async function generateJoinOG(): Promise<ImageResponse> {
   );
 }
 
+// Hourly-cached floor read, shared by every render of the membership
+// card. Keyed on nothing: there is exactly one public floor at a time.
+const cachedFloorCents = unstable_cache(
+  async () => getPublicFloorCents("monthly"),
+  ["og-membership-floor"],
+  { revalidate: 3600 }
+);
+
 /**
  * Membership-themed OG card. Same visual chassis as the /join and article
  * cards (pattern replication, not abstraction) with the membership pitch.
@@ -173,8 +184,18 @@ export async function generateJoinOG(): Promise<ImageResponse> {
 export async function generateMembershipOG(): Promise<ImageResponse> {
   const eyebrow = "Membership · Stop Being Prey";
   const title = "The room behind the work.";
+  // The price is read live rather than written into the deck, because
+  // the floor steps $13 -> $18 on its own the moment the charter cap
+  // fills, with no deploy. The read is cached for an hour: an uncached
+  // Redis call here would opt these four card routes out of static
+  // rendering entirely, turning every social scrape into a PNG render
+  // on a serverless function. An hour-stale price on a social card is
+  // nothing; four newly-dynamic image routes are a real bill.
+  const { cents } = await cachedFloorCents();
   const deck =
-    "Comments, the desk, the lounge, and the book drafted in the open. The room where you learn to see the moves before they're run on you. From $13 a month.";
+    `Comments, the desk, the lounge, and the book drafted in the open. The room where you learn to see the moves before they're run on you. From ${floorLabel(
+      cents
+    )} a month.`;
 
   const [cormorant700, sourceSerifItalic] = await Promise.all([
     loadFont("cormorant-garamond-700.ttf"),

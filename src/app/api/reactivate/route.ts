@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   // whole point; there is no subscription here to double-bill.
   //
   // They get a fresh subscription instead, at the held granted-seat
-  // floor rather than the public one, so a later rise in REGULAR_*
+  // floor rather than the public one, so a later rise in the standard
   // cannot aim an increase at the people the seat pool exists for.
   // Eligibility is read from their own record here and passed down;
   // nothing about the price comes from the request.

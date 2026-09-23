@@ -68,7 +68,11 @@ export type GiftRecord = {
 };
 
 /* === Pricing ================================================
-   Fixed one-time prices: 3x and 10x the $13 regular monthly floor.
+   Fixed one-time prices: 3x and 10x $13. That tracks the HELD
+   granted-seat rate, not the public floor, which is the right
+   anchor: a gift mints a prepaid seat that later converts at the
+   held rate, so the $13 -> $18 raise deliberately leaves these
+   alone. Revisit only if the granted-seat floor itself moves.
    The yearly gift matches the yearly membership floor so a gift is
    never a discount path around the subscription. */
 

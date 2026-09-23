@@ -15,6 +15,11 @@ import {
   getCharterClaimed,
   getFounderClaimed,
 } from "@/lib/members";
+import {
+  CHARTER_MONTHLY_FLOOR_CENTS,
+  STANDARD_MONTHLY_FLOOR_CENTS,
+  floorLabel,
+} from "@/lib/membership";
 import { markOnboardingStep } from "@/lib/onboarding";
 import { EmailSignup } from "@/components/EmailSignup";
 import { SubscriberCount } from "@/components/SubscriberCount";
@@ -157,7 +162,7 @@ export default async function RulesPage() {
   // so skip the Redis reads for them. Mirrors the /membership state
   // machine: while founder seats remain it's the $8 founder pitch; once
   // founders fill, it's the $13 charter pitch with charter seats
-  // remaining; when both caps fill, the plain $13 floor. Keeps the
+  // remaining; when both caps fill, the plain $18 floor. Keeps the
   // doctrine front door in step with the real checkout.
   const [founderClaimed, charterClaimed] = signedIn
     ? [FOUNDER_CAP, CHARTER_CAP]
@@ -169,16 +174,20 @@ export default async function RulesPage() {
 
   // The live seat pitch, shared by the unlock gate's membership path and
   // the foot-of-page "Join to train" CTA so both track the same checkout
-  // state and never drift.
+  // state and never drift. Prices come from the pricing constants, not
+  // literals, so the $13 -> $18 raise reaches this sentence on the same
+  // render that stops showing charter seats.
+  const charterFloor = floorLabel(CHARTER_MONTHLY_FLOOR_CENTS);
+  const standardFloor = floorLabel(STANDARD_MONTHLY_FLOOR_CENTS);
   const seatLine = founderEligible
     ? `${founderRemaining} founder seat${
         founderRemaining === 1 ? "" : "s"
-      } left. $8/month locked for life. When the last fills, $13 forever.`
+      } left. $8/month locked for life. When the last fills, ${charterFloor} forever.`
     : charterEligible
       ? `${charterRemaining} charter seat${
           charterRemaining === 1 ? "" : "s"
-        } left. $13/month floor, or pay what it's worth. Your rate locked for life, with your slot number.`
-      : "$13/month floor, or pay what it's worth. Locked for life.";
+        } left. ${charterFloor}/month floor, or pay what it's worth. Your rate locked for life, with your slot number. When the last fills, ${standardFloor}.`
+      : `${standardFloor}/month floor, or pay what it's worth. Locked for life.`;
 
   // Reverse index: rule number → case files that reference it.
   // Built once at render time so each rule body can pull its

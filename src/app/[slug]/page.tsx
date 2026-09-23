@@ -13,7 +13,7 @@ import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { AudioPill } from "@/components/AudioPill";
 import { EyeDivider } from "@/components/Eyes";
 import { ShareButtons } from "@/components/ShareButtons";
-import { CharterSeatsCount } from "@/components/CharterSeats";
+import { PatronRateLine } from "@/components/CharterSeats";
 import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
 import { InlineSubscribe } from "@/components/InlineSubscribe";
@@ -453,8 +453,7 @@ export default async function ArticlePage({
             <p>
               This piece took a month. No advertiser was ever going to pay
               for it. Patrons did, and they read it first.{" "}
-              <CharterSeatsCount /> charter seats left at $13 a month, locked
-              for life.{" "}
+              <PatronRateLine />{" "}
               <Link href="/patronage?src=essay" className={inlineLinkClass} style={inlineLinkStyle}>
                 Become a patron
               </Link>

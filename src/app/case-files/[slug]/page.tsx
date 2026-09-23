@@ -23,6 +23,11 @@ import {
   getCharterClaimed,
   getFounderClaimed,
 } from "@/lib/members";
+import {
+  CHARTER_MONTHLY_FLOOR_CENTS,
+  STANDARD_MONTHLY_FLOOR_CENTS,
+  floorLabel,
+} from "@/lib/membership";
 
 type PageParams = { slug: string };
 
@@ -257,7 +262,7 @@ export default async function CaseFileDetailPage({
   // preview CTA — saves the Redis reads for member viewers who never
   // see the seat-counter line. Mirrors the /membership state machine:
   // $8 founder pitch while founders remain, $13 charter pitch with
-  // charter seats once founders fill, plain $13 floor when both caps
+  // charter seats once founders fill, plain $18 floor when both caps
   // fill. Keeps cold-traffic pricing in step with the real checkout.
   const [founderClaimed, charterClaimed] = previewMode
     ? await Promise.all([getFounderClaimed(), getCharterClaimed()])
@@ -266,6 +271,10 @@ export default async function CaseFileDetailPage({
   const charterEligible = !founderEligible && charterClaimed < CHARTER_CAP;
   const founderRemaining = Math.max(0, FOUNDER_CAP - founderClaimed);
   const charterRemaining = Math.max(0, CHARTER_CAP - charterClaimed);
+  // Named from the pricing constants rather than written into the copy,
+  // so the $13 -> $18 raise lands here the moment the charter cap fills.
+  const charterFloor = floorLabel(CHARTER_MONTHLY_FLOOR_CENTS);
+  const standardFloor = floorLabel(STANDARD_MONTHLY_FLOOR_CENTS);
 
   // Clear the nav dot — a member who came in via a direct link to a
   // specific case file has still effectively engaged with the section.
@@ -693,19 +702,21 @@ export default async function CaseFileDetailPage({
                 <>
                   {founderRemaining} founder seat
                   {founderRemaining === 1 ? "" : "s"} left. $8/month
-                  locked for life. When the last fills, $13 forever.
+                  locked for life. When the last fills, {charterFloor}{" "}
+                  forever.
                 </>
               ) : charterEligible ? (
                 <>
                   {charterRemaining} charter seat
-                  {charterRemaining === 1 ? "" : "s"} left. $13/month
-                  floor, or pay what it&apos;s worth. Your rate locked
-                  for life, with your slot number.
+                  {charterRemaining === 1 ? "" : "s"} left. {charterFloor}
+                  /month floor, or pay what it&apos;s worth. Your rate
+                  locked for life, with your slot number. When the last
+                  fills, {standardFloor}.
                 </>
               ) : (
                 <>
-                  $13/month floor, or pay what it&apos;s worth. Locked
-                  for life.
+                  {standardFloor}/month floor, or pay what it&apos;s
+                  worth. Locked for life.
                 </>
               )}
             </p>
