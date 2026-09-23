@@ -8,6 +8,23 @@ import { randomUUID } from "crypto";
 
 const SESSION_DURATION_DAYS = 30;
 const MAGIC_LINK_TTL_SECONDS = 60 * 60 * 24; // 24 hours
+
+// The TTL for the one link that opens a donor-funded seat.
+//
+// 24 hours is right for a link somebody just asked for: they are at the
+// keyboard, waiting on the email. It is wrong for a link nobody
+// requested. A granted seat arrives unannounced, and the people it
+// arrives for are the ones who told us they could not afford the
+// membership, which skews toward readers who check email every few days
+// on a phone. Miss the window and the seat is still live, still paid
+// for by a stranger, and completely unreachable: the welcome mail is the
+// only door, and the weekly digest that follows carries no sign-in link.
+//
+// A week costs nothing. The token is still single-use, still deleted on
+// consume, and the account behind it holds no card and no billing
+// surface. Matches the admin hand-issued link, which already uses 7 days
+// for exactly this reason: a link a human has to find time for.
+export const GRANTED_SEAT_LINK_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 const SESSION_COOKIE_NAME = "sbp_session";
 const MAGIC_PREFIX = "magic:";
 
@@ -281,8 +298,9 @@ export type MagicLinkRecord = {
 /**
  * Mint a single-use magic-link token. Stored in Redis with a one-shot
  * delete on consume. Defaults to a 24-hour TTL (the automated sign-in
- * email); callers can pass a longer TTL for links handed out by hand
- * (e.g. the admin "mint sign-in link" tool, 7 days).
+ * email); callers can pass a longer TTL for links the recipient did not
+ * ask for and has to find time for (the admin "mint sign-in link" tool,
+ * and the two donor-seat lanes via GRANTED_SEAT_LINK_TTL_SECONDS).
  */
 export async function createMagicLink(
   record: MagicLinkRecord,

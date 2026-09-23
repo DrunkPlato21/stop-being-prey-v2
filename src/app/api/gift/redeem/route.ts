@@ -13,7 +13,7 @@ import {
 } from "@/lib/members";
 import { baseUrl, emailHasActiveMembership } from "@/lib/membership";
 import { grantPrepaidSeat } from "@/lib/seat-grants";
-import { createMagicLink } from "@/lib/auth";
+import { GRANTED_SEAT_LINK_TTL_SECONDS, createMagicLink } from "@/lib/auth";
 import {
   sendGiftAlreadyMemberEmail,
   sendGiftClaimedEmail,
@@ -167,11 +167,16 @@ export async function POST(req: NextRequest) {
 
   // First sign-in link, dispatched automatically so the recipient
   // lands inside without a second form (mirrors /membership/success).
-  const linkId = await createMagicLink({
-    email,
-    customerId: record.stripeCustomerId,
-    next: "/desk",
-  });
+  // Seven days, not the 24-hour default: same reasoning as the pool
+  // lane. A redeemed gift seat is reachable only through this link.
+  const linkId = await createMagicLink(
+    {
+      email,
+      customerId: record.stripeCustomerId,
+      next: "/desk",
+    },
+    GRANTED_SEAT_LINK_TTL_SECONDS
+  );
   if (linkId) {
     const url = `${baseUrl()}/api/auth/callback?token=${encodeURIComponent(linkId)}`;
     const sent = await sendMagicLink({ to: email, url });

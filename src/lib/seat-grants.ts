@@ -8,7 +8,7 @@ import {
   markRequestGranted,
   type PoolRequest,
 } from "./pool";
-import { createMagicLink } from "./auth";
+import { GRANTED_SEAT_LINK_TTL_SECONDS, createMagicLink } from "./auth";
 import { sendPoolSeatClaimedEmail, sendPoolWelcomeEmail } from "./email";
 import { recordEvent } from "./analytics";
 
@@ -166,11 +166,19 @@ export async function finalizePoolGrant(args: {
   }
 
   // First sign-in link, dispatched automatically (mirrors gift redeem).
-  const linkId = await createMagicLink({
-    email: args.request.email,
-    customerId: record.stripeCustomerId,
-    next: "/desk",
-  });
+  //
+  // Seven days, not the 24-hour default. Nobody asked for this link, so
+  // nobody is sitting at the keyboard waiting for it, and if it dies
+  // before it is opened the seat becomes unreachable: this mail is the
+  // only door in. See GRANTED_SEAT_LINK_TTL_SECONDS.
+  const linkId = await createMagicLink(
+    {
+      email: args.request.email,
+      customerId: record.stripeCustomerId,
+      next: "/desk",
+    },
+    GRANTED_SEAT_LINK_TTL_SECONDS
+  );
   if (linkId) {
     const url = `${baseUrl()}/api/auth/callback?token=${encodeURIComponent(linkId)}`;
     const sent = await sendPoolWelcomeEmail({
