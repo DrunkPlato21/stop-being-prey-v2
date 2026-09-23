@@ -2222,6 +2222,62 @@ export async function sendPoolWelcomeEmail(args: {
   });
 }
 
+/**
+ * Re-invite for a granted seat whose original sign-in link expired before
+ * the recipient ever opened it.
+ *
+ * One-off rescue for the cohort stranded by the 24-hour link TTL (see
+ * GRANTED_SEAT_LINK_TTL_SECONDS). Their seat never lapsed; only the door
+ * did. The copy says so plainly and takes the blame, because the failure
+ * was ours and these are people who already told us they could not
+ * afford to be here.
+ */
+export async function sendGrantedSeatReinviteEmail(args: {
+  to: string;
+  /** Human date the prepaid term runs to, e.g. "November 13, 2026". */
+  expiresAtLabel: string;
+  signInUrl: string;
+}): Promise<SendResult> {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `\n[email] (dev) seat re-invite link for ${args.to}:\n${args.signInUrl}\n`
+    );
+  }
+
+  const subject = "your seat is still there";
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                <p style="margin:0 0 18px 0;">a reader covered your seat here a while back. you're still in. it never lapsed.</p>
+                <p style="margin:0 0 18px 0;">the link i sent you expired after a day. that was my mistake, not yours. if you tried it and it didn't work, that's why.</p>
+                <p style="margin:0 0 18px 0;">here's a new one. it works for a month.</p>
+                <p style="margin:0 0 18px 0;">no card, no charge. your seat runs to <strong style="color:#1a1714;">${escapeHtml(args.expiresAtLabel)}</strong>.</p>
+              </td>
+            </tr>
+            ${giftButtonRow(args.signInUrl, "Step inside")}`);
+  const text = [
+    "a reader covered your seat here a while back. you're still in. it never lapsed.",
+    "",
+    "the link i sent you expired after a day. that was my mistake, not yours. if you tried it and it didn't work, that's why.",
+    "",
+    "here's a new one. it works for a month.",
+    "",
+    `no card, no charge. your seat runs to ${args.expiresAtLabel}.`,
+    "",
+    `Step inside: ${args.signInUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "granted seat re-invite",
+  });
+}
+
 export async function sendPoolWaitlistEmail(args: {
   to: string;
 }): Promise<SendResult> {

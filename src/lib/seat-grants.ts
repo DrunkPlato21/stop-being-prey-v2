@@ -167,7 +167,7 @@ export async function finalizePoolGrant(args: {
 
   // First sign-in link, dispatched automatically (mirrors gift redeem).
   //
-  // Seven days, not the 24-hour default. Nobody asked for this link, so
+  // Thirty days, not the 24-hour default. Nobody asked for this link, so
   // nobody is sitting at the keyboard waiting for it, and if it dies
   // before it is opened the seat becomes unreachable: this mail is the
   // only door in. See GRANTED_SEAT_LINK_TTL_SECONDS.

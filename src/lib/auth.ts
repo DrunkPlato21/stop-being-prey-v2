@@ -20,11 +20,19 @@ const MAGIC_LINK_TTL_SECONDS = 60 * 60 * 24; // 24 hours
 // for by a stranger, and completely unreachable: the welcome mail is the
 // only door, and the weekly digest that follows carries no sign-in link.
 //
-// A week costs nothing. The token is still single-use, still deleted on
-// consume, and the account behind it holds no card and no billing
-// surface. Matches the admin hand-issued link, which already uses 7 days
-// for exactly this reason: a link a human has to find time for.
-export const GRANTED_SEAT_LINK_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+// Thirty days, because a short expiry buys no security here. Anyone who
+// controls the mailbox can already walk up to the sign-in page and have
+// a fresh token mailed to that same address: the request-link gate is
+// record-first and a granted seat reads active. So the TTL cannot fence
+// out an attacker who holds the inbox, it can only fence out the
+// legitimate reader who opened their mail late. The token is still
+// single-use and still deleted on consume, and the account behind it
+// holds no card and no billing surface.
+//
+// Measured against the failure we actually had: nine recipients missed a
+// 24-hour window, several by weeks. A week would still have lost some of
+// them.
+export const GRANTED_SEAT_LINK_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 const SESSION_COOKIE_NAME = "sbp_session";
 const MAGIC_PREFIX = "magic:";
 

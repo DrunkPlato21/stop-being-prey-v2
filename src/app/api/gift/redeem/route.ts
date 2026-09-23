@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
 
   // First sign-in link, dispatched automatically so the recipient
   // lands inside without a second form (mirrors /membership/success).
-  // Seven days, not the 24-hour default: same reasoning as the pool
+  // Thirty days, not the 24-hour default: same reasoning as the pool
   // lane. A redeemed gift seat is reachable only through this link.
   const linkId = await createMagicLink(
     {
