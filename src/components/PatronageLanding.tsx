@@ -295,7 +295,22 @@ export async function PatronageLanding({
       >
         <MembershipPlans {...widgetProps} />
 
+        {/* The one-time option, at the moment of the decision. It used to
+            live only at the foot of the page, below the second widget,
+            where a reader deciding against a monthly plan never reached
+            it. Same line as the bottom section, so the page makes one
+            offer twice rather than two different ones. */}
         <p className="text-center mt-8">
+          <Link
+            href="/wall"
+            className="font-serif italic text-ink-muted hover:text-eye-deep transition-colors"
+            style={{ fontSize: "0.95rem" }}
+          >
+            {ONE_TIME_LINE} &rarr;
+          </Link>
+        </p>
+
+        <p className="text-center mt-5">
           <Link
             href="/notes/sign-in"
             className="font-display text-xs uppercase tracking-[0.22em] text-ink-muted hover:text-eye-deep no-underline transition-colors"
@@ -597,8 +612,8 @@ export async function PatronageLanding({
       </section>
 
       {/* ============================================================
-          BOTTOM. One-time giving, and the only place on the page that
-          links to the wall.
+          BOTTOM. One-time giving, repeated for the reader who scrolled
+          the whole page. The same line also sits under the first widget.
           ============================================================ */}
       <section className="border-t border-rule">
         <div className="max-w-2xl mx-auto px-6 py-14 md:py-20 text-center">
