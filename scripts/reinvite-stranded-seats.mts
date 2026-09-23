@@ -48,9 +48,22 @@ if (!url || !token) {
 }
 const redis = new Redis({ url, token });
 
-const BASE_URL = (
-  process.env.NEXT_PUBLIC_BASE_URL ?? "https://stopbeingprey.com"
-).replace(/\/$/, "");
+// The live origin, NOT whatever NEXT_PUBLIC_BASE_URL happens to say.
+//
+// This script is run from a developer machine against the production
+// keyspace, so .env.local sets that variable to http://localhost:3000 for
+// `npm run dev`. Reading it here mails real people a link to their own
+// machine. That happened once, to all nine of them, which is the whole
+// reason this is a constant and the guard below exists.
+const PROD_ORIGIN = "https://stopbeingprey.com";
+const BASE_URL = (process.env.SEAT_REINVITE_ORIGIN ?? PROD_ORIGIN).replace(
+  /\/$/,
+  ""
+);
+if (SEND && /localhost|127\.0\.0\.1/.test(BASE_URL)) {
+  console.error(`refusing to mail links pointing at ${BASE_URL}`);
+  process.exit(1);
+}
 
 type PoolRequestish = {
   email: string;
@@ -173,6 +186,7 @@ async function main() {
 
   const ttlDays = Math.round(GRANTED_SEAT_LINK_TTL_SECONDS / 86400);
   console.log(`\nnew links will be valid for ${ttlDays} day(s).`);
+  console.log(`links will point at ${BASE_URL}`);
 
   if (!SEND) {
     console.log("\nDRY RUN. Nothing sent. Re-run with --send to mail these.");
