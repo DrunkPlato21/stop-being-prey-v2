@@ -602,6 +602,59 @@ export async function countAllMembers(): Promise<number> {
 }
 
 /**
+ * Live member counts for public copy, where countAllMembers overstates.
+ * That ZCARD never drops anyone, so a canceled member counts forever,
+ * and it cannot tell a paid seat from a donated one. On 2026-09-23 the
+ * patronage page said "215 people pay for this" when 189 did.
+ *
+ *   active  everyone in the room right now, donated seats included
+ *   paying  the subset paying for their own seat
+ *
+ * Test records minted locally carry a `dev_` Stripe customer id and are
+ * dropped from both. Reading every record is ~200 keys, so the result
+ * is cached in Redis for ten minutes: the pages that show it render on
+ * every request, and a number that trails a join by a few minutes is
+ * still true.
+ */
+export type MemberCounts = { active: number; paying: number };
+
+const MEMBER_COUNTS_KEY = `${KEY_PREFIX}members:counts`;
+const MEMBER_COUNTS_TTL_SECONDS = 60 * 10;
+
+export async function countMembers(): Promise<MemberCounts> {
+  const client = getClient();
+  if (!client) return { active: 0, paying: 0 };
+
+  const cached = await client
+    .get<MemberCounts>(MEMBER_COUNTS_KEY)
+    .catch(() => null);
+  if (cached && typeof cached.paying === "number") return cached;
+
+  const emails = (await client
+    .zrange<string[]>(MEMBERS_ALL_INDEX, 0, -1)
+    .catch(() => [] as string[])) ?? [];
+  const counts: MemberCounts = { active: 0, paying: 0 };
+  for (let i = 0; i < emails.length; i += 100) {
+    const records = await getMembersByEmails(emails.slice(i, i + 100));
+    for (const m of records.values()) {
+      if (!m || !hasLiveSeat(m)) continue;
+      if (m.stripeCustomerId?.startsWith("dev_")) continue;
+      counts.active += 1;
+      if (!m.viaGiftId && !m.viaPoolFundId) counts.paying += 1;
+    }
+  }
+
+  // An empty read is more likely a Redis hiccup than an empty room, so
+  // it is not cached: the next request tries again.
+  if (counts.active > 0) {
+    await client
+      .set(MEMBER_COUNTS_KEY, counts, { ex: MEMBER_COUNTS_TTL_SECONDS })
+      .catch(() => {});
+  }
+  return counts;
+}
+
+/**
  * Newest-first list of every member email ever saved. Used by the
  * notifications fan-out broadcasts (essays, voice memos, walls).
  * For V1 with hundreds of members this is fine; if the list grows

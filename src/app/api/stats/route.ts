@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   CHARTER_CAP,
   FOUNDER_CAP,
-  countAllMembers,
+  countMembers,
   getCharterClaimed,
   getFounderClaimed,
 } from "@/lib/members";
@@ -41,7 +41,9 @@ export async function GET() {
   const [readers, members, founderClaimed, charterClaimed] =
     await Promise.all([
       getSubscriberCount(),
-      countAllMembers().catch(() => 0),
+      countMembers()
+        .then((c) => c.active)
+        .catch(() => 0),
       getFounderClaimed().catch(() => FOUNDER_CAP),
       getCharterClaimed().catch(() => CHARTER_CAP),
     ]);

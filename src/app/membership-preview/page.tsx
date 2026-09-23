@@ -7,7 +7,7 @@ import { DeskPresenceIndicator } from "@/components/DeskPresenceIndicator";
 import {
   CHARTER_CAP,
   FOUNDER_CAP,
-  countAllMembers,
+  countMembers,
   getCharterClaimed,
   getFounderClaimed,
 } from "@/lib/members";
@@ -157,7 +157,7 @@ export default async function MembershipPreviewPage({
     await Promise.all([
       getFounderClaimed(),
       getCharterClaimed(),
-      countAllMembers(),
+      countMembers().then((c) => c.paying),
       getPresence(),
     ]);
 

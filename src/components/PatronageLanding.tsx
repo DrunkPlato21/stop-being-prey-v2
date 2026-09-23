@@ -6,7 +6,7 @@ import { DeskPresenceIndicator } from "@/components/DeskPresenceIndicator";
 import {
   CHARTER_CAP,
   FOUNDER_CAP,
-  countAllMembers,
+  countMembers,
   getCharterClaimed,
   getFounderClaimed,
 } from "@/lib/members";
@@ -160,7 +160,7 @@ export async function PatronageLanding({
     await Promise.all([
       getFounderClaimed(),
       getCharterClaimed(),
-      countAllMembers(),
+      countMembers().then((c) => c.paying),
       listVisible(1, 200).catch(() => ({ entries: [], total: 0 })),
       getPresence(),
     ]);
