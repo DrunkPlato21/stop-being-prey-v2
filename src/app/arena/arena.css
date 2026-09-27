@@ -196,6 +196,20 @@
 
 /* ── Spine + tiles ───────────────────────────── */
 .arena-tiles { position: relative; padding: 34px 0 0 46px; }
+/* Tile text runs through shared renderers built for paper: the Guild
+   formatter's quotes paint --ink-muted, Linkified's links --eye-deep with
+   an --ink hover. On this ground that was grey-brown on brown (a quoted
+   line in a verdict all but vanished). Remap what they read, same move
+   as .arena-share, so the room decides its own colours. The whispers
+   list sits outside .arena-tiles, so it takes the same remap. */
+.arena-tiles,
+.arena-whisper-quote {
+  --ink: var(--a-ink);
+  --ink-muted: #cbbd9c;
+  --ink-faint: var(--a-ink-muted);
+  --eye-deep: var(--a-gold);
+}
+.arena-tiles .guild-quote { border-left-color: var(--a-gold-deep); }
 .arena-tiles::before {
   content: ""; position: absolute; left: 13px; top: 40px; bottom: 14px;
   width: 1px; background: linear-gradient(var(--a-gold-deep), var(--a-rule) 80%);
