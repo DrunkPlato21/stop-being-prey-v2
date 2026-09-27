@@ -35,6 +35,17 @@ const MAGIC_LINK_TTL_SECONDS = 60 * 60 * 24; // 24 hours
 export const GRANTED_SEAT_LINK_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 const SESSION_COOKIE_NAME = "sbp_session";
 const MAGIC_PREFIX = "magic:";
+// Receipt kept beside every link, outliving it by a month, so a dead
+// link can be explained (expired? already used, when?) and named.
+const MAGIC_META_PREFIX = "magic-meta:";
+const MAGIC_META_EXTRA_SECONDS = 60 * 60 * 24 * 30;
+
+type MagicLinkMeta = {
+  email: string;
+  sentAt: number;
+  expiresAt: number;
+  usedAt?: number;
+};
 
 export const SESSION_COOKIE = SESSION_COOKIE_NAME;
 
@@ -320,6 +331,17 @@ export async function createMagicLink(
   await client.set(`${MAGIC_PREFIX}${id}`, JSON.stringify(record), {
     ex: ttlSeconds,
   });
+  const now = Date.now();
+  const meta: MagicLinkMeta = {
+    email: record.email,
+    sentAt: now,
+    expiresAt: now + ttlSeconds * 1000,
+  };
+  await client
+    .set(`${MAGIC_META_PREFIX}${id}`, JSON.stringify(meta), {
+      ex: ttlSeconds + MAGIC_META_EXTRA_SECONDS,
+    })
+    .catch(() => null);
   return id;
 }
 
@@ -349,11 +371,66 @@ export async function consumeMagicLink(
   const key = `${MAGIC_PREFIX}${id}`;
   const raw = await client.getdel<string>(key);
   if (!raw) return null;
+  const metaKey = `${MAGIC_META_PREFIX}${id}`;
+  const meta = parseJson<MagicLinkMeta>(
+    await client.get(metaKey).catch(() => null)
+  );
+  if (meta) {
+    await client
+      .set(metaKey, JSON.stringify({ ...meta, usedAt: Date.now() }), {
+        keepTtl: true,
+      })
+      .catch(() => null);
+  }
   try {
     const parsed = typeof raw === "string"
       ? (JSON.parse(raw) as MagicLinkRecord)
       : (raw as MagicLinkRecord);
     return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export type DeadLinkExplanation =
+  | { kind: "link_used"; email: string; sentAt: number; usedAt: number }
+  | { kind: "link_expired"; email: string; sentAt: number; expiresAt: number }
+  | { kind: "link_unknown" };
+
+/**
+ * Why a token no longer works, from the receipt createMagicLink left.
+ * Links minted before receipts existed come back link_unknown.
+ */
+export async function explainDeadMagicLink(
+  id: string
+): Promise<DeadLinkExplanation> {
+  const client = redis();
+  if (!client) return { kind: "link_unknown" };
+  const meta = parseJson<MagicLinkMeta>(
+    await client.get(`${MAGIC_META_PREFIX}${id}`).catch(() => null)
+  );
+  if (!meta) return { kind: "link_unknown" };
+  if (meta.usedAt) {
+    return {
+      kind: "link_used",
+      email: meta.email,
+      sentAt: meta.sentAt,
+      usedAt: meta.usedAt,
+    };
+  }
+  return {
+    kind: "link_expired",
+    email: meta.email,
+    sentAt: meta.sentAt,
+    expiresAt: meta.expiresAt,
+  };
+}
+
+function parseJson<T>(raw: unknown): T | null {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw !== "string") return raw as T;
+  try {
+    return JSON.parse(raw) as T;
   } catch {
     return null;
   }

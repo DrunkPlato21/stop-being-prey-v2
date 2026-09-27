@@ -10,6 +10,7 @@ import {
 import { getMember, type MemberSubscriptionStatus } from "@/lib/members";
 import { isAdmin } from "@/lib/comments";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { recordSignInFailure } from "@/lib/signin-failures";
 
 // POST /api/auth/request-link
 // Body: { email: string, next?: string }
@@ -69,6 +70,11 @@ export async function POST(req: NextRequest) {
     // Silent 200 — don't tell a flooder whether the email exists.
     // The legitimate owner of the email is unaffected (they already
     // have a recent link in their inbox).
+    await recordSignInFailure({
+      kind: "rate_limited",
+      email,
+      detail: `over ${EMAIL_LIMIT} requests in an hour`,
+    });
     return Response.json({ ok: true });
   }
 
@@ -182,6 +188,14 @@ export async function POST(req: NextRequest) {
     // typed, so its reader already knows what they typed, and from the
     // outside every request still produces exactly one email.
     void recordEvent("signin_no_match", { source: "signin" });
+    // The analytics event only counts. This names the address, so a typo
+    // ("gamil.com") or a member signing in with a second email shows up on
+    // /admin/sign-in-links with something Clay can act on.
+    await recordSignInFailure({
+      kind: "no_account",
+      email,
+      detail: member ? `member record is ${member.status}` : "no member record",
+    });
     const note = await sendNoMembershipNote({ to: email }).catch(
       (err): { ok: false; error: string } => ({
         ok: false,
@@ -217,6 +231,11 @@ export async function POST(req: NextRequest) {
     console.error(
       `[auth/request-link] sendMagicLink failed for ${email}: ${send.error}`
     );
+    await recordSignInFailure({
+      kind: "send_failed",
+      email,
+      detail: send.error ?? null,
+    });
     if (process.env.NODE_ENV === "production") {
       return Response.json(
         { ok: false, error: send.error },

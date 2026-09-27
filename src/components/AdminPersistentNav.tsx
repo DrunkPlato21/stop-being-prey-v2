@@ -50,7 +50,7 @@ const SECONDARY: NavItem[] = [
   { href: "/admin/pool", label: "Seat pool", badgeSection: "pool" },
   { href: "/admin/walls", label: "Walls" },
   { href: "/admin/analytics", label: "Analytics" },
-  { href: "/admin/sign-in-links", label: "Sign-in links" },
+  { href: "/admin/sign-in-links", label: "Sign-in links", badgeSection: "sign-ins" },
 ];
 
 const ALL_ITEMS: NavItem[] = [...PRIMARY, ...SECONDARY];
@@ -144,6 +144,7 @@ const EMPTY_BADGES: AdminNavBadges = {
   lounge: false,
   "case-submissions": false,
   pool: false,
+  "sign-ins": false,
 };
 
 export function AdminPersistentNav({

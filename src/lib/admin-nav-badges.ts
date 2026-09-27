@@ -1,5 +1,6 @@
 import { Redis } from "@upstash/redis";
 import { latestCommentActivityAt } from "./comments";
+import { FAILURES_KEY } from "./signin-failures";
 
 // Per-admin "is there something new since you last looked?" flags
 // driving the small olive dots next to nav items in AdminPersistentNav.
@@ -28,6 +29,7 @@ export const NAV_SECTIONS = [
   "lounge",
   "case-submissions",
   "pool",
+  "sign-ins",
 ] as const;
 export type NavBadgeSection = (typeof NAV_SECTIONS)[number];
 
@@ -38,6 +40,7 @@ const EMPTY_BADGES: AdminNavBadges = {
   lounge: false,
   "case-submissions": false,
   pool: false,
+  "sign-ins": false,
 };
 
 let cachedClient: Redis | null = null;
@@ -57,6 +60,7 @@ function seenKey(section: NavBadgeSection): string {
 function indexKeyFor(section: Exclude<NavBadgeSection, "comments">): string {
   if (section === "lounge") return "lounge:posts";
   if (section === "pool") return "pool:requests:all";
+  if (section === "sign-ins") return FAILURES_KEY;
   return "case-submissions";
 }
 

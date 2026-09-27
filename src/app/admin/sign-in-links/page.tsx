@@ -1,11 +1,16 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { AdminSignInLinkLookup } from "@/components/AdminSignInLinkLookup";
+import { getSectionSeen, markSectionSeen } from "@/lib/admin-nav-badges";
+import {
+  listSignInFailures,
+  type SignInFailureKind,
+} from "@/lib/signin-failures";
 
-// Admin quick tool: mint a manual sign-in link for any member. For when
-// a member's automated sign-in email isn't landing (corporate inbox
-// filtering). Gated by proxy.ts via HTTP Basic auth on /admin/*; 404s in
-// production, so it runs from localhost only.
+// Admin quick tool: mint a manual sign-in link for any member, and read
+// every recent failure to get in (lib/signin-failures). Gated by proxy.ts
+// via HTTP Basic auth on /admin/*; 404s in production, so it runs from
+// localhost only.
 
 export const metadata: Metadata = {
   title: "Sign-in links, admin",
@@ -14,7 +19,63 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function AdminSignInLinksPage() {
+// What each failure means, and the move that fixes it.
+const KINDS: Record<SignInFailureKind, { label: string; fix: string }> = {
+  link_used: {
+    label: "Link already used",
+    fix: "Something opened it first, or they clicked an old one. Mint a fresh link.",
+  },
+  link_expired: {
+    label: "Link expired",
+    fix: "Clicked too late. Mint a fresh link.",
+  },
+  link_unknown: {
+    label: "Unknown link",
+    fix: "A mangled link or one sent before tracking began. No name to act on.",
+  },
+  no_account: {
+    label: "Email not on file",
+    fix: "Likely a typo or a second address. Find the real member and reply.",
+  },
+  rate_limited: {
+    label: "Asked too many times",
+    fix: "Repeated requests usually mean the mail isn't arriving. Check below for a delivery problem.",
+  },
+  send_failed: {
+    label: "Send refused",
+    fix: "Resend rejected the sign-in email. Check the Resend dashboard.",
+  },
+  undeliverable: {
+    label: "Mail not delivered",
+    fix: "Bounced, suppressed, or marked as spam. A typo needs the email changed; a suppression needs lifting in Resend.",
+  },
+  auth_unavailable: {
+    label: "Sign-in service error",
+    fix: "Server-side fault. Check Vercel logs.",
+  },
+};
+
+const DAY = 24 * 60 * 60 * 1000;
+
+function when(at: number): string {
+  return new Date(at).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+  });
+}
+
+export default async function AdminSignInLinksPage() {
+  const seenBefore = await getSectionSeen("sign-ins");
+  const failures = await listSignInFailures(200);
+  await markSectionSeen("sign-ins");
+
+  const recent = failures.filter((f) => !f.dev && Date.now() - f.at < 30 * DAY);
+  const counts = new Map<SignInFailureKind, number>();
+  for (const f of recent) counts.set(f.kind, (counts.get(f.kind) ?? 0) + 1);
+
   return (
     <div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
       <div className="flex items-baseline justify-between gap-4 mb-8 flex-wrap">
@@ -45,6 +106,74 @@ export default function AdminSignInLinksPage() {
       </p>
 
       <AdminSignInLinkLookup />
+
+      <section className="mt-16">
+        <h2
+          className="font-display text-ink tracking-tight mb-2"
+          style={{ fontSize: "1.5rem", fontWeight: 700 }}
+        >
+          Who couldn&apos;t get in.
+        </h2>
+        <p className="font-serif italic text-ink-muted mb-6 leading-relaxed">
+          Every failed attempt, logged as it happens. Undelivered mail is
+          checked against Resend once a day.
+        </p>
+
+        {recent.length > 0 && (
+          <p className="text-sm text-ink-muted mb-6">
+            Last 30 days:{" "}
+            {[...counts.entries()]
+              .map(([kind, n]) => `${KINDS[kind].label.toLowerCase()} ${n}`)
+              .join(" · ")}
+          </p>
+        )}
+
+        {failures.length === 0 ? (
+          <p className="font-serif italic text-ink-muted">
+            Nothing yet. Failures show up here the moment they happen.
+          </p>
+        ) : (
+          <ul className="border-t border-rule">
+            {failures.map((f) => {
+              const kind = KINDS[f.kind];
+              const isNew = f.at > seenBefore;
+              return (
+                <li key={f.id} className="border-b border-rule py-4">
+                  <div className="flex items-baseline justify-between gap-4 flex-wrap">
+                    <span className="font-display text-ink" style={{ fontWeight: 600 }}>
+                      {kind.label}
+                      {isNew && (
+                        <span
+                          className="ml-2 font-display uppercase tracking-[0.18em] text-eye-deep"
+                          style={{ fontSize: "0.65rem" }}
+                        >
+                          new
+                        </span>
+                      )}
+                      {f.dev && (
+                        <span
+                          className="ml-2 font-display uppercase tracking-[0.18em] text-ink-faint"
+                          style={{ fontSize: "0.65rem" }}
+                        >
+                          local test
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-sm text-ink-muted">{when(f.at)}</span>
+                  </div>
+                  <div className="font-serif text-ink mt-1 break-all">
+                    {f.email ?? <span className="italic text-ink-muted">no email known</span>}
+                  </div>
+                  {f.detail && (
+                    <div className="text-sm text-ink-muted mt-1">{f.detail}</div>
+                  )}
+                  <div className="text-sm italic text-ink-muted mt-1">{kind.fix}</div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
