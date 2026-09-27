@@ -7,14 +7,31 @@ import React from "react";
 // the sentence rather than the URL is split off so e.g. "see
 // https://example.com." renders the period outside the link.
 //
-// Two URL shapes are matched:
+// Three URL shapes are matched:
 //   - http(s) URLs           — used as-is for the href
 //   - bare www.* URLs        — `https://` prepended for the href, raw
 //                              text preserved for the visible label
+//   - bare domains           — "stopbeingprey.com/walls/bless-daniel",
+//                              the way people actually type links. Only
+//                              known endings count (BARE_TLDS), so
+//                              "Node.js" and "e.g." stay text, and a
+//                              domain right after "@" is an email.
+//
+// Links to this site open in the same tab and aren't nofollow'd; every
+// other link opens a new tab.
+
+const BARE_TLDS =
+  "com|org|net|edu|gov|us|io|co|me|app|dev|tv|ly|gg|fm|ai|to|info|news|uk|ca|au|link|blog|shop";
 
 // Stops at whitespace + a small set of structural characters that
 // should never appear inside a pasted URL.
-const URL_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'`]+/gi;
+const URL_RE = new RegExp(
+  String.raw`\b(?:https?:\/\/|www\.)[^\s<>"'` + "`" + String.raw`]+` +
+    String.raw`|(?<![@\w./-])(?:[a-z0-9-]+\.)+(?:` + BARE_TLDS + String.raw`)\b(?:\/[^\s<>"'` + "`" + String.raw`]*)?`,
+  "gi"
+);
+
+const OWN_HOST_RE = /^https?:\/\/(?:www\.)?stopbeingprey\.com(?=[/?#]|$)/i;
 
 // Punctuation we peel back off the right side of a match. Keeps the
 // link's clickable region clean.
@@ -31,7 +48,7 @@ const MENTION_RE = /(^|\s)@\w+/g;
 
 type Part =
   | { kind: "text"; text: string }
-  | { kind: "link"; text: string; href: string }
+  | { kind: "link"; text: string; href: string; own: boolean }
   | { kind: "mention"; text: string };
 
 function split(text: string, withMentions: boolean): Part[] {
@@ -49,8 +66,10 @@ function split(text: string, withMentions: boolean): Part[] {
     if (m.index > last) {
       urlParts.push({ kind: "text", text: text.slice(last, m.index) });
     }
-    const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-    urlParts.push({ kind: "link", text: url, href });
+    const absolute = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    const own = OWN_HOST_RE.test(absolute);
+    const href = own ? absolute.replace(OWN_HOST_RE, "") || "/" : absolute;
+    urlParts.push({ kind: "link", text: url, href, own });
     if (trailing) urlParts.push({ kind: "text", text: trailing });
     last = m.index + raw.length;
   }
@@ -116,8 +135,9 @@ export function Linkified({
             <a
               key={i}
               href={p.href}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
+              {...(p.own
+                ? {}
+                : { target: "_blank", rel: "noopener noreferrer nofollow" })}
               className={linkClass}
             >
               {p.text}

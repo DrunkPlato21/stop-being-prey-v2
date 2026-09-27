@@ -51,6 +51,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { ArenaBench } from "@/components/arena/ArenaBench";
 import { TileAdminTools } from "@/components/arena/TileAdminTools";
 import { DeleteBoutButton } from "@/components/arena/DeleteBoutButton";
+import { Linkified } from "@/components/Linkified";
 import { BoutLiveRefresh } from "@/components/arena/BoutLiveRefresh";
 import {
   reopenBoutAction,
@@ -221,12 +222,12 @@ function TileBody({
         <div className="arena-shot">
           <TileShots urls={shots} />
           {tile.handle && <div className="arena-shot-handle">{tile.handle}</div>}
-          {!hasShot && <div className="arena-shot-body">{tile.body}</div>}
+          {!hasShot && <div className="arena-shot-body"><Linkified text={tile.body} /></div>}
         </div>
         {showFold && (
           <details className="arena-transcript">
             <summary>Full transcript</summary>
-            <div className="arena-transcript-body">{folded}</div>
+            <div className="arena-transcript-body"><Linkified text={folded} /></div>
           </details>
         )}
       </>
@@ -324,7 +325,7 @@ function AdminWhispers({
         const name = names.get(w.email.toLowerCase()) ?? null;
         return (
           <div key={i} className="arena-whisper-quote">
-            <div>{w.body}</div>
+            <div><Linkified text={w.body} /></div>
             <div className="who">
               {name && <b>{name}</b>}
               {name ? " · " : ""}
