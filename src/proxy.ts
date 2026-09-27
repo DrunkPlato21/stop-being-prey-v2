@@ -79,8 +79,10 @@ function redirectToSignIn(req: NextRequest): NextResponse {
 async function notesGate(req: NextRequest): Promise<NextResponse> {
   const { pathname, searchParams } = req.nextUrl;
 
-  // Sign-in page stays public so members can request a link.
-  if (pathname === SIGN_IN_PATH) {
+  // Sign-in page stays public so members can request a link, and so does
+  // the one-tap confirm page an emailed link lands on (it runs before
+  // there's a session, by definition).
+  if (pathname === SIGN_IN_PATH || pathname === `${SIGN_IN_PATH}/continue`) {
     return NextResponse.next();
   }
 

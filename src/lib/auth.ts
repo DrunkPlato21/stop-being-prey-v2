@@ -324,8 +324,22 @@ export async function createMagicLink(
 }
 
 /**
+ * Does this token still exist? Reads without spending it. The GET side
+ * of the callback uses this, because mail scanners (Microsoft's above
+ * all) open every link in a new message before the member does. If the
+ * GET spent the token, the scanner signed itself in and the member's
+ * click landed on "already used".
+ */
+export async function peekMagicLink(id: string): Promise<boolean> {
+  const client = redis();
+  if (!client) return false;
+  return (await client.exists(`${MAGIC_PREFIX}${id}`)) === 1;
+}
+
+/**
  * Consume a magic-link token. Returns the stored record on first use,
- * null if missing, expired, or already consumed.
+ * null if missing, expired, or already consumed. GETDEL so two taps in
+ * flight can't both read it.
  */
 export async function consumeMagicLink(
   id: string
@@ -333,9 +347,8 @@ export async function consumeMagicLink(
   const client = redis();
   if (!client) return null;
   const key = `${MAGIC_PREFIX}${id}`;
-  const raw = await client.get<string>(key);
+  const raw = await client.getdel<string>(key);
   if (!raw) return null;
-  await client.del(key);
   try {
     const parsed = typeof raw === "string"
       ? (JSON.parse(raw) as MagicLinkRecord)
