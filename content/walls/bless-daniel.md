@@ -13,6 +13,7 @@ donate_context: "Daniel Ralston posted a cartoon of Charlie Kirk getting shot un
 urgency_line: "Every note goes on the public record."
 goal_tiers: [250, 500, 1000, 2500]
 note_guidelines: "Leave Daniel a blessing. Grace only. No insults, no cruelty."
+note_placeholder: "Your blessing for Daniel..."
 intro: "Over the weekend of the Charlie Kirk anniversary, a Facebook commenter named Daniel posted a cartoon of Charlie being shot under a post mourning him. Asked if the murder was okay, he said political violence should never be condoned. Asked why the assassin did it, he said the killer's actions were wrong but his assessment of Kirk wasn't. Then he told us he feels blessed he wasn't born stupid or hateful enough to support Charlie. This is my answer to him, and this wall is where readers answer too: with support for my work, and a blessing for Daniel."
 ---
 

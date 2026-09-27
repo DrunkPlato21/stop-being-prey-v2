@@ -30,6 +30,9 @@ export type WallMeta = {
   /** Italic hint block rendered directly above the note textarea —
       sets tone for what kind of note belongs on this wall. */
   noteGuidelines?: string;
+  /** Placeholder text inside the note textarea, e.g.
+      "What do you want Marek to read?" */
+  notePlaceholder?: string;
   /** Short framing sentence rendered directly above the donation form,
       after the wall stats. Use for "what this wall is about" copy that
       shouldn't compete with the hero. */
@@ -125,6 +128,11 @@ function parseMeta(slug: string, data: Record<string, unknown>): WallMeta {
       typeof data.note_guidelines === "string" &&
       data.note_guidelines.trim().length > 0
         ? data.note_guidelines
+        : undefined,
+    notePlaceholder:
+      typeof data.note_placeholder === "string" &&
+      data.note_placeholder.trim().length > 0
+        ? data.note_placeholder
         : undefined,
     donateContext:
       typeof data.donate_context === "string" &&

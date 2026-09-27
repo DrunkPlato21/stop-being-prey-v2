@@ -23,10 +23,12 @@ function formatAmount(n: number): string {
 export function WallDonateCard({
   wallSlug,
   noteGuidelines,
+  notePlaceholder,
   urgencyLine,
 }: {
   wallSlug: string;
   noteGuidelines?: string;
+  notePlaceholder?: string;
   urgencyLine?: string;
 }) {
   const [selectedPreset, setSelectedPreset] = useState<number | null>(
@@ -212,7 +214,7 @@ export function WallDonateCard({
           <AutoResizingTextarea
             value={note}
             onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))}
-            placeholder="What do you want Marek to read?"
+            placeholder={notePlaceholder ?? "What do you want them to read?"}
             minRows={3}
             maxLength={NOTE_MAX}
             required

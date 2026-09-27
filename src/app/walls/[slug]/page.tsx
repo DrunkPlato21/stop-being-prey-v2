@@ -269,6 +269,7 @@ export default async function WallPage({
               <WallDonateCard
                 wallSlug={wall.slug}
                 noteGuidelines={wall.noteGuidelines}
+                notePlaceholder={wall.notePlaceholder}
                 urgencyLine={wall.urgencyLine}
               />
             </div>
