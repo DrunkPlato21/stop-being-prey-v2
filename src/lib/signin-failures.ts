@@ -95,6 +95,25 @@ export async function listSignInFailures(limit = 200): Promise<SignInFailure[]> 
   return out;
 }
 
+/**
+ * Everyone's last signed-in sighting (presence:index, see lib/presence),
+ * as email -> ms. A failure followed by a later sighting resolved itself;
+ * the admin list fades those so the ones still stuck stand out. The whole
+ * index is a couple hundred rows, one call.
+ */
+export async function lastSignedInByEmail(): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const client = redis();
+  if (!client) return out;
+  const flat = (await client
+    .zrange("presence:index", 0, -1, { withScores: true })
+    .catch(() => [])) as Array<string | number>;
+  for (let i = 0; i + 1 < flat.length; i += 2) {
+    out.set(String(flat[i]).toLowerCase(), Number(flat[i + 1]));
+  }
+  return out;
+}
+
 /** True the first time a Resend email id is seen, false after. */
 export async function claimDeliveryId(resendId: string): Promise<boolean> {
   const client = redis();

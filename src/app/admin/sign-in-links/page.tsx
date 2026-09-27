@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { AdminSignInLinkLookup } from "@/components/AdminSignInLinkLookup";
 import { getSectionSeen, markSectionSeen } from "@/lib/admin-nav-badges";
 import {
+  lastSignedInByEmail,
   listSignInFailures,
   type SignInFailureKind,
 } from "@/lib/signin-failures";
@@ -71,8 +72,31 @@ export default async function AdminSignInLinksPage() {
   const seenBefore = await getSectionSeen("sign-ins");
   const failures = await listSignInFailures(200);
   await markSectionSeen("sign-ins");
+  const seenAt = await lastSignedInByEmail();
+  // Same name before the @: how a typo'd address ("gmail.comn") gets
+  // matched to the member who got in right after correcting it.
+  const seenByLocal = new Map<string, number>();
+  for (const [email, t] of seenAt) {
+    const local = email.split("@")[0];
+    seenByLocal.set(local, Math.max(t, seenByLocal.get(local) ?? 0));
+  }
+  // Got in after this failure = resolved. Undeliverable mail is the
+  // exception: signing in on an old session doesn't fix a dead inbox.
+  const gotInAfter = (f: (typeof failures)[number]): number | null => {
+    if (!f.email || f.kind === "undeliverable") return null;
+    const email = f.email.toLowerCase();
+    const t =
+      seenAt.get(email) ??
+      (f.kind === "no_account" ? seenByLocal.get(email.split("@")[0]) : undefined);
+    return t && t > f.at ? t : null;
+  };
 
-  const recent = failures.filter((f) => !f.dev && Date.now() - f.at < 30 * DAY);
+  const recent = failures.filter(
+    (f) => !f.dev && Date.now() - f.at < 30 * DAY && !gotInAfter(f)
+  );
+  const resolvedCount = failures.filter(
+    (f) => !f.dev && Date.now() - f.at < 30 * DAY && gotInAfter(f)
+  ).length;
   const counts = new Map<SignInFailureKind, number>();
   for (const f of recent) counts.set(f.kind, (counts.get(f.kind) ?? 0) + 1);
 
@@ -119,12 +143,15 @@ export default async function AdminSignInLinksPage() {
           checked against Resend once a day.
         </p>
 
-        {recent.length > 0 && (
+        {(recent.length > 0 || resolvedCount > 0) && (
           <p className="text-sm text-ink-muted mb-6">
-            Last 30 days:{" "}
-            {[...counts.entries()]
-              .map(([kind, n]) => `${KINDS[kind].label.toLowerCase()} ${n}`)
-              .join(" · ")}
+            Last 30 days, still unresolved:{" "}
+            {recent.length === 0
+              ? "none"
+              : [...counts.entries()]
+                  .map(([kind, n]) => `${KINDS[kind].label.toLowerCase()} ${n}`)
+                  .join(" · ")}
+            {resolvedCount > 0 && `. Resolved on their own: ${resolvedCount}.`}
           </p>
         )}
 
@@ -137,8 +164,13 @@ export default async function AdminSignInLinksPage() {
             {failures.map((f) => {
               const kind = KINDS[f.kind];
               const isNew = f.at > seenBefore;
+              const resolvedAt = gotInAfter(f);
               return (
-                <li key={f.id} className="border-b border-rule py-4">
+                <li
+                  key={f.id}
+                  className="border-b border-rule py-4"
+                  style={resolvedAt ? { opacity: 0.5 } : undefined}
+                >
                   <div className="flex items-baseline justify-between gap-4 flex-wrap">
                     <span className="font-display text-ink" style={{ fontWeight: 600 }}>
                       {kind.label}
@@ -167,7 +199,13 @@ export default async function AdminSignInLinksPage() {
                   {f.detail && (
                     <div className="text-sm text-ink-muted mt-1">{f.detail}</div>
                   )}
-                  <div className="text-sm italic text-ink-muted mt-1">{kind.fix}</div>
+                  {resolvedAt ? (
+                    <div className="text-sm italic text-eye-deep mt-1">
+                      Got in {when(resolvedAt)}. Nothing to do.
+                    </div>
+                  ) : (
+                    <div className="text-sm italic text-ink-muted mt-1">{kind.fix}</div>
+                  )}
                 </li>
               );
             })}
