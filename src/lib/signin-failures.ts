@@ -26,6 +26,8 @@ export type SignInFailureKind =
   | "rate_limited" // asked too many times in an hour
   | "send_failed" // Resend refused the sign-in email outright
   | "undeliverable" // Resend bounced, suppressed, or took a spam complaint
+  | "blocked" // on Resend's suppression list and couldn't be lifted; told on screen
+  | "unblocked" // sign-in lifted a spam-complaint block by itself (lib/email-blocks)
   | "auth_unavailable";
 
 export type SignInFailure = {

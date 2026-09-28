@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { setDigestUnsubscribed } from "@/lib/digest";
 import { getMember } from "@/lib/members";
 import {
   claimDeliveryId,
@@ -16,8 +17,12 @@ import {
 // of sends back from Resend and logs every undeliverable one onto the
 // sign-in failures list, once per email.
 //
-// Read-only against Resend; writes only the failures log. Guarded by
-// CRON_SECRET like the other crons.
+// A spam complaint also takes the reader off the Sunday digest: "report
+// spam" is how most people unsubscribe, and every further digest to them
+// is another complaint against the domain.
+//
+// Read-only against Resend; writes the failures log and the digest
+// opt-out list. Guarded by CRON_SECRET like the other crons.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,6 +93,11 @@ export async function GET(req: NextRequest) {
       if (!(await claimDeliveryId(e.id))) continue;
 
       const to = String(Array.isArray(e.to) ? e.to[0] : e.to).toLowerCase();
+      if (e.last_event === "complained") {
+        await setDigestUnsubscribed(to, true).catch((err) =>
+          console.error("[cron/delivery-check] digest opt-out failed:", err)
+        );
+      }
       const member = await getMember(to).catch(() => null);
       await recordSignInFailure({
         kind: "undeliverable",

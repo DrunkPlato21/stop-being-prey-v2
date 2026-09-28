@@ -11,6 +11,7 @@ import { getMember, type MemberSubscriptionStatus } from "@/lib/members";
 import { isAdmin } from "@/lib/comments";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { recordSignInFailure } from "@/lib/signin-failures";
+import { resolveSignInBlock } from "@/lib/email-blocks";
 
 // POST /api/auth/request-link
 // Body: { email: string, next?: string }
@@ -170,6 +171,23 @@ export async function POST(req: NextRequest) {
       console.warn("[auth/request-link] ensureDevMemberRecord failed:", err);
     });
     if (status.active && status.customerId) customerId = status.customerId;
+  }
+
+  // An address Resend has blocked gets nothing we send, and the old
+  // response still said "check your inbox". A member blocked by a spam
+  // complaint is unblocked here (lib/email-blocks); anyone still blocked
+  // is told so on screen. Checked for members and non-members alike, so
+  // `blocked` says nothing about who is a member.
+  const block = await resolveSignInBlock(email, { member: !!customerId });
+  if (block.blocked) {
+    await recordSignInFailure({
+      kind: "blocked",
+      email,
+      detail:
+        `on Resend's block list (${block.origin})` +
+        (customerId ? ", member" : ", not a member"),
+    });
+    return Response.json({ ok: true, blocked: true });
   }
 
   if (!customerId) {

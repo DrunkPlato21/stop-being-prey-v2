@@ -688,6 +688,15 @@ export async function listActiveMemberEmails(): Promise<string[]> {
   const active: string[] = [];
   for (const email of all) {
     const record = await getMember(email).catch(() => null);
+    // Test records (`dev_` customer id) share the live keyspace. In
+    // production they are skipped: claytrainor@stopbeingprey.com, a dead
+    // test inbox, was mailed every Sunday and logged a failure each time.
+    if (
+      process.env.NODE_ENV === "production" &&
+      record?.stripeCustomerId?.startsWith("dev_")
+    ) {
+      continue;
+    }
     if (
       record &&
       (record.status === "active" || record.status === "trialing")

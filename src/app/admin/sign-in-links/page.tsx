@@ -50,6 +50,14 @@ const KINDS: Record<SignInFailureKind, { label: string; fix: string }> = {
     label: "Mail not delivered",
     fix: "Bounced, suppressed, or marked as spam. A typo needs the email changed; a suppression needs lifting in Resend.",
   },
+  unblocked: {
+    label: "Unblocked automatically",
+    fix: "They'd marked an email as spam, which blocked everything. Taken off the digest, unblocked, and the link went out.",
+  },
+  blocked: {
+    label: "Blocked, told on screen",
+    fix: "Resend won't deliver to this address. The page told them to email you. Check Resend's suppressions.",
+  },
   auth_unavailable: {
     label: "Sign-in service error",
     fix: "Server-side fault. Check Vercel logs.",
@@ -83,11 +91,18 @@ export default async function AdminSignInLinksPage() {
   // Got in after this failure = resolved. Undeliverable mail is the
   // exception: signing in on an old session doesn't fix a dead inbox.
   const gotInAfter = (f: (typeof failures)[number]): number | null => {
-    if (!f.email || f.kind === "undeliverable") return null;
+    if (!f.email) return null;
+    // A typo'd address that isn't a member (the delivery check marks it
+    // "not a member") is resolved once the same name gets in, same as
+    // no_account. A member's bounce stays open.
+    const typo =
+      f.kind === "no_account" ||
+      (f.kind === "undeliverable" && (f.detail ?? "").includes("not a member"));
+    if (f.kind === "undeliverable" && !typo) return null;
     const email = f.email.toLowerCase();
     const t =
       seenAt.get(email) ??
-      (f.kind === "no_account" ? seenByLocal.get(email.split("@")[0]) : undefined);
+      (typo ? seenByLocal.get(email.split("@")[0]) : undefined);
     return t && t > f.at ? t : null;
   };
 

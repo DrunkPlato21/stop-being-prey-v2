@@ -10,7 +10,7 @@ import { useState } from "react";
 // no email arrives (lapsed member, never joined, brand-new signup
 // whose webhook hasn't fired yet).
 
-type Status = "idle" | "loading" | "sent" | "error";
+type Status = "idle" | "loading" | "sent" | "blocked" | "error";
 
 export function SignInForm({ next }: { next?: string }) {
   const [email, setEmail] = useState("");
@@ -28,17 +28,51 @@ export function SignInForm({ next }: { next?: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, next }),
       });
-      const data: { ok?: boolean; error?: string } = await res
-        .json()
-        .catch(() => ({}));
+      const data: { ok?: boolean; blocked?: boolean; error?: string } =
+        await res.json().catch(() => ({}));
       if (!res.ok || data.ok === false) {
         throw new Error(data.error ?? "request_failed");
       }
-      setStatus("sent");
+      // Our mail to this address is being refused, so no link is coming.
+      // Say so instead of sending them to wait on an empty inbox.
+      setStatus(data.blocked ? "blocked" : "sent");
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "request_failed");
     }
+  }
+
+  if (status === "blocked") {
+    return (
+      <div className="text-center max-w-md mx-auto">
+        <p
+          className="font-display italic text-ink leading-relaxed mb-3"
+          style={{ fontSize: "1.2rem" }}
+        >
+          our emails to{" "}
+          <span className="not-italic font-display text-eye-deep">
+            {email}
+          </span>{" "}
+          are being blocked, so a sign-in link can&apos;t reach you.
+        </p>
+        <p className="text-sm italic text-ink-muted leading-relaxed">
+          Email{" "}
+          <a
+            href="mailto:clay@readsowell.com?subject=Can%27t%20sign%20in"
+            className="text-eye-deep hover:text-ink"
+            style={{
+              textDecoration: "underline",
+              textDecorationColor: "var(--eye)",
+              textDecorationThickness: "1px",
+              textUnderlineOffset: "3px",
+            }}
+          >
+            clay@readsowell.com
+          </a>{" "}
+          and I&apos;ll get you in myself.
+        </p>
+      </div>
+    );
   }
 
   if (status === "sent") {
