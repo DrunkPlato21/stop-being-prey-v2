@@ -46,3 +46,7 @@ God bless you.
 p.s. One more thing. You work for me now, Daniel. You're helping fund my work... isn't that awesome? People are going to send me money, and they're going to attach a message for you with every dollar. You did that for me. Thank you.
 
 The messages will be publicly available if you want to watch them come in.
+
+---
+
+*See the whole exchange with Daniel, broken down move by move, in the Arena: [What's the Joke?](/arena/what-s-the-joke)*
