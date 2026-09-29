@@ -557,7 +557,8 @@ export async function PatronageLanding({
             className="font-serif text-ink leading-relaxed"
             style={{ fontSize: "1.08rem" }}
           >
-            I am a software developer by trade, so this is kind of my thing.
+            I spent years as a software developer, so building is kind of my
+            thing.
             I&apos;m going to keep building here while I write. There&apos;s
             plenty more to come.
           </p>
