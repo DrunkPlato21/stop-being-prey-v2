@@ -51,7 +51,10 @@ import { testimonialsFor } from "@/lib/testimonials";
 // used to hold Steve Coleman's note, which opens on a west-coast joke
 // that lands only if you already know Clay is not on the west coast. A
 // stranger reads it as a mistake.
-const WALL_PICKS = ["Murrell", "Kim", "Rick"] as const;
+// Sept 29 2026: Paula leads (came for Sowell and Charlie, stayed for Clay:
+// the path a Sowell-page visitor is on), replacing Kim, whose "I'm where
+// you used to be" reads as personal context a stranger doesn't have.
+const WALL_PICKS = ["Paula Hamilton, Alexandria VA", "Murrell", "Rick"] as const;
 
 // An explicit hand-picked set, in Clay's order — not a filter or a sort,
 // so the sequence can't drift when the shared pool changes. Chris and
