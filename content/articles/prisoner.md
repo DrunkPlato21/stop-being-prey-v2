@@ -126,7 +126,7 @@ Ross understood:
 
 > "He felt compassion for me because he, too, was a target of a weaponized government."
 
-Then, he brought up the libertarians.
+Then he brought up his fellow libertarians.
 
 > "Now, sometimes I hear from the very people he made that campaign promise to… that after he freed me, he lost focus on the cause of liberty."
 
