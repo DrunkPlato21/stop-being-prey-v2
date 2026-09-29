@@ -497,11 +497,10 @@ export async function PatronageLanding({
             style={{ fontSize: "1.08rem" }}
           >
             There&apos;s a <strong>Writer&apos;s Desk</strong>. This is your
-            direct connection to me, as well as what leads you to everything
-            else. You will see
+            direct line to me, and the door to everything else. You will see
             a green light next to my name that pulses while I&apos;m working,
-            and goes out when I step away. You can leave a note on the desk
-            for me, I&apos;ll answer it.
+            and goes out when I step away. Leave me a note on the desk, and
+            I&apos;ll answer it.
           </p>
           <p
             className="font-serif text-ink leading-relaxed"
@@ -520,11 +519,28 @@ export async function PatronageLanding({
             className="font-serif text-ink leading-relaxed"
             style={{ fontSize: "1.08rem" }}
           >
-            Then we have <strong>The Guild</strong>, where the conversations
-            need more room to think out loud. Somebody brings a fight they&apos;re losing and
+            Then we have <strong>The Guild</strong>, for the conversations
+            that need more room. Somebody brings a fight they&apos;re losing and
             the room works out the move together. This is where you can come
             to get support and insight on any political argument you end up
             in.
+          </p>
+          <p
+            className="font-serif text-ink leading-relaxed"
+            style={{ fontSize: "1.08rem" }}
+          >
+            <strong>The Arena</strong>
+            {" "}
+            is where I break down real fights with real opponents. Every trap
+            they set, every move I make back, laid out tile by tile. Patrons
+            watch it happen live.{" "}
+            <Link
+              href="/arena/what-s-the-joke"
+              className="text-eye-deep hover:text-ink transition-colors"
+              style={{ textDecoration: "underline", textUnderlineOffset: "3px" }}
+            >
+              Here&apos;s one I made public.
+            </Link>
           </p>
           <p
             className="font-serif text-ink leading-relaxed"
@@ -540,7 +556,7 @@ export async function PatronageLanding({
             style={{ fontSize: "1.08rem" }}
           >
             I am a software developer by trade, so this is kind of my thing.
-            I&apos;m going to keep building here, while I write. There&apos;s
+            I&apos;m going to keep building here while I write. There&apos;s
             plenty more to come.
           </p>
         </div>
