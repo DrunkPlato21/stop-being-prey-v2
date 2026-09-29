@@ -22,6 +22,9 @@ export const TRACK_CHANNELS = [
   // already identifies them, and tagging would move that traffic out of
   // its own bucket.
   "share",
+  // A printed flyer's QR code (?ref=flyer). Paper has no referrer, so
+  // without the tag a scan is just "direct".
+  "flyer",
   "direct",
   "other",
 ] as const;
