@@ -71,6 +71,28 @@ export function applyEssayTokens(
     }
   );
 
+  // {{SERIES: label | line | line | …}} -> the series block that closes a
+  // piece in a run (The Libertarian Series). A line with a link points at
+  // another part; the one line without a link is the piece being read,
+  // and is marked as current.
+  bodyHtml = bodyHtml.replace(
+    /<p>\s*\{\{SERIES:\s*([\s\S]*?)\}\}\s*<\/p>/g,
+    (_m, inner: string) => {
+      const [label, ...lines] = inner.split("|").map((s) => s.trim());
+      const items = lines
+        .map((line) =>
+          /<a\b/.test(line)
+            ? `<li>${line}</li>`
+            : `<li class="is-current" aria-current="page">${line}</li>`
+        )
+        .join("");
+      return (
+        `<aside class="ea-series" aria-label="${(label ?? "").replace(/"/g, "&quot;")}">` +
+        `<p class="ea-series-label">${label ?? ""}</p><ol>${items}</ol></aside>`
+      );
+    }
+  );
+
   // Every remaining <blockquote> becomes a sourced-receipt block quote,
   // lifting a trailing "~ …" attribution paragraph OUT into a figcaption.
   bodyHtml = bodyHtml.replace(
@@ -102,13 +124,52 @@ export function applyEssayTokens(
       // marker, never positional — "first quote in a section" would catch
       // the wrong quotes the moment an Act is reordered or a receipt moves
       // to the top. The marker paragraph is consumed, never rendered.
-      let isEpigraph = false;
+      //
+      // The same first-paragraph marker picks the other voices a piece
+      // can quote, so a page of twenty quotes isn't twenty identical
+      // panels (The Prisoner and the Podcasters, 2026-09-28):
+      //   {{POST}}     a post or broadcast, the receipt: between rules,
+      //                source on top
+      //   {{ARCHIVE}}  Clay quoting his own earlier piece: left rule,
+      //                "from the archive" kicker
+      //   {{SOUND}}    something overheard: a recorded voice, a chant,
+      //   {{CHANT}}    a sign. All three share one quiet small-caps
+      //   {{SIGN}}     line; the separate names keep the markdown legible
+      //   {{REFRAIN}}  a line that returns: the light centered beat,
+      //                even when uniformQuotes is on
+      let marker: string | null = null;
       {
-        const firstP = quoteInner.match(/^\s*<p>\s*\{\{\s*EPIGRAPH\s*\}\}\s*<\/p>/i);
+        const firstP = quoteInner.match(
+          /^\s*<p>\s*\{\{\s*(EPIGRAPH|POST|ARCHIVE|SOUND|CHANT|SIGN|REFRAIN)\s*\}\}\s*<\/p>/i
+        );
         if (firstP) {
-          isEpigraph = true;
+          marker = firstP[1].toUpperCase();
           quoteInner = quoteInner.slice(firstP[0].length).trimStart();
         }
+      }
+      const isEpigraph = marker === "EPIGRAPH";
+      const unquoted = quoteInner
+        .replace(/^(\s*<p>\s*(?:<em>\s*)?)["“]/, "$1")
+        .replace(/["”](\s*(?:<\/em>\s*)?<\/p>\s*)$/, "$1");
+      const credit = formatCredit(attr);
+      if (marker === "POST") {
+        // Print-style: the quote first, the source beneath it.
+        const foot = attr ? `<figcaption>${credit}</figcaption>` : "";
+        return `<figure class="ea-post"><blockquote>${unquoted}</blockquote>${foot}</figure>`;
+      }
+      if (marker === "ARCHIVE") {
+        // Clay's own earlier writing. Credit beneath, like the record
+        // quotes; the olive rule is what marks it as his.
+        const foot = `<figcaption>From the archive${attr ? ` · ${credit}` : ""}</figcaption>`;
+        return `<figure class="ea-archive"><blockquote>${unquoted}</blockquote>${foot}</figure>`;
+      }
+      if (marker === "SOUND" || marker === "CHANT" || marker === "SIGN") {
+        // One quiet treatment for everything overheard. Three separate
+        // costumes (placard, crowd caps, operator line) read as a zine.
+        return `<figure class="ea-sound"><blockquote>${unquoted}</blockquote></figure>`;
+      }
+      if (marker === "REFRAIN") {
+        return `<figure class="ea-quote-light ea-refrain"><blockquote>${quoteInner}</blockquote></figure>`;
       }
       if (isEpigraph) {
         // Its own figure class, not a modifier on ea-blockquote: the
@@ -118,8 +179,7 @@ export function applyEssayTokens(
         const strippedEpi = quoteInner
           .replace(/^(\s*<p>\s*(?:<em>\s*)?)["“]/, "$1")
           .replace(/["”](\s*(?:<\/em>\s*)?<\/p>\s*)$/, "$1");
-        const epiAttr = attr.replace(/,\s+(?!\d{4})/g, " • ");
-        const epiCap = attr ? `<figcaption>${epiAttr}</figcaption>` : "";
+        const epiCap = attr ? `<figcaption>${credit}</figcaption>` : "";
         return `<figure class="ea-epigraph"><blockquote>${strippedEpi}</blockquote>${epiCap}</figure>`;
       }
 
@@ -142,15 +202,32 @@ export function applyEssayTokens(
       const stripped = quoteInner
         .replace(/^(\s*<p>\s*(?:<em>\s*)?)["“]/, "$1")
         .replace(/["”](\s*(?:<\/em>\s*)?<\/p>\s*)$/, "$1");
-      const attrFormatted = attr.replace(/,\s+(?!\d{4}\b)/g, " • ");
-      const cap = attr
-        ? `<figcaption>${attrFormatted}</figcaption>`
-        : "";
+      const cap = attr ? `<figcaption>${credit}</figcaption>` : "";
       return `<figure class="ea-blockquote"><blockquote>${stripped}</blockquote>${cap}</figure>`;
     }
   );
 
   return bodyHtml;
+}
+
+/**
+ * An attribution line ("Dave Smith, Part of the Problem, Sept 23, 2026")
+ * as a credit: one separator everywhere (·), and the comma before a year
+ * kept, so dates read "Sept 23, 2026". Each part stays whole on one line
+ * so a phone never strands "Sept" from "23, 2026", unless a part would
+ * split a link (a whole-line link like "[Charlie Kirk, X, April 22,
+ * 2024](…)"), in which case it only swaps the separators.
+ */
+function formatCredit(attr: string): string {
+  if (!attr) return "";
+  const parts = attr.split(/,\s+(?!\d{4}\b)/);
+  const balanced = parts.every(
+    (p) => (p.match(/<a\b/g) ?? []).length === (p.match(/<\/a>/g) ?? []).length
+  );
+  if (!balanced) return attr.replace(/,\s+(?!\d{4}\b)/g, " · ");
+  return parts
+    .map((p) => `<span style="white-space:nowrap">${p}</span>`)
+    .join(" · ");
 }
 
 /** Word count from the raw markdown body. Strips the custom {{...}}

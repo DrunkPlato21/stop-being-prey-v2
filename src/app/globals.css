@@ -427,33 +427,50 @@ a.no-underline {
    aligned with the text) leads into a small-caps, bullet-separated
    attribution in the same accent. The quote's own surrounding quote marks
    are stripped server-side so the glyph is the only opening mark. */
+/* Restyled 2026-09-28 toward print (NYT/Atlantic register): the quote in
+   Cormorant italic at full ink, and a thin light Cormorant mark hanging
+   in the margin instead of the heavy bold glyph. On a phone there is no
+   margin to hang into, so the mark tucks inside the indent. */
 .prose-article figure.ea-blockquote {
   position: relative;
   margin: 3em 0;
-  padding-left: 3.25rem;
+  /* Indented on the right too, so the quote reads as its own column. */
+  padding-left: 2.25rem;
+  padding-right: 1rem;
   background: none;
   border: none;
 }
 .prose-article figure.ea-blockquote::before {
   content: "\201C";
   position: absolute;
-  left: -0.3rem;
-  top: 1.7rem;
-  font-family: var(--font-source-serif), Georgia, serif;
-  font-size: 5.5rem;
+  left: -0.4rem;
+  top: 2.35rem;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-weight: 300;
+  font-size: 5.25rem;
   line-height: 0;
   color: var(--eye-deep);
   pointer-events: none;
+}
+@media (min-width: 900px) {
+  .prose-article figure.ea-blockquote {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+  .prose-article figure.ea-blockquote::before {
+    left: -0.2rem;
+  }
 }
 .prose-article figure.ea-blockquote blockquote {
   margin: 0;
   border: none;
   padding: 0;
-  font-family: var(--font-source-serif), Georgia, serif;
-  font-style: normal;
-  font-size: 1.36rem;
-  line-height: 1.5;
-  color: var(--ink-soft);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.62rem;
+  line-height: 1.4;
+  color: var(--ink);
 }
 .prose-article figure.ea-blockquote blockquote p {
   margin: 0 0 1rem 0;
@@ -461,14 +478,15 @@ a.no-underline {
 .prose-article figure.ea-blockquote blockquote p:last-child {
   margin-bottom: 0;
 }
+/* Same small-caps credit as the record and archive quotes, in olive. */
 .prose-article figure.ea-blockquote figcaption {
-  margin-top: 1.25rem;
+  margin-top: 1rem;
   text-align: left;
   font-family: var(--font-source-serif), Georgia, serif;
   font-variant: small-caps;
   font-style: normal;
-  font-size: 0.9rem;
-  letter-spacing: 0.1em;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
   color: var(--eye-deep);
 }
 /* === Epigraph =====================================================
@@ -560,6 +578,211 @@ a.no-underline {
   text-decoration-color: var(--ink);
 }
 
+/* === Quote voices (marker-driven, see lib/early-access.ts) =========
+   A piece that quotes many people shouldn't dress them all the same,
+   but it should stay quiet about it: newspaper restraint, not a zine.
+   The glyph panel above is the protagonist's voice; these are the
+   others. No boxes, no fills, no second face. Rules and small caps. */
+
+/* Section break inside an essay: three spaced points in the accent,
+   the way a magazine marks a turn, instead of a bare hairline. */
+.prose-article.ea-essay hr {
+  border: 0;
+  width: auto;
+  height: auto;
+  margin: 3.5rem auto;
+  text-align: center;
+  overflow: visible;
+}
+.prose-article.ea-essay hr::after {
+  content: "\00b7\2003\00b7\2003\00b7";
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--eye-deep);
+}
+
+/* {{POST}} A post or broadcast: the receipt, set the way print sets a
+   quoted source. Body serif in italic, indented behind one thin rule,
+   credit beneath in small muted caps. Bold inside the quote still reads
+   as the speaker's own emphasis. */
+.prose-article figure.ea-post {
+  margin: 2.5rem 0 2.5rem 1.5rem;
+  padding: 0.15rem 0 0.15rem 1.25rem;
+  /* Neutral grey, not the warm ink-faint: opponents' words carry no
+     house colour. Mid-grey at partial opacity reads in both themes. */
+  border-left: 1px solid rgba(128, 128, 128, 0.7);
+}
+@media (max-width: 640px) {
+  .prose-article figure.ea-post {
+    margin-left: 0.5rem;
+  }
+}
+.prose-article figure.ea-post blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 1.12rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.prose-article figure.ea-post blockquote p {
+  margin: 0 0 0.8rem;
+}
+.prose-article figure.ea-post blockquote p:last-child {
+  margin-bottom: 0;
+}
+.prose-article figure.ea-post blockquote strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+.prose-article figure.ea-post figcaption {
+  margin-top: 0.75rem;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: normal;
+  font-variant: small-caps;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+}
+.prose-article figure.ea-post figcaption a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-faint);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.prose-article figure.ea-post figcaption a:hover {
+  color: var(--ink);
+  text-decoration-color: var(--ink);
+}
+
+/* {{ARCHIVE}} Clay quoting his own earlier piece. Set exactly like the
+   record quotes (italic, one thin rule, credit beneath in small caps)
+   except the rule is olive: Clay's own words in olive, opponents' in
+   grey. */
+.prose-article figure.ea-archive {
+  margin: 2.5rem 0 2.5rem 1.5rem;
+  padding: 0.15rem 0 0.15rem 1.25rem;
+  border-left: 1px solid var(--eye);
+}
+@media (max-width: 640px) {
+  .prose-article figure.ea-archive {
+    margin-left: 0.5rem;
+  }
+}
+.prose-article figure.ea-archive figcaption {
+  margin-top: 0.75rem;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: normal;
+  font-variant: small-caps;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+}
+.prose-article figure.ea-archive figcaption a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-faint);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.prose-article figure.ea-archive figcaption a:hover {
+  color: var(--ink);
+  text-decoration-color: var(--ink);
+}
+.prose-article figure.ea-archive blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 1.12rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.prose-article figure.ea-archive blockquote p {
+  margin: 0 0 0.8rem;
+}
+.prose-article figure.ea-archive blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* {{SOUND}} / {{CHANT}} / {{SIGN}} Something overheard: an operator
+   cutting in, a crowd, a card on a chair. Centered small caps, set
+   apart by air alone. */
+.prose-article figure.ea-sound {
+  margin: 2.5rem auto;
+  max-width: 30rem;
+  text-align: center;
+}
+.prose-article figure.ea-sound blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: normal;
+  font-variant: small-caps;
+  font-size: 1.12rem;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-wrap: balance;
+}
+.prose-article figure.ea-sound blockquote p {
+  margin: 0;
+}
+
+/* {{SERIES}} The series block that closes a piece in a run. Set off from
+   the sign-off by air and a short centered rule; label in muted olive
+   small caps, parts smaller than body in a muted colour, the current
+   piece unlinked and in italic. */
+.prose-article aside.ea-series {
+  margin: 4.5rem auto 0;
+  text-align: center;
+}
+.prose-article aside.ea-series::before {
+  content: "";
+  display: block;
+  width: 3rem;
+  height: 1px;
+  margin: 0 auto 1.75rem;
+  background: var(--rule);
+}
+.prose-article aside.ea-series .ea-series-label {
+  margin: 0 0 0.9rem;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-variant: small-caps;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: var(--eye-deep);
+  opacity: 0.85;
+}
+.prose-article aside.ea-series ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.prose-article aside.ea-series li {
+  margin: 0 0 0.35rem;
+  padding: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+.prose-article aside.ea-series li::before {
+  content: none;
+}
+.prose-article aside.ea-series li a {
+  color: var(--ink-soft);
+}
+.prose-article aside.ea-series li.is-current {
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
 /* Short standalone quote, no attribution. A light beat, not an evidence
    card: centered, slightly larger upright serif, no panel, no rules,
    generous air. Reserved for punchy one-liners. */
@@ -582,6 +805,36 @@ a.no-underline {
 }
 .prose-article figure.ea-quote-light blockquote p {
   margin: 0;
+}
+/* {{REFRAIN}} The line that opens and closes a piece. Upright Cormorant
+   at 600 (the regular weight reads too thin at this size), a step
+   larger than the italic pull quotes, centered, lines balanced. */
+/* Its own moment: at least as much air below as above, so the opening
+   line never crowds the first paragraph (and the closing one the
+   sign-off). */
+.prose-article figure.ea-refrain {
+  margin: 3.5rem auto 4.25rem;
+}
+/* The opening line sits under the header's rule and the article's top
+   padding (about 120px on desktop), so it needs that much below too. */
+.prose-article > figure.ea-refrain:first-child {
+  margin-bottom: 7.75rem;
+}
+@media (max-width: 640px) {
+  .prose-article > figure.ea-refrain:first-child {
+    margin-bottom: 6.75rem;
+  }
+}
+.prose-article figure.ea-refrain blockquote {
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-style: normal;
+  font-weight: 600;
+  /* 1.95rem on desktop; eased on a phone so the line sets in three
+     balanced lines, not four stubs. */
+  font-size: clamp(1.75rem, 1.4rem + 1.2vw, 1.95rem);
+  line-height: 1.3;
+  color: var(--ink);
+  text-wrap: balance;
 }
 
 .prose-article ul, .prose-article ol {
@@ -641,6 +894,13 @@ a.no-underline {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 0.94em;
+}
+/* Words-mode run-in (an essay's `leadIncipit: <n>`): the print version,
+   a few words in regular-weight caps with light tracking. */
+.lead-incipit.lead-incipit--words {
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  font-size: 0.86em;
 }
 
 /* Share row links */

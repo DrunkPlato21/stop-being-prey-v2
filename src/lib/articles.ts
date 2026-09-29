@@ -290,12 +290,21 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   // skip the lead-incipit: their opening is an epigraph pull quote, and
   // the incipit would target the wrong paragraph (and break the token).
   // Everyone else gets the standard small-caps run-in lead.
+  // An essay can opt back in with `leadIncipit: true`: applied after the
+  // tokens, where quotes are already figures and the incipit skips them.
+  const essayHtml = essayStyle
+    ? applyEssayTokens(rawContentHtml, {
+        uniformPanelQuotes: data.uniformQuotes === true,
+      })
+    : null;
   const contentHtml = externalLinksInNewTab(
-    essayStyle
-      ? applyEssayTokens(rawContentHtml, {
-          uniformPanelQuotes: data.uniformQuotes === true,
-        })
-      : applyLeadIncipit(rawContentHtml)
+    essayHtml === null
+      ? applyLeadIncipit(rawContentHtml)
+      : data.leadIncipit === true
+        ? applyLeadIncipit(essayHtml)
+        : typeof data.leadIncipit === "number"
+          ? applyLeadIncipit(essayHtml, { words: data.leadIncipit })
+          : essayHtml
   );
 
   let postscriptHtml: string | null = null;
