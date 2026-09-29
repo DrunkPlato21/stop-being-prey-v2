@@ -560,3 +560,5 @@ If you got this far, you're probably one of us.
 stay close,
 
 ~ Clay
+
+{{SERIES: The Libertarian Series | Part one · The Losertarian Problem | Part two · [The Thomas Massie Problem](/the-massie-problem) | Part three · [The Prisoner and the Podcasters](/prisoner)}}

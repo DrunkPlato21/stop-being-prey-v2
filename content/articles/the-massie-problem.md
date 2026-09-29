@@ -960,3 +960,5 @@ Until Trump signed his name, Ross had two life sentences and no parole. He was d
 {{PULL: "Going from two life sentences plus 40 years without parole to this feels like a total miracle. There were times we didn't know if having a family would ever be in the cards for us."}}
 
 {{PULL: "Thank you, // Donald Trump." | the Ulbricht family, Instagram}}
+
+{{SERIES: The Libertarian Series | Part one · [The Losertarian Problem](/the-losertarian-problem) | Part two · The Thomas Massie Problem | Part three · [The Prisoner and the Podcasters](/prisoner)}}

@@ -9,6 +9,33 @@
 // token-aware word counter. One source of truth, no drift.
 
 /**
+ * {{SERIES: label | line | line | …}} -> the series block that closes a
+ * piece in a run (The Libertarian Series). A line with a link points at
+ * another part; the one line without a link is the piece being read,
+ * and is marked as current. Exported on its own because series pieces
+ * that aren't `essayStyle` (The Losertarian Problem) carry it too.
+ */
+export function applySeriesToken(input: string): string {
+  return input.replace(
+    /<p>\s*\{\{SERIES:\s*([\s\S]*?)\}\}\s*<\/p>/g,
+    (_m, inner: string) => {
+      const [label, ...lines] = inner.split("|").map((s) => s.trim());
+      const items = lines
+        .map((line) =>
+          /<a\b/.test(line)
+            ? `<li>${line}</li>`
+            : `<li class="is-current" aria-current="page">${line}</li>`
+        )
+        .join("");
+      return (
+        `<aside class="ea-series" aria-label="${(label ?? "").replace(/"/g, "&quot;")}">` +
+        `<p class="ea-series-label">${label ?? ""}</p><ol>${items}</ol></aside>`
+      );
+    }
+  );
+}
+
+/**
  * Apply the custom token + blockquote treatments to already-rendered
  * markdown HTML. The standard article pipeline (src/lib/articles.ts)
  * runs this for essays that opt in via `essayStyle: true` in their
@@ -71,27 +98,7 @@ export function applyEssayTokens(
     }
   );
 
-  // {{SERIES: label | line | line | …}} -> the series block that closes a
-  // piece in a run (The Libertarian Series). A line with a link points at
-  // another part; the one line without a link is the piece being read,
-  // and is marked as current.
-  bodyHtml = bodyHtml.replace(
-    /<p>\s*\{\{SERIES:\s*([\s\S]*?)\}\}\s*<\/p>/g,
-    (_m, inner: string) => {
-      const [label, ...lines] = inner.split("|").map((s) => s.trim());
-      const items = lines
-        .map((line) =>
-          /<a\b/.test(line)
-            ? `<li>${line}</li>`
-            : `<li class="is-current" aria-current="page">${line}</li>`
-        )
-        .join("");
-      return (
-        `<aside class="ea-series" aria-label="${(label ?? "").replace(/"/g, "&quot;")}">` +
-        `<p class="ea-series-label">${label ?? ""}</p><ol>${items}</ol></aside>`
-      );
-    }
-  );
+  bodyHtml = applySeriesToken(bodyHtml);
 
   // Every remaining <blockquote> becomes a sourced-receipt block quote,
   // lifting a trailing "~ …" attribution paragraph OUT into a figcaption.

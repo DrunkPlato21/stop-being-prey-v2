@@ -5797,3 +5797,120 @@ body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .moon-icon {
   color: var(--paper);
   background: var(--eye-deep);
 }
+
+/* ============================================================
+   PRINT. Older readers print essays to hand to someone. On paper
+   the page is masthead + body (+ references) and nothing else:
+   no chrome, no asks, no comments. Every link's destination is
+   spelled out after it so the receipts survive on paper, and the
+   masthead carries the piece's own address. "Save as PDF" in the
+   print dialog is the PDF edition.
+   ============================================================ */
+.print-only {
+  display: none;
+}
+@page {
+  margin: 0.8in 0.85in;
+}
+@media print {
+  :root {
+    color-scheme: light;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  /* Site chrome: everything outside <main>, and inside the article
+     everything not marked print-keep. */
+  body > *:not(main),
+  main > article > *:not(.print-keep),
+  .print-hide,
+  #reading-region > *:not(.prose-article) {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-source {
+    font-family: var(--font-display), serif;
+    font-size: 8.5pt;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #555;
+    margin: 0 0 18pt;
+  }
+  /* Entrance animations would print mid-fade. */
+  .fade-up,
+  [class*="stagger-"] {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  main > article header {
+    border-bottom: 0.5pt solid #999 !important;
+  }
+  main > article header > div {
+    padding-top: 0 !important;
+    padding-bottom: 18pt !important;
+  }
+  main > article h1 {
+    font-size: 30pt !important;
+    margin-bottom: 12pt !important;
+  }
+  main > article .deck {
+    font-size: 13pt !important;
+    margin-bottom: 12pt !important;
+  }
+  #reading-region {
+    padding: 18pt 0 0 !important;
+    max-width: none !important;
+  }
+  .prose-article {
+    font-size: 11.5pt !important;
+    line-height: 1.55 !important;
+    color: #111 !important;
+  }
+  .prose-article * {
+    color: inherit;
+  }
+  .prose-article p {
+    orphans: 3;
+    widows: 3;
+  }
+  .prose-article h2,
+  .prose-article h3 {
+    break-after: avoid;
+  }
+  .prose-article blockquote,
+  .prose-article figure,
+  .prose-article aside {
+    break-inside: avoid;
+  }
+  /* Photos cost ink and pages and add nothing to the argument on paper.
+     Quote figures (no <img>) stay. */
+  .prose-article img,
+  .prose-article figure:has(img) {
+    display: none !important;
+  }
+  /* Links: plain ink, destination spelled out. Internal links get the
+     domain so the address works off-screen. */
+  .prose-article a {
+    color: #111 !important;
+    text-decoration: underline !important;
+    text-decoration-thickness: 0.5pt !important;
+  }
+  .prose-article a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 8.5pt;
+    color: #555;
+    word-break: break-all;
+    text-decoration: none;
+  }
+  .prose-article a[href^="/"]::after {
+    content: " (stopbeingprey.com" attr(href) ")";
+    font-size: 8.5pt;
+    color: #555;
+    text-decoration: none;
+  }
+}

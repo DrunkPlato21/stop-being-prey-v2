@@ -54,7 +54,7 @@ You can't even escape it in your dreams, when you sleep…
 
 > "In the dream I was free. I was in a park, and I felt this huge relief… and then the anxiety just woke me up. And there I was again, in the hole… Life without parole. Maximum security. There's no end in sight."
 
-He knew what talking to them might cost him. He told them so.
+He knew what talking to that crowd might cost him. He told them so.
 
 > "I'm afraid that because of what I'm saying to you today, I'll be thrown in the hole, or worse."
 
@@ -115,6 +115,8 @@ He told them that if they voted for him, on Day 1, he would commute Ross's sente
 For one line, the room cheered… then they went back to jeering.
 
 Trump kept the promise. More than that… he didn't just commute the sentence, he granted Ross a full pardon on his second day in office.
+
+He didn't need the libertarians anymore. He'd already won. He did it anyway.
 
 When he signed the pardon, he called Ross's mother, and said he'd done it "in honor of her and the Libertarian Movement." Then he posted that the people who convicted Ross were ["some of the same lunatics"](https://www.npr.org/2025/01/21/nx-s1-5270051/trump-pardons-dark-web-marketplace-creator-ross-ulbricht) behind the weaponization of government against him.
 
@@ -238,7 +240,13 @@ So here we are, libertarians. You have a choice to make this November.
 
 I'm not going to sit here and lecture you about Trump. He's done some things I can't defend. I'm not going to tell you you're wrong about Iran. Or the spending.
 
-You were courted in 2024. You showed up. And then you got a war you didn't want and a spending bill you'd never vote for, and when your guy in Kentucky got primaried, it felt like you were being told to see yourselves out.
+You were courted in 2024. You showed up.
+
+And then Trump went and did some very unlibertarian things. You got a war you didn't want. A spending bill that makes you sick…
+
+And then your favorite congressman, the most principled libertarian in Congress, got taken out.
+
+You felt like you were being told to see yourselves out.
 
 I get it. I'd be angry too. You're even right about a lot of it.
 
@@ -252,7 +260,7 @@ But being right was never your problem.
 
 Ross is the proof. More than a decade of being right didn't open his cell. Power did.
 
-I don't want you to lose anymore. I want you to win. Ross is what winning looks like.
+I don't want you to lose anymore. I want you to win. Ross is what winning looks like. It's ugly… it's not perfect… far from it, but it's real. He's free.
 
 Back in May, I gave you a test:
 

@@ -13,6 +13,7 @@ import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { AudioPill } from "@/components/AudioPill";
 import { EyeDivider } from "@/components/Eyes";
 import { ShareButtons } from "@/components/ShareButtons";
+import { PrintLink } from "@/components/PrintLink";
 import { PatronRateLine } from "@/components/CharterSeats";
 import { AuthorBio } from "@/components/AuthorBio";
 import { ArticlePostscript } from "@/components/ArticlePostscript";
@@ -257,8 +258,12 @@ export default async function ArticlePage({
       <ReadingTracker slug={article.slug} />
 
       {/* === Article masthead === */}
-      <header className="border-b border-rule">
+      <header className="border-b border-rule print-keep">
         <div className="max-w-4xl mx-auto px-6 pt-16 md:pt-24 pb-12 text-center">
+          {/* Paper copies carry their own address. */}
+          <p className="print-only print-source">
+            stopbeingprey.com/{article.slug}
+          </p>
           {article.chapter && (
             <p className="eyebrow mb-6 fade-up stagger-1">
               Chapter {article.chapter} · Stop Being Prey
@@ -300,7 +305,7 @@ export default async function ArticlePage({
           </div>
 
           {article.spotifyEpisodeId && audioMinutes && (
-            <div className="mt-8 fade-up stagger-5 flex justify-center">
+            <div className="mt-8 fade-up stagger-5 flex justify-center print-hide">
               <AudioPill
                 episodeId={article.spotifyEpisodeId}
                 minutes={audioMinutes}
@@ -316,7 +321,7 @@ export default async function ArticlePage({
            treatment now used on the founding pages. */}
       <div
         id="reading-region"
-        className="max-w-4xl mx-auto px-6 pt-12 md:pt-16"
+        className="max-w-4xl mx-auto px-6 pt-12 md:pt-16 print-keep"
       >
         {inlineSplit ? (
           <>
@@ -389,7 +394,7 @@ export default async function ArticlePage({
           `## References` followed by a list). Sits with the article
           body since citations are part of the work itself === */}
       {article.referencesHtml && (
-        <div className="max-w-3xl mx-auto px-6 mt-16">
+        <div className="max-w-3xl mx-auto px-6 mt-16 print-keep">
           <div className="references-block">
             <p className="references-block-eyebrow">References</p>
             <div
@@ -422,6 +427,7 @@ export default async function ArticlePage({
             title={article.title}
             slug={article.slug}
           />
+          <PrintLink />
         </div>
       </div>
 

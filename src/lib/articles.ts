@@ -4,7 +4,7 @@ import matter from "gray-matter";
 import { remark } from "remark";
 import html from "remark-html";
 import { applyLeadIncipit } from "./lead-incipit";
-import { applyEssayTokens, countWords } from "./early-access";
+import { applyEssayTokens, applySeriesToken, countWords } from "./early-access";
 
 const articlesDirectory = path.join(process.cwd(), "content", "articles");
 
@@ -299,7 +299,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     : null;
   const contentHtml = externalLinksInNewTab(
     essayHtml === null
-      ? applyLeadIncipit(rawContentHtml)
+      ? applyLeadIncipit(applySeriesToken(rawContentHtml))
       : data.leadIncipit === true
         ? applyLeadIncipit(essayHtml)
         : typeof data.leadIncipit === "number"
