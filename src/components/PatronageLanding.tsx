@@ -133,6 +133,16 @@ const CLARITY_LINE =
 // const CLARITY_LINE =
 //   "same for every patron, whatever you pay. above $13 your name carries a rank.";
 
+// End of election day, Pacific time (Nov 3 2026 23:59 PT = Nov 4 07:59 UTC).
+const BOOK_OFFER_ENDS_AT = Date.UTC(2026, 10, 4, 7, 59, 59);
+// Whole days until the offer closes, counting today (so Nov 3 = "Last day").
+function bookOfferDaysLeft(): number {
+  return Math.max(
+    1,
+    Math.ceil((BOOK_OFFER_ENDS_AT - Date.now()) / 86_400_000)
+  );
+}
+
 // 4 — OPTION A
 const ONE_TIME_LINE =
   "Don't want a monthly commitment? The wall starts at a dollar.";
@@ -285,6 +295,24 @@ export async function PatronageLanding({
           >
             I answer to my patrons.
           </p>
+
+          {/* Midterm book offer (promised in the Ross launch email, Sept 30
+              2026). Opt-in, no publication date promised. Hides itself
+              after election day so the page never carries a stale offer. */}
+          {Date.now() < BOOK_OFFER_ENDS_AT && (
+            <p
+              className="font-serif italic text-eye-deep leading-relaxed max-w-xl mx-auto mt-6 fade-up stagger-3"
+              style={{ fontSize: "1rem", textWrap: "balance" }}
+            >
+              Become a patron before November 3rd and you&apos;ll have the
+              option to put your name in the book.{" "}
+              <span className="not-italic font-display text-xs uppercase tracking-[0.18em]" style={{ whiteSpace: "nowrap" }}>
+                {bookOfferDaysLeft() === 1
+                  ? "Last day"
+                  : `${bookOfferDaysLeft()} days left`}
+              </span>
+            </p>
+          )}
         </div>
       </section>
 
