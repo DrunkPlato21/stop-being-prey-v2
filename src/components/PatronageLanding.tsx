@@ -359,7 +359,7 @@ export async function PatronageLanding({
           this one is written for the patronage frame. The closing
           paragraph is a deliberate standalone line; do not merge it
           upward. It also absorbed what was going to be a separate
-          "filter" section: the "plenty of podcasts" paragraph does that
+          "filter" section: the "alternative is everywhere" paragraph does that
           work, so a filter block would only repeat it.
           ============================================================ */}
       <section className="max-w-3xl mx-auto px-6 pt-10 pb-12 md:pb-14">
@@ -377,8 +377,7 @@ export async function PatronageLanding({
             className="font-serif text-ink leading-relaxed"
             style={{ fontSize: "1.08rem" }}
           >
-            That&apos;s not what we&apos;re doing here. The only person I
-            answer to is you.
+            That&apos;s not what we&apos;re doing here.
           </p>
           <p
             className="font-serif text-ink leading-relaxed"
@@ -392,9 +391,9 @@ export async function PatronageLanding({
             className="font-serif text-ink leading-relaxed"
             style={{ fontSize: "1.08rem" }}
           >
-            Would you? There&apos;s plenty of podcasts with endless
-            advertiser interruptions for you to listen to, if you&apos;re
-            into that sort of thing.
+            The alternative is everywhere. Writers who answer to
+            institutions. Podcasts that sell your attention to advertisers
+            between every segment.
           </p>
           <p
             className="font-serif text-ink leading-relaxed"
