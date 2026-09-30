@@ -182,7 +182,9 @@ Five years later, Ross stood in an arena and answered the libertarians himself.
 
 Clint hasn't said a word about it on his show. Neither has Dave. I checked. I went through every episode either of them has put out since Ross's speech.
 
-Instead, on September 25th, still angry about Massie, Clint posted this to the Republicans:
+As far as they're concerned, it never happened.
+
+And on September 25th, still angry about Massie, Clint posted this to the Republicans:
 
 > {{POST}}
 >
