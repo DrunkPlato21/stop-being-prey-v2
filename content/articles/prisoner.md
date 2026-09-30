@@ -25,7 +25,7 @@ readNext:
 # would stack a second ending under it.
 postscript: false
 # Draft gate: members-only via the DraftGate. Flip to true to unlock public.
-published: false
+published: true
 ---
 
 > {{REFRAIN}}
