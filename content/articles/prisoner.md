@@ -192,22 +192,6 @@ Instead, on September 25th, still angry about Massie, Clint posted this to the R
 
 "All of you" includes Ross now, Clint.
 
-On September 29th, the day before I released this article, a fan finally asked Dave on X why he hadn't said anything. Dave answered:
-
-> {{POST}}
->
-> "Haven't watched it, but I understand why he's gonna support the guy who freed him.
->
-> I saw a brief clip, I respectfully disagree.
->
-> Ross came out to a show of mine recently. We didn't get a chance to meet up but I wish him all the best!"
->
-> \~ Dave Smith, X, Sept 29, 2026
-
-Haven't watched it.
-
-He doesn't have the 10 minutes to spare for that, I guess…
-
 Think about what that means. If Dave and Clint get their way, the coalition that freed Ross loses power in November… and it goes to the party that put him in that cell.
 
 ---
