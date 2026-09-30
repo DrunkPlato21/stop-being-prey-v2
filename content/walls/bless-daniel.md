@@ -1,7 +1,7 @@
 ---
 title: "Blessings for Daniel"
 slug: "bless-daniel"
-status: "active"
+status: "closed"
 started_at: "2026-09-27"
 context: "Tied to the Charlie Kirk anniversary thread on the Thomas Sowell Quotes page (Sept 26–27, 2026)."
 facebook_url: ""
