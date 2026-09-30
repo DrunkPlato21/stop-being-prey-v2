@@ -21,6 +21,11 @@ prequelLabel: "The Thomas Massie Problem"
 readNext:
   - "the-losertarian-problem"
   - "the-massie-problem"
+# Podcast. The ID from open.spotify.com/episode/<ID>. Lists this on
+# /podcast and adds the masthead audio pill + Audio Edition embed.
+spotifyEpisodeId: "4eP3UD7r5yKyvzkfETcfuv"
+# Real episode runtime (18 min); overrides the word-count estimate.
+audioMinutes: 18
 # The piece closes on its own sign-off and series note, so the canned p.s.
 # would stack a second ending under it.
 postscript: false
