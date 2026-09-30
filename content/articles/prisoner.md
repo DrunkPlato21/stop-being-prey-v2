@@ -1,7 +1,7 @@
 ---
 title: "The Prisoner and the Podcasters"
 slug: "prisoner"
-date: "2026-09-28"
+date: "2026-09-30"
 description: "Ross made his choice. Now the libertarians have to make theirs."
 subtitle: "He made his choice. Now the libertarians have to make theirs."
 cornerstone: true
