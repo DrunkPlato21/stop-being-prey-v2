@@ -3,7 +3,7 @@ title: "The Prisoner and the Podcasters"
 slug: "prisoner"
 date: "2026-09-28"
 description: "Ross made his choice. Now the libertarians have to make theirs."
-subtitle: "Ross made his choice. Now the libertarians have to make theirs."
+subtitle: "He made his choice. Now the libertarians have to make theirs."
 cornerstone: true
 essayStyle: true
 # Every unmarked quote is Ross, in the gold panel. The other voices are
@@ -182,8 +182,6 @@ Five years later, Ross stood in an arena and answered the libertarians himself.
 
 Clint hasn't said a word about it on his show. Neither has Dave. I checked. I went through every episode either of them has put out since Ross's speech.
 
-As far as they're concerned, it never happened.
-
 And on September 25th, still angry about Massie, Clint posted this to the Republicans:
 
 > {{POST}}
@@ -193,6 +191,22 @@ And on September 25th, still angry about Massie, Clint posted this to the Republ
 > \~ Clint Russell, X, [Sept 25, 2026](https://x.com/LibertyLockPod/status/2103342881901564258)
 
 "All of you" includes Ross now, Clint.
+
+On September 29th, the day before I released this article, a fan finally asked Dave on X why he hadn't said anything. Dave answered:
+
+> {{POST}}
+>
+> "Haven't watched it, but I understand why he's gonna support the guy who freed him.
+>
+> I saw a brief clip, I respectfully disagree.
+>
+> Ross came out to a show of mine recently. We didn't get a chance to meet up but I wish him all the best!"
+>
+> \~ Dave Smith, X, Sept 29, 2026
+
+Haven't watched it.
+
+He doesn't have the 10 minutes to spare for that, I guess…
 
 Think about what that means. If Dave and Clint get their way, the coalition that freed Ross loses power in November… and it goes to the party that put him in that cell.
 
