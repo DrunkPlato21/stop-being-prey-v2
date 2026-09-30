@@ -453,18 +453,25 @@ export default async function ArticlePage({
             className="font-serif text-ink space-y-6"
             style={{ fontSize: "1.07rem", lineHeight: 1.65 }}
           >
+            {article.askLead && <p>{article.askLead}</p>}
             <p>
-              If you recognized the flock, you&apos;re who I write for.
-            </p>
-            <p>
-              This piece took a month. No advertiser was ever going to pay
-              for it. Patrons did, and they read it first.{" "}
+              This only exists because readers pay for it. No sponsors, no
+              advertisers, nobody I answer to but the people inside. If you
+              want more of it, come inside.{" "}
               <PatronRateLine />{" "}
               <Link href="/patronage?src=essay" className={inlineLinkClass} style={inlineLinkStyle}>
                 Become a patron
               </Link>
               .
             </p>
+            {/* Midterm book offer (Sept 30 2026 launch). Hides itself
+                after election day, Pacific. */}
+            {Date.now() < Date.UTC(2026, 10, 4, 7, 59, 59) && (
+              <p>
+                I&apos;m writing a book. Join before November 3rd and your
+                name can go in it.
+              </p>
+            )}
             <p>
               Not ready for that?{" "}
               <Link href="/join" className={inlineLinkClass} style={inlineLinkStyle}>

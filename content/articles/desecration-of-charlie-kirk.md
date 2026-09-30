@@ -1,6 +1,7 @@
 ---
 title: "The Desecration of Charlie Kirk"
 slug: "desecration-of-charlie-kirk"
+askLead: "If you recognized the flock, you're who I write for."
 date: "2026-07-31"
 description: "Tyler Robinson pulled the trigger. He didn't decide Charlie Kirk had to die. That verdict came from something with no leader, no orders, and no one to answer for it."
 subtitle: "They have to kill him twice."

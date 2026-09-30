@@ -122,6 +122,11 @@ export type Article = ArticleMeta & {
       `prequelLabel`); label is stored so no extra file read is needed. */
   prequelSlug?: string;
   prequelLabel?: string;
+  /** Optional opening line for the patronage ask under the piece
+      (frontmatter `askLead`). Omitted = no lead line. The ask used to open
+      with a hardcoded "If you recognized the flock..." that only made
+      sense under the piece it was written for. */
+  askLead?: string;
 };
 
 /**
@@ -349,6 +354,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
       typeof data.prequelSlug === "string" ? data.prequelSlug : undefined,
     prequelLabel:
       typeof data.prequelLabel === "string" ? data.prequelLabel : undefined,
+    askLead: typeof data.askLead === "string" ? data.askLead : undefined,
     inlineCta: data.inlineCta === false ? false : undefined,
     postscript: data.postscript === false ? false : undefined,
   };
