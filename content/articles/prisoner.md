@@ -304,4 +304,6 @@ Vote Republican for your House seat. Especially if it hurts.
 stay close,\
 \~ Clay
 
+p.s. The day before this piece went public, a fan asked Dave about Ross's speech. His answer: "Haven't watched it… I saw a brief clip, I respectfully disagree."
+
 {{SERIES: The Libertarian Series | Part one · [The Losertarian Problem](/the-losertarian-problem) | Part two · [The Thomas Massie Problem](/the-massie-problem) | Part three · The Prisoner and the Podcasters}}
