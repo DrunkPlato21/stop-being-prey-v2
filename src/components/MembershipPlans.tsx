@@ -502,6 +502,29 @@ export function MembershipPlans({
             letterSpacing: "-0.02em",
           }}
         >
+          {/* Midterm window: show the real regular price struck through
+              beside the $15 floor. Only while midterm is the live rate and
+              the reader is sitting at that floor. */}
+          {midtermEligible &&
+            !founderEligible &&
+            !charterEligible &&
+            !editing &&
+            cents === standardFloorCents(plan, false, true) && (
+              <s
+                className="font-display text-ink-faint"
+                style={{
+                  fontSize: "0.5em",
+                  fontWeight: 400,
+                  marginRight: "0.5rem",
+                  verticalAlign: "middle",
+                }}
+                aria-label={`Regular price ${formatDollars(
+                  standardFloorCents(plan, false, false)
+                )}`}
+              >
+                {formatDollars(standardFloorCents(plan, false, false))}
+              </s>
+            )}
           <span aria-hidden="true">$</span>
           {editing ? (
             <input
