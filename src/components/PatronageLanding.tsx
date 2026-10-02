@@ -350,18 +350,29 @@ export async function PatronageLanding({
               2026). Opt-in, no publication date promised. Hides itself
               after election day so the page never carries a stale offer. */}
           {Date.now() < BOOK_OFFER_ENDS_AT && (
-            <p
-              className="font-serif italic text-eye-deep leading-relaxed max-w-xl mx-auto mt-6 fade-up stagger-3"
-              style={{ fontSize: "1rem", textWrap: "balance" }}
-            >
-              Become a patron before November 3rd and you&apos;ll have the
-              option to put your name in the book.{" "}
-              <span className="not-italic font-display text-xs uppercase tracking-[0.18em]" style={{ whiteSpace: "nowrap" }}>
-                {bookOfferDaysLeft() === 1
-                  ? "Last day"
-                  : `${bookOfferDaysLeft()} days left`}
-              </span>
-            </p>
+            <div className="max-w-xl mx-auto mt-6 fade-up stagger-3">
+              <p
+                className="font-serif italic text-eye-deep leading-relaxed"
+                style={{ fontSize: "1rem", textWrap: "balance" }}
+              >
+                Become a patron before November 3rd and you&apos;ll have the
+                option to put your name in the book.
+              </p>
+              {/* Countdown on its own line, set between two hairlines,
+                  rather than trailing the sentence. */}
+              <p
+                className="flex items-center justify-center gap-3 mt-3 font-display uppercase text-eye-deep"
+                style={{ fontSize: "0.68rem", letterSpacing: "0.24em" }}
+              >
+                <span aria-hidden="true" className="block w-8 border-t border-current opacity-40" />
+                <span>
+                  {bookOfferDaysLeft() === 1
+                    ? "Last day"
+                    : `${bookOfferDaysLeft()} days left`}
+                </span>
+                <span aria-hidden="true" className="block w-8 border-t border-current opacity-40" />
+              </p>
+            </div>
           )}
         </div>
       </section>
