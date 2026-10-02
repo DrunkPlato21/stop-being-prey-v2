@@ -27,9 +27,10 @@ import type { TierBadge } from "@/lib/members";
 
 export type IdentityMenuProps = {
   firstName: string;
-  role: "author" | "founder" | "charter" | "member";
+  role: "author" | "founder" | "charter" | "midterm" | "member";
   founderSlot: number | null;
   charterSlot: number | null;
+  midtermSlot: number | null;
   tierBadge: TierBadge | null;
   displayName: string;
   email: string;
@@ -48,6 +49,9 @@ function roleLabel(props: IdentityMenuProps): string {
   }
   if (props.role === "charter" && typeof props.charterSlot === "number") {
     return `Charter #${props.charterSlot}`;
+  }
+  if (props.role === "midterm" && typeof props.midtermSlot === "number") {
+    return `Midterm #${props.midtermSlot}`;
   }
   return "Member";
 }
@@ -188,10 +192,12 @@ export function IdentityMenu(props: IdentityMenuProps) {
                 </span>
                 {props.founderSlot !== null ||
                 props.charterSlot !== null ||
+                props.midtermSlot !== null ||
                 props.tierBadge !== null ? (
                   <MemberBadge
                     founderSlot={props.founderSlot}
                     charterSlot={props.charterSlot}
+                    midtermSlot={props.midtermSlot}
                     tierBadge={props.tierBadge}
                     size="small"
                   />

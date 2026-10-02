@@ -21,6 +21,11 @@ import { floorLabel, standardFloorCents } from "@/lib/pricing";
 // earned badge (mirrors Founder) AND the rate lock: once the charter
 // cap fills the floor steps to $18 and stays there.
 //
+// After the charter cap fills, the next 50 sign-ups claim a Midterm
+// slot at $15, only until the hard close (end of Nov 3 2026 Pacific).
+// Midterm is the last numbered class. The server decides midterm
+// eligibility (seats AND date) and passes `midtermEligible` down.
+//
 // So the standard floor is not a constant in this file. It is derived
 // from `charterEligible`, which the server renders live, and the same
 // derivation runs server-side at checkout (lib/membership.ts). The two
@@ -36,6 +41,10 @@ type Props = {
       reached. Drives Charter scarcity copy + live preview chip. */
   charterEligible: boolean;
   charterClaimed: number;
+  /** True when founder + charter caps are exhausted, midterm seats
+      remain AND the Midterm close date has not passed. Server-derived. */
+  midtermEligible?: boolean;
+  midtermClaimed?: number;
   /** Total members ever joined (ZCARD on members:all). Surfaced as a
       single line beneath the subscribe button — social proof at the
       moment of decision. Renders only when > 0. */
@@ -109,13 +118,20 @@ type Preset = {
 
 // The "pack" preset IS the live standard floor, so it moves with the
 // raise instead of pinning a stale $13 button under a $18 minimum.
-function presetsFor(charterEligible: boolean): Preset[] {
+function presetsFor(
+  charterEligible: boolean,
+  midtermEligible = false
+): Preset[] {
   return [
     { key: "pup", label: "", monthlyCents: 800, founderOnly: true },
     {
       key: "pack",
       label: "",
-      monthlyCents: standardFloorCents("monthly", charterEligible),
+      monthlyCents: standardFloorCents(
+        "monthly",
+        charterEligible,
+        midtermEligible
+      ),
     },
     { key: "hunter", label: "Hunter", monthlyCents: 2500 },
     { key: "operator", label: "Operator", monthlyCents: 5000 },
@@ -162,19 +178,26 @@ function describeAmount(
   charterEligible: boolean,
   charterRemaining: number,
   privateFounderAccess: boolean,
-  rateScarcityLine?: string
+  rateScarcityLine?: string,
+  midtermEligible = false,
+  midtermRemaining = 0
 ): string {
   const monthly = monthlyEquivalentCents(cents, plan);
   // The floor this buyer is actually being offered. Not a constant: it
   // is $13 while charter slots remain and $18 after, which is what the
   // two scarcity branches below key off.
-  const standardMonthly = standardFloorCents("monthly", charterEligible);
+  const standardMonthly = standardFloorCents(
+    "monthly",
+    charterEligible,
+    midtermEligible
+  );
   // Caller-supplied replacement for both scarcity branches below. Only
   // swaps the sentence — the branch conditions, and every tier-badge
   // line further down, are untouched.
   const scarcityBranch =
     (founderEligible && monthly < standardMonthly) ||
-    (charterEligible && monthly === standardMonthly);
+    (charterEligible && monthly === standardMonthly) ||
+    (midtermEligible && monthly === standardMonthly);
   if (rateScarcityLine && scarcityBranch) {
     return rateScarcityLine;
   }
@@ -201,6 +224,13 @@ function describeAmount(
       charterRemaining === 1 ? "slot" : "slots"
     } left.`;
   }
+  // Midterm window: charter is filled, midterm is open, user is at the
+  // standard floor. Same shape as the charter line.
+  if (midtermEligible && monthly === standardMonthly) {
+    return `midterm rate. badge locked for life. ${midtermRemaining} of 50 ${
+      midtermRemaining === 1 ? "slot" : "slots"
+    } left.`;
+  }
   if (monthly >= APEX_MONTHLY) {
     return "APEX badge. the top of the order.";
   }
@@ -216,12 +246,13 @@ function describeAmount(
 function floorFor(
   plan: Plan,
   founderEligible: boolean,
-  charterEligible: boolean
+  charterEligible: boolean,
+  midtermEligible = false
 ): number {
   if (founderEligible) {
     return plan === "monthly" ? FOUNDER_MONTHLY_CENTS : FOUNDER_YEARLY_CENTS;
   }
-  return standardFloorCents(plan, charterEligible);
+  return standardFloorCents(plan, charterEligible, midtermEligible);
 }
 
 function presetCentsFor(preset: Preset, plan: Plan): number {
@@ -243,6 +274,8 @@ export function MembershipPlans({
   founderClaimed,
   charterEligible,
   charterClaimed,
+  midtermEligible = false,
+  midtermClaimed = 0,
   totalMembers,
   accessToken,
   privateFounderAccess = false,
@@ -256,7 +289,7 @@ export function MembershipPlans({
 }: Props) {
   const [plan, setPlan] = useState<Plan>("monthly");
   const [cents, setCents] = useState<number>(() =>
-    floorFor("monthly", founderEligible, charterEligible)
+    floorFor("monthly", founderEligible, charterEligible, midtermEligible)
   );
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>("");
@@ -264,15 +297,24 @@ export function MembershipPlans({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const floor = floorFor(plan, founderEligible, charterEligible);
+  const floor = floorFor(plan, founderEligible, charterEligible, midtermEligible);
   // The live standard floor, for the copy that names it.
-  const standardMonthly = standardFloorCents("monthly", charterEligible);
+  const standardMonthly = standardFloorCents(
+    "monthly",
+    charterEligible,
+    midtermEligible
+  );
 
   function changePlan(next: Plan) {
     if (next === plan) return;
     const scaled =
       next === "yearly" ? cents * 10 : Math.round(cents / 10);
-    const newFloor = floorFor(next, founderEligible, charterEligible);
+    const newFloor = floorFor(
+      next,
+      founderEligible,
+      charterEligible,
+      midtermEligible
+    );
     setCents(Math.max(newFloor, scaled));
     setPlan(next);
   }
@@ -363,6 +405,7 @@ export function MembershipPlans({
       : "billed annually. two months on the house. cancel anytime.";
   const remaining = Math.max(0, 100 - founderClaimed);
   const charterRemaining = Math.max(0, 100 - charterClaimed);
+  const midtermRemaining = Math.max(0, 50 - midtermClaimed);
   const tierLine = describeAmount(
     cents,
     plan,
@@ -371,10 +414,12 @@ export function MembershipPlans({
     charterEligible,
     charterRemaining,
     privateFounderAccess,
-    rateScarcityLine
+    rateScarcityLine,
+    midtermEligible,
+    midtermRemaining
   );
 
-  const eligiblePresets = presetsFor(charterEligible).filter(
+  const eligiblePresets = presetsFor(charterEligible, midtermEligible).filter(
     (p) => founderEligible || !p.founderOnly
   );
   // Same set either way. Only the reading order flips, so the matching /
@@ -405,10 +450,15 @@ export function MembershipPlans({
     !founderEligible && charterEligible && cents > 0
       ? charterClaimed + 1
       : null;
+  const previewMidtermSlot =
+    !founderEligible && !charterEligible && midtermEligible && cents > 0
+      ? midtermClaimed + 1
+      : null;
   const previewHasBadge =
     previewTier !== null ||
     previewFounderSlot !== null ||
-    previewCharterSlot !== null;
+    previewCharterSlot !== null ||
+    previewMidtermSlot !== null;
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -618,6 +668,7 @@ export function MembershipPlans({
                 <MemberBadge
                   founderSlot={previewFounderSlot}
                   charterSlot={previewCharterSlot}
+                  midtermSlot={previewMidtermSlot}
                   tierBadge={previewTier}
                   size="small"
                 />

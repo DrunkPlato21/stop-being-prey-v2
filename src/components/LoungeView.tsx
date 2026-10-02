@@ -43,6 +43,7 @@ import { AutoResizingTextarea } from "@/components/AutoResizingTextarea";
 type MemberBadgeInfo = {
   founderSlot: number | null;
   charterSlot: number | null;
+  midtermSlot: number | null;
   tierBadge: TierBadge | null;
 };
 
@@ -2658,6 +2659,7 @@ function PostCard(props: CardProps) {
                 <MemberBadge
                   founderSlot={b?.founderSlot ?? null}
                   charterSlot={b?.charterSlot ?? null}
+                  midtermSlot={b?.midtermSlot ?? null}
                   tierBadge={b?.tierBadge ?? null}
                   size="small"
                 />
@@ -3106,6 +3108,7 @@ function ReplyRow({
             <MemberBadge
               founderSlot={badge?.founderSlot ?? null}
               charterSlot={badge?.charterSlot ?? null}
+              midtermSlot={badge?.midtermSlot ?? null}
               tierBadge={badge?.tierBadge ?? null}
               size="small"
             />

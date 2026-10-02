@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import {
   CHARTER_CAP,
   FOUNDER_CAP,
+  MIDTERM_CAP,
+  MIDTERM_CLOSES_AT,
   countMembers,
   getCharterClaimed,
   getFounderClaimed,
+  getMidtermClaimed,
+  isMidtermWindowOpen,
 } from "@/lib/members";
 import { getSubscriberCount } from "@/lib/kit";
 import {
@@ -34,11 +38,16 @@ import {
 // price. The $13 -> $18 raise fires the moment the charter cap fills,
 // with no deploy, and this is the field that carries it to every piece
 // of copy on the site at the same moment.
+//
+// midtermRemaining reads 0 once MIDTERM_CLOSES_AT passes, whatever the
+// counter says, so every midterm line disappears at the hard close.
+// While midterm is open (charter full, seats left, before the close)
+// the floor reads $15.
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const [readers, members, founderClaimed, charterClaimed] =
+  const [readers, members, founderClaimed, charterClaimed, midtermClaimed] =
     await Promise.all([
       getSubscriberCount(),
       countMembers()
@@ -46,9 +55,13 @@ export async function GET() {
         .catch(() => 0),
       getFounderClaimed().catch(() => FOUNDER_CAP),
       getCharterClaimed().catch(() => CHARTER_CAP),
+      getMidtermClaimed().catch(() => MIDTERM_CAP),
     ]);
 
   const charterRemaining = Math.max(0, CHARTER_CAP - charterClaimed);
+  const midtermRemaining = isMidtermWindowOpen()
+    ? Math.max(0, MIDTERM_CAP - midtermClaimed)
+    : 0;
 
   return NextResponse.json(
     {
@@ -56,7 +69,13 @@ export async function GET() {
       members,
       founderRemaining: Math.max(0, FOUNDER_CAP - founderClaimed),
       charterRemaining,
-      floorMonthlyCents: standardFloorCents("monthly", charterRemaining > 0),
+      midtermRemaining,
+      midtermClosesAt: MIDTERM_CLOSES_AT,
+      floorMonthlyCents: standardFloorCents(
+        "monthly",
+        charterRemaining > 0,
+        charterRemaining <= 0 && midtermRemaining > 0
+      ),
       standardMonthlyCents: STANDARD_MONTHLY_FLOOR_CENTS,
     },
     {

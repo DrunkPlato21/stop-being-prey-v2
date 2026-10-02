@@ -4,6 +4,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { ensureDisplayName, getProfile, isAdmin } from "@/lib/comments";
 import {
   getCharterSlot,
+  getMidtermSlot,
   getFounderSlot,
   getMember,
   getMembersByEmails,
@@ -178,6 +179,7 @@ export async function GET(req: NextRequest) {
     {
       founderSlot: number | null;
       charterSlot: number | null;
+      midtermSlot: number | null;
       tierBadge: TierBadge | null;
     }
   > = {};
@@ -186,6 +188,7 @@ export async function GET(req: NextRequest) {
     memberBadges[email] = {
       founderSlot: getFounderSlot(m),
       charterSlot: getCharterSlot(m),
+      midtermSlot: getMidtermSlot(m),
       tierBadge: getTierBadge(m),
     };
   }

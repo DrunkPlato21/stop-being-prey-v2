@@ -3,10 +3,12 @@ import { floorCentsFor } from "./pricing";
 import {
   claimCharterSlot,
   claimFounderSlot,
+  claimMidtermSlot,
   getMember,
   hasActiveGiftSeat,
   isCharterEligible,
   isFounderEligible,
+  isMidtermEligible,
   saveMember,
   updateMemberStatus,
   type Tier,
@@ -22,6 +24,9 @@ import {
 //     sign-ups after the Founder cap fills. Charter is a permanent-
 //     earned badge AND, since the raise, a real rate: it is the last
 //     window at $13.
+//   - Midterm tier ($15 floor monthly / $150 yearly) for 50 sign-ups
+//     after the Charter cap fills, and only until MIDTERM_CLOSES_AT (end
+//     of Nov 3 2026, Pacific). The last numbered class.
 //   - Regular tier ($18 floor monthly / $180 yearly) thereafter. The
 //     step from $13 to $18 fires on its own the moment the charter cap
 //     fills — no deploy, no flag. Every surface derives its floor from
@@ -68,6 +73,8 @@ export {
   FOUNDER_YEARLY_FLOOR_CENTS,
   CHARTER_MONTHLY_FLOOR_CENTS,
   CHARTER_YEARLY_FLOOR_CENTS,
+  MIDTERM_MONTHLY_FLOOR_CENTS,
+  MIDTERM_YEARLY_FLOOR_CENTS,
   STANDARD_MONTHLY_FLOOR_CENTS,
   STANDARD_YEARLY_FLOOR_CENTS,
   GRANTED_SEAT_MONTHLY_FLOOR_CENTS,
@@ -85,7 +92,8 @@ const MAX_AMOUNT_CENTS = 100_000;
  * The floor a public buyer faces right now, read live. The one call a
  * server surface needs when it wants to name the price in copy: the
  * founder floor while founder slots remain, the charter floor while
- * charter slots remain, the standard floor after that.
+ * charter slots remain, the midterm floor while midterm seats remain and
+ * the window is open, the standard floor after that.
  *
  * If a read THROWS, both checks resolve false and this quotes the
  * standard floor — the same posture as floorCentsFor's default. A quote
@@ -105,15 +113,27 @@ export async function getPublicFloorCents(
   cents: number;
   founderEligible: boolean;
   charterEligible: boolean;
+  midtermEligible: boolean;
 }> {
   const founderEligible = await isFounderEligible().catch(() => false);
   const charterEligible = founderEligible
     ? false
     : await isCharterEligible().catch(() => false);
+  const midtermEligible =
+    founderEligible || charterEligible
+      ? false
+      : await isMidtermEligible().catch(() => false);
   return {
-    cents: floorCentsFor(plan, founderEligible, false, charterEligible),
+    cents: floorCentsFor(
+      plan,
+      founderEligible,
+      false,
+      charterEligible,
+      midtermEligible
+    ),
     founderEligible,
     charterEligible,
+    midtermEligible,
   };
 }
 
@@ -247,6 +267,7 @@ export async function hasRecoverableSubscription(
 
      DEV_AUTO_GRANT_TIER=founder    →  $8/mo founder, claims a slot
      DEV_AUTO_GRANT_TIER=charter    →  $13/mo charter, claims a slot
+     DEV_AUTO_GRANT_TIER=midterm    →  $15/mo midterm, claims a slot
      DEV_AUTO_GRANT_TIER=regular    →  $13/mo (default, no badge)
      DEV_AUTO_GRANT_TIER=hunter     →  $25/mo regular
      DEV_AUTO_GRANT_TIER=operator   →  $50/mo regular
@@ -259,6 +280,7 @@ export async function hasRecoverableSubscription(
 type DevGrantTier =
   | "founder"
   | "charter"
+  | "midterm"
   | "regular"
   | "hunter"
   | "operator"
@@ -269,6 +291,7 @@ function readDevGrantTier(): DevGrantTier {
   if (
     raw === "founder" ||
     raw === "charter" ||
+    raw === "midterm" ||
     raw === "hunter" ||
     raw === "operator" ||
     raw === "apex"
@@ -284,6 +307,8 @@ function devGrantAmountCents(tier: DevGrantTier): number {
       return 800;
     case "charter":
       return 1300;
+    case "midterm":
+      return 1500;
     case "hunter":
       return 2500;
     case "operator":
@@ -315,6 +340,7 @@ export async function ensureDevMemberRecord(email: string): Promise<void> {
   // from the dev Redis instance. Skip claim if not requesting one.
   let founderSlot: number | null = null;
   let charterSlot: number | null = null;
+  let midtermSlot: number | null = null;
   let recordTier: Tier = "regular";
   if (tier === "founder") {
     const slot = await claimFounderSlot();
@@ -328,6 +354,12 @@ export async function ensureDevMemberRecord(email: string): Promise<void> {
       charterSlot = slot;
       recordTier = "charter";
     }
+  } else if (tier === "midterm") {
+    const slot = await claimMidtermSlot();
+    if (slot !== null) {
+      midtermSlot = slot;
+      recordTier = "midterm";
+    }
   }
 
   const now = Date.now();
@@ -338,6 +370,7 @@ export async function ensureDevMemberRecord(email: string): Promise<void> {
     tier: recordTier,
     founderSlot,
     charterSlot,
+    midtermSlot,
     status: "active",
     interval: "month",
     amountCents,
@@ -418,11 +451,20 @@ export async function createMembershipCheckoutSession(args: {
   // has to be resolved before the floor is computed, not after.
   const charterEligible =
     !founderOverride && !founderEligible && (await isCharterEligible());
+  // Midterm only after Charter fills, and only while seats remain AND
+  // the close date has not passed (isMidtermEligible checks both). Same
+  // role as the charter read: tier hint plus the floor ($15).
+  const midtermEligible =
+    !founderOverride &&
+    !founderEligible &&
+    !charterEligible &&
+    (await isMidtermEligible());
   const floor = floorCentsFor(
     args.plan,
     founderEligible,
     args.grantedSeat === true,
-    charterEligible
+    charterEligible,
+    midtermEligible
   );
   const tierAtCheckout: Tier = founderOverride
     ? "founder"
@@ -430,7 +472,9 @@ export async function createMembershipCheckoutSession(args: {
       ? "founder"
       : charterEligible
         ? "charter"
-        : "regular";
+        : midtermEligible
+          ? "midterm"
+          : "regular";
 
   if (args.amountCents < floor) {
     return { error: "below_floor", floor };

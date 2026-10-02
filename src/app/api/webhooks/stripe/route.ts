@@ -16,11 +16,13 @@ import { consumeFounderAccess } from "@/lib/founder-access";
 import {
   claimCharterSlot,
   claimFounderSlot,
+  claimMidtermSlot,
   clearBillingFailure,
   getMember,
   getMemberByCustomerId,
   getMemberBySessionId,
   hasActiveGiftSeat,
+  isMidtermWindowOpen,
   recordBillingFailure,
   saveMember,
   updateMemberStatus,
@@ -147,13 +149,16 @@ function formatMemberSince(msEpoch: number | undefined): string {
   });
 }
 
-/** "founder #12" / "charter #27" / "regular", for the admin alert. */
+/** "founder #12" / "charter #27" / "midterm #4" / "regular", for the admin alert. */
 function tierLabelOf(member: MemberRecord): string {
   if (member.tier === "founder" && member.founderSlot) {
     return `founder #${member.founderSlot}`;
   }
   if (member.tier === "charter" && member.charterSlot) {
     return `charter #${member.charterSlot}`;
+  }
+  if (member.tier === "midterm" && member.midtermSlot) {
+    return `midterm #${member.midtermSlot}`;
   }
   return member.tier;
 }
@@ -602,7 +607,9 @@ async function handleMembershipCheckout(
       ? "founder"
       : metadata.tier_at_checkout === "charter"
         ? "charter"
-        : "regular";
+        : metadata.tier_at_checkout === "midterm"
+          ? "midterm"
+          : "regular";
 
   // Honored one-off founder grant (e.g. Founder #101) carried by a
   // validated private access token. When present, assign the explicit
@@ -616,6 +623,7 @@ async function handleMembershipCheckout(
   let tier: Tier = "regular";
   let founderSlot: number | null = null;
   let charterSlot: number | null = null;
+  let midtermSlot: number | null = null;
   if (metadata.reactivation === "true") {
     // Reactivation: restore the member's prior standing rather than
     // claiming a fresh slot. The whole point is that a lapsed founder
@@ -626,6 +634,7 @@ async function handleMembershipCheckout(
     tier = priorForTier?.tier ?? "regular";
     founderSlot = priorForTier?.founderSlot ?? null;
     charterSlot = priorForTier?.charterSlot ?? null;
+    midtermSlot = priorForTier?.midtermSlot ?? null;
   } else if (
     tierAtCheckout === "founder" &&
     Number.isFinite(founderGrant) &&
@@ -653,6 +662,17 @@ async function handleMembershipCheckout(
     if (slot !== null) {
       tier = "charter";
       charterSlot = slot;
+    }
+  } else if (tierAtCheckout === "midterm") {
+    // Hard close re-checked here, not just at checkout-create: a session
+    // opened before MIDTERM_CLOSES_AT but completed after it lands as
+    // regular. Full class also lands as regular (claim returns null).
+    if (isMidtermWindowOpen()) {
+      const slot = await claimMidtermSlot();
+      if (slot !== null) {
+        tier = "midterm";
+        midtermSlot = slot;
+      }
     }
   }
 
@@ -696,6 +716,7 @@ async function handleMembershipCheckout(
     tier,
     founderSlot,
     charterSlot,
+    midtermSlot,
     status,
     interval,
     amountCents,
@@ -809,13 +830,17 @@ async function handleMembershipCheckout(
       ? `You're Founder #${founderSlot}. Welcome.`
       : tier === "charter" && charterSlot !== null
         ? `You're Charter #${charterSlot}. Welcome.`
-        : "Welcome to Stop Being Prey.";
+        : tier === "midterm" && midtermSlot !== null
+          ? `You're Midterm #${midtermSlot}. Welcome.`
+          : "Welcome to Stop Being Prey.";
   const welcomeBody =
     tier === "founder"
       ? "Your founder rate is locked. Click for your member home."
       : tier === "charter"
         ? "Charter badge locked for life. Click for your member home."
-        : "Click for your member home.";
+        : tier === "midterm"
+          ? "Midterm badge locked for life. Click for your member home."
+          : "Click for your member home.";
   await createNotification({
     memberEmail: email,
     type: "founder_confirmed",

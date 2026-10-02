@@ -9,7 +9,7 @@ import { ManageSubscriptionButton } from "@/components/ManageSubscriptionButton"
 import { EditDisplayNameForm } from "@/components/EditDisplayNameForm";
 import { NotifyOnReplyToggle } from "@/components/NotifyOnReplyToggle";
 import { FounderMedallion } from "@/components/FounderMedallion";
-import { CharterMedallion } from "@/components/CharterMedallion";
+import { CharterMedallion, MidtermMedallion } from "@/components/CharterMedallion";
 import { AuthorPlate } from "@/components/AuthorPlate";
 import {
   getProfile,
@@ -20,6 +20,7 @@ import {
 } from "@/lib/comments";
 import {
   getCharterSlot,
+  getMidtermSlot,
   getFounderSlot,
   getMember,
   getTierBadge,
@@ -85,8 +86,13 @@ export default async function AccountPage() {
     !viewerIsAdmin &&
     member?.tier === "charter" &&
     typeof member.charterSlot === "number";
+  const isMidterm =
+    !viewerIsAdmin &&
+    member?.tier === "midterm" &&
+    typeof member.midtermSlot === "number";
   const founderSlot = viewerIsAdmin ? null : getFounderSlot(member);
   const charterSlot = viewerIsAdmin ? null : getCharterSlot(member);
+  const midtermSlot = viewerIsAdmin ? null : getMidtermSlot(member);
   const tierBadge = viewerIsAdmin ? null : getTierBadge(member);
 
   // Live count for the pay-it-forward block. Reads this environment's own
@@ -124,6 +130,7 @@ export default async function AccountPage() {
             - Admin (the author): AuthorPlate, no slot, no amount.
             - Founder: FounderMedallion with slot # + locked rate.
             - Charter: CharterMedallion with slot # + badge-locked copy.
+            - Midterm: MidtermMedallion, same shape.
             - Regular member or pre-webhook: no plate. */}
         {viewerIsAdmin ? (
           <div className="mb-14 md:mb-16">
@@ -145,6 +152,14 @@ export default async function AccountPage() {
               interval={member.interval}
             />
           </div>
+        ) : isMidterm && member?.midtermSlot ? (
+          <div className="mb-14 md:mb-16">
+            <MidtermMedallion
+              slot={member.midtermSlot}
+              amountCents={member.amountCents}
+              interval={member.interval}
+            />
+          </div>
         ) : null}
 
         {/* Your badge — shows the exact chip rendered everywhere
@@ -152,6 +167,7 @@ export default async function AccountPage() {
             founders/charters who also qualify for a tier badge. */}
         {(founderSlot !== null ||
           charterSlot !== null ||
+          midtermSlot !== null ||
           tierBadge !== null) && (
           <div className="mb-12 text-center">
             <p className="eyebrow mb-3">Your badge</p>
@@ -163,6 +179,7 @@ export default async function AccountPage() {
               <MemberBadge
                 founderSlot={founderSlot}
                 charterSlot={charterSlot}
+                midtermSlot={midtermSlot}
                 tierBadge={tierBadge}
               />
             </div>

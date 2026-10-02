@@ -7,6 +7,7 @@ import { Redis } from "@upstash/redis";
 // Redis schema:
 //   founder:claimed                  STRING/integer, INCR'd atomically via EVAL
 //   charter:claimed                  STRING/integer, INCR'd atomically via EVAL
+//   midterm:claimed                  STRING/integer, INCR'd atomically via EVAL
 //   member:<email>                   JSON MemberRecord (primary)
 //   member:by-customer:<customerId>  STRING email (Stripe lifecycle webhook lookup)
 //   member:by-session:<sessionId>    STRING email (idempotency dedupe for checkout.session.completed retries)
@@ -37,6 +38,22 @@ const CHARTER_KEY = `${KEY_PREFIX}charter:claimed`;
 // and the next claimer takes it before the counter moves at all.
 const CHARTER_FREED_KEY = `${KEY_PREFIX}charter:freed`;
 export const CHARTER_CAP = 100;
+// Midterm: the last numbered class. Same counter + free-list shape as
+// Charter, plus a hard close date (see MIDTERM_CLOSES_AT).
+const MIDTERM_KEY = `${KEY_PREFIX}midterm:claimed`;
+const MIDTERM_FREED_KEY = `${KEY_PREFIX}midterm:freed`;
+export const MIDTERM_CAP = 50;
+/** Hard close for the Midterm class: end of Nov 3 2026, Pacific time.
+    A purchase is midterm-eligible only while seats remain AND before
+    this instant. Checked at checkout tier selection and again in the
+    webhook claim. ISO string so client code can share it. */
+export const MIDTERM_CLOSES_AT = "2026-11-04T07:59:59Z";
+export const MIDTERM_CLOSES_AT_MS = Date.parse(MIDTERM_CLOSES_AT);
+
+/** True while the Midterm window is still open by the clock alone. */
+export function isMidtermWindowOpen(now: number = Date.now()): boolean {
+  return now < MIDTERM_CLOSES_AT_MS;
+}
 
 export const MEMBER_PREFIX = `${KEY_PREFIX}member:`;
 export const MEMBER_BY_CUSTOMER_PREFIX = `${KEY_PREFIX}member:by-customer:`;
@@ -48,7 +65,7 @@ export function isMembersProduction(): boolean {
   return KEY_PREFIX === "";
 }
 
-export type Tier = "founder" | "charter" | "regular";
+export type Tier = "founder" | "charter" | "midterm" | "regular";
 
 export type MemberSubscriptionStatus =
   | "active"
@@ -71,6 +88,12 @@ export type MemberRecord = {
       before charter cap fills). Backward compatible: legacy records
       without this field read as null and render no charter chip. */
   charterSlot: number | null;
+  /** Midterm slot number 1..50, set on the webhook for members who
+      signed up during the Midterm window (charter full, midterm seats
+      left, before MIDTERM_CLOSES_AT), or assigned by
+      scripts/assign-midterm.mjs. Optional for backward compatibility:
+      legacy records read as undefined and render no midterm chip. */
+  midtermSlot?: number | null;
   status: MemberSubscriptionStatus;
   interval: "month" | "year";
   amountCents: number;
@@ -298,6 +321,20 @@ export function getCharterSlot(
   return typeof record.charterSlot === "number" ? record.charterSlot : null;
 }
 
+/**
+ * The midterm slot a member is entitled to display, or null. Same
+ * active/trialing gate as getCharterSlot; null for any tier other than
+ * "midterm".
+ */
+export function getMidtermSlot(
+  record: Pick<MemberRecord, "tier" | "midtermSlot" | "status"> | null
+): number | null {
+  if (!record) return null;
+  if (record.status !== "active" && record.status !== "trialing") return null;
+  if (record.tier !== "midterm") return null;
+  return typeof record.midtermSlot === "number" ? record.midtermSlot : null;
+}
+
 let cachedClient: Redis | null = null;
 
 function getClient(): Redis | null {
@@ -474,6 +511,97 @@ export async function claimCharterSlot(): Promise<number | null> {
  */
 export async function isCharterEligible(): Promise<boolean> {
   return (await getCharterClaimed()) < CHARTER_CAP;
+}
+
+/* === Midterm counter ====================================== */
+
+/**
+ * Read the current Midterm-slots-claimed count for display, net of any
+ * freed slots waiting for reissue. Clamped to the cap. Returns 0 when
+ * Redis is unconfigured.
+ */
+export async function getMidtermClaimed(): Promise<number> {
+  const client = getClient();
+  if (!client) return 0;
+  const raw = await client.get<string | number | null>(MIDTERM_KEY);
+  if (raw === null || raw === undefined) return 0;
+  const n = typeof raw === "string" ? parseInt(raw, 10) : Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  const freed = await client.llen(MIDTERM_FREED_KEY).catch(() => 0);
+  return Math.min(Math.max(n - (freed || 0), 0), MIDTERM_CAP);
+}
+
+/**
+ * Hand a Midterm slot back for reissue. Same rules as
+ * releaseCharterSlot: for a refund or mistaken charge only, never an
+ * ordinary cancellation (reactivation keeps the number).
+ */
+export async function releaseMidtermSlot(
+  email: string
+): Promise<{ released: number } | { error: string }> {
+  const client = getClient();
+  if (!client) return { error: "redis_not_configured" };
+  const record = await getMember(email);
+  if (!record) return { error: "no_member_record" };
+  if (record.tier !== "midterm" || typeof record.midtermSlot !== "number") {
+    return { error: "holds_no_midterm_slot" };
+  }
+  const slot = record.midtermSlot;
+  // Record cleared first, same reasoning as releaseCharterSlot.
+  await saveMember({
+    ...record,
+    tier: "regular",
+    midtermSlot: null,
+    updatedAt: Date.now(),
+  });
+  await client.rpush(MIDTERM_FREED_KEY, String(slot));
+  return { released: slot };
+}
+
+/**
+ * Atomically claim the next Midterm slot. Returns slot number 1..CAP on
+ * success, null when all slots are taken. Does NOT check the close
+ * date: callers gate on isMidtermWindowOpen() (the webhook does, so a
+ * checkout opened before the close but completed after it falls back
+ * to regular).
+ */
+export async function claimMidtermSlot(): Promise<number | null> {
+  const client = getClient();
+  if (!client) return null;
+  const reissued = await client.lpop<string | number | null>(
+    MIDTERM_FREED_KEY
+  ).catch(() => null);
+  if (reissued !== null && reissued !== undefined) {
+    const n =
+      typeof reissued === "string" ? parseInt(reissued, 10) : Number(reissued);
+    if (Number.isFinite(n) && n > 0 && n <= MIDTERM_CAP) return n;
+  }
+  const script = `
+    local current = tonumber(redis.call('GET', KEYS[1]) or '0')
+    local cap = tonumber(ARGV[1])
+    if current >= cap then
+      return -1
+    end
+    return redis.call('INCR', KEYS[1])
+  `;
+  const result = await client.eval(
+    script,
+    [MIDTERM_KEY],
+    [String(MIDTERM_CAP)]
+  );
+  if (typeof result === "number" && result > 0) return result;
+  return null;
+}
+
+/**
+ * Whether a fresh purchase would be eligible for a Midterm slot: seats
+ * remain AND the close date has not passed. Only meaningful after the
+ * founder and charter caps are exhausted; callers gate with
+ * `!founder && !charter && isMidtermEligible()`.
+ */
+export async function isMidtermEligible(): Promise<boolean> {
+  if (!isMidtermWindowOpen()) return false;
+  return (await getMidtermClaimed()) < MIDTERM_CAP;
 }
 
 /* === Member records ======================================= */

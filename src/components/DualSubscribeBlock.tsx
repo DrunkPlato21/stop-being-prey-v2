@@ -3,6 +3,7 @@ import { EmailSignup } from "@/components/EmailSignup";
 import { SubscriberCount } from "@/components/SubscriberCount";
 import { MemberCount } from "@/components/MemberCount";
 import { CharterSeatsInline, FloorPrice } from "@/components/CharterSeats";
+import { MidtermSeatsInline } from "@/components/MidtermSeats";
 import type { TrackSource } from "@/lib/analytics";
 
 // Site-wide conversion surface. Replaces the older email-only
@@ -80,6 +81,7 @@ export function DualSubscribeBlock({
           The room behind the work, where I actually talk back and the
           book gets built in the open.
           {showCharterSeats && <CharterSeatsInline />}
+          {showCharterSeats && <MidtermSeatsInline />}
         </p>
         <MemberCount className="mb-3" />
         <div>

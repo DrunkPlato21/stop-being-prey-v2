@@ -12,6 +12,7 @@ import {
 } from "@/lib/comments";
 import {
   getCharterSlot,
+  getMidtermSlot,
   getFounderSlot,
   getMembersByEmails,
   getTierBadge,
@@ -138,6 +139,7 @@ export async function Comments({ kind, slug, patron = false }: Props) {
     {
       founderSlot: number | null;
       charterSlot: number | null;
+      midtermSlot: number | null;
       tierBadge: TierBadge | null;
     }
   >();
@@ -148,6 +150,7 @@ export async function Comments({ kind, slug, patron = false }: Props) {
     memberBadgeByEmail.set(email, {
       founderSlot: getFounderSlot(m),
       charterSlot: getCharterSlot(m),
+      midtermSlot: getMidtermSlot(m),
       tierBadge: getTierBadge(m),
     });
   }

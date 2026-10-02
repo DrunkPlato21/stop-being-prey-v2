@@ -49,7 +49,7 @@ type IdentityResolution = {
 
 // Identity composition mirrors what the header always showed:
 //   - firstName: first word of display name, fallback to email local-part.
-//   - role: "author" for admin, "founder"/"charter" with a slot, else
+//   - role: "author" for admin, "founder"/"charter"/"midterm" with a slot, else
 //     "member". Admin counts as paid for chrome purposes.
 //   - "Paid member" = admin OR a live seat (active/trialing).
 async function resolveIdentity(email: string): Promise<IdentityResolution> {
@@ -67,6 +67,7 @@ async function resolveIdentity(email: string): Promise<IdentityResolution> {
         role: "author",
         founderSlot: null,
         charterSlot: null,
+        midtermSlot: null,
         tierBadge: null,
         memberSinceMs: null,
         avatarUrl: null,
@@ -87,7 +88,9 @@ async function resolveIdentity(email: string): Promise<IdentityResolution> {
       ? "founder"
       : member?.tier === "charter" && typeof member.charterSlot === "number"
         ? "charter"
-        : "member";
+        : member?.tier === "midterm" && typeof member.midtermSlot === "number"
+          ? "midterm"
+          : "member";
 
   return {
     identity: {
@@ -102,6 +105,10 @@ async function resolveIdentity(email: string): Promise<IdentityResolution> {
       charterSlot:
         member?.tier === "charter" && typeof member.charterSlot === "number"
           ? member.charterSlot
+          : null,
+      midtermSlot:
+        member?.tier === "midterm" && typeof member.midtermSlot === "number"
+          ? member.midtermSlot
           : null,
       tierBadge: getTierBadge(member),
       memberSinceMs:

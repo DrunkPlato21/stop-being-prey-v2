@@ -63,7 +63,8 @@ export function BillingAlert({ member }: { member: MemberRecord | null }) {
   // seat lapses, so it is named explicitly for the members who have one.
   const lockedRate =
     (member.tier === "founder" && member.founderSlot) ||
-    (member.tier === "charter" && member.charterSlot)
+    (member.tier === "charter" && member.charterSlot) ||
+    (member.tier === "midterm" && member.midtermSlot)
       ? `the ${amount ?? ""}${amount ? " " : ""}rate you locked`.trim()
       : null;
 

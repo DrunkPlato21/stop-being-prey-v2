@@ -28,14 +28,16 @@ function formatDollars(cents: number): string {
 type TierOutcome =
   | { kind: "founder"; slot: number; member: MemberRecord }
   | { kind: "charter"; slot: number; member: MemberRecord }
+  | { kind: "midterm"; slot: number; member: MemberRecord }
   | { kind: "regular"; member: MemberRecord }
   | { kind: "missed-founder"; member: MemberRecord }
   | { kind: "missed-charter"; member: MemberRecord }
+  | { kind: "missed-midterm"; member: MemberRecord }
   | { kind: "pending" };
 
 function resolveOutcome(
   member: MemberRecord | null,
-  intended: "founder" | "charter" | "regular"
+  intended: "founder" | "charter" | "midterm" | "regular"
 ): TierOutcome {
   if (!member) return { kind: "pending" };
   if (member.tier === "founder" && member.founderSlot) {
@@ -44,11 +46,17 @@ function resolveOutcome(
   if (member.tier === "charter" && member.charterSlot) {
     return { kind: "charter", slot: member.charterSlot, member };
   }
+  if (member.tier === "midterm" && member.midtermSlot) {
+    return { kind: "midterm", slot: member.midtermSlot, member };
+  }
   if (intended === "founder") {
     return { kind: "missed-founder", member };
   }
   if (intended === "charter") {
     return { kind: "missed-charter", member };
+  }
+  if (intended === "midterm") {
+    return { kind: "missed-midterm", member };
   }
   return { kind: "regular", member };
 }
@@ -69,12 +77,14 @@ export default async function MembershipSuccessPage({
     const info = await getCheckoutSessionInfo(session_id);
     if (info?.email && info.customerId) {
       email = info.email;
-      const intended: "founder" | "charter" | "regular" =
+      const intended: "founder" | "charter" | "midterm" | "regular" =
         info.metadata.tier_at_checkout === "founder"
           ? "founder"
           : info.metadata.tier_at_checkout === "charter"
             ? "charter"
-            : "regular";
+            : info.metadata.tier_at_checkout === "midterm"
+              ? "midterm"
+              : "regular";
 
       // Poll briefly for the webhook to land the member record. ~1.2s
       // budget total. The Stripe redirect happens fast enough that the
@@ -208,6 +218,46 @@ export default async function MembershipSuccessPage({
           </div>
         )}
 
+        {/* Midterm badge block: same chassis, slate fill. */}
+        {outcome.kind === "midterm" && (
+          <div className="flex justify-center mb-10 fade-up stagger-3">
+            <div
+              className="member-chip member-chip-midterm"
+              style={{
+                display: "inline-flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "1.2rem 2.1rem",
+                fontSize: "1rem",
+                letterSpacing: "0.18em",
+                lineHeight: 1.35,
+                whiteSpace: "normal",
+              }}
+            >
+              <span>
+                You&apos;re Midterm{" "}
+                <span
+                  style={{
+                    fontWeight: 600,
+                    fontSize: "1.55em",
+                    letterSpacing: 0,
+                    textTransform: "none",
+                    fontVariantNumeric: "lining-nums",
+                    fontFeatureSettings: '"lnum" 1',
+                  }}
+                >
+                  №{outcome.slot}
+                </span>
+                .
+              </span>
+              <span style={{ fontSize: "0.78em", opacity: 0.92 }}>
+                Badge locked for life.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Missed-founder edge case: paid expecting the founder rate
             but slot 100 filled mid-checkout. They need to know they're
             on the regular rate, not the floor. Subtle italic note,
@@ -232,6 +282,20 @@ export default async function MembershipSuccessPage({
             style={{ fontSize: "0.95rem" }}
           >
             the last charter slot filled while you were checking out.
+            you&apos;re in at {formatDollars(outcome.member.amountCents)}/
+            {outcome.member.interval === "year" ? "yr" : "mo"} as a regular
+            member.
+          </p>
+        )}
+
+        {/* Missed-midterm edge case: the class filled, or the window
+            closed, mid-checkout. They're on the regular tier. */}
+        {outcome.kind === "missed-midterm" && (
+          <p
+            className="font-display italic text-ink-muted mb-10 fade-up stagger-3"
+            style={{ fontSize: "0.95rem" }}
+          >
+            the midterm class closed while you were checking out.
             you&apos;re in at {formatDollars(outcome.member.amountCents)}/
             {outcome.member.interval === "year" ? "yr" : "mo"} as a regular
             member.

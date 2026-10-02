@@ -27,6 +27,7 @@ import {
 import { isWatchFeedEnabled, listWatchPosts } from "@/lib/watch-feed";
 import {
   getCharterSlot,
+  getMidtermSlot,
   getFounderSlot,
   getMembersByEmails,
   getTierBadge,
@@ -144,6 +145,7 @@ export default async function LoungePage() {
     {
       founderSlot: number | null;
       charterSlot: number | null;
+      midtermSlot: number | null;
       tierBadge: TierBadge | null;
     }
   > = {};
@@ -152,6 +154,7 @@ export default async function LoungePage() {
     initialMemberBadges[email] = {
       founderSlot: getFounderSlot(m),
       charterSlot: getCharterSlot(m),
+      midtermSlot: getMidtermSlot(m),
       tierBadge: getTierBadge(m),
     };
   }

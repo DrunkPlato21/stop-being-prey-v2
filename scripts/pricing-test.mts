@@ -21,6 +21,8 @@ import {
   CHARTER_YEARLY_FLOOR_CENTS,
   FOUNDER_MONTHLY_FLOOR_CENTS,
   GRANTED_SEAT_MONTHLY_FLOOR_CENTS,
+  MIDTERM_MONTHLY_FLOOR_CENTS,
+  MIDTERM_YEARLY_FLOOR_CENTS,
   STANDARD_MONTHLY_FLOOR_CENTS,
   STANDARD_YEARLY_FLOOR_CENTS,
   floorCentsFor,
@@ -95,6 +97,17 @@ check(
   GRANTED_SEAT_MONTHLY_FLOOR_CENTS,
   1300
 );
+
+console.log("\n--- midterm: charter full, midterm open ---");
+check("monthly, midterm open", standardFloorCents("monthly", false, true), 1500);
+check("yearly, midterm open", standardFloorCents("yearly", false, true), 15000);
+check("midterm yearly = 10x midterm monthly", MIDTERM_YEARLY_FLOOR_CENTS, MIDTERM_MONTHLY_FLOOR_CENTS * 10);
+check("charter wins over midterm", standardFloorCents("monthly", true, true), CHARTER_MONTHLY_FLOOR_CENTS);
+check("midterm closed quotes standard", standardFloorCents("monthly", false, false), STANDARD_MONTHLY_FLOOR_CENTS);
+check("founder floor ignores midterm state", floorCentsFor("monthly", true, false, false, true), 800);
+check("granted seat ignores midterm state", floorCentsFor("monthly", false, true, false, true), GRANTED_SEAT_MONTHLY_FLOOR_CENTS);
+check("floorCentsFor midterm", floorCentsFor("monthly", false, false, false, true), 1500);
+check("midterm label", floorLabel(MIDTERM_MONTHLY_FLOOR_CENTS), "$15");
 
 console.log("\n--- the defensive default ---");
 // A caller that forgets to pass charter eligibility must quote the

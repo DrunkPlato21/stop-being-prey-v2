@@ -40,7 +40,7 @@ export type MembershipStats = {
   canceled: number;
   other: number; // past_due / incomplete / paused / etc.
   canceled30d: number;
-  tiers: { founder: number; charter: number; regular: number };
+  tiers: { founder: number; charter: number; midterm: number; regular: number };
   intervals: { month: number; year: number };
   /** Monthly recurring revenue estimate, cents (active members only). */
   mrrCents: number;
@@ -95,7 +95,7 @@ export async function getMembershipStats(
     canceled: 0,
     other: 0,
     canceled30d: 0,
-    tiers: { founder: 0, charter: 0, regular: 0 },
+    tiers: { founder: 0, charter: 0, midterm: 0, regular: 0 },
     intervals: { month: 0, year: 0 },
     mrrCents: 0,
   };

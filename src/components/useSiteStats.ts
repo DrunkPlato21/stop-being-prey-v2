@@ -18,8 +18,14 @@ export type SiteStats = {
   members: number;
   founderRemaining: number;
   charterRemaining: number;
+  /** Midterm seats left, 0 once the class is full OR the close date has
+      passed. Optional: a cached response from before Midterm shipped
+      will not carry it. */
+  midtermRemaining?: number;
+  /** ISO instant the Midterm class closes (end of Nov 3 2026 Pacific). */
+  midtermClosesAt?: string;
   /** The live public floor, monthly cents: $13 while charter slots
-      remain, $18 once they are gone. Every client surface that names
+      remain, $15 while midterm seats remain, $18 after that. Every client surface that names
       the price reads this rather than hardcoding a number, so the
       raise lands everywhere at once with no deploy. Optional on the
       type because a cached /api/stats response served from before this

@@ -4062,6 +4062,17 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   font-weight: 400;
 }
 
+/* MIDTERM modifier: same filled silhouette as Founder and Charter, a
+   muted slate fill. Same luminance band as the other two so the three
+   read as one family of "filled, earned by timing" chips; the cool hue
+   keeps it distinct from bronze at a glance. */
+.member-chip-midterm {
+  background: #3f5566;
+  color: var(--paper);
+  border-color: #3f5566;
+  font-weight: 400;
+}
+
 /* Generic middle-dot separator + value-slot styling shared by any
    chip that prints "LABEL · VALUE" — founder slot number, guest
    contribution amount, etc. Originally lived as

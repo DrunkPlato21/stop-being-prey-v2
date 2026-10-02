@@ -22,12 +22,25 @@ function formatDollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-export function CharterMedallion({
+export function CharterMedallion(props: Props) {
+  return <ClassMedallion {...props} label="Charter" accent="#8a5a2c" />;
+}
+
+// Midterm sibling: same chassis, slate accent to match
+// .member-chip-midterm. Held by the 50 Midterm seats (after Charter
+// fills, closed after Nov 3 2026).
+export function MidtermMedallion(props: Props) {
+  return <ClassMedallion {...props} label="Midterm" accent="#3f5566" />;
+}
+
+function ClassMedallion({
   slot,
   amountCents,
   interval,
   className = "",
-}: Props) {
+  label,
+  accent,
+}: Props & { label: string; accent: string }) {
   const cadence = interval === "month" ? "/mo" : "/yr";
   return (
     <div
@@ -47,10 +60,10 @@ export function CharterMedallion({
             fontSize: "0.85rem",
             letterSpacing: "0.34em",
             fontWeight: 600,
-            color: "#8a5a2c",
+            color: accent,
           }}
         >
-          Charter
+          {label}
         </p>
 
         <p
@@ -66,7 +79,7 @@ export function CharterMedallion({
 
         <div
           className="w-10 h-px mx-auto mb-4"
-          style={{ background: "#8a5a2c" }}
+          style={{ background: accent }}
           aria-hidden="true"
         />
 
@@ -75,7 +88,7 @@ export function CharterMedallion({
           style={{ fontSize: "0.95rem" }}
         >
           {formatDollars(amountCents)}
-          {cadence} &middot; Charter badge locked for life
+          {cadence} &middot; {label} badge locked for life
         </p>
       </div>
     </div>

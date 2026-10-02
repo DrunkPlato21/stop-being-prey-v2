@@ -19,9 +19,10 @@ export type ActivityEvent = {
   // Lane-specific payloads — kept narrow so the DEN renderer can
   // pattern-match without exhaustive type plumbing.
   member?: {
-    tier: "founder" | "charter" | "regular";
+    tier: "founder" | "charter" | "midterm" | "regular";
     founderSlot: number | null;
     charterSlot: number | null;
+    midtermSlot: number | null;
   };
   comment?: {
     displayName: string;
@@ -59,9 +60,10 @@ function parse<T>(raw: unknown): T | null {
 
 type MemberRecordShape = {
   email: string;
-  tier: "founder" | "charter" | "regular";
+  tier: "founder" | "charter" | "midterm" | "regular";
   founderSlot: number | null;
   charterSlot: number | null;
+  midtermSlot?: number | null;
   createdAt: number;
 };
 
@@ -117,6 +119,7 @@ export async function getRecentActivity({
             tier: parsed.tier,
             founderSlot: parsed.founderSlot,
             charterSlot: parsed.charterSlot ?? null,
+            midtermSlot: parsed.midtermSlot ?? null,
           },
         });
       }

@@ -168,7 +168,7 @@ export default async function AnalyticsAdminPage({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
         <Stat
           label="Tier mix (active)"
-          valueText={`${membership.tiers.founder}f · ${membership.tiers.charter}c · ${membership.tiers.regular}r`}
+          valueText={`${membership.tiers.founder}f · ${membership.tiers.charter}c · ${membership.tiers.midterm}m · ${membership.tiers.regular}r`}
         />
         <Stat
           label="Billing (active)"

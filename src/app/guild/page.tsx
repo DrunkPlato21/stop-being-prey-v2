@@ -5,6 +5,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getProfile, getProfilesByEmails, isAdmin } from "@/lib/comments";
 import {
   getCharterSlot,
+  getMidtermSlot,
   getFounderSlot,
   getMembersByEmails,
   getTierBadge,
@@ -108,6 +109,7 @@ export default async function GuildPage({
     badges[email] = {
       founderSlot: getFounderSlot(m),
       charterSlot: getCharterSlot(m),
+      midtermSlot: getMidtermSlot(m),
       tierBadge: getTierBadge(m),
     };
   }

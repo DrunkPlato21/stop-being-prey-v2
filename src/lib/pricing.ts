@@ -10,6 +10,8 @@
 // The prices themselves:
 //   Founder   $8/mo   $80/yr   first 100. Closed.
 //   Charter   $13/mo  $130/yr  the next 100. The last window at $13.
+//   Midterm   $15/mo  $150/yr  50 seats, closes end of Nov 3 2026
+//                               (Pacific). The last numbered class.
 //   Standard  $18/mo  $180/yr  everyone after. The raise.
 //
 // The step from Charter to Standard is not a deploy-day flip. Every
@@ -30,6 +32,9 @@ export const FOUNDER_YEARLY_FLOOR_CENTS = 8000;
 
 export const CHARTER_MONTHLY_FLOOR_CENTS = 1300;
 export const CHARTER_YEARLY_FLOOR_CENTS = 13000;
+
+export const MIDTERM_MONTHLY_FLOOR_CENTS = 1500;
+export const MIDTERM_YEARLY_FLOOR_CENTS = 15000;
 
 export const STANDARD_MONTHLY_FLOOR_CENTS = 1800;
 export const STANDARD_YEARLY_FLOOR_CENTS = 18000;
@@ -54,18 +59,25 @@ export const GRANTED_SEAT_YEARLY_FLOOR_CENTS = 13000;
 
 /**
  * The public floor for a buyer who is neither a founder nor converting
- * off a donor seat: the Charter rate while charter slots remain, the
- * standard rate once they are gone. Pure, so client and server share
- * one answer; callers supply the live eligibility.
+ * off a donor seat: the Charter rate while charter slots remain, then
+ * the Midterm rate while midterm seats remain and the window is open,
+ * then the standard rate. Pure, so client and server share one answer;
+ * callers supply the live eligibility.
  */
 export function standardFloorCents(
   plan: PricingPlan,
-  charterEligible: boolean
+  charterEligible: boolean,
+  midtermEligible = false
 ): number {
   if (charterEligible) {
     return plan === "monthly"
       ? CHARTER_MONTHLY_FLOOR_CENTS
       : CHARTER_YEARLY_FLOOR_CENTS;
+  }
+  if (midtermEligible) {
+    return plan === "monthly"
+      ? MIDTERM_MONTHLY_FLOOR_CENTS
+      : MIDTERM_YEARLY_FLOOR_CENTS;
   }
   return plan === "monthly"
     ? STANDARD_MONTHLY_FLOOR_CENTS
@@ -87,7 +99,10 @@ export function floorCentsFor(
       server-side against their own record; never taken from a request. */
   grantedSeat = false,
   /** Live charter eligibility: founder cap full, charter cap not yet. */
-  charterEligible = false
+  charterEligible = false,
+  /** Live midterm eligibility: charter full, midterm seats left, window
+      open. Defaults false for the same reason charterEligible does. */
+  midtermEligible = false
 ): number {
   if (founderEligible) {
     return plan === "monthly"
@@ -99,7 +114,7 @@ export function floorCentsFor(
       ? GRANTED_SEAT_MONTHLY_FLOOR_CENTS
       : GRANTED_SEAT_YEARLY_FLOOR_CENTS;
   }
-  return standardFloorCents(plan, charterEligible);
+  return standardFloorCents(plan, charterEligible, midtermEligible);
 }
 
 /** Whole-dollar label for an amount, for use inside a sentence. */

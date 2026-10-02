@@ -1,6 +1,7 @@
 "use client";
 
 import { floorLabelFrom, useSiteStats } from "@/components/useSiteStats";
+import { isMidtermOpen, MidtermSeatsCount } from "@/components/MidtermSeats";
 
 // The charter-scarcity sentence appended inside DualSubscribeBlock's
 // paid column. Fetched client-side from /api/stats (see useSiteStats)
@@ -53,6 +54,16 @@ export function PatronRateLine() {
       <>
         <CharterSeatsCount /> charter seats left at {floor} a month, locked for
         life.
+      </>
+    );
+  }
+  // Midterm window: charter full, midterm seats left, before the close.
+  // floor already reads $15 here (see /api/stats).
+  if (isMidtermOpen(stats)) {
+    return (
+      <>
+        <MidtermSeatsCount /> Midterm seats left at {floor} a month, locked
+        for life.
       </>
     );
   }

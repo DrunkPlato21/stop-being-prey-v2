@@ -4,6 +4,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import {
   claimCharterSlot,
   claimFounderSlot,
+  claimMidtermSlot,
   getMember,
   saveMember,
   type Tier,
@@ -16,7 +17,7 @@ import {
 // reachable.
 //
 //   POST /api/dev/set-tier
-//   body: { tier: "founder" | "charter" | "regular" | "hunter" | "operator" | "apex" }
+//   body: { tier: "founder" | "charter" | "midterm" | "regular" | "hunter" | "operator" | "apex" }
 //
 // Returns 404 in production / when the dev grant flag isn't set, so
 // the endpoint reads as nonexistent to anyone but a developer who
@@ -28,6 +29,7 @@ export const dynamic = "force-dynamic";
 type DevTier =
   | "founder"
   | "charter"
+  | "midterm"
   | "regular"
   | "hunter"
   | "operator"
@@ -37,6 +39,7 @@ function isDevTier(v: unknown): v is DevTier {
   return (
     v === "founder" ||
     v === "charter" ||
+    v === "midterm" ||
     v === "regular" ||
     v === "hunter" ||
     v === "operator" ||
@@ -50,6 +53,8 @@ function amountFor(tier: DevTier): number {
       return 800;
     case "charter":
       return 1300;
+    case "midterm":
+      return 1500;
     case "regular":
       return 1300;
     case "hunter":
@@ -102,6 +107,7 @@ export async function POST(req: NextRequest) {
   let recordTier: Tier = "regular";
   let founderSlot: number | null = existing?.founderSlot ?? null;
   let charterSlot: number | null = existing?.charterSlot ?? null;
+  let midtermSlot: number | null = existing?.midtermSlot ?? null;
   if (rawTier === "founder") {
     if (founderSlot !== null) {
       recordTier = "founder";
@@ -132,12 +138,32 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+  } else if (rawTier === "midterm") {
+    // Dev only: ignores the close date so the badge can be exercised
+    // after Nov 3. Still respects the cap.
+    if (midtermSlot !== null) {
+      recordTier = "midterm";
+    } else {
+      const slot = await claimMidtermSlot();
+      if (slot !== null) {
+        midtermSlot = slot;
+        recordTier = "midterm";
+      } else {
+        return Response.json(
+          { error: "midterm_cap_reached" },
+          { status: 409 }
+        );
+      }
+    }
   } else if (founderSlot !== null) {
     // Keep founder status even when switching tier badges.
     recordTier = "founder";
   } else if (charterSlot !== null) {
     // Same for charter.
     recordTier = "charter";
+  } else if (midtermSlot !== null) {
+    // Same for midterm.
+    recordTier = "midterm";
   }
 
   await saveMember({
@@ -148,6 +174,7 @@ export async function POST(req: NextRequest) {
     tier: recordTier,
     founderSlot,
     charterSlot,
+    midtermSlot,
     status: "active",
     interval: "month",
     amountCents: amountFor(rawTier),
@@ -162,5 +189,6 @@ export async function POST(req: NextRequest) {
     amountCents: amountFor(rawTier),
     founderSlot,
     charterSlot,
+    midtermSlot,
   });
 }

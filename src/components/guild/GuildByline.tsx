@@ -18,6 +18,7 @@ import type { TierBadge } from "@/lib/members";
 export type GuildBadgeInfo = {
   founderSlot: number | null;
   charterSlot: number | null;
+  midtermSlot: number | null;
   tierBadge: TierBadge | null;
 };
 
@@ -80,6 +81,7 @@ export function GuildByline({
           <MemberBadge
             founderSlot={hb.founderSlot}
             charterSlot={hb.charterSlot}
+            midtermSlot={hb.midtermSlot}
             tierBadge={hb.tierBadge}
             size={size}
             showSlot={showSlot}
@@ -112,6 +114,7 @@ export function GuildByline({
         <MemberBadge
           founderSlot={b.founderSlot}
           charterSlot={b.charterSlot}
+          midtermSlot={b.midtermSlot}
           tierBadge={b.tierBadge}
           size={size}
           showSlot={showSlot}

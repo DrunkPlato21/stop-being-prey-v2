@@ -14,6 +14,9 @@ import type { TierBadge } from "@/lib/members";
 //              Permanent, earned by timing. First 100.
 //   CHARTER  — filled bronze interior, paper-cream text.
 //              Permanent, earned by timing. Next 100 after Founder.
+//   MIDTERM  - filled slate interior, paper-cream text.
+//              Permanent, earned by timing. 50 seats after Charter,
+//              closed after Nov 3 2026. The last numbered class.
 //   TIER     — paper interior, olive border + olive text.
 //              Current, recurring, member-chosen.
 //
@@ -29,9 +32,9 @@ import type { TierBadge } from "@/lib/members";
 // casual; the middle dot is the right separator for the prestige
 // register.
 //
-// Founder and Charter are mutually exclusive (a member can hold at most
+// Founder, Charter and Midterm are mutually exclusive (a member can hold at most
 // one permanent-earned slot — tier is a single value on the record), so
-// at most one of the two filled chips renders.
+// at most one of the filled chips renders.
 
 const TIER_LABEL: Record<TierBadge, string> = {
   hunter: "Hunter",
@@ -42,12 +45,14 @@ const TIER_LABEL: Record<TierBadge, string> = {
 export function MemberBadge({
   founderSlot,
   charterSlot,
+  midtermSlot,
   tierBadge,
   size = "default",
   showSlot = true,
 }: {
   founderSlot: number | null;
   charterSlot?: number | null;
+  midtermSlot?: number | null;
   tierBadge: TierBadge | null;
   /** "small" trims padding + font for in-thread replies; "default"
       sits beside top-level usernames. */
@@ -64,6 +69,7 @@ export function MemberBadge({
   if (
     founderSlot === null &&
     (charterSlot === null || charterSlot === undefined) &&
+    (midtermSlot === null || midtermSlot === undefined) &&
     tierBadge === null
   ) {
     return null;
@@ -95,6 +101,19 @@ export function MemberBadge({
                 &middot;
               </span>
               <span className="member-chip-slot">{charterSlot}</span>
+            </>
+          )}
+        </span>
+      )}
+      {midtermSlot !== null && midtermSlot !== undefined && (
+        <span className={`member-chip member-chip-midterm${sizeClass}`}>
+          <span>Midterm</span>
+          {showSlot && (
+            <>
+              <span className="member-chip-sep" aria-hidden="true">
+                &middot;
+              </span>
+              <span className="member-chip-slot">{midtermSlot}</span>
             </>
           )}
         </span>

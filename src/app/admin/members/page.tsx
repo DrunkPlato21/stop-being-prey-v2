@@ -39,9 +39,10 @@ function formatDate(ms: number | null | undefined): string {
 type MemberRow = {
   email: string;
   profile: Profile | null;
-  tier: "founder" | "charter" | "regular" | null;
+  tier: "founder" | "charter" | "midterm" | "regular" | null;
   founderSlot: number | null;
   charterSlot: number | null;
+  midtermSlot: number | null;
   createdAt: number | null;
   status: MemberSubscriptionStatus | null;
   amountCents: number | null;
@@ -62,6 +63,7 @@ async function loadMember(email: string): Promise<MemberRow> {
     tier: member?.tier ?? null,
     founderSlot: member?.founderSlot ?? null,
     charterSlot: member?.charterSlot ?? null,
+    midtermSlot: member?.midtermSlot ?? null,
     createdAt: member?.createdAt ?? profile?.createdAt ?? null,
     status: member?.status ?? null,
     amountCents: member?.amountCents ?? null,
@@ -300,6 +302,9 @@ function MemberRowView({
             )}
             {row.tier === "charter" && row.charterSlot !== null && (
               <> · charter #{row.charterSlot}</>
+            )}
+            {row.tier === "midterm" && row.midtermSlot !== null && (
+              <> · midterm #{row.midtermSlot}</>
             )}
             {row.tier === "regular" && <> · regular</>}
             {legalName && <> · {legalName}</>}

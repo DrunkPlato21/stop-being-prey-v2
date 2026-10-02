@@ -6,11 +6,18 @@ import { DeskPresenceIndicator } from "@/components/DeskPresenceIndicator";
 import {
   CHARTER_CAP,
   FOUNDER_CAP,
+  MIDTERM_CAP,
   countMembers,
   getCharterClaimed,
   getFounderClaimed,
+  getMidtermClaimed,
+  isMidtermWindowOpen,
 } from "@/lib/members";
-import { CHARTER_MONTHLY_FLOOR_CENTS, floorLabel } from "@/lib/pricing";
+import {
+  CHARTER_MONTHLY_FLOOR_CENTS,
+  MIDTERM_MONTHLY_FLOOR_CENTS,
+  floorLabel,
+} from "@/lib/pricing";
 import { derivePresenceState, getPresence } from "@/lib/desk";
 import { isFounderAccessValid } from "@/lib/founder-access";
 import { listVisible } from "@/lib/supporters";
@@ -157,6 +164,11 @@ const ONE_TIME_LINE =
 function rateLockLine(floor: string, locksLeft: number): string {
   return `charter rate. the first 100 lock ${floor} for life. ${locksLeft} of those locks are left.`;
 }
+// Midterm sibling of rateLockLine. Placeholder copy in the same register;
+// the owner rewrites it.
+function midtermLockLine(floor: string, locksLeft: number): string {
+  return `midterm rate. 50 patrons lock ${floor} for life, through november 3rd. ${locksLeft} of those locks are left.`;
+}
 // 5 — OPTION B
 // function rateLockLine(floor: string, locksLeft: number): string {
 //   return `anyone can be a patron. only the first 100 lock the rate. ${locksLeft} ${
@@ -169,10 +181,18 @@ export async function PatronageLanding({
 }: {
   searchParams?: Promise<{ preview?: string; access?: string; src?: string }>;
 }) {
-  const [founderClaimed, charterClaimed, totalMembers, wall, presence] =
+  const [
+    founderClaimed,
+    charterClaimed,
+    midtermClaimed,
+    totalMembers,
+    wall,
+    presence,
+  ] =
     await Promise.all([
       getFounderClaimed(),
       getCharterClaimed(),
+      getMidtermClaimed(),
       countMembers().then((c) => c.paying),
       listVisible(1, 200).catch(() => ({ entries: [], total: 0 })),
       getPresence(),
@@ -217,20 +237,39 @@ export async function PatronageLanding({
     process.env.NODE_ENV !== "production" && previewArg === "charter";
   const previewFilled =
     process.env.NODE_ENV !== "production" && previewArg === "filled";
+  // ?preview=midterm (dev only): founder + charter full, midterm empty,
+  // and the window treated as open whatever the clock says.
+  const previewMidterm =
+    process.env.NODE_ENV !== "production" && previewArg === "midterm";
 
   const effectiveFounderClaimed =
-    previewCharter || previewFilled ? FOUNDER_CAP : founderClaimed;
-  const effectiveCharterClaimed = previewFilled
-    ? CHARTER_CAP
-    : previewCharter
+    previewCharter || previewFilled || previewMidterm
+      ? FOUNDER_CAP
+      : founderClaimed;
+  const effectiveCharterClaimed =
+    previewFilled || previewMidterm
+      ? CHARTER_CAP
+      : previewCharter
+        ? 0
+        : charterClaimed;
+  const effectiveMidtermClaimed = previewFilled
+    ? MIDTERM_CAP
+    : previewMidterm
       ? 0
-      : charterClaimed;
+      : midtermClaimed;
+  const midtermWindowOpen = previewMidterm || isMidtermWindowOpen();
 
   const founderEligible = effectiveFounderClaimed < FOUNDER_CAP;
   const charterEligible =
     !founderEligible && effectiveCharterClaimed < CHARTER_CAP;
   const remaining = Math.max(0, FOUNDER_CAP - effectiveFounderClaimed);
   const charterRemaining = Math.max(0, CHARTER_CAP - effectiveCharterClaimed);
+  const midtermEligible =
+    !founderEligible &&
+    !charterEligible &&
+    midtermWindowOpen &&
+    effectiveMidtermClaimed < MIDTERM_CAP;
+  const midtermRemaining = Math.max(0, MIDTERM_CAP - effectiveMidtermClaimed);
 
   // Scarcity is real information — the rate genuinely does lock — but
   // under patronage the finite thing is the RATE, not the number of
@@ -249,6 +288,11 @@ export async function PatronageLanding({
       floorLabel(CHARTER_MONTHLY_FLOOR_CENTS),
       charterRemaining
     );
+  } else if (midtermEligible) {
+    rateScarcityLine = midtermLockLine(
+      floorLabel(MIDTERM_MONTHLY_FLOOR_CENTS),
+      midtermRemaining
+    );
   }
 
   // Both widget instances share these. The count closes the widget: it
@@ -260,6 +304,8 @@ export async function PatronageLanding({
     founderClaimed: effectiveFounderClaimed,
     charterEligible: founderAccess ? false : charterEligible,
     charterClaimed: effectiveCharterClaimed,
+    midtermEligible: founderAccess ? false : midtermEligible,
+    midtermClaimed: effectiveMidtermClaimed,
     totalMembers,
     privateFounderAccess: founderAccess,
     accessToken: founderAccess ? accessParam : undefined,

@@ -9,6 +9,7 @@ import {
 } from "@/lib/comments";
 import {
   getCharterSlot,
+  getMidtermSlot,
   getFounderSlot,
   getMembersByEmails,
   getTierBadge,
@@ -81,6 +82,7 @@ export default async function GuildThreadPage({
     badges[email] = {
       founderSlot: getFounderSlot(m),
       charterSlot: getCharterSlot(m),
+      midtermSlot: getMidtermSlot(m),
       tierBadge: getTierBadge(m),
     };
   }

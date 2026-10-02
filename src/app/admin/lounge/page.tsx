@@ -22,6 +22,7 @@ import {
 } from "@/lib/lounge";
 import {
   getCharterSlot,
+  getMidtermSlot,
   getFounderSlot,
   getMember,
   getTierBadge,
@@ -132,6 +133,7 @@ export default async function AdminLoungePage() {
         {
           founderSlot: getFounderSlot(m),
           charterSlot: getCharterSlot(m),
+          midtermSlot: getMidtermSlot(m),
           tierBadge: getTierBadge(m),
         },
       ] as const;
@@ -142,6 +144,7 @@ export default async function AdminLoungePage() {
     {
       founderSlot: number | null;
       charterSlot: number | null;
+      midtermSlot: number | null;
       tierBadge: TierBadge | null;
     }
   > = Object.fromEntries(memberBadgesEntries);
