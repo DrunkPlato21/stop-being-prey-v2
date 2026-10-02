@@ -164,10 +164,11 @@ const ONE_TIME_LINE =
 function rateLockLine(floor: string, locksLeft: number): string {
   return `charter rate. the first 100 lock ${floor} for life. ${locksLeft} of those locks are left.`;
 }
-// Midterm sibling of rateLockLine. Placeholder copy in the same register;
-// the owner rewrites it.
+// Midterm sibling of rateLockLine.
 function midtermLockLine(floor: string, locksLeft: number): string {
-  return `midterm rate. 50 patrons lock ${floor} for life, through november 3rd. ${locksLeft} of those locks are left.`;
+  return `midterm patrons. 50 seats lock ${floor} for life, each with a numbered badge. closes on election day. ${locksLeft} ${
+    locksLeft === 1 ? "seat" : "seats"
+  } left.`;
 }
 // 5 — OPTION B
 // function rateLockLine(floor: string, locksLeft: number): string {

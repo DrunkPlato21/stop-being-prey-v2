@@ -126,7 +126,7 @@ function presetsFor(
     { key: "pup", label: "", monthlyCents: 800, founderOnly: true },
     {
       key: "pack",
-      label: "",
+      label: midtermEligible && !charterEligible ? "Midterm" : "",
       monthlyCents: standardFloorCents(
         "monthly",
         charterEligible,
