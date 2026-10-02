@@ -362,7 +362,7 @@ export async function PatronageLanding({
                   rather than trailing the sentence. */}
               <p
                 className="flex items-center justify-center gap-3 mt-3 font-display uppercase text-eye-deep"
-                style={{ fontSize: "0.68rem", letterSpacing: "0.24em" }}
+                style={{ fontSize: "0.78rem", letterSpacing: "0.22em" }}
               >
                 <span aria-hidden="true" className="block w-8 border-t border-current opacity-40" />
                 <span>
