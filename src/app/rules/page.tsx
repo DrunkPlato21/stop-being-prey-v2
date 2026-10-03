@@ -23,6 +23,7 @@ import {
 import { markOnboardingStep } from "@/lib/onboarding";
 import { EmailSignup } from "@/components/EmailSignup";
 import { SubscriberCount } from "@/components/SubscriberCount";
+import { FOUNDING_OFFLINE } from "@/lib/founding";
 
 // The Rules of Engagement — the public front door. The doctrine is the
 // lure; practice (the Case Files, the Guild, Clay's presence) is the
@@ -257,7 +258,7 @@ export default async function RulesPage() {
                   </ul>
                 </div>
               )}
-              {FOUNDING_LINK_BY_RULE[rule.number] && (
+              {!FOUNDING_OFFLINE && FOUNDING_LINK_BY_RULE[rule.number] && (
                 <p
                   className="font-serif italic text-ink-muted leading-relaxed mt-8"
                   style={{ fontSize: "0.98rem" }}

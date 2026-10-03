@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getCornerstones, readingMinutes } from "@/lib/articles";
+import { FOUNDING_OFFLINE } from "@/lib/founding";
 
 // The writing archive. Opens with a "Start Here" pair (the two founding
 // pieces, which live outside the articles system, so they're hardcoded
@@ -74,6 +75,7 @@ export default function EssaysPage() {
         </div>
       </section>
 
+      {!FOUNDING_OFFLINE && (<>
       {/* === Start Here: the two founding pieces, the entry point ===
           Elevated above the essay list: a short olive beat, a larger
           label, Roman-numeral order marks in olive, and bigger titles. */}
@@ -126,6 +128,7 @@ export default function EssaysPage() {
           ))}
         </ol>
       </section>
+      </>)}
 
       {/* === The Essays (all cornerstones, date-sorted) === */}
       <section className="max-w-3xl mx-auto px-6 pb-12 md:pb-16">
