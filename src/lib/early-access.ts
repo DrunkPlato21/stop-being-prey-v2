@@ -223,7 +223,11 @@ export function applyEssayTokens(
  * kept, so dates read "Sept 23, 2026". Each part stays whole on one line
  * so a phone never strands "Sept" from "23, 2026", unless a part would
  * split a link (a whole-line link like "[Charlie Kirk, X, April 22,
- * 2024](…)"), in which case it only swaps the separators.
+ * 2024](…)"), in which case it only swaps the separators. A part longer
+ * than three words is a phrase, not a name or date, so it is left free
+ * to wrap: "engraved on ammunition recovered at the scene" held whole
+ * ran 59px off a 390px phone. Each dot is glued to the part before it
+ * so a wrapped line never opens on "·".
  */
 function formatCredit(attr: string): string {
   if (!attr) return "";
@@ -231,10 +235,14 @@ function formatCredit(attr: string): string {
   const balanced = parts.every(
     (p) => (p.match(/<a\b/g) ?? []).length === (p.match(/<\/a>/g) ?? []).length
   );
-  if (!balanced) return attr.replace(/,\s+(?!\d{4}\b)/g, " · ");
+  if (!balanced) return attr.replace(/,\s+(?!\d{4}\b)/g, "&nbsp;· ");
   return parts
-    .map((p) => `<span style="white-space:nowrap">${p}</span>`)
-    .join(" · ");
+    .map((p) =>
+      p.trim().split(/\s+/).length > 3
+        ? p
+        : `<span style="white-space:nowrap">${p}</span>`
+    )
+    .join("&nbsp;· ");
 }
 
 /** Word count from the raw markdown body. Strips the custom {{...}}
