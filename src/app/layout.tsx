@@ -63,8 +63,14 @@ export const metadata: Metadata = {
     description: "Politics, power, and predator/prey dynamics in 2026.",
     creator: "@stopbeingprey",
   },
+  // Declared by hand because an explicit `icons` block switches off the
+  // file-convention links for app/icon.png and app/apple-icon.png.
   icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
   },
 };
 

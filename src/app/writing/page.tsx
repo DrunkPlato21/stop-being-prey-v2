@@ -21,6 +21,9 @@ export const metadata: Metadata = {
     description:
       "Major essays and dispatches on power, politics, and the apex class by Clay.",
     url: "/writing",
+    // A page's own openGraph block drops the inherited root card, so the
+    // site-wide image is named here.
+    images: ["/opengraph-image.jpg"],
     siteName: "Stop Being Prey",
     type: "website",
   },
