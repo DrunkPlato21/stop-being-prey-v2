@@ -1,6 +1,50 @@
+import fs from "fs";
+import path from "path";
+import matter from "gray-matter";
 import type { NextConfig } from "next";
 
+// Essay slugs, read once at build (and dev start) from the same markdown
+// lib/articles.ts reads. Published essays are prerendered at /[slug];
+// signed-in browsers and every draft are routed to /essay-live/[slug]
+// instead (see src/app/[slug]/ArticleView.tsx). Adding or un-drafting an
+// essay is a deploy anyway, so baking the list in is safe.
+function essaySlugs(): { all: string[]; drafts: string[] } {
+  const dir = path.join(process.cwd(), "content", "articles");
+  if (!fs.existsSync(dir)) return { all: [], drafts: [] };
+  const all = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => f.replace(/\.md$/, ""));
+  const drafts = all.filter(
+    (slug) =>
+      matter(fs.readFileSync(path.join(dir, `${slug}.md`), "utf8")).data
+        .published === false
+  );
+  return { all, drafts };
+}
+const ESSAYS = essaySlugs();
+
 const nextConfig: NextConfig = {
+  // proxy.ts reads this to know which top-level paths are essays.
+  env: {
+    SBP_ESSAY_SLUGS: ESSAYS.all.join(","),
+  },
+  // A draft must render per request (the gate reads the session), but
+  // /[slug] is prerendered and can't. Send every draft URL to the
+  // per-request copy for everyone, before the filesystem (prerendered
+  // pages count as files). Signed-in browsers get the same rewrite for
+  // published essays from proxy.ts. If this were ever skipped, /[slug]
+  // still only renders the gate for a draft, never the body.
+  async rewrites() {
+    return {
+      beforeFiles: ESSAYS.drafts.map((slug) => ({
+        source: `/${slug}`,
+        destination: `/essay-live/${slug}`,
+      })),
+      afterFiles: [],
+      fallback: [],
+    };
+  },
   // ffmpeg-static ships a prebuilt binary that webpack/turbopack
   // cannot trace. Keep it external so node_modules/ffmpeg-static is
   // resolved at runtime, with the binary intact, in the serverless
@@ -13,11 +57,14 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/admin/voice-memos": ["node_modules/ffmpeg-static/**/*"],
     // The [slug] article route reads markdown from content/articles via fs.
-    // Published issues are prerendered at build, but an unpublished draft
-    // renders on demand (the member/preview gate needs request-time
-    // cookies), so its markdown must be in the serverless bundle or the
-    // page 404s on its own content in production. Opt the dir in.
+    // Published issues are prerendered at build, but they re-render on
+    // demand (ISR after a comment write), so the markdown must be in the
+    // serverless bundle or the page 404s on its own content in
+    // production. Opt the dir in.
     "/[slug]": ["content/articles/**/*"],
+    // The per-request copy of an essay (signed-in readers, drafts) reads
+    // the same markdown on every request.
+    "/essay-live/[slug]": ["content/articles/**/*"],
     // OG/Twitter card routes read the bundled brand fonts from /assets via
     // src/lib/og-image.tsx. Opt the dir into each function bundle so the
     // cards always render in the right type (never a sans-serif fallback).

@@ -245,7 +245,35 @@ export async function proxy(request: NextRequest) {
     return notesGate(request);
   }
 
+  const live = liveEssayRewrite(request);
+  if (live) return live;
+
   return NextResponse.next();
+}
+
+// Every essay slug on disk, drafts included, baked in by next.config.ts at
+// build (proxy can't read the markdown at request time).
+const ESSAY_SLUGS: ReadonlySet<string> = new Set(
+  (process.env.SBP_ESSAY_SLUGS ?? "").split(",").filter(Boolean)
+);
+
+// A browser carrying a session reads an essay from /essay-live/<slug>,
+// the per-request copy with the member's comment sheet. Everyone else
+// reads the prerendered /<slug> from the CDN. The matcher below only
+// invokes proxy for single-segment paths WITH the session cookie, so
+// signed-out readers never pay for this check. A rewrite, not a
+// redirect: the address bar, the canonical, and #comment- anchors stay
+// put, and client-side navigations (RSC requests) are rewritten too.
+//
+// Cookie presence only, no JWT check: an expired cookie just renders the
+// live copy signed out, which is correct, only uncached.
+function liveEssayRewrite(request: NextRequest): NextResponse | null {
+  if (!request.cookies.has(SESSION_COOKIE)) return null;
+  const slug = request.nextUrl.pathname.replace(/^\/|\/$/g, "");
+  if (!ESSAY_SLUGS.has(slug)) return null;
+  const url = request.nextUrl.clone();
+  url.pathname = `/essay-live/${slug}`;
+  return NextResponse.rewrite(url);
 }
 
 export const config = {
@@ -274,5 +302,12 @@ export const config = {
     "/issues",
     "/desecration",
     "/patron",
+    // Signed-in readers of an essay (liveEssayRewrite). Gated on the
+    // cookie HERE so anonymous traffic to every top-level page skips
+    // proxy entirely.
+    {
+      source: "/:slug",
+      has: [{ type: "cookie", key: "sbp_session" }],
+    },
   ],
 };

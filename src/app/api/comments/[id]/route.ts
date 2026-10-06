@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { revalidatePublicComments } from "@/lib/public-comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { deleteComment } from "@/lib/comments";
 
@@ -32,5 +33,6 @@ export async function DELETE(
     return NextResponse.json({ error: result.error }, { status });
   }
 
+  revalidatePublicComments();
   return NextResponse.json({ ok: true });
 }

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { revalidatePublicComments } from "@/lib/public-comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getProfile } from "@/lib/comments";
 import { giveCoin } from "@/lib/coins";
@@ -102,5 +103,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  revalidatePublicComments();
   return NextResponse.json({ ok: true, count: result.count });
 }

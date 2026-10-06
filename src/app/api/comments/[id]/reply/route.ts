@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { revalidatePublicComments } from "@/lib/public-comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import {
   setReply,
@@ -93,6 +94,7 @@ export async function POST(
     }
   }
 
+  revalidatePublicComments();
   return NextResponse.json({ comment: result.comment });
 }
 
@@ -120,5 +122,6 @@ export async function DELETE(
           : 503;
     return NextResponse.json({ error: result.error }, { status });
   }
+  revalidatePublicComments();
   return NextResponse.json({ comment: result.comment });
 }

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { revalidatePublicComments } from "@/lib/public-comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import {
   createComment,
@@ -196,5 +197,6 @@ export async function POST(req: NextRequest) {
     })();
   }
 
+  revalidatePublicComments();
   return NextResponse.json({ comment: result.comment });
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { unstable_cache } from "next/cache";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import {
   commentLimitFor,
@@ -9,6 +10,7 @@ import {
   isCommentsConfigured,
   listCommentsForSlug,
   type CommentKind,
+  type CommentRecord,
 } from "@/lib/comments";
 import {
   getCharterSlot,
@@ -16,25 +18,37 @@ import {
   getFounderSlot,
   getMembersByEmails,
   getTierBadge,
-  type TierBadge,
 } from "@/lib/members";
 import { CommentForm } from "@/components/CommentForm";
-import { CommentItem } from "@/components/CommentItem";
+import { CommentItem, type MemberBadgeInfo } from "@/components/CommentItem";
 import { CommentsLiveRefresh } from "@/components/CommentsLiveRefresh";
 import { CommentSpotlight } from "@/components/CommentSpotlight";
+import { CommentHashLanding } from "@/components/CommentHashLanding";
 import { JumpToMyComment } from "@/components/JumpToMyComment";
 import { resolveCommentPiece } from "@/lib/comment-piece";
 import {
   getCoinDataForComments,
   getSpentCommentId,
   isCoinsConfigured,
+  type CoinDisplay,
 } from "@/lib/coins";
+import {
+  PUBLIC_COMMENTS_REVALIDATE_SECONDS,
+  PUBLIC_COMMENTS_TAG,
+} from "@/lib/public-comments";
 import { CoinProvider, CoinMemberNotice } from "@/components/CoinContext";
 
-// Comments section. Server component — fetches data on every request.
-// Renders the list, then either the comment form (signed-in members),
-// the "you've already commented" state (members who posted), or the
-// sign-in / join CTA (anonymous visitors on public articles).
+// Comments section. Server component. Renders the list, then either the
+// comment form (signed-in members), the "you've already commented" state
+// (members who posted), or the sign-in / join CTA (anonymous visitors on
+// public articles).
+//
+// Two viewers. "request" (the default) reads the session cookie and
+// fetches on every request: the member area, case files, bouts, and the
+// signed-in copy of an essay. "public" is the signed-out sheet a
+// prerendered essay carries: no cookies, and its Redis reads go through
+// the data cache under PUBLIC_COMMENTS_TAG, which every comment write
+// expires (see lib/public-comments.ts).
 //
 // Field-note pages are gated by /proxy.ts so visitors are always
 // authenticated by the time we render here. Article pages are public,
@@ -47,18 +61,24 @@ type Props = {
       /notes/field-notes keep the member wording and no surface ends up
       half-translated. */
   patron?: boolean;
+  /** "public" = the signed-out sheet, safe to prerender. See above. */
+  viewer?: "request" | "public";
 };
 
-export async function Comments({ kind, slug, patron = false }: Props) {
-  if (!isCommentsConfigured()) {
-    // No Redis → render nothing rather than a broken section.
-    return null;
-  }
+// Everything the sheet reads from Redis, minus the viewer. Plain arrays
+// rather than Maps so the public copy survives the data cache's JSON.
+type ThreadData = {
+  allComments: CommentRecord[];
+  basePath: string | undefined;
+  badges: [string, MemberBadgeInfo][];
+  coins: [string, CoinDisplay][];
+};
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  const session = await verifySession(token);
-  const profile = session ? await getProfile(session.email) : null;
+async function readThread(
+  kind: CommentKind,
+  slug: string,
+  isVisible: (c: CommentRecord) => boolean
+): Promise<ThreadData> {
   const allComments = await listCommentsForSlug(kind, slug);
   // Where these comments actually live. Only the server can tell an
   // Arena bout from a case file — a bout mounts this sheet as kind
@@ -69,6 +89,87 @@ export async function Comments({ kind, slug, patron = false }: Props) {
   const basePath = (
     await resolveCommentPiece(kind, slug, "x").catch(() => null)
   )?.path.replace(/#.*$/, "");
+  const comments = allComments.filter(isVisible);
+
+  // Build a per-email badge map for everyone visible on the page:
+  // top-level commenters AND thread-reply authors. The map drives the
+  // inline founder/tier badge in CommentItem. Both values are looked up
+  // at render time so a tier change picks up on the next page load (no
+  // badge field stored on the comment).
+  const uniqueEmails = Array.from(
+    new Set(
+      comments
+        .flatMap((c) => [
+          c.email,
+          ...(c.threadReplies?.map((r) => r.email) ?? []),
+        ])
+        .filter(Boolean)
+    )
+  );
+  // One MGET for every participant's member record instead of a GET per
+  // unique email. On a comment-heavy public piece this is the difference
+  // between ~1 Redis command and N per pageview.
+  const memberRecords = await getMembersByEmails(uniqueEmails);
+  const badges = uniqueEmails.map((email): [string, MemberBadgeInfo] => {
+    // getMembersByEmails keys by normalized email; comment emails are
+    // already stored normalized, but normalize the lookup to be safe.
+    const m = memberRecords.get(email.toLowerCase().trim()) ?? null;
+    return [
+      email,
+      {
+        founderSlot: getFounderSlot(m),
+        charterSlot: getCharterSlot(m),
+        midtermSlot: getMidtermSlot(m),
+        tierBadge: getTierBadge(m),
+      },
+    ];
+  });
+
+  const coins = isCoinsConfigured()
+    ? Array.from(
+        (await getCoinDataForComments(comments.map((c) => c.id))).entries()
+      )
+    : [];
+
+  return { allComments, basePath, badges, coins };
+}
+
+// The signed-out thread, cached. Approved comments only, so a held
+// comment never reaches the shared cache. Expired by every comment write
+// (revalidatePublicComments), and on a timer as a backstop for writes
+// made somewhere that can't reach this deployment's cache (localhost
+// admin, scripts).
+const readPublicThread = unstable_cache(
+  async (kind: CommentKind, slug: string): Promise<ThreadData> => {
+    const thread = await readThread(kind, slug, isApproved);
+    return { ...thread, allComments: thread.allComments.filter(isApproved) };
+  },
+  ["comments-public-thread"],
+  {
+    revalidate: PUBLIC_COMMENTS_REVALIDATE_SECONDS,
+    tags: [PUBLIC_COMMENTS_TAG],
+  }
+);
+
+export async function Comments({
+  kind,
+  slug,
+  patron = false,
+  viewer = "request",
+}: Props) {
+  if (!isCommentsConfigured()) {
+    // No Redis → render nothing rather than a broken section.
+    return null;
+  }
+
+  // The public sheet never asks who is reading. That is what lets a
+  // prerendered essay carry its comments: cookies() here would make the
+  // whole page render per request again.
+  const publicView = viewer === "public";
+  const session = publicView
+    ? null
+    : await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
+  const profile = session ? await getProfile(session.email) : null;
 
   const viewerEmail = session ? session.email.toLowerCase().trim() : null;
   const viewerIsAdmin = session ? isAdmin(session.email) : false;
@@ -76,12 +177,19 @@ export async function Comments({ kind, slug, patron = false }: Props) {
   // Visibility filter for pre-publish hold:
   //  - approved comments are visible to everyone
   //  - pending comments are visible to (a) their author and (b) admin
-  const comments = allComments.filter((c) => {
+  const isVisible = (c: CommentRecord): boolean => {
     if (isApproved(c)) return true;
     if (viewerIsAdmin) return true;
     if (viewerEmail && viewerEmail === c.email) return true;
     return false;
-  });
+  };
+
+  const thread = publicView
+    ? await readPublicThread(kind, slug)
+    : await readThread(kind, slug, isVisible);
+  const allComments = thread.allComments;
+  const basePath = thread.basePath;
+  const comments = allComments.filter(isVisible);
 
   // Per-piece comment cap. Uses the unfiltered list — a pending comment
   // still counts against the member's allowance. Default is 1; some
@@ -113,54 +221,11 @@ export async function Comments({ kind, slug, patron = false }: Props) {
     (c) => !c.featured || isAdmin(c.email)
   );
 
-  // Build a per-email badge map for everyone visible on the page:
-  // top-level commenters AND thread-reply authors. One Redis lookup
-  // per unique email; at typical comment volumes this is cheap. The
-  // map drives the inline founder/tier badge in CommentItem. Both
-  // values are looked up at render time so a tier change picks up on
-  // the next page load (no badge field stored on the comment).
-  const uniqueEmails = Array.from(
-    new Set(
-      comments
-        .flatMap((c) => [
-          c.email,
-          ...(c.threadReplies?.map((r) => r.email) ?? []),
-        ])
-        .filter(Boolean)
-    )
-  );
-  // One MGET for every participant's member record instead of a GET per
-  // unique email. On a comment-heavy public piece this is the difference
-  // between ~1 Redis command and N per pageview — and this block runs on
-  // every anonymous view, so it dominated the article-traffic Redis bill.
-  const memberRecords = await getMembersByEmails(uniqueEmails);
-  const memberBadgeByEmail = new Map<
-    string,
-    {
-      founderSlot: number | null;
-      charterSlot: number | null;
-      midtermSlot: number | null;
-      tierBadge: TierBadge | null;
-    }
-  >();
-  for (const email of uniqueEmails) {
-    // getMembersByEmails keys by normalized email; comment emails are
-    // already stored normalized, but normalize the lookup to be safe.
-    const m = memberRecords.get(email.toLowerCase().trim()) ?? null;
-    memberBadgeByEmail.set(email, {
-      founderSlot: getFounderSlot(m),
-      charterSlot: getCharterSlot(m),
-      midtermSlot: getMidtermSlot(m),
-      tierBadge: getTierBadge(m),
-    });
-  }
+  const memberBadgeByEmail = new Map(thread.badges);
 
   // === Coins =================================================
   const coinsEnabled = isCoinsConfigured();
-  const visibleIds = comments.map((c) => c.id);
-  const coinData = coinsEnabled
-    ? await getCoinDataForComments(visibleIds)
-    : new Map<string, { count: number; topGivers: string[] }>();
+  const coinData = new Map(thread.coins);
   // The comment this viewer already funded on THIS piece (null = coin
   // unspent here). One read; drives the dead-obvious spent/unspent UI.
   const spentCommentId =
@@ -199,6 +264,8 @@ export async function Comments({ kind, slug, patron = false }: Props) {
           inside CommentForm, because the form is replaced by the
           at-limit block the moment a member posts their last one. */}
       <CommentSpotlight />
+      {/* Arriving on a #c- / #r- link: land on it once the page settles. */}
+      <CommentHashLanding />
       <div className="text-center mb-10">
         <p className="eyebrow">Comments</p>
       </div>

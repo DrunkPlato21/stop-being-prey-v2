@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { revalidatePublicComments } from "@/lib/public-comments";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { approveComment } from "@/lib/comments";
 
@@ -26,5 +27,6 @@ export async function POST(
           : 503;
     return NextResponse.json({ error: result.error }, { status });
   }
+  revalidatePublicComments();
   return NextResponse.json({ comment: result.comment });
 }
