@@ -2,6 +2,11 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getArticleBySlug } from "@/lib/articles";
+import {
+  getCaseFileBySlug,
+  RULE_ROMAN,
+  RULE_SHORT_LABEL,
+} from "@/lib/case-files";
 import { unstable_cache } from "next/cache";
 import { getPublicFloorCents } from "@/lib/membership";
 import { floorLabel } from "@/lib/pricing";
@@ -880,6 +885,424 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
     ),
     {
       ...OG_SIZE,
+      fonts: fonts.length > 0 ? fonts : undefined,
+    }
+  );
+}
+
+/**
+ * Case file share card. Same dark chassis as the essay card (pattern
+ * replication) with the case file's own furniture: the Case File number
+ * in the eyebrow, the title, and the rules it drills along the foot.
+ *
+ * Only what is already public goes on it. A public-preview file shows
+ * its one-shot line, because the whole page is open to anyone. A
+ * members-only file never does: it gets the title and rules (both of
+ * which the public /rules page already lists) and a plain members-only
+ * deck. The route sits behind the members gate for those files anyway
+ * (proxy.ts), so this is the second lock, not the only one.
+ */
+export async function generateCaseFileOG(slug: string): Promise<ImageResponse> {
+  const cf = getCaseFileBySlug(slug);
+  const title = cf?.title ?? "Case Files";
+  const eyebrow = cf?.number
+    ? `Case File №${cf.number} · Stop Being Prey`
+    : "Case Files · Stop Being Prey";
+  const oneShot = cf?.publicPreview ? cf.oneShot.replace(/^["“]+|["”]+$/g, "") : "";
+  // Same 140-character cap as the essay deck: two lines at 36px italic.
+  const deck = oneShot
+    ? `“${oneShot.length > 132 ? oneShot.slice(0, 129).replace(/[\s,;.]+$/, "") + "…" : oneShot}”`
+    : "A members-only case file.";
+  const rules = (cf?.rulesApplied ?? [])
+    .filter((n) => RULE_SHORT_LABEL[n])
+    .slice(0, 2)
+    .map((n) => `Rule ${RULE_ROMAN[n - 1]} · ${RULE_SHORT_LABEL[n]}`);
+
+  const [cormorant700, sourceSerifItalic] = await Promise.all([
+    loadFont("cormorant-garamond-700.ttf"),
+    loadFont("source-serif-4-italic.ttf"),
+  ]);
+
+  const fonts: NonNullable<
+    ConstructorParameters<typeof ImageResponse>[1]
+  >["fonts"] = [];
+  if (cormorant700) {
+    fonts.push({
+      name: "Cormorant Garamond",
+      data: cormorant700,
+      weight: 700,
+      style: "normal",
+    });
+  }
+  if (sourceSerifItalic) {
+    fonts.push({
+      name: "Source Serif",
+      data: sourceSerifItalic,
+      weight: 400,
+      style: "italic",
+    });
+  }
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: "1200px",
+          height: "630px",
+          background: "#0c0a08",
+          display: "flex",
+          fontFamily: "Cormorant Garamond, serif",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            position: "absolute",
+            top: "96px",
+            left: "96px",
+            right: "96px",
+            bottom: "96px",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div
+              style={{
+                color: "#b8a82c",
+                fontSize: 22,
+                letterSpacing: "0.32em",
+                textTransform: "uppercase",
+                fontWeight: 700,
+                marginBottom: 44,
+              }}
+            >
+              {eyebrow}
+            </div>
+            <div
+              style={{
+                color: "#f5efe1",
+                fontSize: 96,
+                fontWeight: 700,
+                lineHeight: 1.02,
+                letterSpacing: "-0.025em",
+                marginBottom: 32,
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: 2,
+                overflow: "hidden",
+              }}
+            >
+              {title}
+            </div>
+            <div
+              style={{
+                color: "#d8cfb8",
+                fontSize: 36,
+                fontStyle: "italic",
+                lineHeight: 1.35,
+                fontFamily: "Source Serif, Cormorant Garamond, serif",
+                fontWeight: 400,
+                // Balanced, not clamped: the deck is already capped to
+                // two lines' worth above, and balancing keeps a short
+                // one-shot from leaving one word alone on line two.
+                display: "flex",
+                textWrap: "balance",
+                maxWidth: 980,
+              }}
+            >
+              {deck}
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              color: "#8a7d20",
+              fontSize: 18,
+              letterSpacing: "0.28em",
+              textTransform: "uppercase",
+              fontWeight: 700,
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {rules.map((r) => (
+                <div key={r} style={{ display: "flex", marginTop: 6 }}>
+                  {r}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex" }}>stopbeingprey.com</div>
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      ...OG_SIZE,
+      fonts: fonts.length > 0 ? fonts : undefined,
+    }
+  );
+}
+
+// ---------------------------------------------------------------------
+// Quote cards. The line a reader highlighted, set on paper. Unlike the
+// link-preview cards above (dark chassis, built to read at thumbnail
+// size in a feed), a quote card is the thing itself: it gets posted as
+// an image, so it's set like a page, cream stock and ink, with the
+// credit underneath where a pull quote's attribution would sit.
+// ---------------------------------------------------------------------
+
+export type QuoteCardFormat = "landscape" | "portrait";
+
+export const QUOTE_CARD_SIZE: Record<
+  QuoteCardFormat,
+  { width: number; height: number }
+> = {
+  // The link-preview shape. What X and Facebook show inline.
+  landscape: { width: 1200, height: 630 },
+  // Instagram's tallest feed shape (4:5). More of the screen on a phone.
+  portrait: { width: 1080, height: 1350 },
+};
+
+/**
+ * Quote size from its length. Satori can't measure-and-shrink, so this
+ * is an estimate: Cormorant italic runs about half its size per
+ * character, so N characters at size s need roughly N * 0.5s * 1.2s of
+ * area. Solve for s, then clamp so a short line doesn't turn into a
+ * poster and a long one stays readable. The box is the quote's real
+ * space on each card, less a margin for ragged lines.
+ */
+function quoteFontSize(quote: string, format: QuoteCardFormat): number {
+  const box =
+    format === "landscape"
+      ? { w: 1000, h: 330, min: 34, max: 86 }
+      : { w: 880, h: 760, min: 46, max: 108 };
+  const fit = Math.sqrt((box.w * box.h) / (Math.max(quote.length, 1) * 0.62));
+  return Math.round(Math.min(box.max, Math.max(box.min, fit)));
+}
+
+/**
+ * Typesetting, not editing: the words and punctuation stay exactly as
+ * written, only the glyphs change to what a printer would set.
+ *   - Straight quotes become curly ones. The markdown is typed with
+ *     straight marks, which read as feet-and-inches at poster size.
+ *   - Three dots become the ellipsis glyph. Satori swallows the space
+ *     after a "..." run (it set "me... He" as "me...He").
+ *   - The last two words are tied with a no-break space, so the card
+ *     never ends on one orphaned word.
+ */
+function typesetQuote(quote: string): string {
+  return quote
+    .replace(/\.\.\./g, "…")
+    .replace(/(^|[\s(—–-])"/g, "$1“")
+    .replace(/"/g, "”")
+    .replace(/(^|[\s(—–-])'/g, "$1‘")
+    .replace(/'/g, "’")
+    .replace(/\s+(\S+)$/, " $1");
+}
+
+export async function generateQuoteCard({
+  quote,
+  title,
+  format,
+}: {
+  quote: string;
+  title: string;
+  format: QuoteCardFormat;
+}): Promise<ImageResponse> {
+  const size = QUOTE_CARD_SIZE[format];
+  const portrait = format === "portrait";
+  const fontSize = quoteFontSize(quote, format);
+  const set = typesetQuote(quote);
+
+  const [cormorant700, cormorantItalic, sourceSerifItalic] = await Promise.all([
+    loadFont("cormorant-garamond-700.ttf"),
+    loadFont("cormorant-garamond-500-italic.ttf"),
+    loadFont("source-serif-4-italic.ttf"),
+  ]);
+
+  const fonts: NonNullable<
+    ConstructorParameters<typeof ImageResponse>[1]
+  >["fonts"] = [];
+  if (cormorant700) {
+    fonts.push({
+      name: "Cormorant Garamond",
+      data: cormorant700,
+      weight: 700,
+      style: "normal",
+    });
+  }
+  if (cormorantItalic) {
+    fonts.push({
+      name: "Cormorant Garamond",
+      data: cormorantItalic,
+      weight: 500,
+      style: "italic",
+    });
+  }
+  if (sourceSerifItalic) {
+    fonts.push({
+      name: "Source Serif",
+      data: sourceSerifItalic,
+      weight: 400,
+      style: "italic",
+    });
+  }
+
+  const pad = portrait ? 104 : 96;
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: `${size.width}px`,
+          height: `${size.height}px`,
+          background: "#f5efe1",
+          display: "flex",
+          fontFamily: "Cormorant Garamond, serif",
+          position: "relative",
+        }}
+      >
+        {/* Hairline frame, inset like a plate in a printed book. */}
+        <div
+          style={{
+            position: "absolute",
+            top: 28,
+            left: 28,
+            right: 28,
+            bottom: 28,
+            border: "1px solid #d8cfb8",
+            display: "flex",
+          }}
+        />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            position: "absolute",
+            top: portrait ? 120 : 76,
+            left: pad,
+            right: pad,
+            bottom: portrait ? 112 : 72,
+            justifyContent: "space-between",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flexGrow: 1,
+              justifyContent: "center",
+            }}
+          >
+            {/* The open-quote mark in the eye gold: the one saturated
+                color in the system, used once. */}
+            <div
+              style={{
+                color: "#b8a82c",
+                fontSize: portrait ? 200 : 150,
+                fontWeight: 700,
+                lineHeight: 1,
+                height: portrait ? 104 : 74,
+                marginLeft: -6,
+                display: "flex",
+              }}
+            >
+              {"“"}
+            </div>
+            <div
+              style={{
+                color: "#1a1714",
+                fontSize,
+                fontStyle: "italic",
+                fontWeight: 500,
+                lineHeight: 1.16,
+                letterSpacing: "-0.005em",
+                textWrap: "balance",
+                display: "flex",
+              }}
+            >
+              {set}
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              marginTop: portrait ? 56 : 32,
+            }}
+          >
+            {/* The same short olive rule the site's quote attributions use. */}
+            <div
+              style={{
+                width: 64,
+                height: 2,
+                background: "#8a7d20",
+                marginBottom: portrait ? 28 : 20,
+                display: "flex",
+              }}
+            />
+            <div
+              style={{
+                display: "flex",
+                flexDirection: portrait ? "column" : "row",
+                justifyContent: "space-between",
+                alignItems: portrait ? "flex-start" : "flex-end",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <div
+                  style={{
+                    color: "#8a7d20",
+                    fontSize: portrait ? 24 : 19,
+                    letterSpacing: "0.28em",
+                    textTransform: "uppercase",
+                    fontWeight: 700,
+                    marginBottom: portrait ? 12 : 8,
+                  }}
+                >
+                  Clay · Stop Being Prey
+                </div>
+                <div
+                  style={{
+                    color: "#5c544c",
+                    fontSize: portrait ? 30 : 23,
+                    fontStyle: "italic",
+                    fontFamily: "Source Serif, Cormorant Garamond, serif",
+                    fontWeight: 400,
+                    maxWidth: portrait ? 860 : 760,
+                    display: "-webkit-box",
+                    WebkitBoxOrient: "vertical",
+                    WebkitLineClamp: 1,
+                    overflow: "hidden",
+                  }}
+                >
+                  {title}
+                </div>
+              </div>
+              <div
+                style={{
+                  color: "#8a8077",
+                  fontSize: portrait ? 20 : 16,
+                  letterSpacing: "0.24em",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                  marginTop: portrait ? 40 : 0,
+                }}
+              >
+                stopbeingprey.com
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      ...size,
       fonts: fonts.length > 0 ? fonts : undefined,
     }
   );

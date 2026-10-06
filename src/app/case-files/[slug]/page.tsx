@@ -69,7 +69,11 @@ export async function generateMetadata({
           type: "article",
           authors: ["Clay"],
           url: `/case-files/${cf.slug}`,
-          images: cf.screenshot ? [cf.screenshot.src] : undefined,
+          // No `images`: the share card is opengraph-image.tsx beside
+          // this page (title, one-shot, rules on the dark chassis). It
+          // used to be the raw exchange screenshot, which file-based
+          // metadata now overrides anyway; dropping it here keeps the
+          // config honest about what actually ships.
         }
       : undefined,
     twitter: cf.publicPreview
@@ -78,7 +82,6 @@ export async function generateMetadata({
           title: cf.title,
           description: cf.situation[0] ?? cf.move[0] ?? "",
           creator: "@stopbeingprey",
-          images: cf.screenshot ? [cf.screenshot.src] : undefined,
         }
       : undefined,
   };
