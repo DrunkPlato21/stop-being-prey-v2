@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import type { NextRequest } from "next/server";
+import { alertAdmin } from "@/lib/alert";
 import {
   createEntry,
   formatAttribution,
@@ -220,7 +221,7 @@ async function resolveDeclineDetails(
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handle(request: NextRequest) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret || !process.env.STRIPE_SECRET_KEY) {
     return new Response("Stripe webhook is not configured.", { status: 500 });
@@ -1526,4 +1527,41 @@ async function handleCaseReviewCheckout(
   });
 
   return new Response("ok", { status: 200 });
+}
+
+// Any 5xx or throw means Stripe will keep retrying a payment we failed
+// to record (a member who paid and got no seat, a gift with no
+// invitation). Email Clay once per distinct failure; Stripe's retries
+// of the same event hit the dedupe and stay quiet.
+export async function POST(request: NextRequest) {
+  try {
+    const res = await handle(request);
+    if (res.status >= 500) {
+      const body = await res.clone().text().catch(() => "");
+      await alertAdmin({
+        subject: `Stripe webhook failed (${res.status}): ${body.slice(0, 80)}`,
+        lines: [
+          `The Stripe webhook answered ${res.status}: ${body}`,
+          ``,
+          `Stripe will retry. Check Stripe > Developers > Webhooks for the`,
+          `failing event, and Vercel logs for the [billing]/[gift]/[pool] line.`,
+        ],
+        dedupeKey: `stripe-webhook:${res.status}:${body.slice(0, 80)}`,
+      });
+    }
+    return res;
+  } catch (err) {
+    const message = err instanceof Error ? err.stack ?? err.message : String(err);
+    console.error("[webhook] threw:", err);
+    await alertAdmin({
+      subject: "Stripe webhook crashed",
+      lines: [
+        `The Stripe webhook threw while handling an event. Stripe will retry.`,
+        ``,
+        message,
+      ],
+      dedupeKey: `stripe-webhook:throw:${message.slice(0, 80)}`,
+    });
+    return new Response("webhook handler failed", { status: 500 });
+  }
 }

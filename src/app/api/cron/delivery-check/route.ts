@@ -5,6 +5,7 @@ import {
   claimDeliveryId,
   recordSignInFailure,
 } from "@/lib/signin-failures";
+import { alertAdmin, withCronAlert } from "@/lib/alert";
 
 // GET /api/cron/delivery-check  (daily, vercel.json)
 //
@@ -42,7 +43,7 @@ type ResendListItem = {
   last_event: string;
 };
 
-export async function GET(req: NextRequest) {
+async function handler(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
     return new Response("CRON_SECRET is not configured.", { status: 500 });
@@ -63,6 +64,9 @@ export async function GET(req: NextRequest) {
   let after: string | null = null;
   let scanned = 0;
   let logged = 0;
+  // Members (any status) whose mail just stopped landing. These are the
+  // ones who quietly stop getting sign-in links and the digest.
+  const memberMisses: string[] = [];
 
   for (let page = 0; page < MAX_PAGES; page++) {
     const url = new URL("https://api.resend.com/emails");
@@ -74,6 +78,14 @@ export async function GET(req: NextRequest) {
     });
     if (!res.ok) {
       console.error(`[cron/delivery-check] Resend list ${res.status}`);
+      await alertAdmin({
+        subject: `Delivery check could not read Resend (${res.status})`,
+        lines: [
+          `The daily delivery check got HTTP ${res.status} listing sends from Resend,`,
+          `so bounced and suppressed mail went unchecked this run.`,
+        ],
+        dedupeKey: "delivery-check:resend-list",
+      });
       break;
     }
     const body = (await res.json()) as {
@@ -108,11 +120,28 @@ export async function GET(req: NextRequest) {
           (member ? `, ${member.status} member` : ", not a member"),
       });
       logged++;
+      if (member) {
+        memberMisses.push(`${to} (${member.status}): ${e.last_event}, "${e.subject}"`);
+      }
     }
 
     if (reachedCutoff || !body.has_more || body.data.length === 0) break;
     after = body.data[body.data.length - 1].id;
   }
 
+  if (memberMisses.length) {
+    await alertAdmin({
+      subject: `${memberMisses.length} member email(s) undeliverable`,
+      lines: [
+        `Resend could not deliver to these members. They may be missing`,
+        `sign-in links and the digest. Details at /admin/sign-in-links.`,
+        ``,
+        ...memberMisses,
+      ],
+    });
+  }
+
   return Response.json({ ok: true, days, scanned, logged });
 }
+
+export const GET = withCronAlert("delivery-check", handler);

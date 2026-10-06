@@ -13,6 +13,7 @@ import { isAdmin } from "@/lib/comments";
 import { signDigestToken } from "@/lib/auth";
 import { baseUrl } from "@/lib/membership";
 import { sendWeeklyDigestEmail } from "@/lib/email";
+import { alertAdmin, withCronAlert } from "@/lib/alert";
 
 // GET /api/cron/weekly-digest
 // Sunday sweep (vercel.json cron): assemble one digest payload, send it
@@ -54,7 +55,7 @@ const RETRY_BACKOFF_MS = [3000, 8000];
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function GET(req: NextRequest) {
+async function handler(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
     return new Response("CRON_SECRET is not configured.", { status: 500 });
@@ -157,5 +158,26 @@ export async function GET(req: NextRequest) {
   };
   await finishWeeklyRun(run);
 
+  // A run that missed anyone, or found nobody to send to, is a failure:
+  // email Clay and answer 500 so Vercel's cron view shows red. The week
+  // is already claimed, so the 500 can't trigger a second blast.
+  if (failed || recipients.length === 0) {
+    await alertAdmin({
+      subject: failed
+        ? `Digest missed ${failed} of ${recipients.length} members`
+        : "Digest found no members to send to",
+      lines: [
+        `Week ${weekKey}: sent ${sent}, failed ${failed}, opted out ${unsubSkipped}.`,
+        ``,
+        ...pending.map((email) => `${email}: ${lastError.get(email)}`),
+        ``,
+        `Resend the missed copies with scripts/resend-digest-copy.mjs.`,
+      ],
+    });
+    return Response.json({ ok: false, ...run }, { status: 500 });
+  }
+
   return Response.json({ ok: true, ...run });
 }
+
+export const GET = withCronAlert("weekly-digest", handler);

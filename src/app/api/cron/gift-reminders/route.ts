@@ -24,6 +24,7 @@ import {
   sendPoolExpiryReminderEmail,
 } from "@/lib/email";
 import { createNotification } from "@/lib/notifications";
+import { withCronAlert } from "@/lib/alert";
 
 // GET /api/cron/gift-reminders
 // Daily sweep over gifts (vercel.json cron), three jobs:
@@ -49,7 +50,7 @@ import { createNotification } from "@/lib/notifications";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+async function handler(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
     return new Response("CRON_SECRET is not configured.", { status: 500 });
@@ -326,3 +327,5 @@ export async function GET(req: NextRequest) {
     confirmExpired,
   });
 }
+
+export const GET = withCronAlert("gift-reminders", handler);
