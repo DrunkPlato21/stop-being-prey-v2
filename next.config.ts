@@ -23,10 +23,6 @@ const nextConfig: NextConfig = {
     // cards always render in the right type (never a sans-serif fallback).
     "/[slug]/opengraph-image": ["assets/**/*"],
     "/[slug]/twitter-image": ["assets/**/*"],
-    // The quote card renders on demand (the line is a query param), and
-    // checks the line against the essay's markdown, so it needs both
-    // the fonts and the articles in its bundle.
-    "/[slug]/q": ["assets/**/*", "content/articles/**/*"],
     // Case file cards read the case file's frontmatter via fs as well
     // as the fonts. Opt both in so a card for a file that isn't
     // prerendered still finds its content in production.
