@@ -111,7 +111,7 @@ export function SignTheWall() {
   const buttonLabel = loading
     ? "Redirecting…"
     : leavingMark
-      ? `Sign the wall — ${buttonAmount}`
+      ? `Sign the wall · ${buttonAmount}`
       : `Send ${buttonAmount}`;
 
   return (

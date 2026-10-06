@@ -203,6 +203,7 @@ export function RedeemSeat({
             onChange={(e) => setForwardEmail(e.target.value)}
             disabled={forwardBusy}
             placeholder="their email address"
+            aria-label="Their email address"
             className="flex-1 bg-paper px-4 py-4 text-ink placeholder:text-ink-faint focus:outline-none focus:bg-surface transition-colors font-serif text-base disabled:opacity-60"
           />
           <button

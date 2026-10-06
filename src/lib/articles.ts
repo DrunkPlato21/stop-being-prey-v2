@@ -267,6 +267,29 @@ export function getDispatches(): ArticleMeta[] {
  * alike. Adds rel="noopener noreferrer" — the security + perf hygiene that
  * target="_blank" requires.
  */
+/**
+ * Give every bare <h2> a stable id from its text ("Act 3" -> "act-3")
+ * so a section can be linked to directly (/the-massie-problem#act-3),
+ * and a contents list can be built on top later. Invisible on the page.
+ * A repeated heading gets "-2", "-3" so ids stay unique.
+ */
+function headingAnchors(htmlStr: string): string {
+  const seen = new Map<string, number>();
+  return htmlStr.replace(/<h2>([\s\S]*?)<\/h2>/g, (full, inner: string) => {
+    const base = inner
+      .replace(/<[^>]+>/g, "")
+      .replace(/&[a-z#0-9]+;/gi, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (!base) return full;
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    const id = n === 1 ? base : `${base}-${n}`;
+    return `<h2 id="${id}">${inner}</h2>`;
+  });
+}
+
 function externalLinksInNewTab(htmlStr: string): string {
   return htmlStr.replace(
     /<a href="(https?:\/\/[^"]+)">/gi,
@@ -302,7 +325,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
         uniformPanelQuotes: data.uniformQuotes === true,
       })
     : null;
-  const contentHtml = externalLinksInNewTab(
+  const contentHtml = headingAnchors(externalLinksInNewTab(
     essayHtml === null
       ? applyLeadIncipit(applySeriesToken(rawContentHtml))
       : data.leadIncipit === true
@@ -310,7 +333,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
         : typeof data.leadIncipit === "number"
           ? applyLeadIncipit(essayHtml, { words: data.leadIncipit })
           : essayHtml
-  );
+  ));
 
   let postscriptHtml: string | null = null;
   if (typeof data.postscript === "string" && data.postscript.trim().length > 0) {

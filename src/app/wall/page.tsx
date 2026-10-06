@@ -73,7 +73,7 @@ export default async function WallPage() {
           </p>
           <div className="mt-9 fade-up stagger-4">
             <Link href="#sign" className="btn-primary">
-              <span>Sign the wall — $1</span>
+              <span>Sign the wall · $1</span>
             </Link>
           </div>
         </div>

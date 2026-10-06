@@ -88,7 +88,8 @@ body {
    it. Applies to lounge posts/replies and any other anchored
    content with an id. */
 [id^="post-"],
-[id^="reply-"] {
+[id^="reply-"],
+.prose-article h2[id] {
   scroll-margin-top: 5rem;
 }
 

@@ -82,6 +82,8 @@ export function EmailSignup({
           onChange={(e) => setEmail(e.target.value)}
           disabled={status === "loading"}
           placeholder="your email address"
+          aria-label="Your email address"
+          autoComplete="email"
           className="flex-1 min-w-0 bg-paper px-4 py-4 text-ink placeholder:text-ink-faint focus:outline-none focus:bg-surface transition-colors font-serif text-base disabled:opacity-60 border-0"
         />
         <button
