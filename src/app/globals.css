@@ -8,14 +8,19 @@
   --ink: #1a1714;
   --ink-soft: #3d3530;
   --ink-muted: #5c544c;
-  --ink-faint: #8a8077;
+  /* Darkened a shade (was #8a8077, 3.4:1 on paper) to clear the 4.5:1
+     small-text contrast floor: bylines and read times are 11-12px. */
+  --ink-faint: #72695f;
   --rule: #d8cfb8;
   --border: #c9bfa3;
 
   /* The cat's eyes --the only saturated color in the system */
   --eye: #b8a82c;
   --eye-bright: #d4c44a;
-  --eye-deep: #8a7d20;
+  /* Darkened a shade (was #8a7d20, 3.6:1) for the same reason: the
+     small-caps kickers and dates that use it are 11px. Decorative rgba
+     tints of the old gold elsewhere are left as they were. */
+  --eye-deep: #766a1a;
   --eye-glow: rgba(184, 168, 44, 0.35);
 
   /* Oxblood --the reading-progress bar. Deep, warm, on-theme for the
