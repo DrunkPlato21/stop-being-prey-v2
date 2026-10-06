@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { limitByIp } from "@/lib/rate-limit";
 import { applyBookNotifyTag } from "@/lib/kit";
 
 // POST /api/book/notify  body: { email: string }
@@ -11,6 +12,9 @@ export const runtime = "nodejs";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
+  const limited = await limitByIp(req.headers, "book-notify", 10, 3600);
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await req.json();

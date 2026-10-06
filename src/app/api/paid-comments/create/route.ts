@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { limitByIp } from "@/lib/rate-limit";
 import {
   attachPaidCommentCheckout,
   createPaidCommentDraft,
@@ -51,6 +52,9 @@ function pieceTitle(
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await limitByIp(req.headers, "paid-comment", 10, 3600);
+  if (limited) return limited;
+
   let payload: unknown;
   try {
     payload = await req.json();

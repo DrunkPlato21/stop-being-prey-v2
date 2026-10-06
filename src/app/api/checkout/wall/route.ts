@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import type { NextRequest } from "next/server";
+import { limitByIp } from "@/lib/rate-limit";
 import { getWallBySlug } from "@/lib/walls";
 
 // Lazy init: constructing Stripe at module load throws when the key is
@@ -22,6 +23,9 @@ const NAME_MAX = 80;
 const NOTE_MAX = 280;
 
 export async function POST(request: NextRequest) {
+  const limited = await limitByIp(request.headers, "checkout-wall", 20, 3600);
+  if (limited) return limited;
+
   if (!process.env.STRIPE_SECRET_KEY) {
     return Response.json(
       { error: "Stripe is not configured." },

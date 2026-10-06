@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { limitByIp } from "@/lib/rate-limit";
 import {
   createMembershipCheckoutSession,
   type MembershipPlan,
@@ -16,6 +17,9 @@ import { asTrackChannel, asTrackSource, recordEvent } from "@/lib/analytics";
 // reject obviously-bad amounts before we hit Stripe.
 
 export async function POST(req: NextRequest) {
+  const limited = await limitByIp(req.headers, "membership-checkout", 20, 3600);
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await req.json();

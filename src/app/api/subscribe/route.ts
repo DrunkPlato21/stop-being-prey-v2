@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { limitByIp } from "@/lib/rate-limit";
 import { subscribeToList } from "@/lib/kit";
 import { emailProblem, normalizeEmail } from "@/lib/email-guard";
 
@@ -9,6 +10,9 @@ import { emailProblem, normalizeEmail } from "@/lib/email-guard";
 // one code path and one form ID.
 
 export async function POST(request: NextRequest) {
+  const limited = await limitByIp(request.headers, "subscribe", 10, 3600);
+  if (limited) return limited;
+
   if (!process.env.KIT_API_KEY) {
     console.error("[subscribe] KIT_API_KEY is not set");
     return Response.json(

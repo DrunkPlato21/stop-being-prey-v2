@@ -66,3 +66,28 @@ export function clientIp(headers: Headers): string {
   if (real) return real.trim();
   return "unknown";
 }
+
+/**
+ * Per-IP guard for public POST routes: returns a ready 429 when the
+ * caller's IP is over `limit` hits in the window, else null. One line
+ * at the top of a handler:
+ *   const limited = await limitByIp(req.headers, "subscribe", 10, 3600);
+ *   if (limited) return limited;
+ */
+export async function limitByIp(
+  headers: Headers,
+  bucket: string,
+  limit: number,
+  windowSeconds: number
+): Promise<Response | null> {
+  const result = await rateLimit(
+    `rl:${bucket}:ip:${clientIp(headers)}`,
+    limit,
+    windowSeconds
+  ).catch(() => ({ ok: true, retryAfterSeconds: 0 }));
+  if (result.ok) return null;
+  return new Response("Too many requests. Try again later.", {
+    status: 429,
+    headers: { "Retry-After": String(result.retryAfterSeconds) },
+  });
+}

@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import type { NextRequest } from "next/server";
+import { limitByIp } from "@/lib/rate-limit";
 
 // Lazy init: constructing Stripe at module load throws when the key is
 // absent (e.g. during the build's page-data collection), so defer it.
@@ -18,6 +19,9 @@ const baseUrl = (
 ).replace(/\/$/, "");
 
 export async function POST(request: NextRequest) {
+  const limited = await limitByIp(request.headers, "checkout-donate", 20, 3600);
+  if (limited) return limited;
+
   if (!process.env.STRIPE_SECRET_KEY) {
     return Response.json(
       { error: "Stripe is not configured." },
