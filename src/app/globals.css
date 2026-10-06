@@ -4198,6 +4198,30 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   }
 }
 
+/* Invisible tap area. The nav caps render ~14px tall, a third of the
+   44px a thumb needs. An absolutely placed ::after grows the hit box
+   without moving a pixel of the type. Horizontal reach stays inside the
+   gap so neighbours never overlap. */
+.header-nav-link,
+.share-link {
+  position: relative;
+}
+.header-nav-link::after,
+.share-link::after {
+  content: "";
+  position: absolute;
+  inset: -15px -6px;
+}
+/* The share row sits under later-painted siblings, so it needs its own
+   layer for the tap area to register. Vertical reach stops short of the
+   row gap so the 2x2 grid on phones never overlaps. */
+.share-link {
+  z-index: 1;
+}
+.share-link::after {
+  inset: -5px -6px;
+}
+
 .header-nav-sep {
   color: var(--rule);
   font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
