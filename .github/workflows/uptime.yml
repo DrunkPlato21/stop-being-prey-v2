@@ -1,0 +1,48 @@
+# Uptime check for stopbeingprey.com. Every 15 minutes GitHub requests a
+# few pages; if any still fails after a retry, the run fails and GitHub
+# emails the account that last edited this file (Clay's). Free on a
+# public repo, no outside service.
+#
+# What each URL proves:
+#   /                   the CDN and the static site are up
+#   /the-massie-problem a prerendered essay serves
+#   /api/chrome         server functions run AND Redis answers (read-only)
+#   /feed.xml           the RSS feed builds
+#
+# GitHub may start scheduled runs a few minutes late. It also pauses
+# schedules on a repo with no commits for 60 days; any push re-arms it.
+
+name: uptime
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check the site
+        run: |
+          fail=0
+          for path in / /the-massie-problem /api/chrome /feed.xml; do
+            url="https://stopbeingprey.com$path"
+            ok=""
+            for attempt in 1 2; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$url" || echo 000)
+              if [ "$code" = "200" ]; then ok=1; break; fi
+              echo "$url answered $code (attempt $attempt)"
+              sleep 30
+            done
+            if [ -z "$ok" ]; then
+              echo "::error::$url is down (last answer $code)"
+              fail=1
+            else
+              echo "$url ok"
+            fi
+          done
+          exit $fail
