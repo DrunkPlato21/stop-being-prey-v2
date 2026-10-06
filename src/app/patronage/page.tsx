@@ -1,3 +1,4 @@
+import { canonicalFor } from "@/lib/seo";
 import { PatronageLanding } from "@/components/PatronageLanding";
 import type { Metadata } from "next";
 
@@ -17,8 +18,14 @@ export const metadata: Metadata = {
     "Back the writing. Set your own rate, monthly or annual, and keep me at the desk.",
   // Self-referencing canonical. This is the target the other two routes
   // point at, so it has to be indexable: no robots block here.
-  alternates: {
-    canonical: "/patronage",
+  alternates: canonicalFor("/patronage"),
+  openGraph: {
+    title: "Patronage · Stop Being Prey",
+    description:
+      "Back the writing. Set your own rate, monthly or annual, and keep me at the desk.",
+    url: "/patronage",
+    siteName: "Stop Being Prey",
+    type: "website",
   },
 };
 

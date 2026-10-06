@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Source_Serif_4 } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
@@ -25,6 +25,12 @@ const sourceSerif = Source_Serif_4({
   style: ["normal", "italic"],
 });
 
+// Paper cream, so the mobile browser bar matches the page instead of
+// flashing white or grey above it.
+export const viewport: Viewport = {
+  themeColor: "#f5efe1",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://stopbeingprey.com"),
   title: {
@@ -36,6 +42,10 @@ export const metadata: Metadata = {
   authors: [{ name: "Clay" }],
   creator: "Clay",
   // Auto-discovery for RSS readers (<link rel="alternate" ...>).
+  // No og:url here: a child page without its own openGraph inherits this
+  // block verbatim, and a root url made /writing, case files and the
+  // arena all claim to be the homepage when shared. Pages set their own
+  // canonical + og:url instead (src/lib/seo.ts).
   alternates: {
     types: { "application/rss+xml": "/feed.xml" },
   },
@@ -43,7 +53,6 @@ export const metadata: Metadata = {
     title: "Stop Being Prey",
     description:
       "Politics, power, and predator/prey dynamics in 2026. Original writing and audio by Clay.",
-    url: "https://stopbeingprey.com",
     siteName: "Stop Being Prey",
     type: "website",
     locale: "en_US",

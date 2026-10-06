@@ -1,3 +1,4 @@
+import { canonicalFor } from "@/lib/seo";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { listVisible } from "@/lib/supporters";
@@ -13,7 +14,9 @@ const WALL_DESCRIPTION =
 export const metadata: Metadata = {
   title: "The Wall",
   description: WALL_DESCRIPTION,
+  alternates: canonicalFor("/wall"),
   openGraph: {
+    url: "/wall",
     title: "The Wall · Stop Being Prey",
     description: WALL_DESCRIPTION,
     type: "website",

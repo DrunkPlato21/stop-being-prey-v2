@@ -1,3 +1,4 @@
+import { canonicalFor } from "@/lib/seo";
 import Link from "next/link";
 import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
 import { EyeDivider } from "@/components/Eyes";
@@ -17,7 +18,9 @@ const ABOUT_DESCRIPTION =
 export const metadata: Metadata = {
   title: "About",
   description: ABOUT_DESCRIPTION,
+  alternates: canonicalFor("/about"),
   openGraph: {
+    url: "/about",
     title: "About · Stop Being Prey",
     description: ABOUT_DESCRIPTION,
     type: "website",

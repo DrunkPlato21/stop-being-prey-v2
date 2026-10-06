@@ -1,4 +1,6 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { canonicalFor } from "@/lib/seo";
 import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
 import { AudioPill } from "@/components/AudioPill";
 import {
@@ -9,6 +11,19 @@ import {
 } from "@/lib/articles";
 import { RULE_ROMAN, RULE_SHORT_LABEL } from "@/lib/case-files";
 import { testimonialsFor } from "@/lib/testimonials";
+
+export const metadata: Metadata = {
+  alternates: canonicalFor("/"),
+  openGraph: {
+    title: "Stop Being Prey",
+    description:
+      "Politics, power, and predator/prey dynamics in 2026. Original writing and audio by Clay.",
+    url: "/",
+    siteName: "Stop Being Prey",
+    type: "website",
+    locale: "en_US",
+  },
+};
 
 // Writing-forward homepage. The doctrine hooks; the writing is the
 // centerpiece (it's the product the free email delivers); the seven-rule

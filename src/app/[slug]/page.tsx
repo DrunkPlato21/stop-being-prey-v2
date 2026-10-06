@@ -75,6 +75,7 @@ export async function generateMetadata({
       title: article.title,
       description: article.description,
       type: "article",
+      url: `/${slug}`,
       publishedTime: article.date,
       authors: ["Clay"],
     },
@@ -203,12 +204,17 @@ export default async function ArticlePage({
       "@type": "Organization",
       name: "Stop Being Prey",
       url: "https://stopbeingprey.com",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://stopbeingprey.com/icon.png",
+      },
     },
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": `https://stopbeingprey.com/${article.slug}`,
     },
-    image: "https://stopbeingprey.com/opengraph-image.jpg",
+    // The essay's own share card, not the site-wide one.
+    image: `https://stopbeingprey.com/${article.slug}/opengraph-image/default`,
     ...(article.wordCount ? { wordCount: article.wordCount } : {}),
   };
 

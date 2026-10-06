@@ -1,3 +1,4 @@
+import { canonicalFor } from "@/lib/seo";
 import { Fragment } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -45,7 +46,9 @@ const RULES_DESCRIPTION =
 export const metadata: Metadata = {
   title: "Rules of Engagement",
   description: RULES_DESCRIPTION,
+  alternates: canonicalFor("/rules"),
   openGraph: {
+    url: "/rules",
     title: "Rules of Engagement · Stop Being Prey",
     description: RULES_DESCRIPTION,
     type: "website",

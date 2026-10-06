@@ -1,3 +1,4 @@
+import { canonicalFor } from "@/lib/seo";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getCornerstones, readingMinutes } from "@/lib/articles";
@@ -14,6 +15,15 @@ export const metadata: Metadata = {
   title: "Writing",
   description:
     "The writing of Stop Being Prey. Major essays and dispatches on power, politics, and the apex class by Clay.",
+  alternates: canonicalFor("/writing"),
+  openGraph: {
+    title: "Writing · Stop Being Prey",
+    description:
+      "Major essays and dispatches on power, politics, and the apex class by Clay.",
+    url: "/writing",
+    siteName: "Stop Being Prey",
+    type: "website",
+  },
 };
 
 // The founding pieces are JSX pages under /founding, not articles. Their
