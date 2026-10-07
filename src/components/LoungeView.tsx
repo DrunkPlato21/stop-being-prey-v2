@@ -3064,6 +3064,11 @@ function ReplyRow({
   const canEditOwn = isMine && (edit.isAdmin || withinEditWindow);
   const canSelfDelete = isMine && !edit.isAdmin && withinEditWindow;
   const isEditing = edit.editingId === reply.id;
+  // Replies don't store a YouTube embed (only posts do), so derive one at
+  // render time from the first link in the body. An attached image wins,
+  // same as on posts. The link is hidden once the player shows.
+  const replyYouTubeId = reply.media ? null : extractYouTubeId(reply.body);
+  const replyBody = replyYouTubeId ? stripYouTubeUrls(reply.body) : reply.body;
   return (
     <li
       id={`reply-${reply.id}`}
@@ -3143,15 +3148,20 @@ function ReplyRow({
         <EditBox edit={edit} cap={isAdmin ? MAX_BODY_ADMIN : MAX_BODY} />
       ) : (
         <>
-          {reply.body && (
+          {replyBody && (
             <p
               className="font-serif text-ink leading-relaxed whitespace-pre-wrap"
               style={{ fontSize: "0.95rem" }}
             >
-              <Linkified text={reply.body} highlightMentions />
+              <Linkified text={replyBody} highlightMentions />
             </p>
           )}
           {reply.media && <LoungeMedia media={reply.media} />}
+          {replyYouTubeId && (
+            <div className="lounge-reply-media">
+              <LoungeMedia media={{ type: "youtube", videoId: replyYouTubeId }} />
+            </div>
+          )}
         </>
       )}
       {/* Editor's stamp below the reply body. Out of the header so it

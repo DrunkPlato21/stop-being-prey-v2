@@ -5702,6 +5702,10 @@ body[data-theme="admin-desk-dark"] .admin-desk-theme-toggle-icons .moon-icon {
   height: 100%;
   border: 0;
 }
+/* A YouTube link in a reply plays inline, a size down from a post's. */
+.lounge-reply-media {
+  max-width: 22rem;
+}
 
 
 /* === Comments: finding your own comment ==========================
