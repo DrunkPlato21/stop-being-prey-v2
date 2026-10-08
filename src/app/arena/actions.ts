@@ -29,6 +29,8 @@ import {
 } from "@/lib/arena";
 import { announceBoutOpened, announceCaseFiled } from "@/lib/arena-notify";
 import { setArenaSubscribed, setBoutFollow } from "@/lib/arena-watch";
+import { listActiveMemberEmails } from "@/lib/members";
+import { withdrawNotificationsByLink } from "@/lib/notifications";
 
 // Server Actions for the Arena. Same discipline as the Guild's: every
 // action re-verifies the session in the body, because actions are
@@ -266,6 +268,10 @@ export async function deleteBoutAction(formData: FormData): Promise<void> {
     // /assets ship with the repo and belong to the old archive.
     if (url.startsWith("https://")) await del(url).catch(() => null);
   }
+  // Pull the "Fresh on the slab" bell (and any other bell) that pointed
+  // at this bout, so nobody clicks through to a dead case.
+  const emails = await listActiveMemberEmails().catch(() => [] as string[]);
+  await withdrawNotificationsByLink(emails, result.hrefs).catch(() => 0);
   refreshBout(boutId);
   redirect("/arena");
 }

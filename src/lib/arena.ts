@@ -750,7 +750,7 @@ export async function updateBoutStamp(
  */
 export async function deleteBout(
   id: string
-): Promise<{ imageUrls: string[] } | null> {
+): Promise<{ imageUrls: string[]; hrefs: string[] } | null> {
   const client = getClient();
   const bout = await getBout(id);
   if (!client || !bout) return null;
@@ -781,6 +781,12 @@ export async function deleteBout(
   }
 
   const slugs = await client.smembers(boutSlugsKey(id)).catch(() => []);
+  // Every address the bout was ever announced under (raw id before its
+  // slug was minted, then each slug), so the caller can pull the bell
+  // entries that still point at it.
+  const hrefs = [id, ...slugs, bout.slug]
+    .filter(Boolean)
+    .map((s) => `/arena/${s}`);
   for (const slug of [...slugs, bout.slug].filter(Boolean) as string[]) {
     const owner = await client.get<string>(slugKey(slug));
     if (owner === id) await client.del(slugKey(slug));
@@ -796,7 +802,7 @@ export async function deleteBout(
 
   await client.zrem(BOUTS_INDEX, id);
   await client.del(`${BOUT_PREFIX}${id}`);
-  return { imageUrls };
+  return { imageUrls, hrefs: [...new Set(hrefs)] };
 }
 
 /** Reopen keeps the case-file stamp; only the status changes. The

@@ -409,6 +409,52 @@ async function pruneExpired(
 }
 
 /**
+ * Withdraw every notification that links to one of `hrefs` (or a sub-path,
+ * query or hash of one). Used when the thing a bell pointed at is deleted,
+ * so members don't click through to a 404. Records are dropped outright;
+ * pruneExpired then sweeps the index and recounts the unread badge.
+ */
+export async function withdrawNotificationsByLink(
+  emails: string[],
+  hrefs: string[]
+): Promise<number> {
+  const client = getClient();
+  if (!client || hrefs.length === 0) return 0;
+  const matches = (url: string) =>
+    hrefs.some(
+      (h) =>
+        url === h ||
+        url.startsWith(`${h}?`) ||
+        url.startsWith(`${h}#`) ||
+        url.startsWith(`${h}/`)
+    );
+  let withdrawn = 0;
+  for (const e of emails) {
+    const email = normEmail(e);
+    if (!email) continue;
+    const ids = ((await client
+      .zrange(`${MEMBER_SET_PREFIX}${email}`, 0, -1)
+      .catch(() => [] as unknown[])) as unknown[]).filter(
+      (id): id is string => typeof id === "string"
+    );
+    if (ids.length === 0) continue;
+    const records = await client
+      .mget<(string | null)[]>(...ids.map((id) => `${RECORD_PREFIX}${id}`))
+      .catch(() => null);
+    if (!Array.isArray(records) || records.length !== ids.length) continue;
+    const dead = ids.filter((_, i) => {
+      const r = parseRecord(records[i]);
+      return r ? matches(r.linkUrl) : false;
+    });
+    if (dead.length === 0) continue;
+    await client.del(...dead.map((id) => `${RECORD_PREFIX}${id}`));
+    await pruneExpired(email);
+    withdrawn += dead.length;
+  }
+  return withdrawn;
+}
+
+/**
  * Newest-first list of the member's notifications. Runs the prune
  * pass first so callers see a clean set.
  */
