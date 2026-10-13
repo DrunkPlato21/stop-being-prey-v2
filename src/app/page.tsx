@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { canonicalFor } from "@/lib/seo";
 import { DualSubscribeBlock } from "@/components/DualSubscribeBlock";
 import { AudioPill } from "@/components/AudioPill";
+import { HeroSignup } from "@/components/HeroSignup";
 import {
   getAllArticles,
   getCornerstones,
@@ -111,6 +112,7 @@ export default function Home() {
           <p className="font-serif italic text-ink-muted text-lg md:text-xl max-w-xl mx-auto leading-relaxed fade-up stagger-2">
             Original writing on power, politics, and the apex class.
           </p>
+          <HeroSignup />
         </div>
       </section>
 
