@@ -233,9 +233,13 @@ export default async function WallPage({
         {/* Pre-form context line — visible above the fold on mobile so
             the donor sees "what this wall is about" before the form. */}
         {wall.donateContext && wall.status === "active" && (
-          <p className="max-w-xl mx-auto text-sm md:text-base italic text-ink-muted leading-relaxed text-center mb-6 md:mb-8 px-2">
-            {wall.donateContext}
-          </p>
+          <div className="max-w-xl mx-auto text-sm md:text-base italic text-ink-muted leading-relaxed text-center mb-6 md:mb-8 px-2 flex flex-col gap-3">
+            {/* Blank lines in donate_context split into paragraphs, so a
+                quoted comment can sit on its own. */}
+            {wall.donateContext.split(/\n+/).map((para, i) => (
+              <p key={i}>{para}</p>
+            ))}
+          </div>
         )}
 
         {/* Donate form */}
