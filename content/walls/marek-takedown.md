@@ -2,6 +2,7 @@
 title: "The Marek Takedown"
 slug: "marek-takedown"
 status: "active"
+started_at: "2026-05-09"
 founding_window_ends_at: "2026-05-23"
 context: "Tied to the Marek takedown on the Charlie Kirk thread (May 9, 2026). The structural takedown of a four-claim narrative-laundering script."
 facebook_url: ""

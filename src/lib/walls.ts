@@ -92,8 +92,10 @@ function parseGoalTiers(data: Record<string, unknown>): number[] | undefined {
 }
 
 function parseMeta(slug: string, data: Record<string, unknown>): WallMeta {
-  const status =
-    data.status === "closed" ? "closed" : "active";
+  // Walls never close (Clay, Oct 14 2026): every wall stays open for
+  // donations forever and lives on /walls as a trophy. A leftover
+  // `status: "closed"` in frontmatter is ignored on purpose.
+  const status: WallStatus = "active";
   return {
     slug: typeof data.slug === "string" ? data.slug : slug,
     title: typeof data.title === "string" ? data.title : slug,
