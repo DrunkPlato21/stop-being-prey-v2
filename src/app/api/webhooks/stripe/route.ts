@@ -1414,6 +1414,10 @@ async function handleWallDonation(
       showAmount: metadata.show_amount === "true",
       anonymous: metadata.anonymous === "true",
       stripeSessionId: session.id,
+      // Paid notes go straight onto the wall (Clay, Oct 2026: he's never
+      // rejected one). A bad note can still be pulled via the admin
+      // donations route with action "reject".
+      status: "approved",
     });
     if (donation) {
       // Fire-and-forget the notification — failure to email shouldn't

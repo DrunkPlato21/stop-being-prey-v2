@@ -1237,13 +1237,12 @@ export async function notifyNewWallDonation(
   }
 
   const baseUrl = getBaseUrl();
-  const adminUrl = `${baseUrl}/admin/walls`;
   const amount = formatMoneyDollars(donation.amountCents);
   const who = wallDonationDisplayName(donation);
 
-  const subject = `Wall donation pending — ${amount} from ${who}`;
+  const subject = `New wall donation: ${amount} from ${who}`;
   const text = [
-    `New donation pending review on the "${wallTitle}" wall.`,
+    `New donation, already live on the "${wallTitle}" wall.`,
     ``,
     `Amount:    ${amount}`,
     `From:      ${who}${donation.anonymous ? " (anonymous)" : ""}`,
@@ -1252,7 +1251,7 @@ export async function notifyNewWallDonation(
     `Note:`,
     donation.note,
     ``,
-    `Review queue: ${adminUrl}`,
+    `Wall: ${baseUrl}/walls/${donation.wallSlug}`,
   ].join("\n");
 
   try {
