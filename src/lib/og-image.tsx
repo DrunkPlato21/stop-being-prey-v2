@@ -8,6 +8,7 @@ import {
   RULE_SHORT_LABEL,
 } from "@/lib/case-files";
 import { unstable_cache } from "next/cache";
+import { getWallBySlug } from "@/lib/walls";
 import { getPublicFloorCents } from "@/lib/membership";
 import { floorLabel } from "@/lib/pricing";
 
@@ -445,10 +446,43 @@ export async function generateAboutOG(): Promise<ImageResponse> {
  * Title mirrors the page's own headline ("Add your name.").
  */
 export async function generateWallOG(): Promise<ImageResponse> {
-  const eyebrow = "The Wall · Stop Being Prey";
-  const title = "Add your name.";
-  const deck =
-    "Stop Being Prey runs on readers, not ads or sponsors. Back it with a dollar and your name goes on the wall.";
+  return renderWallCard({
+    eyebrow: "The Wall · Stop Being Prey",
+    title: "Add your name.",
+    deck: "Stop Being Prey runs on readers, not ads or sponsors. Back it with a dollar and your name goes on the wall.",
+    footer: "stopbeingprey.com/wall",
+  });
+}
+
+/**
+ * Predator Wall card (/walls/[slug]): same chassis as /wall, carrying the
+ * wall's own title and pitch so a shared link shows who the wall is for.
+ */
+export async function generatePredatorWallOG(slug: string): Promise<ImageResponse> {
+  const wall = await getWallBySlug(slug);
+  if (!wall) return generateWallOG();
+  return renderWallCard({
+    eyebrow: "Predator Wall · Stop Being Prey",
+    title: wall.title,
+    deck: wall.donateSubtitle ?? wall.description ?? wall.intro,
+    footer: `stopbeingprey.com/walls/${wall.slug}`,
+    titleSize: wall.title.length > 18 ? 84 : 104,
+  });
+}
+
+async function renderWallCard({
+  eyebrow,
+  title,
+  deck,
+  footer,
+  titleSize = 104,
+}: {
+  eyebrow: string;
+  title: string;
+  deck: string;
+  footer: string;
+  titleSize?: number;
+}): Promise<ImageResponse> {
 
   const [cormorant700, sourceSerifItalic] = await Promise.all([
     loadFont("cormorant-garamond-700.ttf"),
@@ -515,7 +549,7 @@ export async function generateWallOG(): Promise<ImageResponse> {
             <div
               style={{
                 color: "#f5efe1",
-                fontSize: 104,
+                fontSize: titleSize,
                 fontWeight: 700,
                 lineHeight: 1.02,
                 letterSpacing: "-0.025em",
@@ -552,7 +586,7 @@ export async function generateWallOG(): Promise<ImageResponse> {
               fontWeight: 700,
             }}
           >
-            stopbeingprey.com/wall
+            {footer}
           </div>
         </div>
       </div>

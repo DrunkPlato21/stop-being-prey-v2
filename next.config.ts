@@ -91,6 +91,9 @@ const nextConfig: NextConfig = {
     "/about/twitter-image": ["assets/**/*"],
     "/wall/opengraph-image": ["assets/**/*"],
     "/wall/twitter-image": ["assets/**/*"],
+    // Predator wall cards read the wall's frontmatter as well as fonts.
+    "/walls/[slug]/opengraph-image": ["assets/**/*", "content/walls/**/*"],
+    "/walls/[slug]/twitter-image": ["assets/**/*", "content/walls/**/*"],
     "/rules/opengraph-image": ["assets/**/*"],
     "/rules/twitter-image": ["assets/**/*"],
     // The 404 page suggests a few essays, read from content/articles via
