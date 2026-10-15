@@ -9,8 +9,10 @@ export const MAX_TITLE = 140;
 export const MAX_BODY = 50000;
 export const MAX_REPLY = 15000;
 
-// Authors may edit their own thread/reply for this long after posting.
-export const EDIT_WINDOW_MS = 15 * 60 * 1000;
+// Authors may edit their own thread/reply anytime (Clay, Oct 15 2026,
+// after Kent asked for more than 15 minutes). The "edited" marker keeps
+// it honest if a post changes after people have replied.
+export const EDIT_WINDOW_MS = Number.POSITIVE_INFINITY;
 
 // --------------------------------------------------------------------
 // Images
