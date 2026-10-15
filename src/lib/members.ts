@@ -863,6 +863,12 @@ export async function updateMemberStatus(
 ): Promise<void> {
   const member = await getMemberByCustomerId(customerId);
   if (!member) return;
+  // A duplicate checkout leaves a second Stripe customer pointing at the
+  // same email. Only the customer the record is attached to may change
+  // its status, so canceling the stray duplicate can't cancel the member.
+  if (member.stripeCustomerId && member.stripeCustomerId !== customerId) {
+    return;
+  }
   const next: MemberRecord = {
     ...member,
     status,
