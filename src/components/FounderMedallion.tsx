@@ -9,6 +9,8 @@
 // serif as "№ N", a short hairline rule, and the cadence/amount
 // reassurance "locked for life".
 
+import { isHonoredFounder } from "@/lib/honored-founder";
+
 type Props = {
   slot: number;
   amountCents: number;
@@ -28,6 +30,7 @@ export function FounderMedallion({
   className = "",
 }: Props) {
   const cadence = interval === "month" ? "/mo" : "/yr";
+  const honored = isHonoredFounder(slot);
   return (
     <div
       className={`relative bg-surface border border-border max-w-sm mx-auto ${className}`}
@@ -58,7 +61,7 @@ export function FounderMedallion({
             letterSpacing: "-0.02em",
           }}
         >
-          №&thinsp;{slot}
+          {honored ? "Honored" : <>№&thinsp;{slot}</>}
         </p>
 
         <div className="w-10 h-px bg-eye mx-auto mb-4" aria-hidden="true" />

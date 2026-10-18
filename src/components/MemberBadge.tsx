@@ -1,3 +1,4 @@
+import { isHonoredFounder } from "@/lib/honored-founder";
 import type { TierBadge } from "@/lib/members";
 
 // Founder + charter + tier chips render as siblings of the parent flex
@@ -81,8 +82,8 @@ export function MemberBadge({
     <>
       {founderSlot !== null && (
         <span className={`member-chip member-chip-founder${sizeClass}`}>
-          <span>Founder</span>
-          {showSlot && (
+          <span>{isHonoredFounder(founderSlot) ? "Honored Founder" : "Founder"}</span>
+          {showSlot && !isHonoredFounder(founderSlot) && (
             <>
               <span className="member-chip-sep" aria-hidden="true">
                 &middot;

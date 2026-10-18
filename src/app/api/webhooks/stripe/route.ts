@@ -14,6 +14,7 @@ import {
 import { getWallBySlug } from "@/lib/walls";
 import { notifyNewGift, notifyNewPatron, notifyNewWallDonation } from "@/lib/email";
 import { consumeFounderAccess } from "@/lib/founder-access";
+import { isHonoredFounder } from "@/lib/honored-founder";
 import {
   claimCharterSlot,
   claimFounderSlot,
@@ -840,7 +841,9 @@ async function handleMembershipCheckout(
   // number; regular tier gets a generic welcome.
   const welcomeTitle =
     tier === "founder" && founderSlot !== null
-      ? `You're Founder #${founderSlot}. Welcome.`
+      ? isHonoredFounder(founderSlot)
+        ? "You're an Honored Founder. Welcome."
+        : `You're Founder #${founderSlot}. Welcome.`
       : tier === "charter" && charterSlot !== null
         ? `You're Charter #${charterSlot}. Welcome.`
         : tier === "midterm" && midtermSlot !== null

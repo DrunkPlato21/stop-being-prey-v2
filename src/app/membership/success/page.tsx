@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isHonoredFounder } from "@/lib/honored-founder";
 import type { Metadata } from "next";
 import { getCheckoutSessionInfo } from "@/lib/membership";
 import { pollMemberBySession, type MemberRecord } from "@/lib/members";
@@ -152,6 +153,9 @@ export default async function MembershipSuccessPage({
                 whiteSpace: "normal",
               }}
             >
+              {isHonoredFounder(outcome.slot) ? (
+                <span>You&apos;re an Honored Founder.</span>
+              ) : (
               <span>
                 You&apos;re Founder{" "}
                 <span
@@ -168,6 +172,7 @@ export default async function MembershipSuccessPage({
                 </span>
                 .
               </span>
+              )}
               <span style={{ fontSize: "0.78em", opacity: 0.92 }}>
                 Locked at {formatDollars(outcome.member.amountCents)}/
                 {outcome.member.interval === "year" ? "yr" : "mo"} for life.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { isHonoredFounder } from "@/lib/honored-founder";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { MemberBadge } from "@/components/MemberBadge";
@@ -45,7 +46,9 @@ export type IdentityMenuProps = {
 function roleLabel(props: IdentityMenuProps): string {
   if (props.role === "author") return "Author";
   if (props.role === "founder" && typeof props.founderSlot === "number") {
-    return `Founder #${props.founderSlot}`;
+    return isHonoredFounder(props.founderSlot)
+      ? "Honored Founder"
+      : `Founder #${props.founderSlot}`;
   }
   if (props.role === "charter" && typeof props.charterSlot === "number") {
     return `Charter #${props.charterSlot}`;

@@ -1,4 +1,5 @@
 import { getRecentActivity, type ActivityEvent } from "@/lib/activity";
+import { isHonoredFounder } from "@/lib/honored-founder";
 
 // Activity stripe widget. Server component. Renders a compact list of
 // recent events across new member signups, fresh comments, and wall
@@ -24,7 +25,9 @@ function formatRelative(at: number, now: number): string {
 function describe(event: ActivityEvent): string {
   if (event.kind === "member" && event.member) {
     if (event.member.tier === "founder" && event.member.founderSlot) {
-      return `new founder · No. ${event.member.founderSlot}`;
+      return isHonoredFounder(event.member.founderSlot)
+        ? "new honored founder"
+        : `new founder · No. ${event.member.founderSlot}`;
     }
     if (event.member.tier === "charter" && event.member.charterSlot) {
       return `new charter · No. ${event.member.charterSlot}`;
