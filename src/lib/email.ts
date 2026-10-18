@@ -1267,6 +1267,74 @@ export async function notifyNewWallDonation(
   }
 }
 
+/* === New patron / gift notification (to admin) =============
+   Stripe's own payment-receipt emails went silent on Oct 17 2026 with
+   no error on either end, so Clay found out about new patrons a day
+   late. The site now tells him itself, same as wall donations. */
+
+async function sendAdminText(subject: string, text: string): Promise<void> {
+  const resend = resendClient();
+  const to = process.env.ADMIN_EMAIL;
+  const from = process.env.EMAIL_FROM;
+  if (!resend || !to || !from) {
+    console.warn("[email] Resend/ADMIN_EMAIL/EMAIL_FROM missing — skipping admin notice");
+    return;
+  }
+  try {
+    await resend.emails.send({ from, to, subject, text });
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : "unknown error";
+    console.error(`[email] failed to send admin notice: ${reason}`);
+  }
+}
+
+export async function notifyNewPatron(args: {
+  email: string;
+  name: string | null;
+  tier: string;
+  slot: number | null;
+  amountCents: number;
+  interval: "month" | "year";
+  reactivation: boolean;
+}): Promise<void> {
+  const who = args.name?.trim() || args.email;
+  const amount = `${formatMoneyDollars(args.amountCents)}/${args.interval === "year" ? "yr" : "mo"}`;
+  const tierLabel = args.tier.charAt(0).toUpperCase() + args.tier.slice(1);
+  const seat = args.slot ? `${tierLabel} #${args.slot}` : tierLabel;
+  const verb = args.reactivation ? "Returning patron" : "New patron";
+
+  await sendAdminText(`${verb}: ${who}, ${seat}, ${amount}`, [
+    `${verb}.`,
+    ``,
+    `Name:   ${args.name?.trim() || "(none given)"}`,
+    `Email:  ${args.email}`,
+    `Seat:   ${seat}`,
+    `Amount: ${amount}`,
+  ].join("\n"));
+}
+
+export async function notifyNewGift(args: {
+  buyerName: string;
+  buyerEmail: string | null;
+  recipientEmail: string;
+  termLabel: string;
+  amountCents: number;
+  message: string | null;
+}): Promise<void> {
+  const amount = formatMoneyDollars(args.amountCents);
+  await sendAdminText(`New gift: ${amount} from ${args.buyerName} (${args.termLabel})`, [
+    `New gift patronage, paid. The recipient has been emailed their link.`,
+    ``,
+    `From:   ${args.buyerName}${args.buyerEmail ? ` <${args.buyerEmail}>` : ""}`,
+    `To:     ${args.recipientEmail}`,
+    `Term:   ${args.termLabel}`,
+    `Amount: ${amount}`,
+    ``,
+    `Message:`,
+    args.message?.trim() || "(none)",
+  ].join("\n"));
+}
+
 /* === Note-reply email ===============================================
    Sent to a member when Clay answers a note they left on the desk.
    From clay@stopbeingprey.com directly (not noreply@) so Reply-To

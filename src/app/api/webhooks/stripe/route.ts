@@ -12,7 +12,7 @@ import {
   isStorageConfigured as isWallStorageConfigured,
 } from "@/lib/wallDonations";
 import { getWallBySlug } from "@/lib/walls";
-import { notifyNewWallDonation } from "@/lib/email";
+import { notifyNewGift, notifyNewPatron, notifyNewWallDonation } from "@/lib/email";
 import { consumeFounderAccess } from "@/lib/founder-access";
 import {
   claimCharterSlot,
@@ -739,6 +739,18 @@ async function handleMembershipCheckout(
     channel: asTrackChannel(metadata.channel),
   });
 
+  // Tell Clay directly. Same once-per-member guarantee as recordEvent
+  // above; never throws.
+  await notifyNewPatron({
+    email,
+    name: session.customer_details?.name ?? null,
+    tier,
+    slot: founderSlot ?? charterSlot ?? midtermSlot,
+    amountCents,
+    interval,
+    reactivation: metadata.reactivation === "true",
+  });
+
   // Gift funnel close: if this email ever redeemed a gifted seat, the
   // recipient just converted to paying on their own card. Stamp the
   // gift once (convertedAt guards webhook retries reaching this point
@@ -1043,6 +1055,14 @@ async function handleGiftCheckout(
   await recordEvent("gift_purchased", { source: "gift" });
 
   const termLabel = paid.termMonths === 3 ? "3 months" : "1 year";
+  await notifyNewGift({
+    buyerName,
+    buyerEmail: buyerEmail || null,
+    recipientEmail: paid.recipientEmail,
+    termLabel,
+    amountCents: paid.amountCents ?? session.amount_total ?? 0,
+    message: paid.message ?? null,
+  });
   const redeemUrl = `${baseUrl()}/gift/${encodeURIComponent(paid.redemptionToken)}`;
   const sent = await sendGiftEmail({
     to: paid.recipientEmail,
