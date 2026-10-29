@@ -2290,6 +2290,62 @@ export async function sendPoolWelcomeEmail(args: {
 }
 
 /**
+ * Welcome for a new paying patron, sent from the Stripe webhook the
+ * moment their seat is created. Before this existed, patrons saw the
+ * success page once and were never told how to get back in (no
+ * password, sign-in is by emailed link), so some went months without
+ * ever finding their account. This mail is that door: a one-click
+ * sign-in link plus the permanent sign-in page for later.
+ */
+export async function sendPatronWelcomeEmail(args: {
+  to: string;
+  signInUrl: string;
+  signInPageUrl: string;
+}): Promise<SendResult> {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `\n[email] (dev) patron welcome sign-in link for ${args.to}:\n${args.signInUrl}\n`
+    );
+  }
+
+  // DRAFT copy, Clay finalizes.
+  const subject = "you're in";
+  const paragraphs = [
+    "Thank you. You're a patron now, and it means more than you know.",
+    "There's no password to remember. The button below signs you straight in. Inside you'll find every email I've ever written, the Lounge, the Guild, and the Writer's Desk.",
+    "Any time you want to come back, go to the sign-in page, enter this email address, and I'll send you a fresh link:",
+  ];
+  const html = renderGiftShell(`<tr>
+              <td style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;color:#3d3530;padding-bottom:8px;">
+                ${paragraphs
+                  .map(
+                    (p) => `<p style="margin:0 0 16px 0;">${escapeHtml(p)}</p>`
+                  )
+                  .join("\n                ")}
+                <p style="margin:0 0 22px 0;"><a href="${escapeHtml(args.signInPageUrl)}" style="color:#8a6d1f;">${escapeHtml(args.signInPageUrl.replace(/^https?:\/\//, ""))}</a></p>
+              </td>
+            </tr>
+            ${giftButtonRow(args.signInUrl, "Sign in now")}`);
+  const text = [
+    ...paragraphs.flatMap((p) => [p, ""]),
+    args.signInPageUrl,
+    "",
+    `Sign in now: ${args.signInUrl}`,
+    "",
+    "stay close,",
+    "~ Clay",
+  ].join("\n");
+
+  return sendGiftLifecycleEmail({
+    to: args.to,
+    subject,
+    html,
+    text,
+    logTag: "patron welcome",
+  });
+}
+
+/**
  * Re-invite for a granted seat whose original sign-in link expired before
  * the recipient ever opened it.
  *

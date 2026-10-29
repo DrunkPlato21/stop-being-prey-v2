@@ -12,7 +12,12 @@ import {
   isStorageConfigured as isWallStorageConfigured,
 } from "@/lib/wallDonations";
 import { getWallBySlug } from "@/lib/walls";
-import { notifyNewGift, notifyNewPatron, notifyNewWallDonation } from "@/lib/email";
+import {
+  notifyNewGift,
+  notifyNewPatron,
+  notifyNewWallDonation,
+  sendPatronWelcomeEmail,
+} from "@/lib/email";
 import { consumeFounderAccess } from "@/lib/founder-access";
 import { isHonoredFounder } from "@/lib/honored-founder";
 import {
@@ -66,7 +71,11 @@ import {
   clearInvoiceDunning,
 } from "@/lib/dunning";
 import { createNotification } from "@/lib/notifications";
-import { signBillingToken } from "@/lib/auth";
+import {
+  GRANTED_SEAT_LINK_TTL_SECONDS,
+  createMagicLink,
+  signBillingToken,
+} from "@/lib/auth";
 import { asTrackChannel, asTrackSource, recordEvent } from "@/lib/analytics";
 import {
   getGift,
@@ -751,6 +760,33 @@ async function handleMembershipCheckout(
     interval,
     reactivation: metadata.reactivation === "true",
   });
+
+  // Welcome the new patron with a way back in. Sign-in is by emailed
+  // link only, and without this mail a patron who closed the success
+  // page never learned how to reach their account. Same once-per-member
+  // guarantee as above (session-id guard). Long TTL, like granted seats,
+  // because nobody is sitting at the keyboard waiting for this link.
+  // Non-fatal: a mail failure must never fail the webhook.
+  try {
+    const linkId = await createMagicLink(
+      { email, customerId, next: "/desk" },
+      GRANTED_SEAT_LINK_TTL_SECONDS
+    );
+    if (linkId) {
+      const sent = await sendPatronWelcomeEmail({
+        to: email,
+        signInUrl: `${baseUrl()}/api/auth/callback?token=${encodeURIComponent(linkId)}`,
+        signInPageUrl: `${baseUrl()}/notes/sign-in`,
+      });
+      if (!sent.ok) {
+        console.error(`[membership] patron welcome email failed for ${email}`);
+      }
+    } else {
+      console.error(`[membership] createMagicLink returned null for ${email}`);
+    }
+  } catch (err) {
+    console.error(`[membership] patron welcome threw for ${email}:`, err);
+  }
 
   // Gift funnel close: if this email ever redeemed a gifted seat, the
   // recipient just converted to paying on their own card. Stamp the
