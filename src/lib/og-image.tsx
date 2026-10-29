@@ -752,6 +752,44 @@ export async function generateArticleOG(slug: string): Promise<ImageResponse> {
     ? `Chapter ${chapter} · Stop Being Prey`
     : "Stop Being Prey";
 
+  return renderEditorialCard({ eyebrow, title, deck: trimmedDesc, photo });
+}
+
+/**
+ * Patron email archive share card (/emails/[slug]): the article card's
+ * plain chassis with the email's subject and preview line. What a gift
+ * link shows when it's texted or posted. Subject and preview are already
+ * public on the email's teaser page, so nothing private goes on it.
+ */
+export async function generateEmailOG(
+  subject: string,
+  preview: string
+): Promise<ImageResponse> {
+  const deck =
+    preview.length > 140
+      ? preview.slice(0, 137).replace(/[\s,;.]+$/, "") + "…"
+      : preview;
+  return renderEditorialCard({
+    eyebrow: "An email from Clay · Stop Being Prey",
+    title: subject,
+    deck,
+    photo: null,
+  });
+}
+
+// The essay card's chassis, shared by the essay and email cards: eyebrow,
+// big title, italic deck, domain at the foot, over an optional photo.
+async function renderEditorialCard({
+  eyebrow,
+  title,
+  deck: trimmedDesc,
+  photo,
+}: {
+  eyebrow: string;
+  title: string;
+  deck: string;
+  photo: string | null;
+}): Promise<ImageResponse> {
   const [cormorant700, sourceSerifItalic] = await Promise.all([
     loadFont("cormorant-garamond-700.ttf"),
     loadFont("source-serif-4-italic.ttf"),

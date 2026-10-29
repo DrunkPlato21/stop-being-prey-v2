@@ -578,10 +578,6 @@
 .ar-item {
   position: relative;
 }
-/* Room on the right for the mark, so a long subject never runs under it. */
-.ar-item .ar-row {
-  padding-right: 2.75rem;
-}
 .ar-readmark {
   position: absolute;
   top: 0.55rem;
@@ -686,4 +682,209 @@
   border-left: 1px solid var(--rule);
   color: var(--ink-faint);
   font-weight: 600;
+}
+
+/* --- Star + share, under an email --- */
+.ar-actions {
+  max-width: 38rem;
+  margin: 0.25rem auto 0;
+}
+.ar-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1.25rem;
+}
+.ar-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.75rem;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink-muted);
+  transition: color 0.15s ease;
+}
+.ar-action svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ar-action:hover,
+.ar-action:focus-visible,
+.ar-action.is-on {
+  color: var(--eye-deep);
+  outline: none;
+}
+.ar-share {
+  margin: 0.75rem auto 0;
+  padding: 1.1rem 1.15rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--eye);
+  text-align: center;
+}
+.ar-share-lede {
+  margin: 0 0 0.85rem;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+.ar-share-lede:last-child {
+  margin-bottom: 0;
+}
+.ar-share-link {
+  display: flex;
+  border: 1px solid var(--border);
+  background: var(--paper);
+}
+.ar-share-link input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.7rem 0.75rem;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-source-serif), Georgia, serif;
+  /* 16px+ keeps iOS from zooming on focus. */
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+.ar-share-link button,
+.ar-share-native {
+  padding: 0 1.1rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.ar-share-native {
+  margin-top: 0.6rem;
+  width: 100%;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+.ar-share-count {
+  margin: 0.75rem 0 0;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+}
+
+/* --- Favorites on the index --- */
+/* Room on the right for the read mark and star stacked beside a row, so
+   a long subject never runs under them. */
+.ar-item .ar-row {
+  padding-right: 3rem;
+}
+.ar-favmark {
+  position: absolute;
+  top: 3.15rem;
+  right: -0.35rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--border);
+  transition: color 0.15s ease;
+}
+@media (min-width: 640px) {
+  .ar-favmark {
+    top: 3.35rem;
+    right: 0;
+  }
+}
+.ar-favmark svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.ar-favmark:hover,
+.ar-favmark:focus-visible,
+.ar-favmark.is-on {
+  color: var(--eye-deep);
+  outline: none;
+}
+
+.ar-views {
+  display: flex;
+  gap: 1.5rem;
+  margin: 0.9rem 0 0;
+}
+.ar-view {
+  padding: 0.35rem 0;
+  cursor: pointer;
+  font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink-faint);
+  border-bottom: 1px solid transparent;
+  font-variant-numeric: lining-nums;
+}
+.ar-view:hover {
+  color: var(--ink-muted);
+}
+.ar-view[aria-pressed="true"] {
+  color: var(--eye-deep);
+  border-bottom-color: var(--eye);
+}
+.ar-empty {
+  padding: 2.5rem 0;
+  text-align: center;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  color: var(--ink-muted);
+}
+
+/* --- Surprise me: small text links, not buttons --- */
+.ar-surprise {
+  color: var(--eye-deep);
+  font-style: italic;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(184, 168, 44, 0.45);
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.ar-surprise:hover {
+  color: var(--ink);
+  text-decoration-color: var(--eye);
+}
+.ar-progress-sep {
+  margin: 0 0.15rem;
+  color: var(--rule);
+}
+.ar-surprise-foot {
+  text-align: center;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: 0.95rem;
+}
+.ar-surprise-note {
+  margin: 0.25rem 0 0;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  color: var(--ink-muted);
 }

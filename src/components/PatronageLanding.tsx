@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getEmailIndex } from "@/lib/email-archive";
 import { MembershipPlans } from "@/components/MembershipPlans";
 import { EmailSignup } from "@/components/EmailSignup";
 import { EyeDivider } from "@/components/Eyes";
@@ -189,6 +190,7 @@ export async function PatronageLanding({
     totalMembers,
     wall,
     presence,
+    emailCount,
   ] =
     await Promise.all([
       getFounderClaimed(),
@@ -197,6 +199,9 @@ export async function PatronageLanding({
       countMembers().then((c) => c.paying),
       listVisible(1, 200).catch(() => ({ entries: [], total: 0 })),
       getPresence(),
+      getEmailIndex()
+        .then((i) => i.emails.length)
+        .catch(() => 0),
     ]);
 
   // Live presence for the pill above the Writer's Desk paragraph. Rendered
@@ -373,6 +378,20 @@ export async function PatronageLanding({
                 <span aria-hidden="true" className="block w-8 border-t border-current opacity-40" />
               </p>
             </div>
+          )}
+          {/* The patron email archive (/emails). Permanent, unlike the
+              book offer above, and the count grows with every send. */}
+          {emailCount > 0 && (
+            <p
+              className="max-w-xl mx-auto mt-5 font-serif italic text-ink-muted leading-relaxed fade-up stagger-3"
+              style={{ fontSize: "1rem", textWrap: "balance" }}
+            >
+              Patrons also get{" "}
+              <Link href="/emails" className="text-eye-deep hover:underline">
+                every email I&apos;ve ever written
+              </Link>
+              , all {emailCount} of them, in one place.
+            </p>
           )}
         </div>
       </section>

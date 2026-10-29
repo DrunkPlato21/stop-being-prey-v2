@@ -30,3 +30,32 @@ export function ReadMark({
     </button>
   );
 }
+
+// The star beside it: adds the email to the patron's Favorites.
+export function FavMark({
+  on,
+  subject,
+  onToggle,
+}: {
+  on: boolean;
+  subject: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`ar-favmark${on ? " is-on" : ""}`}
+      aria-pressed={on}
+      aria-label={on ? `Remove “${subject}” from favorites` : `Add “${subject}” to favorites`}
+      title={on ? "Favorite. Tap to remove." : "Add to favorites"}
+      onClick={onToggle}
+    >
+      <svg viewBox="0 0 20 20" aria-hidden>
+        <path
+          d="M10 2.6l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 7.9l5-.7z"
+          fill={on ? "currentColor" : "none"}
+        />
+      </svg>
+    </button>
+  );
+}

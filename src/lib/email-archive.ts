@@ -67,11 +67,29 @@ function readJson<T>(file: string, fallback: T): T {
   }
 }
 
+// The snapshot and curation files only change with a deploy, so in
+// production they're parsed once per server instance rather than on every
+// request (/patronage reads the archive's size on each render). In dev
+// they're re-read so edits show up without a restart.
+const MEMO = process.env.NODE_ENV === "production";
+let snapshotMemo: ArchivedEmail[] | null = null;
+let curationMemo: Curation | null = null;
+
 function readSnapshot(): ArchivedEmail[] {
-  return readJson<ArchivedEmail[]>("archive.json", []);
+  if (MEMO && snapshotMemo) return snapshotMemo;
+  const snapshot = readJson<ArchivedEmail[]>("archive.json", []);
+  if (MEMO) snapshotMemo = snapshot;
+  return snapshot;
 }
 
 function readCuration(): Curation {
+  if (MEMO && curationMemo) return curationMemo;
+  const curation = parseCuration();
+  if (MEMO) curationMemo = curation;
+  return curation;
+}
+
+function parseCuration(): Curation {
   const raw = readJson<Partial<Curation>>("curation.json", {});
   const essays: Record<string, string> = {};
   if (raw.essays && typeof raw.essays === "object") {
@@ -88,8 +106,12 @@ function readCuration(): Curation {
 
 // Keyed on the snapshot's newest id, so a deploy carrying a fresher
 // snapshot starts a fresh cache entry instead of serving the old tail.
+// Pages back through Kit (50 at a time, up to 200) until it reaches an
+// email the snapshot already has, so a long stretch between syncs still
+// comes through whole. Only the new emails are cached, which keeps the
+// entry small.
 const fetchUnsnapshotted = unstable_cache(
-  async (_snapshotNewestId: number) => {
+  async (snapshotNewestId: number) => {
     const apiKey = process.env.KIT_API_KEY;
     if (!apiKey) return [] as ArchivedEmail[];
     try {
@@ -99,7 +121,8 @@ const fetchUnsnapshotted = unstable_cache(
       const broadcasts = await fetchKitBroadcasts({
         apiKey,
         perPage: 50,
-        maxPages: 1,
+        maxPages: 4,
+        stopAtOrBelowId: snapshotNewestId,
         fetchInit: { cache: "no-store" },
       });
       return broadcasts
@@ -140,13 +163,28 @@ type Archive = {
   startHere: EmailMeta[];
 };
 
+// The built archive, reused across requests in production until Kit
+// hands back a different set of new emails.
+let builtMemo: { key: string; archive: Archive } | null = null;
+
 // Per-request memo: the index, an email page, and the search route each
 // build the archive once no matter how many helpers they call.
 const loadArchive = cache(async (): Promise<Archive> => {
   const snapshot = readSnapshot();
-  const curation = readCuration();
   const newestId = snapshot.reduce((max, e) => Math.max(max, e.kitId), 0);
   const live = await fetchUnsnapshotted(newestId);
+  const key = live.map((e) => e.kitId).join(",");
+  if (MEMO && builtMemo?.key === key) return builtMemo.archive;
+  const archive = buildArchive(snapshot, live, readCuration());
+  if (MEMO) builtMemo = { key, archive };
+  return archive;
+});
+
+function buildArchive(
+  snapshot: ArchivedEmail[],
+  live: ArchivedEmail[],
+  curation: Curation
+): Archive {
 
   const oldestFirst = [...live, ...snapshot]
     .filter((e) => !isHidden(e, curation))
@@ -196,7 +234,7 @@ const loadArchive = cache(async (): Promise<Archive> => {
   }
 
   return { emails, bySlug, startHere };
-});
+}
 
 function toMeta(e: Email): EmailMeta {
   return {
@@ -235,6 +273,15 @@ export async function getEmailBySlug(slug: string): Promise<{
     newer: i > 0 ? toMeta(emails[i - 1]) : null,
     total: emails.length,
   };
+}
+
+/** One email's listing details by Kit id (gift links store the id). */
+export async function getEmailMetaByKitId(
+  kitId: number
+): Promise<EmailMeta | null> {
+  const { emails } = await loadArchive();
+  const hit = emails.find((e) => e.kitId === kitId);
+  return hit ? toMeta(hit) : null;
 }
 
 /** Plain text of every email, for the index page's full-text search. */

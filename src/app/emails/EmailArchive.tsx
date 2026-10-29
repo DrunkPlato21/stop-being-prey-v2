@@ -12,8 +12,8 @@ import {
 } from "react";
 import type { EmailMeta } from "@/lib/email-archive";
 import { dayParts, emailHref, monthKey, shortDate } from "./format";
-import { ReadMark } from "./ReadMark";
-import { useEmailReads } from "./useEmailReads";
+import { FavMark, ReadMark } from "./ReadMark";
+import { useEmailFavorites, useEmailReads } from "./useEmailReads";
 
 // The patron archive index: search box, "Start here" picks, then every
 // email grouped by month. Search is client-side. Subjects and previews
@@ -106,12 +106,20 @@ export function EmailArchive({
   emails,
   startHere,
   initialRead,
+  initialFavs,
 }: {
   emails: EmailMeta[];
   startHere: EmailMeta[];
   initialRead: number[];
+  initialFavs: number[];
 }) {
   const { read, setRead } = useEmailReads(initialRead);
+  const { favs, setFav } = useEmailFavorites(initialFavs);
+  const [view, setView] = useState<"all" | "favorites">("all");
+  const favorites = useMemo(
+    () => emails.filter((e) => favs.has(e.kitId)),
+    [emails, favs]
+  );
   const readCount = useMemo(
     () => emails.filter((e) => read.has(e.kitId)).length,
     [emails, read]
@@ -150,11 +158,19 @@ export function EmailArchive({
   }, []);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("view") === "favorites") {
+      setView("favorites");
+    }
+  }, []);
+
+  useEffect(() => {
     const url = new URL(window.location.href);
     if (q.trim()) url.searchParams.set("q", q.trim());
     else url.searchParams.delete("q");
+    if (view === "favorites") url.searchParams.set("view", "favorites");
+    else url.searchParams.delete("view");
     window.history.replaceState(window.history.state, "", url);
-  }, [q]);
+  }, [q, view]);
 
   // The bar only takes a backdrop once it has pinned; at rest it sits
   // on the page's own paper texture.
@@ -243,6 +259,13 @@ export function EmailArchive({
   }, [emails]);
 
   const searching = hits !== null;
+  const item = (e: EmailMeta, row: React.ReactNode) => (
+    <li key={e.slug} className="ar-item">
+      {row}
+      <ReadMark read={read.has(e.kitId)} subject={e.subject} onToggle={() => setRead(e.kitId, !read.has(e.kitId))} />
+      <FavMark on={favs.has(e.kitId)} subject={e.subject} onToggle={() => setFav(e.kitId, !favs.has(e.kitId))} />
+    </li>
+  );
   // Email pages carry the search back to the index; essays live outside
   // the archive, so they just link to the essay.
   const hrefFor = (e: EmailMeta) =>
@@ -297,7 +320,27 @@ export function EmailArchive({
       </div>
 
       {!searching && (
-        <ReadProgress read={readCount} total={emails.length} />
+        <>
+          <ReadProgress read={readCount} total={emails.length} />
+          <div className="ar-views" role="group" aria-label="Show">
+            <button
+              type="button"
+              className="ar-view"
+              aria-pressed={view === "all"}
+              onClick={() => setView("all")}
+            >
+              All emails
+            </button>
+            <button
+              type="button"
+              className="ar-view"
+              aria-pressed={view === "favorites"}
+              onClick={() => setView("favorites")}
+            >
+              Favorites{favorites.length > 0 ? ` (${favorites.length})` : ""}
+            </button>
+          </div>
+        </>
       )}
 
       {searching ? (
@@ -317,12 +360,23 @@ export function EmailArchive({
           </p>
           <ul className="ar-list">
             {hits.map((h) => (
-              <li key={h.email.slug} className="ar-item">
-                <EmailRow email={h.email} href={hrefFor(h.email)} isRead={read.has(h.email.kitId)} q={deferredQ} snippet={h.inTitle ? null : h.snippet} showYear />
-                <ReadMark read={read.has(h.email.kitId)} subject={h.email.subject} onToggle={() => setRead(h.email.kitId, !read.has(h.email.kitId))} />
-              </li>
+              item(h.email, <EmailRow email={h.email} href={hrefFor(h.email)} isRead={read.has(h.email.kitId)} q={deferredQ} snippet={h.inTitle ? null : h.snippet} showYear />)
             ))}
           </ul>
+        </section>
+      ) : view === "favorites" ? (
+        <section className="pt-8" aria-label="Favorites">
+          {favorites.length === 0 ? (
+            <p className="ar-empty">
+              Star an email and it waits for you here.
+            </p>
+          ) : (
+            <ul className="ar-list">
+              {favorites.map((e) =>
+                item(e, <EmailRow email={e} href={hrefFor(e)} isRead={read.has(e.kitId)} showYear />)
+              )}
+            </ul>
+          )}
         </section>
       ) : (
         <>
@@ -361,10 +415,7 @@ export function EmailArchive({
               </h2>
               <ul className="ar-list">
                 {m.emails.map((e) => (
-                  <li key={e.slug} className="ar-item">
-                    <EmailRow email={e} href={hrefFor(e)} isRead={read.has(e.kitId)} />
-                    <ReadMark read={read.has(e.kitId)} subject={e.subject} onToggle={() => setRead(e.kitId, !read.has(e.kitId))} />
-                  </li>
+                  item(e, <EmailRow email={e} href={hrefFor(e)} isRead={read.has(e.kitId)} />)
                 ))}
               </ul>
             </section>
@@ -435,13 +486,25 @@ function EmailRow({
 }
 
 // A quiet line above the list. Before the first mark, it explains how
-// marks happen instead of announcing a zero.
+// marks happen instead of announcing a zero. "Surprise me" is a plain
+// <a>, not a Link: it's a random redirect, and prefetching it would
+// spend the pick before anyone clicks.
 function ReadProgress({ read, total }: { read: number; total: number }) {
+  // Built after mount: the dev preview flag lives in the URL, and reading
+  // it during render would differ between server and browser.
+  const [href, setHref] = useState("/emails/surprise");
+  useEffect(() => setHref(surpriseHref()), []);
+  const surprise = (
+    <a href={href} className="ar-surprise">
+      Surprise me
+    </a>
+  );
   if (read === 0) {
     return (
       <p className="ar-progress">
         Read to the end of an email and it&apos;s marked read. Use the circle
-        beside any email to mark the ones you already read in your inbox.
+        beside any email to mark the ones you already read in your inbox.{" "}
+        <span className="ar-progress-sep" aria-hidden>·</span> {surprise}
       </p>
     );
   }
@@ -449,12 +512,21 @@ function ReadProgress({ read, total }: { read: number; total: number }) {
     <div className="ar-progress">
       <p>
         {read === total
-          ? `You've read all ${total}.`
-          : `You've read ${read} of ${total}.`}
+          ? `You've read all ${total}`
+          : `You've read ${read} of ${total}`}{" "}
+        <span className="ar-progress-sep" aria-hidden>·</span> {surprise}
       </p>
       <span className="ar-progress-bar" aria-hidden>
         <span style={{ width: `${Math.round((read / total) * 100)}%` }} />
       </span>
     </div>
   );
+}
+
+function surpriseHref(): string {
+  const params = new URLSearchParams();
+  const dev = new URLSearchParams(window.location.search).get("dev_preview");
+  if (dev) params.set("dev_preview", dev);
+  const qs = params.toString();
+  return `/emails/surprise${qs ? `?${qs}` : ""}`;
 }

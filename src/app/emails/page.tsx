@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getArchiveReader, getEmailIndex } from "@/lib/email-archive";
-import { getReadKitIds } from "@/lib/email-reads";
+import { getMarkedKitIds } from "@/lib/email-reads";
 import { EmailArchive } from "./EmailArchive";
 import { PatronTeaser } from "./PatronTeaser";
 import { shortDate } from "./format";
@@ -71,7 +71,8 @@ export default async function EmailsIndexPage({
       <EmailArchive
         emails={emails}
         startHere={startHere}
-        initialRead={await getReadKitIds(reader.email)}
+        initialRead={await getMarkedKitIds("read", reader.email)}
+        initialFavs={await getMarkedKitIds("fav", reader.email)}
       />
     </div>
   );

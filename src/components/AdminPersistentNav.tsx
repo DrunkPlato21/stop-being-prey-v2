@@ -50,6 +50,7 @@ const SECONDARY: NavItem[] = [
   { href: "/admin/pool", label: "Seat pool", badgeSection: "pool" },
   { href: "/admin/walls", label: "Walls" },
   { href: "/admin/analytics", label: "Analytics" },
+  { href: "/admin/emails", label: "Emails" },
   { href: "/admin/sign-in-links", label: "Sign-in links", badgeSection: "sign-ins" },
 ];
 

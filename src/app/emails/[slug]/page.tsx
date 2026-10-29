@@ -8,12 +8,15 @@ import {
   getEmailBySlug,
   type EmailMeta,
 } from "@/lib/email-archive";
-import { getReadKitIds } from "@/lib/email-reads";
+import { getMarkedKitIds } from "@/lib/email-reads";
+import { getGiftState, resolveGift, GIFTS_PER_MONTH } from "@/lib/email-gifts";
 import { EyeDivider } from "@/components/Eyes";
 import { PatronTeaser } from "../PatronTeaser";
 import { emailHref, longDate, shortDate } from "../format";
 import { EmailKeys } from "./EmailKeys";
 import { ReadTracker } from "./ReadTracker";
+import { EmailActions } from "./EmailActions";
+import { GiftSignup } from "./GiftSignup";
 
 type PageParams = { slug: string };
 
@@ -31,10 +34,26 @@ export async function generateMetadata({
   const { slug } = await params;
   const found = await getEmailBySlug(slug);
   if (!found) return {};
+  const { email } = found;
+  // What a gift link shows when it's texted or posted: the subject, the
+  // preview line, and the share card from ./opengraph-image.tsx.
+  const description =
+    email.preview || "An email from Clay, at Stop Being Prey.";
   return {
-    title: { absolute: `${found.email.subject} | Every Email | Stop Being Prey` },
-    description: found.email.preview || undefined,
+    title: { absolute: `${email.subject} | Every Email | Stop Being Prey` },
+    description,
     robots: { index: false, follow: false },
+    openGraph: {
+      type: "article",
+      siteName: "Stop Being Prey",
+      title: email.subject,
+      description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: email.subject,
+      description,
+    },
   };
 }
 
@@ -43,9 +62,14 @@ export default async function EmailPage({
   searchParams,
 }: {
   params: Promise<PageParams>;
-  searchParams: Promise<{ q?: string; dev_preview?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    g?: string;
+    surprise?: string;
+    dev_preview?: string;
+  }>;
 }) {
-  const [{ slug }, { q, dev_preview }] = await Promise.all([
+  const [{ slug }, { q, g, surprise, dev_preview }] = await Promise.all([
     params,
     searchParams,
   ]);
@@ -62,6 +86,28 @@ export default async function EmailPage({
 
   // Back to the index lands on the search the reader came from.
   const backHref = q ? `/emails?q=${encodeURIComponent(q)}` : "/emails";
+
+  // A gift link: a patron shared this one email. It opens in full for
+  // anyone holding the link, with no archive around it (no pager, no
+  // back link, no read marks) and an invitation to the free list at the
+  // foot. A patron following someone's gift link just gets their own
+  // view below.
+  if (!reader && g && (await resolveGift(g)) === email.kitId) {
+    return (
+      <article className="relative">
+        <EmailHeader email={email} total={total} eyebrow="Shared with you" />
+        <div className="max-w-3xl mx-auto px-6 pt-10 md:pt-14 pb-6">
+          <div
+            className="prose-article ar-body"
+            dangerouslySetInnerHTML={{ __html: email.html }}
+          />
+        </div>
+        <div className="max-w-3xl mx-auto px-6 pb-20">
+          <GiftSignup />
+        </div>
+      </article>
+    );
+  }
 
   if (!reader) {
     const session = await verifySession(
@@ -93,7 +139,11 @@ export default async function EmailPage({
     );
   }
 
-  const readIds = await getReadKitIds(reader.email);
+  const [readIds, favIds, gift] = await Promise.all([
+    getMarkedKitIds("read", reader.email),
+    getMarkedKitIds("fav", reader.email),
+    getGiftState(reader.email, email.kitId),
+  ]);
 
   return (
     <article className="relative">
@@ -105,6 +155,11 @@ export default async function EmailPage({
         <Link href={backHref} className="ar-back">
           <span aria-hidden>←</span> {q ? "Back to results" : "All emails"}
         </Link>
+        {surprise === "all" && (
+          <p className="ar-surprise-note">
+            You&apos;ve read every one. Here&apos;s one at random.
+          </p>
+        )}
       </div>
       <EmailHeader email={email} total={total} />
 
@@ -118,11 +173,21 @@ export default async function EmailPage({
             dangerouslySetInnerHTML={{ __html: email.html }}
           />
         </ReadTracker>
+        <EmailActions
+          kitId={email.kitId}
+          subject={email.subject}
+          initiallyFav={favIds.includes(email.kitId)}
+          existingUrl={
+            gift.token ? `/emails/${email.slug}?g=${gift.token}` : null
+          }
+          remaining={gift.remaining}
+          perMonth={GIFTS_PER_MONTH}
+        />
       </div>
 
       <EyeDivider />
 
-      <nav className="ar-pager max-w-3xl mx-auto px-6 pb-16" aria-label="More emails">
+      <nav className="ar-pager max-w-3xl mx-auto px-6 pb-6" aria-label="More emails">
         {older ? (
           <PagerLink email={older} dir="older" />
         ) : (
@@ -134,11 +199,30 @@ export default async function EmailPage({
           <span className="ar-pager-end ar-pager-end-right">This is the latest.</span>
         )}
       </nav>
+      {/* A plain <a>: it's a random redirect, so no prefetch. */}
+      <p className="ar-surprise-foot max-w-3xl mx-auto px-6 pb-16">
+        <a
+          href={`/emails/surprise?from=${email.kitId}${
+            dev_preview ? `&dev_preview=${encodeURIComponent(dev_preview)}` : ""
+          }`}
+          className="ar-surprise"
+        >
+          Or one you haven&apos;t read
+        </a>
+      </p>
     </article>
   );
 }
 
-function EmailHeader({ email, total }: { email: EmailMeta; total: number }) {
+function EmailHeader({
+  email,
+  total,
+  eyebrow,
+}: {
+  email: EmailMeta;
+  total: number;
+  eyebrow?: string;
+}) {
   return (
     <header className="border-b border-rule">
       <div className="max-w-4xl mx-auto px-6 pt-10 md:pt-16 pb-10 md:pb-12 text-center">
@@ -146,7 +230,7 @@ function EmailHeader({ email, total }: { email: EmailMeta; total: number }) {
           className="eyebrow mb-6 fade-up stagger-1"
           style={{ fontVariantNumeric: "lining-nums" }}
         >
-          Email {email.number} of {total}
+          {eyebrow ?? `Email ${email.number} of ${total}`}
         </p>
         <h1
           className="font-display text-ink leading-[1.02] tracking-tight mb-6 fade-up stagger-2"

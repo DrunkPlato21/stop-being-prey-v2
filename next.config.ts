@@ -106,8 +106,20 @@ const nextConfig: NextConfig = {
     // Emails that carried an essay link to it, so the essays' frontmatter
     // rides along too.
     "/emails": ["content/emails/**/*", "content/articles/**/*"],
+    "/patronage": ["content/emails/**/*", "content/articles/**/*"],
     "/emails/[slug]": ["content/emails/**/*", "content/articles/**/*"],
     "/api/emails/search": ["content/emails/**/*", "content/articles/**/*"],
+    // Gift-link share cards: the email's subject on the essay card chassis.
+    "/emails/[slug]/opengraph-image": [
+      "assets/**/*",
+      "content/emails/**/*",
+      "content/articles/**/*",
+    ],
+    "/emails/[slug]/twitter-image": [
+      "assets/**/*",
+      "content/emails/**/*",
+      "content/articles/**/*",
+    ],
   },
   // Conservative security headers on every route. Deliberately NO
   // Content-Security-Policy — that's powerful but fragile and would risk
