@@ -9,6 +9,7 @@ import { getAllArticles } from "@/lib/articles";
 import {
   fetchKitBroadcasts,
   htmlToText,
+  autolinkHtml,
   isArchivable,
   toArchivedEmail,
   type ArchivedEmail,
@@ -218,7 +219,7 @@ function buildArchive(
       readMin: Math.max(1, Math.round(words / WORDS_PER_MINUTE)),
       number: i + 1,
       essay: essayFor(e.subject),
-      html: e.html,
+      html: autolinkHtml(e.html),
       text,
     };
   });

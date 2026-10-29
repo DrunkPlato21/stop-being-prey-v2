@@ -254,3 +254,25 @@ export async function fetchKitBroadcasts(opts: {
   }
   return all;
 }
+
+/**
+ * Turn bare URLs in email text ("stopbeingprey.com/patronage") into links.
+ * Skips anything already inside an <a>, and never touches tag attributes.
+ */
+const BARE_URL =
+  /(^|[\s(>"'])((?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|org|net|ca|io|co|us|gov|edu)(?:\/[^\s<>"')\]]*)?)/gi;
+
+export function autolinkHtml(html: string): string {
+  const parts = html.split(/(<a[\s>][\s\S]*?<\/a>|<[^>]+>)/i);
+  return parts
+    .map((part) => {
+      if (part.startsWith("<")) return part;
+      return part.replace(BARE_URL, (_m, lead: string, raw: string) => {
+        const trimmed = raw.replace(/[.,;:!?]+$/, "");
+        const tail = raw.slice(trimmed.length);
+        const href = /^https?:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+        return `${lead}<a href="${href}" target="_blank" rel="noopener noreferrer">${trimmed}</a>${tail}`;
+      });
+    })
+    .join("");
+}
