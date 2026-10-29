@@ -3,7 +3,7 @@ title: "The Losertarian Problem"
 slug: "the-losertarian-problem"
 date: "2026-05-03"
 description: "Why libertarians lose, why conservatives are prey, why progressives became the apex predators, and why Trump and MAGA are the first counter-energy in two generations."
-subtitle: "we won every argument... and lost every fight... that's the loser frame"
+subtitle: "Why libertarians lose, why conservatives are prey, why progressives became the apex predators, and why Trump and MAGA are the first counter-energy in two generations."
 issue: 1
 featured: true
 featuredNote: "The entry point. If you're new here, start with this one."

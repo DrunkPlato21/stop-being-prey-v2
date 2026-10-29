@@ -1759,7 +1759,58 @@ export function LoungeView(props: Props) {
         <form
           onSubmit={submitPost}
           className="lounge-compose-dock"
+          aria-label="Start a new post"
+          style={{ borderTop: "2px solid var(--eye-deep)" }}
         >
+          {/* Header so the dock can't be read as a reply box for the
+              post sitting just above it (desktop members were typing
+              replies here and landing them as new top-level posts). */}
+          <div
+            className="flex items-baseline justify-between gap-3 flex-wrap"
+            style={{ marginBottom: "0.5rem" }}
+          >
+            <span
+              className="font-display uppercase tracking-[0.22em]"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.45rem",
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                color: "var(--eye-deep)",
+              }}
+            >
+              <svg
+                aria-hidden="true"
+                width="11"
+                height="11"
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
+                <path d="M6 1.5 V10.5 M1.5 6 H10.5" />
+              </svg>
+              New post
+              <span
+                className="font-serif normal-case italic text-ink-muted"
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: 400,
+                  letterSpacing: 0,
+                }}
+              >
+                starts a new conversation
+              </span>
+            </span>
+            <span
+              className="font-serif italic text-ink-faint"
+              style={{ fontSize: "0.76rem" }}
+            >
+              Answering someone? Use the Reply button under their post.
+            </span>
+          </div>
           {needsName && (
             <LoungeNameField
               value={nameDraft}
@@ -1779,9 +1830,9 @@ export function LoungeView(props: Props) {
               }}
               minRows={2}
               maxLength={composeCap}
-              placeholder="Pull up a chair..."
+              placeholder="Pull up a chair... start a new conversation for the whole room"
               disabled={composing}
-              className={`font-serif text-ink bg-paper border px-4 py-3 outline-none w-full ${
+              className={`font-serif text-ink border px-4 py-3 outline-none w-full ${
                 composeOver
                   ? ""
                   : "border-border focus:border-ink"
@@ -1789,6 +1840,10 @@ export function LoungeView(props: Props) {
               style={{
                 fontSize: "1rem",
                 lineHeight: 1.5,
+                // Tinted fill + olive left rule: reply boxes stay plain
+                // paper, so the two never look like the same control.
+                background: "var(--paper-deep)",
+                borderLeft: "3px solid var(--eye-deep)",
                 ...(composeOver
                   ? {
                       borderColor: WARN_INK,
@@ -2423,6 +2478,12 @@ function PostCard(props: CardProps) {
     !replyNameMissing;
   const renderComposer = (replyingToName: string) => (
     <div id="lounge-active-reply" className="mt-4 pt-4 border-t border-rule">
+      <p
+        className="font-display uppercase tracking-[0.2em] text-ink-muted"
+        style={{ fontSize: "0.64rem", fontWeight: 600, marginBottom: "0.45rem" }}
+      >
+        Replying to {replyingToName}
+      </p>
       {needsName && (
         <LoungeNameField
           value={nameDraft}

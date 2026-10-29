@@ -4487,6 +4487,77 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
   font-style: italic;
 }
 
+/* Guild body YouTube embed: a pasted YouTube link on its own line. A 16:9
+   poster with a play button until clicked, then the player. Sits in the
+   pre-wrap body, so it resets white-space for its own small caption. */
+.guild-yt {
+  margin: 0.9rem 0;
+  max-width: 560px;
+  white-space: normal;
+}
+.guild-yt-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid var(--rule);
+  overflow: hidden;
+}
+.guild-yt-frame iframe,
+.guild-yt-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.guild-yt-poster {
+  padding: 0;
+  cursor: pointer;
+  background: #000;
+}
+.guild-yt-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+.guild-yt-poster:hover img {
+  opacity: 1;
+}
+.guild-yt-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 68px;
+  height: 48px;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 18, 14, 0.82);
+  border-radius: 10px;
+}
+.guild-yt-play::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 54%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 11px 0 11px 18px;
+  border-color: transparent transparent transparent #fff;
+}
+.guild-yt-poster:hover .guild-yt-play {
+  background: #c4302b;
+}
+.guild-yt-link {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* === Custom postscript block (per-article P.S. override) === */
 /* Used when an article's frontmatter carries a `postscript` field that
    overrides the default rotating P.S. variants. Matches the visual of

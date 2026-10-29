@@ -1,5 +1,6 @@
 import React from "react";
 import { Linkified } from "@/components/Linkified";
+import { YouTubeEmbed } from "./YouTubeEmbed";
 
 // Lightweight Guild body formatter: a tiny markdown subset so members can
 // lay out an argument without a word processor. Supports:
@@ -76,6 +77,62 @@ export const GUILD_BODY_STYLE: React.CSSProperties = {
 
 const QUOTE_RE = /^>\s?/;
 
+// A YouTube link on a line by itself becomes a click-to-play video. A link
+// in the middle of a sentence stays an ordinary link, so members choose by
+// where they paste it. Covers watch?v=, youtu.be/, /shorts/ and /live/.
+const YT_LINE_RE =
+  /^\s*(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?\S*?\bv=|shorts\/|live\/)|youtu\.be\/)([\w-]{11})\S*\s*$/i;
+
+// "?t=90", "&t=1m30s", "?start=90" -> seconds.
+function youtubeStart(url: string): number | undefined {
+  const m = url.match(/[?&#](?:t|start)=([\dhms]+)/i);
+  if (!m) return undefined;
+  const v = m[1];
+  if (/^\d+$/.test(v)) return Number(v) || undefined;
+  const h = Number(v.match(/(\d+)h/)?.[1] ?? 0);
+  const min = Number(v.match(/(\d+)m/)?.[1] ?? 0);
+  const s = Number(v.match(/(\d+)s/)?.[1] ?? 0);
+  return h * 3600 + min * 60 + s || undefined;
+}
+
+// Plain lines, with any standalone YouTube line pulled out as a video.
+// Bodies without one render exactly as before. Blank lines hugging a video
+// are dropped, since the video block brings its own spacing.
+function renderPlain(lines: string[], keyPrefix: string): React.ReactNode[] {
+  if (!lines.some((l) => YT_LINE_RE.test(l))) {
+    return renderInline(lines.join("\n"), keyPrefix);
+  }
+  const out: React.ReactNode[] = [];
+  let run: string[] = [];
+  let n = 0;
+  const flush = () => {
+    while (run.length && run[0].trim() === "") run.shift();
+    while (run.length && run[run.length - 1].trim() === "") run.pop();
+    if (run.length) out.push(...renderInline(run.join("\n"), `${keyPrefix}-${n}`));
+    run = [];
+    n++;
+  };
+  for (const line of lines) {
+    const yt = line.match(YT_LINE_RE);
+    if (!yt) {
+      run.push(line);
+      continue;
+    }
+    flush();
+    const url = line.trim();
+    out.push(
+      <YouTubeEmbed
+        key={`${keyPrefix}-yt${n}`}
+        id={yt[1]}
+        start={youtubeStart(url)}
+        url={/^https?:\/\//i.test(url) ? url : `https://${url}`}
+      />
+    );
+  }
+  flush();
+  return out;
+}
+
 export function formatGuildBody(text: string): React.ReactNode {
   const lines = text.split("\n");
   const blocks: React.ReactNode[] = [];
@@ -101,7 +158,7 @@ export function formatGuildBody(text: string): React.ReactNode {
       }
       blocks.push(
         <React.Fragment key={`n${key}`}>
-          {renderInline(normal.join("\n"), `n${key}`)}
+          {renderPlain(normal, `n${key}`)}
         </React.Fragment>
       );
     }

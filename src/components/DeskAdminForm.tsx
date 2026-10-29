@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PresenceState } from "@/lib/desk";
+import { announcePresence } from "@/components/DeskPresenceIndicator";
 
 const AWAY_NOTE_MAX = 200;
 
@@ -184,6 +185,7 @@ export function PresenceToggle({
         if (cancelled) return;
         if (res.ok && data.ok && data.state && data.state !== "active") {
           setState(data.state);
+          announcePresence(data.state);
           router.refresh();
         }
       } catch {
@@ -217,6 +219,7 @@ export function PresenceToggle({
         await res.json().catch(() => ({}));
       if (res.ok && data.ok && data.state) {
         setState(data.state);
+        announcePresence(data.state);
         setAwayNote(data.presence?.awayNote ?? "");
         router.refresh();
       }
@@ -238,6 +241,7 @@ export function PresenceToggle({
         await res.json().catch(() => ({}));
       if (res.ok && data.ok && data.state) {
         setState(data.state);
+        announcePresence(data.state);
         setAwayNote(data.presence?.awayNote ?? "");
         setModalOpen(false);
         router.refresh();

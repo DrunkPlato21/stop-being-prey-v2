@@ -27,6 +27,7 @@ const MEMBER_ROUTE_PREFIXES = [
   "/arena",
   "/notifications",
   "/notes",
+  "/emails",
   "/admin",
 ];
 

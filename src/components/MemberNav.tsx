@@ -82,7 +82,8 @@ const ITEMS: NavItem[] = [
   { href: "/arena", label: "The Arena" },
   { href: "/guild", label: "The Guild" },
   { href: "/lounge", label: "Lounge" },
-  { href: "/rules", label: "Rules", clusterBreak: true },
+  { href: "/emails", label: "Every Email", clusterBreak: true },
+  { href: "/rules", label: "Rules" },
   { href: "/book", label: "Book" },
 ];
 

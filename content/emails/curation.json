@@ -1,0 +1,27 @@
+{
+  "_howto": "startHere: the picks shown first on /emails, in this order, matched by subject (capitals don't matter). hide: subjects (or Kit ids) to leave out of the archive entirely. essays: emails that carried a published essay, as \"email subject\": \"essay slug\". Those show in the archive as an Essay and link to the essay page instead of an email copy. Save, then deploy.",
+  "startHere": [
+    "the desecration of charlie kirk",
+    "there is no plan",
+    "nathan",
+    "i changed my mind",
+    "daniel"
+  ],
+  "hide": [],
+  "essays": {
+    "the prisoner and the podcasters": "prisoner",
+    "nobody gave the order": "desecration-of-charlie-kirk",
+    "the desecration of charlie kirk": "desecration-of-charlie-kirk",
+    "don't give thomas sowell the medal of freedom": "medal-of-freedom",
+    "happy 96th birthday thomas sowell!": "medal-of-freedom",
+    "it's just a shot away": "its-just-a-shot-away",
+    "gimme shelter": "its-just-a-shot-away",
+    "some random kid": "some-random-kid",
+    "the wrong dead boy": "the-wrong-dead-boy",
+    "the minimum wage": "the-minimum-wage",
+    "he came in running a script...": "he-came-in-running-a-script",
+    "theory of mind": "theory-of-mind",
+    "triage the libertarians": "triaging-the-libertarians",
+    "the losertarian problem": "the-losertarian-problem"
+  }
+}

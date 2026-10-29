@@ -102,6 +102,12 @@ const nextConfig: NextConfig = {
     "/_not-found": ["content/articles/**/*"],
     // The RSS feed reads the essays from content/articles via fs.
     "/feed.xml": ["content/articles/**/*"],
+    // The patron email archive reads its snapshot + curation via fs.
+    // Emails that carried an essay link to it, so the essays' frontmatter
+    // rides along too.
+    "/emails": ["content/emails/**/*", "content/articles/**/*"],
+    "/emails/[slug]": ["content/emails/**/*", "content/articles/**/*"],
+    "/api/emails/search": ["content/emails/**/*", "content/articles/**/*"],
   },
   // Conservative security headers on every route. Deliberately NO
   // Content-Security-Policy — that's powerful but fragile and would risk

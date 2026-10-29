@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { PresenceState } from "@/lib/desk";
 import { usePoll } from "@/components/usePoll";
@@ -35,6 +35,23 @@ function label(state: PresenceState): string {
   return isAtDesk(state) ? "Clay is at the desk" : "Clay stepped away";
 }
 
+// When Clay flips his own status at the desk, every tab in his browser
+// should show it at once, not after a poll lands on a CDN-cached answer.
+// A BroadcastChannel reaches his other tabs; the window event reaches the
+// tab he clicked in (a channel doesn't echo to its sender). No server.
+const CHANNEL = "sbp-presence";
+
+export function announcePresence(state: PresenceState) {
+  window.dispatchEvent(new CustomEvent<PresenceState>(CHANNEL, { detail: state }));
+  try {
+    const bc = new BroadcastChannel(CHANNEL);
+    bc.postMessage(state);
+    bc.close();
+  } catch {
+    // Older browsers without BroadcastChannel just wait for the poll.
+  }
+}
+
 export function DeskPresenceIndicator({
   initialState,
   href = "/desk",
@@ -49,6 +66,35 @@ export function DeskPresenceIndicator({
 }) {
   const [state, setState] = useState<PresenceState>(initialState);
   const atDesk = isAtDesk(state);
+
+  // The header first paints from sessionStorage, then the live chrome
+  // arrives with the real state. useState alone kept the first (stale)
+  // value until a poll happened to land, which is why the dot often
+  // needed a full refresh to catch up. Follow the prop when it changes.
+  useEffect(() => {
+    setState(initialState);
+  }, [initialState]);
+
+  useEffect(() => {
+    const onLocal = (e: Event) => {
+      const next = (e as CustomEvent<PresenceState>).detail;
+      if (next) setState(next);
+    };
+    window.addEventListener(CHANNEL, onLocal);
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel(CHANNEL);
+      bc.onmessage = (e: MessageEvent<PresenceState>) => {
+        if (e.data) setState(e.data);
+      };
+    } catch {
+      bc = null;
+    }
+    return () => {
+      window.removeEventListener(CHANNEL, onLocal);
+      bc?.close();
+    };
+  }, []);
 
   // Once a non-paid viewer's dot has gone away it is never drawn again,
   // so polling on for the rest of the session is spend with nothing on

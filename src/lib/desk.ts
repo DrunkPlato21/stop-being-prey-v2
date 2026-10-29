@@ -10,7 +10,7 @@ import { randomUUID } from "crypto";
 //
 // Also tracks Clay's "at the desk" presence so the widget can pulse
 // when he's actively here. Three derived states:
-//   - active           session flag on + lastActivityAt within 4h
+//   - active           session flag on (until Clay ends it; no timeout)
 //   - recently-active  lastActivityAt within 24h
 //   - quiet            anything older
 //
@@ -26,7 +26,6 @@ const UPDATES_INDEX = "desk:updates";
 const UPDATE_PREFIX = "desk:";
 const PRESENCE_KEY = "desk:presence";
 
-const ACTIVE_SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000; // 4 hours
 const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 const FRESH_UPDATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -234,8 +233,7 @@ function parsePresence(raw: unknown): DeskPresence {
 
 /**
  * Raw presence record from storage. Use derivePresenceState() to turn
- * this into the displayable three-state value (the active flag alone
- * isn't enough — sessions auto-age-out after 4h).
+ * this into the displayable three-state value.
  */
 export async function getPresence(): Promise<DeskPresence> {
   const client = getClient();
@@ -246,7 +244,9 @@ export async function getPresence(): Promise<DeskPresence> {
 
 /**
  * Compute the displayable presence state from raw + the current time:
- *   - "active": session on AND lastActivityAt within 4h.
+ *   - "active": session on. No timeout: Clay is at the desk until he
+ *     clicks "End session". An auto-expiry used to flip him to "stepped
+ *     away" 4h after his last desk action while he was still working.
  *   - "manually-away": last transition to !active was an explicit
  *     "End session" click. Persists until the next session starts,
  *     regardless of how long ago it happened.
@@ -257,11 +257,7 @@ export function derivePresenceState(
   presence: DeskPresence,
   now: number = Date.now()
 ): PresenceState {
-  if (
-    presence.active &&
-    presence.lastActivityAt > 0 &&
-    now - presence.lastActivityAt < ACTIVE_SESSION_TIMEOUT_MS
-  ) {
+  if (presence.active) {
     return "active";
   }
   if (presence.endedManually && presence.endedAt > 0) {
@@ -391,15 +387,13 @@ async function bumpLastActivity(): Promise<void> {
 }
 
 /**
- * Keepalive for an open admin desk. Refreshes `lastActivityAt` so simply
- * having the desk open and focused keeps the "at the desk" status from
- * aging out at the 4h mark, without Clay needing to post anything.
+ * Keepalive for an open admin desk. Refreshes `lastActivityAt` while the
+ * desk is open. Sessions no longer time out, so this only keeps the
+ * activity timestamp current.
  *
- * Critically, it only extends a session that is CURRENTLY active (flag on
- * AND within the 4h window). It never revives a session that already
- * auto-expired or was ended manually — reviving one requires an explicit
- * "start". So a forgotten background tab still times out honestly, and a
- * stray ping after Clay has actually left can't resurrect his presence.
+ * It only touches a session that is CURRENTLY active. It never revives a
+ * session that was ended — reviving one requires an explicit "start", so
+ * a stray ping after Clay has left can't resurrect his presence.
  * `bumped` reports whether the timer was actually refreshed.
  */
 export async function keepAlive(
