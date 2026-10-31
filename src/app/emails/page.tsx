@@ -5,12 +5,12 @@ import { getArchiveReader, getEmailIndex } from "@/lib/email-archive";
 import { getMarkedKitIds } from "@/lib/email-reads";
 import { EmailArchive } from "./EmailArchive";
 import { PatronTeaser } from "./PatronTeaser";
-import { shortDate } from "./format";
 
 export const metadata: Metadata = {
   title: "Every Email",
-  description: "Every email Clay has ever sent, for patrons.",
-  robots: { index: false, follow: false },
+  description:
+    "Every email Clay has ever sent, from the first one to the latest. Patrons read them all.",
+  alternates: { canonical: "/emails" },
 };
 
 export const dynamic = "force-dynamic";
@@ -26,6 +26,8 @@ export default async function EmailsIndexPage({
     getEmailIndex(),
   ]);
 
+  // A visitor sees the same list a patron does, locked: every title is
+  // there to browse, and opening one shows its opening and the offer.
   if (!reader) {
     const session = await verifySession(
       (await cookies()).get(SESSION_COOKIE)?.value
@@ -35,27 +37,19 @@ export default async function EmailsIndexPage({
         <Masthead
           deck={`Every email I've sent, from the first one to the latest. ${emails.length} so far.`}
         />
-        <section className="max-w-3xl mx-auto px-6 py-14 md:py-20">
+        <EmailArchive
+          emails={emails}
+          startHere={startHere}
+          initialRead={[]}
+          initialFavs={[]}
+          locked={{ signedIn: !!session }}
+        />
+        <section className="max-w-3xl mx-auto px-6 pb-20">
           <PatronTeaser
             total={emails.length}
             signedIn={!!session}
             next="/emails"
           />
-          {startHere.length > 0 && (
-            <div className="mt-16">
-              <p className="ar-section-label">
-                <span>Where patrons start</span>
-              </p>
-              <ul className="ar-teaser-list">
-                {startHere.map((e) => (
-                  <li key={e.slug}>
-                    <span className="ar-teaser-title">{e.subject}</span>
-                    <span className="ar-teaser-date">{shortDate(e.sentAt)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </section>
       </div>
     );

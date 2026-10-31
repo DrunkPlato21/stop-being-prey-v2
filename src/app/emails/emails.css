@@ -888,3 +888,31 @@
   font-size: 0.92rem;
   color: var(--ink-muted);
 }
+
+/* Locked archive (a visitor who isn't a patron): one line of offer where
+   a patron's reading progress sits, and a small lock on each email. */
+.ar-locked-bar {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  font-variant-numeric: lining-nums;
+}
+.ar-locked-bar p {
+  margin: 0;
+}
+.ar-locked-cta {
+  color: var(--eye-deep);
+  font-style: normal;
+  font-weight: 600;
+}
+.ar-lock {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-right: 0.45rem;
+  vertical-align: -0.08em;
+  color: var(--ink-faint);
+}

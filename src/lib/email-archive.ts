@@ -48,6 +48,8 @@ export type EmailMeta = {
   number: number;
   /** Set when this email carried a published essay: read it there. */
   essay: { slug: string; title: string } | null;
+  /** A free sample: anyone can read it in full, patron or not. */
+  free: boolean;
 };
 
 
@@ -55,6 +57,8 @@ export type Email = EmailMeta & { html: string; text: string };
 
 type Curation = {
   startHere: string[];
+  /** Subjects anyone can read in full, as a taste of the archive. */
+  freeSamples: string[];
   hide: (string | number)[];
   /** Lowercased email subject -> essay slug. */
   essays: Record<string, string>;
@@ -100,6 +104,7 @@ function parseCuration(): Curation {
   }
   return {
     startHere: Array.isArray(raw.startHere) ? raw.startHere : [],
+    freeSamples: Array.isArray(raw.freeSamples) ? raw.freeSamples : [],
     hide: Array.isArray(raw.hide) ? raw.hide : [],
     essays,
   };
@@ -200,6 +205,8 @@ function buildArchive(
     return slug && title ? { slug, title } : null;
   };
 
+  const free = new Set(curation.freeSamples.map((s) => s.trim().toLowerCase()));
+
   // Slugs are assigned oldest first, so when two emails share a subject
   // the earlier one keeps the clean URL and the later one gets its date.
   const taken = new Set<string>();
@@ -219,6 +226,7 @@ function buildArchive(
       readMin: Math.max(1, Math.round(words / WORDS_PER_MINUTE)),
       number: i + 1,
       essay: essayFor(e.subject),
+      free: free.has(e.subject.toLowerCase()),
       html: autolinkHtml(e.html),
       text,
     };
@@ -247,6 +255,7 @@ function toMeta(e: Email): EmailMeta {
     readMin: e.readMin,
     number: e.number,
     essay: e.essay,
+    free: e.free,
   };
 }
 

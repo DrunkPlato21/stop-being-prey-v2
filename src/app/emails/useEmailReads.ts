@@ -15,10 +15,12 @@ function apiUrl(endpoint: Endpoint): string {
   return `/api/emails/${endpoint}${dev ? `?dev_preview=${dev}` : ""}`;
 }
 
-export function useEmailMarks(endpoint: Endpoint, initial: number[]) {
+export function useEmailMarks(endpoint: Endpoint, initial: number[], enabled = true) {
   const [marked, setMarked] = useState<Set<number>>(() => new Set(initial));
 
   useEffect(() => {
+    // A visitor who isn't a patron has no marks to fetch.
+    if (!enabled) return;
     let alive = true;
     const refresh = () => {
       fetch(apiUrl(endpoint), { cache: "no-store" })
@@ -39,7 +41,7 @@ export function useEmailMarks(endpoint: Endpoint, initial: number[]) {
       window.removeEventListener("pageshow", refresh);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [endpoint]);
+  }, [endpoint, enabled]);
 
   const setMark = useCallback(
     (kitId: number, on: boolean) => {
@@ -68,12 +70,12 @@ export function useEmailMarks(endpoint: Endpoint, initial: number[]) {
   return { marked, setMark };
 }
 
-export function useEmailReads(initial: number[]) {
-  const { marked, setMark } = useEmailMarks("read", initial);
+export function useEmailReads(initial: number[], enabled = true) {
+  const { marked, setMark } = useEmailMarks("read", initial, enabled);
   return { read: marked, setRead: setMark };
 }
 
-export function useEmailFavorites(initial: number[]) {
-  const { marked, setMark } = useEmailMarks("favorite", initial);
+export function useEmailFavorites(initial: number[], enabled = true) {
+  const { marked, setMark } = useEmailMarks("favorite", initial, enabled);
   return { favs: marked, setFav: setMark };
 }

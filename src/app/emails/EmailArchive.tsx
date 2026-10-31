@@ -20,6 +20,11 @@ import { useEmailFavorites, useEmailReads } from "./useEmailReads";
 // ship with the page and filter on the first keystroke; the full text
 // of every email loads from /api/emails/search the first time the box
 // is touched, and body matches join the results when it lands.
+//
+// Locked (a visitor who isn't a patron): the same list, so they can see
+// everything they're missing, but search covers titles and previews
+// only, there are no read marks or stars, and every row that isn't a
+// free sample carries a lock. Opening one lands on the teaser page.
 
 type Corpus = Map<string, string>;
 
@@ -107,14 +112,17 @@ export function EmailArchive({
   startHere,
   initialRead,
   initialFavs,
+  locked = null,
 }: {
   emails: EmailMeta[];
   startHere: EmailMeta[];
   initialRead: number[];
   initialFavs: number[];
+  /** Set for a visitor who isn't a patron. */
+  locked?: { signedIn: boolean } | null;
 }) {
-  const { read, setRead } = useEmailReads(initialRead);
-  const { favs, setFav } = useEmailFavorites(initialFavs);
+  const { read, setRead } = useEmailReads(initialRead, !locked);
+  const { favs, setFav } = useEmailFavorites(initialFavs, !locked);
   const [view, setView] = useState<"all" | "favorites">("all");
   const favorites = useMemo(
     () => emails.filter((e) => favs.has(e.kitId)),
@@ -133,7 +141,7 @@ export function EmailArchive({
   const [stuck, setStuck] = useState(false);
 
   const loadCorpus = useCallback(() => {
-    if (corpusState !== "idle") return;
+    if (locked || corpusState !== "idle") return;
     setCorpusState("loading");
     const devPreview = new URLSearchParams(window.location.search).get("dev_preview");
     fetch(`/api/emails/search${devPreview ? `?dev_preview=${devPreview}` : ""}`)
@@ -143,7 +151,7 @@ export function EmailArchive({
         setCorpusState("ready");
       })
       .catch(() => setCorpusState("failed"));
-  }, [corpusState]);
+  }, [corpusState, locked]);
 
   // A search survives the round trip to an email and back: it lives in
   // the URL (?q=), read once on arrival and kept current as you type.
@@ -262,8 +270,12 @@ export function EmailArchive({
   const item = (e: EmailMeta, row: React.ReactNode) => (
     <li key={e.slug} className="ar-item">
       {row}
-      <ReadMark read={read.has(e.kitId)} subject={e.subject} onToggle={() => setRead(e.kitId, !read.has(e.kitId))} />
-      <FavMark on={favs.has(e.kitId)} subject={e.subject} onToggle={() => setFav(e.kitId, !favs.has(e.kitId))} />
+      {!locked && (
+        <>
+          <ReadMark read={read.has(e.kitId)} subject={e.subject} onToggle={() => setRead(e.kitId, !read.has(e.kitId))} />
+          <FavMark on={favs.has(e.kitId)} subject={e.subject} onToggle={() => setFav(e.kitId, !favs.has(e.kitId))} />
+        </>
+      )}
     </li>
   );
   // Email pages carry the search back to the index; essays live outside
@@ -319,7 +331,11 @@ export function EmailArchive({
         </label>
       </div>
 
-      {!searching && (
+      {!searching && locked && (
+        <LockedBar total={emails.length} signedIn={locked.signedIn} />
+      )}
+
+      {!searching && !locked && (
         <>
           <ReadProgress read={readCount} total={emails.length} />
           <div className="ar-views" role="group" aria-label="Show">
@@ -360,11 +376,11 @@ export function EmailArchive({
           </p>
           <ul className="ar-list">
             {hits.map((h) => (
-              item(h.email, <EmailRow email={h.email} href={hrefFor(h.email)} isRead={read.has(h.email.kitId)} q={deferredQ} snippet={h.inTitle ? null : h.snippet} showYear />)
+              item(h.email, <EmailRow email={h.email} href={hrefFor(h.email)} isRead={read.has(h.email.kitId)} q={deferredQ} snippet={h.inTitle ? null : h.snippet} showYear locked={!!locked} />)
             ))}
           </ul>
         </section>
-      ) : view === "favorites" ? (
+      ) : view === "favorites" && !locked ? (
         <section className="pt-8" aria-label="Favorites">
           {favorites.length === 0 ? (
             <p className="ar-empty">
@@ -395,6 +411,7 @@ export function EmailArchive({
                       <span className="ar-pick-num">
                         {String(i + 1).padStart(2, "0")}
                         {e.essay && <span className="ar-essay-tag">Essay</span>}
+                        {locked && e.free && !e.essay && <span className="ar-essay-tag">Free to read</span>}
                         {read.has(e.kitId) && <span className="ar-pick-read">Read</span>}
                       </span>
                       <span className="ar-pick-title">{e.subject}</span>
@@ -415,7 +432,7 @@ export function EmailArchive({
               </h2>
               <ul className="ar-list">
                 {m.emails.map((e) => (
-                  item(e, <EmailRow email={e} href={hrefFor(e)} isRead={read.has(e.kitId)} />)
+                  item(e, <EmailRow email={e} href={hrefFor(e)} isRead={read.has(e.kitId)} locked={!!locked} />)
                 ))}
               </ul>
             </section>
@@ -433,6 +450,7 @@ function EmailRow({
   snippet = null,
   showYear = false,
   isRead = false,
+  locked = false,
 }: {
   email: EmailMeta;
   href: string;
@@ -440,6 +458,7 @@ function EmailRow({
   q?: string;
   snippet?: string | null;
   showYear?: boolean;
+  locked?: boolean;
 }) {
   const { day, weekday } = dayParts(email.sentAt);
   const essay = email.essay;
@@ -473,6 +492,8 @@ function EmailRow({
         )}
         <span className="ar-row-meta">
           {essay && <span className="ar-essay-tag">Essay</span>}
+          {locked && !essay && email.free && <span className="ar-essay-tag">Free to read</span>}
+          {locked && !essay && !email.free && <LockGlyph />}
           {showYear ? `${shortDate(email.sentAt)} · ` : ""}
           {essay
             ? essayRenamed
@@ -520,6 +541,39 @@ function ReadProgress({ read, total }: { read: number; total: number }) {
         <span style={{ width: `${Math.round((read / total) * 100)}%` }} />
       </span>
     </div>
+  );
+}
+
+// Where a patron sees their reading progress, a visitor sees the offer,
+// kept to one quiet line so the list itself stays the pitch.
+function LockedBar({ total, signedIn }: { total: number; signedIn: boolean }) {
+  return (
+    <div className="ar-locked-bar">
+      <p>
+        <LockGlyph /> Patrons read all {total}.{" "}
+        <Link href="/patronage" className="ar-locked-cta">
+          Become a patron
+        </Link>
+        {!signedIn && (
+          <>
+            {" "}
+            <span className="ar-progress-sep" aria-hidden>·</span>{" "}
+            <Link href={`/notes/sign-in?next=${encodeURIComponent("/emails")}`} className="ar-surprise">
+              Sign in
+            </Link>
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
+function LockGlyph() {
+  return (
+    <svg aria-label="Patrons only" role="img" viewBox="0 0 16 16" className="ar-lock">
+      <rect x="3" y="7" width="10" height="7" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
   );
 }
 

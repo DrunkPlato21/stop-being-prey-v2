@@ -28,10 +28,12 @@ const TEASER_PARAGRAPHS = 3;
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<PageParams>;
+  searchParams: Promise<{ g?: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const [{ slug }, { g }] = await Promise.all([params, searchParams]);
   const found = await getEmailBySlug(slug);
   if (!found) return {};
   const { email } = found;
@@ -42,7 +44,11 @@ export async function generateMetadata({
   return {
     title: { absolute: `${email.subject} | Every Email | Stop Being Prey` },
     description,
-    robots: { index: false, follow: false },
+    // Search engines see what a visitor sees: the opening and the offer
+    // (or the whole thing, for a free sample). A gift link opens the full
+    // email, so it's never indexed and points back at the locked page.
+    robots: g ? { index: false, follow: false } : undefined,
+    alternates: { canonical: `/emails/${email.slug}` },
     openGraph: {
       type: "article",
       siteName: "Stop Being Prey",
@@ -92,10 +98,16 @@ export default async function EmailPage({
   // back link, no read marks) and an invitation to the free list at the
   // foot. A patron following someone's gift link just gets their own
   // view below.
-  if (!reader && g && (await resolveGift(g)) === email.kitId) {
+  // A free sample opens the same way for anyone, labelled as a sample.
+  const gifted = !reader && !!g && (await resolveGift(g)) === email.kitId;
+  if (!reader && (gifted || email.free)) {
     return (
       <article className="relative">
-        <EmailHeader email={email} total={total} eyebrow="Shared with you" />
+        <EmailHeader
+          email={email}
+          total={total}
+          eyebrow={gifted ? "Shared with you" : "A free sample"}
+        />
         <div className="max-w-3xl mx-auto px-6 pt-10 md:pt-14 pb-6">
           <div
             className="prose-article ar-body"
@@ -103,7 +115,17 @@ export default async function EmailPage({
           />
         </div>
         <div className="max-w-3xl mx-auto px-6 pb-20">
-          <GiftSignup />
+          {gifted ? (
+            <GiftSignup />
+          ) : (
+            <PatronTeaser
+              total={total}
+              signedIn={
+                !!(await verifySession((await cookies()).get(SESSION_COOKIE)?.value))
+              }
+              next={`/emails/${email.slug}`}
+            />
+          )}
         </div>
       </article>
     );
