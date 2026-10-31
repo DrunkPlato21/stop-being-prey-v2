@@ -4185,7 +4185,8 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
 .header-nav-link {
   font-family: var(--font-cormorant), "EB Garamond", Georgia, serif;
   font-size: 0.7rem;
-  letter-spacing: 0.22em;
+  /* Tighter on phones so all five links hold one line. */
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   font-weight: 500;
   line-height: 1;
@@ -4195,6 +4196,7 @@ body[data-theme="admin-desk-dark"] .lounge-card-author {
 @media (min-width: 640px) {
   .header-nav-link {
     font-size: 0.74rem;
+    letter-spacing: 0.22em;
   }
 }
 

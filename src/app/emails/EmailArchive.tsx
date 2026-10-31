@@ -132,6 +132,16 @@ export function EmailArchive({
     () => emails.filter((e) => read.has(e.kitId)).length,
     [emails, read]
   );
+  // The free samples, shown to visitors above everything else (and so
+  // left out of their "Start here", which would only repeat them).
+  const samples = useMemo(
+    () => (locked ? emails.filter((e) => e.free && !e.essay) : []),
+    [emails, locked]
+  );
+  const picks = useMemo(
+    () => (locked ? startHere.filter((e) => !e.free || e.essay) : startHere),
+    [startHere, locked]
+  );
   const [q, setQ] = useState("");
   const deferredQ = useDeferredValue(q);
   const [corpus, setCorpus] = useState<Corpus | null>(null);
@@ -396,13 +406,35 @@ export function EmailArchive({
         </section>
       ) : (
         <>
-          {startHere.length > 0 && (
+          {samples.length > 0 && (
+            <section className="pt-10" aria-labelledby="ar-free">
+              <p className="ar-section-label" id="ar-free">
+                <span>Read these free</span>
+              </p>
+              <ul className="ar-picks ar-samples">
+                {samples.map((e) => (
+                  <li key={e.slug}>
+                    <Link href={emailHref(e)} className="ar-pick">
+                      <span className="ar-pick-num">
+                        <span className="ar-essay-tag">Free to read</span>
+                      </span>
+                      <span className="ar-pick-title">{e.subject}</span>
+                      {e.preview && <span className="ar-pick-preview">{e.preview}</span>}
+                      <span className="ar-pick-date">{shortDate(e.sentAt)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {picks.length > 0 && (
             <section className="pt-10" aria-labelledby="ar-start-here">
               <p className="ar-section-label" id="ar-start-here">
                 <span>Start here</span>
               </p>
               <ol className="ar-picks">
-                {startHere.map((e, i) => (
+                {picks.map((e, i) => (
                   <li key={e.slug}>
                     <Link
                       href={emailHref(e)}
@@ -411,7 +443,6 @@ export function EmailArchive({
                       <span className="ar-pick-num">
                         {String(i + 1).padStart(2, "0")}
                         {e.essay && <span className="ar-essay-tag">Essay</span>}
-                        {locked && e.free && !e.essay && <span className="ar-essay-tag">Free to read</span>}
                         {read.has(e.kitId) && <span className="ar-pick-read">Read</span>}
                       </span>
                       <span className="ar-pick-title">{e.subject}</span>

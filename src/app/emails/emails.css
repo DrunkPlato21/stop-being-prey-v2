@@ -133,17 +133,17 @@
     overflow: visible;
   }
   /* The first pick leads: a tall card beside a 2x2 of the rest. */
-  .ar-picks > li:first-child {
+  .ar-picks:not(.ar-samples) > li:first-child {
     grid-row: span 2;
   }
-  .ar-picks > li:first-child .ar-pick {
+  .ar-picks:not(.ar-samples) > li:first-child .ar-pick {
     padding: 1.6rem 1.5rem 1.35rem;
   }
-  .ar-picks > li:first-child .ar-pick-title {
+  .ar-picks:not(.ar-samples) > li:first-child .ar-pick-title {
     font-size: 2.1rem;
     line-height: 1.05;
   }
-  .ar-picks > li:first-child .ar-pick-preview {
+  .ar-picks:not(.ar-samples) > li:first-child .ar-pick-preview {
     font-size: 1.02rem;
     -webkit-line-clamp: 5;
   }
@@ -915,4 +915,11 @@
   margin-right: 0.45rem;
   vertical-align: -0.08em;
   color: var(--ink-faint);
+}
+
+/* Free samples for visitors: three equal cards in a row, no lead card. */
+@media (min-width: 900px) {
+  .ar-picks.ar-samples {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }

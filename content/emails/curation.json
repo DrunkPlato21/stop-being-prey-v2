@@ -1,14 +1,16 @@
 {
   "_howto": "startHere: the picks shown first on /emails, in this order, matched by subject (capitals don't matter). freeSamples: subjects anyone can read in full without being a patron, a taste of the archive (keep it to one or two). hide: subjects (or Kit ids) to leave out of the archive entirely. essays: emails that carried a published essay, as \"email subject\": \"essay slug\". Those show in the archive as an Essay and link to the essay page instead of an email copy. Save, then deploy.",
   "startHere": [
-    "the desecration of charlie kirk",
-    "there is no plan",
-    "nathan",
-    "i changed my mind",
-    "daniel"
+    "phew",
+    "he said he'd piss on my grave",
+    "the worst thing you can do in a cave",
+    "divorce your wife",
+    "i changed my mind"
   ],
   "freeSamples": [
-    "there is no plan"
+    "he turned down $360,000",
+    "what killed the cat?",
+    "a graceful predator"
   ],
   "hide": [
     20113897,
