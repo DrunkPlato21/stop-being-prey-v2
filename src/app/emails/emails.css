@@ -205,6 +205,29 @@
   color: var(--ink-faint);
 }
 
+/* Phones: compact cards, so eight of them stacked don't push the list
+   itself two screens down. The free row drops its tag; the section
+   label above it already says they're free. */
+@media (max-width: 599px) {
+  .ar-picks {
+    gap: 0.6rem;
+  }
+  .ar-pick {
+    gap: 0.2rem;
+    padding: 0.75rem 1rem 0.8rem;
+  }
+  .ar-pick-title {
+    font-size: 1.25rem;
+  }
+  .ar-pick-preview {
+    -webkit-line-clamp: 2;
+  }
+  .ar-pick-date,
+  .ar-samples .ar-pick-num {
+    display: none;
+  }
+}
+
 /* --- Month groups --- */
 .ar-month {
   display: flex;
