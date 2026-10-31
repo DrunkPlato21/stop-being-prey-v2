@@ -1296,6 +1296,12 @@ export async function notifyNewPatron(args: {
   amountCents: number;
   interval: "month" | "year";
   reactivation: boolean;
+  /** First-touch channel (facebook / email / direct ...). */
+  channel?: string | null;
+  /** The surface they clicked through from (archive / finisher ...). */
+  source?: string | null;
+  /** Their path to checkout, readable (lib/touches describeTouches). */
+  path?: string | null;
 }): Promise<void> {
   const who = args.name?.trim() || args.email;
   const amount = `${formatMoneyDollars(args.amountCents)}/${args.interval === "year" ? "yr" : "mo"}`;
@@ -1310,6 +1316,10 @@ export async function notifyNewPatron(args: {
     `Email:  ${args.email}`,
     `Seat:   ${seat}`,
     `Amount: ${amount}`,
+    ``,
+    `First found you via: ${args.channel || "(unknown)"}`,
+    `Clicked through from: ${args.source || "(untagged link)"}`,
+    `Path before paying:  ${args.path || "(nothing tracked)"}`,
   ].join("\n"));
 }
 

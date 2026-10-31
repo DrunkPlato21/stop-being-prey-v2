@@ -90,6 +90,14 @@ export const TRACK_EVENTS = [
   // emailing to ask why no link arrived.
   "signin_requested",
   "signin_no_match",
+  // The public email archive, as a visitor sees it: the locked index,
+  // a locked email's opening (the teaser), and a free sample read in
+  // full. All carry source "archive", the same source the archive's
+  // "Become a patron" links send to checkout, so its counter row reads
+  // as one funnel: views, teasers, samples, checkouts, paid.
+  "archive_view",
+  "teaser_view",
+  "sample_view",
 ] as const;
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
 
@@ -139,6 +147,9 @@ export const TRACK_SOURCES = [
   // writes nothing at all for a slugless event that isn't source-tracked,
   // so this source is what gives them somewhere to land.
   "signin",
+  // The email archive at /emails: its "Become a patron" links, and the
+  // archive_view / teaser_view / sample_view events above.
+  "archive",
   "unknown",
 ] as const;
 export type TrackSource = (typeof TRACK_SOURCES)[number];
@@ -165,6 +176,9 @@ const SOURCE_TRACKED_EVENTS: ReadonlySet<string> = new Set([
   // being listed here they would write nothing at all.
   "signin_requested",
   "signin_no_match",
+  "archive_view",
+  "teaser_view",
+  "sample_view",
 ]);
 
 // Events that also roll up into a per-CHANNEL counter (analytics:channel:*)
@@ -298,6 +312,44 @@ export async function recordReferrer(referrer: string): Promise<void> {
     await pipe.exec();
   } catch {
     /* swallow: a failed counter must not surface to the caller */
+  }
+}
+
+// ---------------------------------------------------------------------
+// Conversion paths. Each paid conversion credits every kind of touch on
+// the buyer's path (lib/touches): "archive", "sample", "teaser", "gift",
+// "email", plus the specific free sample or email campaign. Read beside
+// the total became_member count, "archive: 3" means three of the new
+// patrons had browsed the archive before paying.
+const CONVERSION_TOUCH_KEY = "conversion:touch";
+
+/** Credit each touch key once. One pipelined round trip; never throws. */
+export async function recordConversionTouches(keys: string[]): Promise<void> {
+  const client = getClient();
+  if (!client || keys.length === 0) return;
+  const key = `${prefix(isDevWrite())}${CONVERSION_TOUCH_KEY}`;
+  try {
+    const pipe = client.pipeline();
+    keys.forEach((k) => pipe.hincrby(key, k, 1));
+    await pipe.exec();
+  } catch {
+    /* swallow: a failed counter must not surface to the caller */
+  }
+}
+
+/** Touch keys on paid conversions, highest count first. */
+export async function getConversionTouches(dev = false): Promise<ReferrerRow[]> {
+  const client = getClient();
+  if (!client) return [];
+  try {
+    const raw = (await client.hgetall(
+      `${prefix(dev)}${CONVERSION_TOUCH_KEY}`
+    )) as Record<string, unknown> | null;
+    return Object.entries(raw ?? {})
+      .map(([name, count]) => ({ name, count: Number(count) || 0 }))
+      .sort((a, b) => b.count - a.count);
+  } catch {
+    return [];
   }
 }
 

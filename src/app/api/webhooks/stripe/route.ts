@@ -76,7 +76,13 @@ import {
   createMagicLink,
   signBillingToken,
 } from "@/lib/auth";
-import { asTrackChannel, asTrackSource, recordEvent } from "@/lib/analytics";
+import {
+  asTrackChannel,
+  asTrackSource,
+  recordConversionTouches,
+  recordEvent,
+} from "@/lib/analytics";
+import { conversionKeys, describeTouches, parseTouches } from "@/lib/touches";
 import {
   getGift,
   getGiftByRecipient,
@@ -748,9 +754,13 @@ async function handleMembershipCheckout(
     source: asTrackSource(metadata.source),
     channel: asTrackChannel(metadata.channel),
   });
+  // And every step on the path that got them here (lib/touches).
+  const touches = parseTouches(metadata.path);
+  await recordConversionTouches(conversionKeys(touches));
 
-  // Tell Clay directly. Same once-per-member guarantee as recordEvent
-  // above; never throws.
+  // Tell Clay directly, with where they came from and what they read on
+  // the way. Same once-per-member guarantee as recordEvent above; never
+  // throws.
   await notifyNewPatron({
     email,
     name: session.customer_details?.name ?? null,
@@ -759,6 +769,9 @@ async function handleMembershipCheckout(
     amountCents,
     interval,
     reactivation: metadata.reactivation === "true",
+    channel: metadata.channel ?? null,
+    source: metadata.source ?? null,
+    path: describeTouches(touches),
   });
 
   // Welcome the new patron with a way back in. Sign-in is by emailed

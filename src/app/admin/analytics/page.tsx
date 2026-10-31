@@ -4,6 +4,7 @@ import { getAllArticles, getEarlyAccessArticle } from "@/lib/articles";
 import {
   getArticleCounts,
   getChannelCounts,
+  getConversionTouches,
   getReferrers,
   getSourceCounts,
   MAX_REFERRER_HOSTS,
@@ -95,6 +96,12 @@ export default async function AnalyticsAdminPage({
     getEngagementStats(),
     getReferrers(dev),
   ]);
+  const conversionTouches = await getConversionTouches(dev);
+  const archive = sources.get("archive") ?? {};
+  const totalMembers = TRACK_SOURCES.reduce(
+    (sum, s) => sum + n(sources.get(s) ?? {}, "became_member"),
+    0
+  );
 
   // Which bucket each raw host would have fallen into. The point of the
   // column is the "other" rows: those are the sites the channel table
@@ -415,6 +422,69 @@ export default async function AnalyticsAdminPage({
                 </tr>
               );
             })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* The public email archive as a funnel: visitors browsing the
+          locked list, opening locked emails, reading free samples, and
+          clicking through to patronage from it. */}
+      <h2 className="eyebrow mt-12 mb-3">Email archive</h2>
+      <div className="overflow-x-auto border border-rule max-w-xl">
+        <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr className="text-left text-ink-faint uppercase tracking-wider">
+              <Th>Archive views</Th>
+              <Th>Locked opened</Th>
+              <Th>Samples read</Th>
+              <Th>Checkout</Th>
+              <Th>Member</Th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t border-rule">
+              <Td>{n(archive, "archive_view").toLocaleString()}</Td>
+              <Td>{n(archive, "teaser_view").toLocaleString()}</Td>
+              <Td>{n(archive, "sample_view").toLocaleString()}</Td>
+              <Td>{n(archive, "checkout_started").toLocaleString()}</Td>
+              <Td>{n(archive, "became_member").toLocaleString()}</Td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Every step on new patrons' paths (lib/touches), counted once per
+          patron. Read against the total: "archive 3 of 10" means three of
+          ten new patrons browsed the archive before paying. */}
+      <h2 className="eyebrow mt-12 mb-3">What new patrons did before paying</h2>
+      <p className="text-sm text-ink-muted mb-3 max-w-xl">
+        {totalMembers.toLocaleString()} paid conversions recorded in total.
+        Paths are only known for patrons who joined after path tracking
+        went live.
+      </p>
+      <div className="overflow-x-auto border border-rule max-w-xl">
+        <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr className="text-left text-ink-faint uppercase tracking-wider">
+              <Th className="text-left">Step</Th>
+              <Th>Patrons</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {conversionTouches.length === 0 ? (
+              <tr className="border-t border-rule">
+                <Td className="text-left" colSpan={2}>
+                  Nothing yet.
+                </Td>
+              </tr>
+            ) : (
+              conversionTouches.map((r) => (
+                <tr key={r.name} className="border-t border-rule">
+                  <Td className="text-left">{r.name}</Td>
+                  <Td>{r.count.toLocaleString()}</Td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

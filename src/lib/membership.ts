@@ -427,6 +427,9 @@ export async function createMembershipCheckoutSession(args: {
       "direct"), carried into metadata so the webhook credits the channel
       that originally brought the buyer. Validated by the caller. */
   channel?: string;
+  /** The buyer's path to checkout (lib/touches, already serialized and
+      under Stripe's 500-character metadata cap). */
+  path?: string;
 }): Promise<{ url: string } | { error: CheckoutError; floor?: number }> {
   const stripe = client();
   if (!stripe) return { error: "stripe_not_configured" };
@@ -524,6 +527,7 @@ export async function createMembershipCheckoutSession(args: {
       amount_cents: String(args.amountCents),
       ...(args.source ? { source: args.source } : {}),
       ...(args.channel ? { channel: args.channel } : {}),
+      ...(args.path ? { path: args.path } : {}),
       ...(founderOverride && typeof args.founderGrantSlot === "number"
         ? { founder_slot_grant: String(args.founderGrantSlot) }
         : {}),
@@ -538,6 +542,7 @@ export async function createMembershipCheckoutSession(args: {
         plan: args.plan,
         ...(args.source ? { source: args.source } : {}),
         ...(args.channel ? { channel: args.channel } : {}),
+        ...(args.path ? { path: args.path } : {}),
       },
     },
   });

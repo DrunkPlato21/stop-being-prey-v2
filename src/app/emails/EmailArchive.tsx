@@ -582,7 +582,7 @@ function LockedBar({ total, signedIn }: { total: number; signedIn: boolean }) {
     <div className="ar-locked-bar">
       <p>
         <LockGlyph /> Patrons read all {total}.{" "}
-        <Link href="/patronage" className="ar-locked-cta">
+        <Link href="/patronage?src=archive" className="ar-locked-cta">
           Become a patron
         </Link>
         {!signedIn && (

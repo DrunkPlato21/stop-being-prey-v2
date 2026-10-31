@@ -6,6 +6,7 @@ import {
 } from "@/lib/membership";
 import { getFounderAccess } from "@/lib/founder-access";
 import { asTrackChannel, asTrackSource, recordEvent } from "@/lib/analytics";
+import { parseTouches, serializeTouches, TOUCH_COOKIE } from "@/lib/touches";
 
 // POST /api/membership/checkout
 // Body: { plan: "monthly" | "yearly", amountCents: number, email?: string }
@@ -68,6 +69,11 @@ export async function POST(req: NextRequest) {
   // threaded into Stripe metadata and credited on the became_member close.
   const channel = asTrackChannel(req.cookies.get("sbp_channel")?.value);
 
+  // The steps they took on the way here (archive, samples, locked
+  // emails, tagged email links). See lib/touches. Into metadata so the
+  // webhook can credit them and put them in the new-patron alert.
+  const path = serializeTouches(parseTouches(req.cookies.get(TOUCH_COOKIE)?.value));
+
   const result = await createMembershipCheckoutSession({
     plan,
     amountCents,
@@ -80,6 +86,7 @@ export async function POST(req: NextRequest) {
     accessToken: founderAccess ? accessToken : undefined,
     source,
     channel,
+    path: path || undefined,
   });
   if ("error" in result) {
     const status =

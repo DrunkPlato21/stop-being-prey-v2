@@ -17,6 +17,8 @@ import { EmailKeys } from "./EmailKeys";
 import { ReadTracker } from "./ReadTracker";
 import { EmailActions } from "./EmailActions";
 import { GiftSignup } from "./GiftSignup";
+import { TouchTracker } from "@/components/TouchTracker";
+import { touchSlug } from "@/lib/touches";
 
 type PageParams = { slug: string };
 
@@ -103,6 +105,10 @@ export default async function EmailPage({
   if (!reader && (gifted || email.free)) {
     return (
       <article className="relative">
+        <TouchTracker
+          touch={`${gifted ? "gift" : "sample"}:${touchSlug(email.slug)}`}
+          event={gifted ? undefined : "sample_view"}
+        />
         <EmailHeader
           email={email}
           total={total}
@@ -141,6 +147,7 @@ export default async function EmailPage({
       .join("");
     return (
       <article className="relative">
+        <TouchTracker touch={`teaser:${touchSlug(email.slug)}`} event="teaser_view" />
         <EmailHeader email={email} total={total} />
         <div className="max-w-3xl mx-auto px-6 pt-10 md:pt-14">
           <div className="ar-teaser-fade">

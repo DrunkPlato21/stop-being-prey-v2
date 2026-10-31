@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { channelFromReferrer, referrerFrom } from "@/lib/channels";
 import { track } from "@/lib/track";
+import { recordTouch, touchSlug } from "@/lib/touches";
 
 // Two jobs, both about where a visitor came from.
 //
@@ -43,6 +44,17 @@ export function FirstTouchTracker() {
         // Not HttpOnly (set from JS) so the checkout route can read it.
         // Lax survives the off-site -> site top-level navigation.
         document.cookie = `${COOKIE}=${channel}; path=/; max-age=${YEAR_SECONDS}; SameSite=Lax`;
+      }
+
+      // A tagged link from a broadcast (?ref=email&e=ooga-booga, or
+      // utm_campaign) goes on the visitor's path to patronage, first
+      // visit or not: email apps strip the referrer, so this is the only
+      // way to know which email sent someone. See lib/touches.
+      const params = new URLSearchParams(window.location.search);
+      const campaign = params.get("e") || params.get("utm_campaign");
+      if (campaign) {
+        const slug = touchSlug(campaign, 40);
+        if (slug) recordTouch(`email:${slug}`);
       }
 
       // Nothing to say when a returning visitor arrives with no off-site

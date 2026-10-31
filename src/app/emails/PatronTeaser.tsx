@@ -28,7 +28,7 @@ export function PatronTeaser({
         the ways I thank the people who fund the work.
       </p>
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-        <Link href="/patronage" className="btn-primary">
+        <Link href="/patronage?src=archive" className="btn-primary">
           <span>Become a patron</span>
         </Link>
         {!signedIn && (

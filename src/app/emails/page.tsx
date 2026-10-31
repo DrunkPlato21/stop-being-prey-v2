@@ -5,6 +5,7 @@ import { getArchiveReader, getEmailIndex } from "@/lib/email-archive";
 import { getMarkedKitIds } from "@/lib/email-reads";
 import { EmailArchive } from "./EmailArchive";
 import { PatronTeaser } from "./PatronTeaser";
+import { TouchTracker } from "@/components/TouchTracker";
 
 export const metadata: Metadata = {
   title: "Every Email",
@@ -34,6 +35,7 @@ export default async function EmailsIndexPage({
     );
     return (
       <div>
+        <TouchTracker touch="archive" event="archive_view" />
         <Masthead
           deck={`Every email I've sent, from the first one to the latest. ${emails.length} so far.`}
         />
